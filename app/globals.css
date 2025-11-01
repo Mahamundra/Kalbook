@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens (from original project) */
+@layer base {
+  :root {
+    --brand-primary: 178 78% 29%;
+    --brand-primary-strong: 178 78% 26%;
+    --brand-accent: 160 84% 31%;
+    --brand-bg-soft: 138 76% 97%;
+    --text-strong: 222 47% 11%;
+    --text-muted: 217 19% 35%;
+    --border-soft: 220 13% 91%;
+
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 178 78% 29%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 178 78% 40%;
+
+    --secondary: 43 96% 56%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 217 19% 35%;
+
+    --accent: 160 84% 31%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 178 78% 29%;
+
+    --radius: 0.75rem;
+
+    --gradient-hero: linear-gradient(to right, hsl(178 78% 26%), hsl(160 84% 31%), hsl(178 78% 26%));
+    --gradient-bg: linear-gradient(to bottom, hsl(138 76% 97%), hsl(0 0% 100%));
+    --gradient-card: linear-gradient(to bottom, hsl(0 0% 100%), hsl(210 40% 98%));
+    
+    --shadow-soft: 0 2px 8px -2px hsl(178 78% 29% / 0.1);
+    --shadow-card: 0 4px 16px -4px hsl(178 78% 29% / 0.15);
+    --shadow-glow: 0 0 30px hsl(178 78% 29% / 0.35);
+    --shadow-hover: 0 0 36px hsl(178 78% 29% / 0.28);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 178 78% 29%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 178 78% 95%;
+    --sidebar-accent-foreground: 178 78% 29%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 178 78% 29%;
+  }
+
+  .dark {
+    --brand-primary: 178 78% 40%;
+    --brand-primary-strong: 178 78% 35%;
+    --brand-accent: 160 84% 40%;
+    --brand-bg-soft: 222 47% 14%;
+    --text-strong: 210 40% 98%;
+    --text-muted: 215 20% 65%;
+    --border-soft: 217 33% 17%;
+
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 178 78% 40%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 178 78% 50%;
+
+    --secondary: 43 96% 56%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 160 84% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 178 78% 40%;
+
+    --gradient-hero: linear-gradient(to right, hsl(178 78% 35%), hsl(160 84% 40%), hsl(178 78% 35%));
+    --gradient-bg: linear-gradient(to bottom, hsl(222 47% 14%), hsl(222 47% 11%));
+    --gradient-card: linear-gradient(to bottom, hsl(222 47% 14%), hsl(222 47% 16%));
+    --shadow-soft: 0 2px 8px -2px hsl(178 78% 40% / 0.2);
+    --shadow-card: 0 4px 16px -4px hsl(178 78% 40% / 0.3);
+    --shadow-glow: 0 0 30px hsl(178 78% 40% / 0.4);
+    --shadow-hover: 0 0 36px hsl(178 78% 40% / 0.35);
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 178 78% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 178 78% 40%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 178 78% 40%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+
+html[dir="rtl"] body { direction: rtl; }
+.skeleton { background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 37%, rgba(0,0,0,0.06) 63%); background-size: 400% 100%; animation: shimmer 1s linear infinite; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }

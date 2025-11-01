@@ -1,0 +1,476 @@
+0 verbose cli /Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/bin/node /Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/bin/npm
+1 info using npm@10.5.0
+2 info using node@v18.20.0
+3 timing npm:load:whichnode Completed in 1ms
+4 timing config:load:defaults Completed in 1ms
+5 timing config:load:file:/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/npmrc Completed in 0ms
+6 timing config:load:builtin Completed in 0ms
+7 timing config:load:cli Completed in 1ms
+8 timing config:load:env Completed in 1ms
+9 timing config:load:file:/Users/dimakulikov/Desktop/Askcal/.npmrc Completed in 0ms
+10 timing config:load:project Completed in 1ms
+11 timing config:load:file:/Users/dimakulikov/.npmrc Completed in 1ms
+12 timing config:load:user Completed in 1ms
+13 timing config:load:file:/Users/dimakulikov/.npm-global/etc/npmrc Completed in 0ms
+14 timing config:load:global Completed in 0ms
+15 timing config:load:setEnvs Completed in 1ms
+16 timing config:load Completed in 6ms
+17 timing npm:load:configload Completed in 6ms
+18 timing config:load:flatten Completed in 0ms
+19 timing npm:load:mkdirpcache Completed in 1ms
+20 timing npm:load:mkdirplogs Completed in 0ms
+21 verbose title npm install @radix-ui/react-accordion @radix-ui/react-alert-dialog @radix-ui/react-aspect-ratio @radix-ui/react-avatar @radix-ui/react-checkbox @radix-ui/react-collapsible @radix-ui/react-context-menu @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-hover-card @radix-ui/react-menubar @radix-ui/react-navigation-menu @radix-ui/react-popover @radix-ui/react-progress @radix-ui/react-radio-group @radix-ui/react-scroll-area @radix-ui/react-select @radix-ui/react-separator @radix-ui/react-sheet @radix-ui/react-slider @radix-ui/react-toast @radix-ui/react-tooltip @radix-ui/react-toggle @radix-ui/react-toggle-group
+22 verbose argv "install" "@radix-ui/react-accordion" "@radix-ui/react-alert-dialog" "@radix-ui/react-aspect-ratio" "@radix-ui/react-avatar" "@radix-ui/react-checkbox" "@radix-ui/react-collapsible" "@radix-ui/react-context-menu" "@radix-ui/react-dialog" "@radix-ui/react-dropdown-menu" "@radix-ui/react-hover-card" "@radix-ui/react-menubar" "@radix-ui/react-navigation-menu" "@radix-ui/react-popover" "@radix-ui/react-progress" "@radix-ui/react-radio-group" "@radix-ui/react-scroll-area" "@radix-ui/react-select" "@radix-ui/react-separator" "@radix-ui/react-sheet" "@radix-ui/react-slider" "@radix-ui/react-toast" "@radix-ui/react-tooltip" "@radix-ui/react-toggle" "@radix-ui/react-toggle-group" "--save" "--cache" ".npm-cache" "--no-audit" "--no-fund"
+23 timing npm:load:setTitle Completed in 1ms
+24 timing npm:load:display Completed in 0ms
+25 verbose logfile logs-max:10 dir:/Users/dimakulikov/Desktop/Askcal/.npm-cache/_logs/2025-10-31T10_17_56_529Z-
+26 verbose logfile /Users/dimakulikov/Desktop/Askcal/.npm-cache/_logs/2025-10-31T10_17_56_529Z-debug-0.log
+27 timing npm:load:logFile Completed in 4ms
+28 timing npm:load:timers Completed in 0ms
+29 timing npm:load:configScope Completed in 0ms
+30 timing npm:load Completed in 19ms
+31 timing arborist:ctor Completed in 1ms
+32 silly logfile done cleaning log files
+33 timing idealTree:init Completed in 49ms
+34 timing idealTree:userRequests Completed in 2ms
+35 silly idealTree buildDeps
+36 silly fetch manifest @radix-ui/react-accordion@*
+37 timing arborist:ctor Completed in 0ms
+38 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-accordion 380ms (cache miss)
+39 silly fetch manifest @types/react@18.3.11
+40 http fetch GET 200 https://registry.npmjs.org/@types%2freact 213ms (cache revalidated)
+41 silly fetch manifest @types/react-dom@*
+42 http fetch GET 200 https://registry.npmjs.org/@types%2freact-dom 204ms (cache revalidated)
+43 silly fetch manifest @types/react@^19.2.0
+44 silly fetch manifest react@18.3.1
+45 http fetch GET 200 https://registry.npmjs.org/react 48ms (cache revalidated)
+46 silly fetch manifest react-dom@18.3.1
+47 http fetch GET 200 https://registry.npmjs.org/react-dom 51ms (cache revalidated)
+48 silly fetch manifest @radix-ui/react-alert-dialog@*
+49 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-alert-dialog 267ms (cache miss)
+50 silly fetch manifest @radix-ui/react-aspect-ratio@*
+51 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-aspect-ratio 276ms (cache miss)
+52 silly fetch manifest @radix-ui/react-avatar@*
+53 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-avatar 373ms (cache miss)
+54 silly fetch manifest @radix-ui/react-checkbox@*
+55 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-checkbox 303ms (cache miss)
+56 silly fetch manifest @radix-ui/react-collapsible@*
+57 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-collapsible 345ms (cache miss)
+58 silly fetch manifest @radix-ui/react-context-menu@*
+59 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-context-menu 285ms (cache miss)
+60 silly fetch manifest @radix-ui/react-dialog@*
+61 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-dialog 368ms (cache miss)
+62 silly fetch manifest @radix-ui/react-dropdown-menu@*
+63 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-dropdown-menu 274ms (cache miss)
+64 silly fetch manifest @radix-ui/react-hover-card@*
+65 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-hover-card 255ms (cache miss)
+66 silly fetch manifest @radix-ui/react-menubar@*
+67 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-menubar 358ms (cache miss)
+68 silly fetch manifest @radix-ui/react-navigation-menu@*
+69 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-navigation-menu 278ms (cache miss)
+70 silly fetch manifest @radix-ui/react-popover@*
+71 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-popover 272ms (cache miss)
+72 silly fetch manifest @radix-ui/react-progress@*
+73 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-progress 255ms (cache miss)
+74 silly fetch manifest @radix-ui/react-radio-group@*
+75 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-radio-group 279ms (cache miss)
+76 silly fetch manifest @radix-ui/react-scroll-area@*
+77 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-scroll-area 323ms (cache miss)
+78 silly fetch manifest @radix-ui/react-select@*
+79 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-select 304ms (cache miss)
+80 silly fetch manifest @radix-ui/react-separator@*
+81 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-separator 278ms (cache miss)
+82 silly fetch manifest @radix-ui/react-sheet@*
+83 http fetch GET 404 https://registry.npmjs.org/@radix-ui%2freact-sheet 681ms (cache skip)
+84 silly fetch manifest @radix-ui/react-slider@*
+85 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-slider 290ms (cache miss)
+86 silly fetch manifest @radix-ui/react-toast@*
+87 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-toast 271ms (cache miss)
+88 silly fetch manifest @radix-ui/react-tooltip@*
+89 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-tooltip 258ms (cache miss)
+90 silly fetch manifest @radix-ui/react-toggle@*
+91 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-toggle 322ms (cache miss)
+92 silly fetch manifest @radix-ui/react-toggle-group@*
+93 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-toggle-group 295ms (cache miss)
+94 silly placeDep ROOT @radix-ui/react-accordion@1.2.12 OK for:  want: *
+95 silly placeDep ROOT @radix-ui/react-alert-dialog@1.1.15 OK for:  want: *
+96 silly placeDep ROOT @radix-ui/react-aspect-ratio@1.1.7 OK for:  want: *
+97 silly placeDep ROOT @radix-ui/react-avatar@1.1.10 OK for:  want: *
+98 silly placeDep ROOT @radix-ui/react-checkbox@1.3.3 OK for:  want: *
+99 silly placeDep ROOT @radix-ui/react-collapsible@1.1.12 OK for:  want: *
+100 silly placeDep ROOT @radix-ui/react-context-menu@2.2.16 OK for:  want: *
+101 silly placeDep ROOT @radix-ui/react-dialog@1.1.15 OK for:  want: *
+102 silly placeDep ROOT @radix-ui/react-dropdown-menu@2.1.16 OK for:  want: *
+103 silly placeDep ROOT @radix-ui/react-hover-card@1.1.15 OK for:  want: *
+104 silly placeDep ROOT @radix-ui/react-menubar@1.1.16 OK for:  want: *
+105 silly placeDep ROOT @radix-ui/react-navigation-menu@1.2.14 OK for:  want: *
+106 silly placeDep ROOT @radix-ui/react-popover@1.1.15 OK for:  want: *
+107 silly placeDep ROOT @radix-ui/react-progress@1.1.7 OK for:  want: *
+108 silly placeDep ROOT @radix-ui/react-radio-group@1.3.8 OK for:  want: *
+109 silly placeDep ROOT @radix-ui/react-scroll-area@1.2.10 OK for:  want: *
+110 silly placeDep ROOT @radix-ui/react-select@2.2.6 OK for:  want: *
+111 silly placeDep ROOT @radix-ui/react-separator@1.1.7 OK for:  want: *
+112 silly placeDep ROOT @radix-ui/react-sheet@ OK for:  want: *
+113 silly placeDep ROOT @radix-ui/react-slider@1.3.6 OK for:  want: *
+114 silly placeDep ROOT @radix-ui/react-toast@1.2.15 OK for:  want: *
+115 silly placeDep ROOT @radix-ui/react-toggle@1.1.10 OK for:  want: *
+116 silly placeDep ROOT @radix-ui/react-toggle-group@1.1.11 OK for:  want: *
+117 silly placeDep ROOT @radix-ui/react-tooltip@1.2.8 OK for:  want: *
+118 silly fetch manifest @radix-ui/react-primitive@2.1.3
+119 silly fetch manifest @radix-ui/react-collection@1.1.7
+120 silly fetch manifest @radix-ui/react-collapsible@1.1.12
+121 silly fetch manifest @radix-ui/react-dialog@1.1.15
+122 silly fetch manifest @radix-ui/react-use-is-hydrated@0.1.0
+123 silly fetch manifest @radix-ui/react-presence@1.1.5
+124 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-use-is-hydrated 282ms (cache miss)
+125 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-collection 310ms (cache revalidated)
+126 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-primitive 325ms (cache revalidated)
+127 silly fetch manifest @radix-ui/react-menu@2.1.16
+128 silly fetch manifest aria-hidden@^1.2.4
+129 silly fetch manifest react-remove-scroll@^2.6.3
+130 silly fetch manifest @radix-ui/react-portal@1.1.9
+131 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-presence 335ms (cache revalidated)
+132 silly fetch manifest @radix-ui/react-focus-scope@1.1.7
+133 silly fetch manifest @radix-ui/react-focus-guards@1.1.3
+134 silly fetch manifest @radix-ui/react-dismissable-layer@1.1.11
+135 http fetch GET 200 https://registry.npmjs.org/aria-hidden 100ms (cache miss)
+136 http fetch GET 200 https://registry.npmjs.org/react-remove-scroll 122ms (cache miss)
+137 silly fetch manifest @radix-ui/react-popper@1.2.8
+138 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-menu 291ms (cache miss)
+139 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-portal 298ms (cache miss)
+140 silly fetch manifest @radix-ui/react-roving-focus@1.1.11
+141 silly fetch manifest @radix-ui/react-visually-hidden@1.2.3
+142 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-dismissable-layer 305ms (cache miss)
+143 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-focus-guards 354ms (cache miss)
+144 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-focus-scope 362ms (cache miss)
+145 silly fetch manifest @radix-ui/number@1.1.1
+146 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-popper 293ms (cache miss)
+147 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-roving-focus 257ms (cache revalidated)
+148 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-visually-hidden 276ms (cache miss)
+149 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2fnumber 255ms (cache miss)
+150 timing idealTree:#root Completed in 9385ms
+151 silly fetch manifest @types/react@*
+152 silly fetch manifest react@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+153 silly fetch manifest react-dom@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+154 silly placeDep node_modules/@radix-ui/react-accordion @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-accordion@1.2.12 want: 1.1.7
+155 silly placeDep node_modules/@radix-ui/react-accordion @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-accordion@1.2.12 want: 2.1.3
+156 timing idealTree:node_modules/@radix-ui/react-accordion Completed in 75ms
+157 silly placeDep node_modules/@radix-ui/react-alert-dialog @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-alert-dialog@1.1.15 want: 2.1.3
+158 timing idealTree:node_modules/@radix-ui/react-alert-dialog Completed in 29ms
+159 silly placeDep node_modules/@radix-ui/react-aspect-ratio @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-aspect-ratio@1.1.7 want: 2.1.3
+160 timing idealTree:node_modules/@radix-ui/react-aspect-ratio Completed in 27ms
+161 silly placeDep node_modules/@radix-ui/react-avatar @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-avatar@1.1.10 want: 2.1.3
+162 silly placeDep ROOT @radix-ui/react-use-is-hydrated@0.1.0 OK for: @radix-ui/react-avatar@1.1.10 want: 0.1.0
+163 silly fetch manifest use-sync-external-store@^1.5.0
+164 http fetch GET 200 https://registry.npmjs.org/use-sync-external-store 173ms (cache miss)
+165 timing idealTree:node_modules/@radix-ui/react-avatar Completed in 218ms
+166 silly placeDep node_modules/@radix-ui/react-checkbox @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-checkbox@1.3.3 want: 1.1.5
+167 silly placeDep node_modules/@radix-ui/react-checkbox @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-checkbox@1.3.3 want: 2.1.3
+168 timing idealTree:node_modules/@radix-ui/react-checkbox Completed in 66ms
+169 silly placeDep node_modules/@radix-ui/react-collapsible @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-collapsible@1.1.12 want: 1.1.5
+170 silly placeDep node_modules/@radix-ui/react-collapsible @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-collapsible@1.1.12 want: 2.1.3
+171 timing idealTree:node_modules/@radix-ui/react-collapsible Completed in 64ms
+172 silly placeDep node_modules/@radix-ui/react-context-menu @radix-ui/react-menu@2.1.16 CONFLICT for: @radix-ui/react-context-menu@2.2.16 want: 2.1.16
+173 silly placeDep node_modules/@radix-ui/react-context-menu @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-context-menu@2.2.16 want: 2.1.3
+174 timing idealTree:node_modules/@radix-ui/react-context-menu Completed in 66ms
+175 silly placeDep node_modules/@radix-ui/react-dialog @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-dialog@1.1.15 want: 1.1.11
+176 silly placeDep ROOT @radix-ui/react-focus-guards@1.1.3 OK for: @radix-ui/react-dialog@1.1.15 want: 1.1.3
+177 silly placeDep node_modules/@radix-ui/react-dialog @radix-ui/react-focus-scope@1.1.7 CONFLICT for: @radix-ui/react-dialog@1.1.15 want: 1.1.7
+178 silly placeDep node_modules/@radix-ui/react-dialog @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-dialog@1.1.15 want: 1.1.9
+179 silly placeDep node_modules/@radix-ui/react-dialog @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-dialog@1.1.15 want: 1.1.5
+180 silly placeDep node_modules/@radix-ui/react-dialog @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-dialog@1.1.15 want: 2.1.3
+181 silly placeDep ROOT aria-hidden@1.2.6 OK for: @radix-ui/react-dialog@1.1.15 want: ^1.2.4
+182 silly placeDep ROOT react-remove-scroll@2.7.1 OK for: @radix-ui/react-dialog@1.1.15 want: ^2.6.3
+183 silly fetch manifest @radix-ui/react-use-escape-keydown@1.1.1
+184 silly fetch manifest react-remove-scroll-bar@^2.3.7
+185 silly fetch manifest react-style-singleton@^2.2.3
+186 silly fetch manifest use-callback-ref@^1.3.3
+187 silly fetch manifest use-sidecar@^1.1.3
+188 http fetch GET 200 https://registry.npmjs.org/react-remove-scroll-bar 110ms (cache miss)
+189 http fetch GET 200 https://registry.npmjs.org/use-callback-ref 118ms (cache miss)
+190 http fetch GET 200 https://registry.npmjs.org/react-style-singleton 119ms (cache miss)
+191 http fetch GET 200 https://registry.npmjs.org/use-sidecar 132ms (cache miss)
+192 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-use-escape-keydown 295ms (cache miss)
+193 timing idealTree:node_modules/@radix-ui/react-dialog Completed in 487ms
+194 silly placeDep node_modules/@radix-ui/react-dropdown-menu @radix-ui/react-menu@2.1.16 CONFLICT for: @radix-ui/react-dropdown-menu@2.1.16 want: 2.1.16
+195 silly placeDep node_modules/@radix-ui/react-dropdown-menu @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-dropdown-menu@2.1.16 want: 2.1.3
+196 timing idealTree:node_modules/@radix-ui/react-dropdown-menu Completed in 98ms
+197 timing idealTree:node_modules/@radix-ui/react-focus-guards Completed in 0ms
+198 silly placeDep node_modules/@radix-ui/react-hover-card @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-hover-card@1.1.15 want: 1.1.11
+199 silly placeDep node_modules/@radix-ui/react-hover-card @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-hover-card@1.1.15 want: 1.2.8
+200 silly placeDep node_modules/@radix-ui/react-hover-card @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-hover-card@1.1.15 want: 1.1.9
+201 silly placeDep node_modules/@radix-ui/react-hover-card @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-hover-card@1.1.15 want: 1.1.5
+202 silly placeDep node_modules/@radix-ui/react-hover-card @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-hover-card@1.1.15 want: 2.1.3
+203 silly fetch manifest @radix-ui/rect@1.1.1
+204 silly fetch manifest @radix-ui/react-arrow@1.1.7
+205 silly fetch manifest @floating-ui/react-dom@^2.0.0
+206 silly fetch manifest @radix-ui/react-use-rect@1.1.1
+207 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-use-rect 252ms (cache miss)
+208 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2freact-arrow 283ms (cache miss)
+209 http fetch GET 200 https://registry.npmjs.org/@radix-ui%2frect 287ms (cache miss)
+210 http fetch GET 200 https://registry.npmjs.org/@floating-ui%2freact-dom 288ms (cache miss)
+211 timing idealTree:node_modules/@radix-ui/react-hover-card Completed in 500ms
+212 silly placeDep node_modules/@radix-ui/react-menubar @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-menubar@1.1.16 want: 1.1.7
+213 silly placeDep node_modules/@radix-ui/react-menubar @radix-ui/react-menu@2.1.16 CONFLICT for: @radix-ui/react-menubar@1.1.16 want: 2.1.16
+214 silly placeDep node_modules/@radix-ui/react-menubar @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-menubar@1.1.16 want: 2.1.3
+215 silly placeDep node_modules/@radix-ui/react-menubar @radix-ui/react-roving-focus@1.1.11 CONFLICT for: @radix-ui/react-menubar@1.1.16 want: 1.1.11
+216 timing idealTree:node_modules/@radix-ui/react-menubar Completed in 192ms
+217 silly placeDep node_modules/@radix-ui/react-navigation-menu @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-navigation-menu@1.2.14 want: 1.1.7
+218 silly placeDep node_modules/@radix-ui/react-navigation-menu @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-navigation-menu@1.2.14 want: 1.1.11
+219 silly placeDep node_modules/@radix-ui/react-navigation-menu @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-navigation-menu@1.2.14 want: 1.1.5
+220 silly placeDep node_modules/@radix-ui/react-navigation-menu @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-navigation-menu@1.2.14 want: 2.1.3
+221 silly placeDep node_modules/@radix-ui/react-navigation-menu @radix-ui/react-visually-hidden@1.2.3 CONFLICT for: @radix-ui/react-navigation-menu@1.2.14 want: 1.2.3
+222 timing idealTree:node_modules/@radix-ui/react-navigation-menu Completed in 255ms
+223 silly placeDep node_modules/@radix-ui/react-popover @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-popover@1.1.15 want: 1.1.11
+224 silly placeDep node_modules/@radix-ui/react-popover @radix-ui/react-focus-scope@1.1.7 CONFLICT for: @radix-ui/react-popover@1.1.15 want: 1.1.7
+225 silly placeDep node_modules/@radix-ui/react-popover @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-popover@1.1.15 want: 1.2.8
+226 silly placeDep node_modules/@radix-ui/react-popover @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-popover@1.1.15 want: 1.1.9
+227 silly placeDep node_modules/@radix-ui/react-popover @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-popover@1.1.15 want: 1.1.5
+228 silly placeDep node_modules/@radix-ui/react-popover @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-popover@1.1.15 want: 2.1.3
+229 timing idealTree:node_modules/@radix-ui/react-popover Completed in 371ms
+230 silly placeDep node_modules/@radix-ui/react-progress @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-progress@1.1.7 want: 2.1.3
+231 timing idealTree:node_modules/@radix-ui/react-progress Completed in 51ms
+232 silly placeDep node_modules/@radix-ui/react-radio-group @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-radio-group@1.3.8 want: 1.1.5
+233 silly placeDep node_modules/@radix-ui/react-radio-group @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-radio-group@1.3.8 want: 2.1.3
+234 silly placeDep node_modules/@radix-ui/react-radio-group @radix-ui/react-roving-focus@1.1.11 CONFLICT for: @radix-ui/react-radio-group@1.3.8 want: 1.1.11
+235 timing idealTree:node_modules/@radix-ui/react-radio-group Completed in 161ms
+236 silly placeDep ROOT @radix-ui/number@1.1.1 OK for: @radix-ui/react-scroll-area@1.2.10 want: 1.1.1
+237 silly placeDep node_modules/@radix-ui/react-scroll-area @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-scroll-area@1.2.10 want: 1.1.5
+238 silly placeDep node_modules/@radix-ui/react-scroll-area @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-scroll-area@1.2.10 want: 2.1.3
+239 timing idealTree:node_modules/@radix-ui/react-scroll-area Completed in 110ms
+240 timing idealTree:node_modules/@radix-ui/number Completed in 0ms
+241 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-select@2.2.6 want: 1.1.7
+242 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-select@2.2.6 want: 1.1.11
+243 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-focus-scope@1.1.7 CONFLICT for: @radix-ui/react-select@2.2.6 want: 1.1.7
+244 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-select@2.2.6 want: 1.2.8
+245 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-select@2.2.6 want: 1.1.9
+246 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-select@2.2.6 want: 2.1.3
+247 silly placeDep node_modules/@radix-ui/react-select @radix-ui/react-visually-hidden@1.2.3 CONFLICT for: @radix-ui/react-select@2.2.6 want: 1.2.3
+248 timing idealTree:node_modules/@radix-ui/react-select Completed in 406ms
+249 silly placeDep node_modules/@radix-ui/react-separator @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-separator@1.1.7 want: 2.1.3
+250 timing idealTree:node_modules/@radix-ui/react-separator Completed in 60ms
+251 timing idealTree:node_modules/@radix-ui/react-sheet Completed in 0ms
+252 silly placeDep node_modules/@radix-ui/react-slider @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-slider@1.3.6 want: 1.1.7
+253 silly placeDep node_modules/@radix-ui/react-slider @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-slider@1.3.6 want: 2.1.3
+254 timing idealTree:node_modules/@radix-ui/react-slider Completed in 124ms
+255 silly placeDep node_modules/@radix-ui/react-toast @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-toast@1.2.15 want: 1.1.7
+256 silly placeDep node_modules/@radix-ui/react-toast @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-toast@1.2.15 want: 1.1.11
+257 silly placeDep node_modules/@radix-ui/react-toast @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-toast@1.2.15 want: 1.1.9
+258 silly placeDep node_modules/@radix-ui/react-toast @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-toast@1.2.15 want: 1.1.5
+259 silly placeDep node_modules/@radix-ui/react-toast @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-toast@1.2.15 want: 2.1.3
+260 silly placeDep node_modules/@radix-ui/react-toast @radix-ui/react-visually-hidden@1.2.3 CONFLICT for: @radix-ui/react-toast@1.2.15 want: 1.2.3
+261 timing idealTree:node_modules/@radix-ui/react-toast Completed in 380ms
+262 silly placeDep node_modules/@radix-ui/react-toggle @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-toggle@1.1.10 want: 2.1.3
+263 timing idealTree:node_modules/@radix-ui/react-toggle Completed in 65ms
+264 silly placeDep node_modules/@radix-ui/react-toggle-group @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-toggle-group@1.1.11 want: 2.1.3
+265 silly placeDep node_modules/@radix-ui/react-toggle-group @radix-ui/react-roving-focus@1.1.11 CONFLICT for: @radix-ui/react-toggle-group@1.1.11 want: 1.1.11
+266 timing idealTree:node_modules/@radix-ui/react-toggle-group Completed in 132ms
+267 silly placeDep node_modules/@radix-ui/react-tooltip @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-tooltip@1.2.8 want: 1.1.11
+268 silly placeDep node_modules/@radix-ui/react-tooltip @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-tooltip@1.2.8 want: 1.2.8
+269 silly placeDep node_modules/@radix-ui/react-tooltip @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-tooltip@1.2.8 want: 1.1.9
+270 silly placeDep node_modules/@radix-ui/react-tooltip @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-tooltip@1.2.8 want: 1.1.5
+271 silly placeDep node_modules/@radix-ui/react-tooltip @radix-ui/react-primitive@2.1.3 CONFLICT for: @radix-ui/react-tooltip@1.2.8 want: 2.1.3
+272 silly placeDep node_modules/@radix-ui/react-tooltip @radix-ui/react-visually-hidden@1.2.3 CONFLICT for: @radix-ui/react-tooltip@1.2.8 want: 1.2.3
+273 timing idealTree:node_modules/@radix-ui/react-tooltip Completed in 413ms
+274 silly placeDep ROOT use-sync-external-store@1.6.0 OK for: @radix-ui/react-use-is-hydrated@0.1.0 want: ^1.5.0
+275 timing idealTree:node_modules/@radix-ui/react-use-is-hydrated Completed in 4ms
+276 timing idealTree:node_modules/aria-hidden Completed in 0ms
+277 silly fetch manifest react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+278 silly placeDep ROOT react-remove-scroll-bar@2.3.8 OK for: react-remove-scroll@2.7.1 want: ^2.3.7
+279 silly placeDep ROOT react-style-singleton@2.2.3 OK for: react-remove-scroll@2.7.1 want: ^2.2.3
+280 silly placeDep ROOT use-callback-ref@1.3.3 OK for: react-remove-scroll@2.7.1 want: ^1.3.3
+281 silly placeDep ROOT use-sidecar@1.1.3 OK for: react-remove-scroll@2.7.1 want: ^1.1.3
+282 silly fetch manifest react-style-singleton@^2.2.2
+283 silly fetch manifest get-nonce@^1.0.0
+284 silly fetch manifest detect-node-es@^1.1.0
+285 http fetch GET 200 https://registry.npmjs.org/get-nonce 92ms (cache miss)
+286 http fetch GET 200 https://registry.npmjs.org/detect-node-es 100ms (cache miss)
+287 timing idealTree:node_modules/react-remove-scroll Completed in 124ms
+288 timing idealTree:node_modules/react-remove-scroll-bar Completed in 0ms
+289 silly placeDep ROOT get-nonce@1.0.1 OK for: react-style-singleton@2.2.3 want: ^1.0.0
+290 timing idealTree:node_modules/react-style-singleton Completed in 1ms
+291 timing idealTree:node_modules/get-nonce Completed in 0ms
+292 timing idealTree:node_modules/use-callback-ref Completed in 0ms
+293 silly placeDep ROOT detect-node-es@1.1.0 OK for: use-sidecar@1.1.3 want: ^1.1.0
+294 timing idealTree:node_modules/use-sidecar Completed in 0ms
+295 timing idealTree:node_modules/detect-node-es Completed in 0ms
+296 timing idealTree:node_modules/use-sync-external-store Completed in 0ms
+297 timing idealTree:node_modules/@radix-ui/react-accordion/node_modules/@radix-ui/react-collection Completed in 0ms
+298 timing idealTree:node_modules/@radix-ui/react-accordion/node_modules/@radix-ui/react-primitive Completed in 0ms
+299 timing idealTree:node_modules/@radix-ui/react-alert-dialog/node_modules/@radix-ui/react-primitive Completed in 0ms
+300 timing idealTree:node_modules/@radix-ui/react-aspect-ratio/node_modules/@radix-ui/react-primitive Completed in 0ms
+301 timing idealTree:node_modules/@radix-ui/react-avatar/node_modules/@radix-ui/react-primitive Completed in 0ms
+302 timing idealTree:node_modules/@radix-ui/react-checkbox/node_modules/@radix-ui/react-presence Completed in 0ms
+303 timing idealTree:node_modules/@radix-ui/react-checkbox/node_modules/@radix-ui/react-primitive Completed in 0ms
+304 timing idealTree:node_modules/@radix-ui/react-collapsible/node_modules/@radix-ui/react-presence Completed in 0ms
+305 timing idealTree:node_modules/@radix-ui/react-collapsible/node_modules/@radix-ui/react-primitive Completed in 0ms
+306 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.7
+307 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.11
+308 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-focus-scope@1.1.7 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.7
+309 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.2.8
+310 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.9
+311 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.5
+312 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu @radix-ui/react-roving-focus@1.1.11 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.11
+313 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu Completed in 526ms
+314 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-primitive Completed in 0ms
+315 silly placeDep ROOT @radix-ui/react-use-escape-keydown@1.1.1 OK for: @radix-ui/react-dismissable-layer@1.1.11 want: 1.1.1
+316 timing idealTree:node_modules/@radix-ui/react-dialog/node_modules/@radix-ui/react-dismissable-layer Completed in 9ms
+317 timing idealTree:node_modules/@radix-ui/react-use-escape-keydown Completed in 0ms
+318 timing idealTree:node_modules/@radix-ui/react-dialog/node_modules/@radix-ui/react-focus-scope Completed in 0ms
+319 timing idealTree:node_modules/@radix-ui/react-dialog/node_modules/@radix-ui/react-portal Completed in 1ms
+320 timing idealTree:node_modules/@radix-ui/react-dialog/node_modules/@radix-ui/react-presence Completed in 0ms
+321 timing idealTree:node_modules/@radix-ui/react-dialog/node_modules/@radix-ui/react-primitive Completed in 0ms
+322 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.7
+323 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.11
+324 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-focus-scope@1.1.7 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.7
+325 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.2.8
+326 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.9
+327 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.5
+328 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu @radix-ui/react-roving-focus@1.1.11 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.11
+329 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu Completed in 571ms
+330 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-primitive Completed in 0ms
+331 timing idealTree:node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+332 silly placeDep ROOT @floating-ui/react-dom@2.1.6 OK for: @radix-ui/react-popper@1.2.8 want: ^2.0.0
+333 silly placeDep node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+334 silly placeDep ROOT @radix-ui/react-use-rect@1.1.1 OK for: @radix-ui/react-popper@1.2.8 want: 1.1.1
+335 silly placeDep ROOT @radix-ui/rect@1.1.1 OK for: @radix-ui/react-popper@1.2.8 want: 1.1.1
+336 silly fetch manifest @floating-ui/dom@^1.7.4
+337 http fetch GET 200 https://registry.npmjs.org/@floating-ui%2fdom 363ms (cache miss)
+338 timing idealTree:node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-popper Completed in 469ms
+339 silly placeDep ROOT @floating-ui/dom@1.7.4 OK for: @floating-ui/react-dom@2.1.6 want: ^1.7.4
+340 silly fetch manifest @floating-ui/core@^1.7.3
+341 silly fetch manifest @floating-ui/utils@^0.2.10
+342 http fetch GET 200 https://registry.npmjs.org/@floating-ui%2fcore 273ms (cache miss)
+343 http fetch GET 200 https://registry.npmjs.org/@floating-ui%2futils 292ms (cache miss)
+344 timing idealTree:node_modules/@floating-ui/react-dom Completed in 295ms
+345 silly placeDep ROOT @floating-ui/core@1.7.3 OK for: @floating-ui/dom@1.7.4 want: ^1.7.3
+346 silly placeDep ROOT @floating-ui/utils@0.2.10 OK for: @floating-ui/dom@1.7.4 want: ^0.2.10
+347 timing idealTree:node_modules/@floating-ui/dom Completed in 3ms
+348 timing idealTree:node_modules/@floating-ui/core Completed in 0ms
+349 timing idealTree:node_modules/@floating-ui/utils Completed in 0ms
+350 timing idealTree:node_modules/@radix-ui/react-use-rect Completed in 0ms
+351 timing idealTree:node_modules/@radix-ui/rect Completed in 0ms
+352 timing idealTree:node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-portal Completed in 0ms
+353 timing idealTree:node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-presence Completed in 0ms
+354 timing idealTree:node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-primitive Completed in 0ms
+355 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-collection Completed in 0ms
+356 silly placeDep node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu @radix-ui/react-dismissable-layer@1.1.11 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.11
+357 silly placeDep node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu @radix-ui/react-focus-scope@1.1.7 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.7
+358 silly placeDep node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu @radix-ui/react-popper@1.2.8 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.2.8
+359 silly placeDep node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu @radix-ui/react-portal@1.1.9 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.9
+360 silly placeDep node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu @radix-ui/react-presence@1.1.5 CONFLICT for: @radix-ui/react-menu@2.1.16 want: 1.1.5
+361 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu Completed in 470ms
+362 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-primitive Completed in 0ms
+363 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-roving-focus Completed in 0ms
+364 timing idealTree:node_modules/@radix-ui/react-navigation-menu/node_modules/@radix-ui/react-collection Completed in 0ms
+365 timing idealTree:node_modules/@radix-ui/react-navigation-menu/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+366 timing idealTree:node_modules/@radix-ui/react-navigation-menu/node_modules/@radix-ui/react-presence Completed in 0ms
+367 timing idealTree:node_modules/@radix-ui/react-navigation-menu/node_modules/@radix-ui/react-primitive Completed in 0ms
+368 timing idealTree:node_modules/@radix-ui/react-navigation-menu/node_modules/@radix-ui/react-visually-hidden Completed in 0ms
+369 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+370 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-focus-scope Completed in 0ms
+371 silly placeDep node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+372 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-popper Completed in 92ms
+373 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-portal Completed in 0ms
+374 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-presence Completed in 0ms
+375 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-primitive Completed in 0ms
+376 timing idealTree:node_modules/@radix-ui/react-progress/node_modules/@radix-ui/react-primitive Completed in 0ms
+377 timing idealTree:node_modules/@radix-ui/react-radio-group/node_modules/@radix-ui/react-presence Completed in 0ms
+378 timing idealTree:node_modules/@radix-ui/react-radio-group/node_modules/@radix-ui/react-primitive Completed in 0ms
+379 silly placeDep node_modules/@radix-ui/react-radio-group/node_modules/@radix-ui/react-roving-focus @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-roving-focus@1.1.11 want: 1.1.7
+380 timing idealTree:node_modules/@radix-ui/react-radio-group/node_modules/@radix-ui/react-roving-focus Completed in 91ms
+381 timing idealTree:node_modules/@radix-ui/react-scroll-area/node_modules/@radix-ui/react-presence Completed in 0ms
+382 timing idealTree:node_modules/@radix-ui/react-scroll-area/node_modules/@radix-ui/react-primitive Completed in 0ms
+383 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-collection Completed in 0ms
+384 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+385 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-focus-scope Completed in 0ms
+386 silly placeDep node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+387 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-popper Completed in 94ms
+388 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-portal Completed in 0ms
+389 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-primitive Completed in 0ms
+390 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-visually-hidden Completed in 0ms
+391 timing idealTree:node_modules/@radix-ui/react-separator/node_modules/@radix-ui/react-primitive Completed in 0ms
+392 timing idealTree:node_modules/@radix-ui/react-slider/node_modules/@radix-ui/react-collection Completed in 0ms
+393 timing idealTree:node_modules/@radix-ui/react-slider/node_modules/@radix-ui/react-primitive Completed in 0ms
+394 timing idealTree:node_modules/@radix-ui/react-toast/node_modules/@radix-ui/react-collection Completed in 0ms
+395 timing idealTree:node_modules/@radix-ui/react-toast/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+396 timing idealTree:node_modules/@radix-ui/react-toast/node_modules/@radix-ui/react-portal Completed in 0ms
+397 timing idealTree:node_modules/@radix-ui/react-toast/node_modules/@radix-ui/react-presence Completed in 0ms
+398 timing idealTree:node_modules/@radix-ui/react-toast/node_modules/@radix-ui/react-primitive Completed in 0ms
+399 timing idealTree:node_modules/@radix-ui/react-toast/node_modules/@radix-ui/react-visually-hidden Completed in 0ms
+400 timing idealTree:node_modules/@radix-ui/react-toggle-group/node_modules/@radix-ui/react-primitive Completed in 0ms
+401 silly placeDep node_modules/@radix-ui/react-toggle-group/node_modules/@radix-ui/react-roving-focus @radix-ui/react-collection@1.1.7 CONFLICT for: @radix-ui/react-roving-focus@1.1.11 want: 1.1.7
+402 timing idealTree:node_modules/@radix-ui/react-toggle-group/node_modules/@radix-ui/react-roving-focus Completed in 94ms
+403 timing idealTree:node_modules/@radix-ui/react-toggle/node_modules/@radix-ui/react-primitive Completed in 0ms
+404 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+405 silly placeDep node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+406 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-popper Completed in 97ms
+407 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-portal Completed in 0ms
+408 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-presence Completed in 0ms
+409 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-primitive Completed in 0ms
+410 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-visually-hidden Completed in 0ms
+411 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-collection Completed in 0ms
+412 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+413 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-focus-scope Completed in 0ms
+414 silly placeDep node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+415 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper Completed in 98ms
+416 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-portal Completed in 0ms
+417 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-presence Completed in 0ms
+418 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-roving-focus Completed in 0ms
+419 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-collection Completed in 0ms
+420 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+421 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-focus-scope Completed in 0ms
+422 silly placeDep node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+423 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper Completed in 98ms
+424 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-portal Completed in 0ms
+425 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-presence Completed in 0ms
+426 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-roving-focus Completed in 0ms
+427 timing idealTree:node_modules/@radix-ui/react-hover-card/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+428 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-dismissable-layer Completed in 0ms
+429 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-focus-scope Completed in 0ms
+430 silly placeDep node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper @radix-ui/react-arrow@1.1.7 CONFLICT for: @radix-ui/react-popper@1.2.8 want: 1.1.7
+431 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper Completed in 99ms
+432 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-portal Completed in 0ms
+433 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-presence Completed in 0ms
+434 timing idealTree:node_modules/@radix-ui/react-popover/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+435 timing idealTree:node_modules/@radix-ui/react-radio-group/node_modules/@radix-ui/react-roving-focus/node_modules/@radix-ui/react-collection Completed in 0ms
+436 timing idealTree:node_modules/@radix-ui/react-select/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+437 timing idealTree:node_modules/@radix-ui/react-toggle-group/node_modules/@radix-ui/react-roving-focus/node_modules/@radix-ui/react-collection Completed in 0ms
+438 timing idealTree:node_modules/@radix-ui/react-tooltip/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+439 timing idealTree:node_modules/@radix-ui/react-context-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+440 timing idealTree:node_modules/@radix-ui/react-dropdown-menu/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+441 timing idealTree:node_modules/@radix-ui/react-menubar/node_modules/@radix-ui/react-menu/node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-arrow Completed in 0ms
+442 timing idealTree:buildDeps Completed in 16975ms
+443 timing idealTree:fixDepFlags Completed in 2ms
+444 timing idealTree Completed in 17028ms
+445 timing command:install Completed in 17031ms
+446 verbose stack HttpErrorGeneral: 404 Not Found - GET https://registry.npmjs.org/@radix-ui%2freact-sheet - Not found
+446 verbose stack     at /Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/npm-registry-fetch/lib/check-response.js:95:15
+446 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+446 verbose stack     at async RegistryFetcher.packument (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/pacote/lib/registry.js:91:19)
+446 verbose stack     at async RegistryFetcher.manifest (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/pacote/lib/registry.js:129:23)
+446 verbose stack     at async #nodeFromEdge (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1056:19)
+446 verbose stack     at async #buildDepStep (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:924:11)
+446 verbose stack     at async Arborist.buildIdealTree (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:203:7)
+446 verbose stack     at async Promise.all (index 1)
+446 verbose stack     at async Arborist.reify (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:154:5)
+446 verbose stack     at async Install.exec (/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/lib/commands/install.js:153:5)
+447 verbose statusCode 404
+448 verbose pkgid @radix-ui/react-sheet@*
+449 verbose cwd /Users/dimakulikov/Desktop/Askcal
+450 verbose Darwin 24.0.0
+451 verbose node v18.20.0
+452 verbose npm  v10.5.0
+453 error code E404
+454 error 404 Not Found - GET https://registry.npmjs.org/@radix-ui%2freact-sheet - Not found
+455 error 404
+456 error 404  '@radix-ui/react-sheet@*' is not in this registry.
+457 error 404
+457 error 404 Note that you can also install from a
+458 error 404 tarball, folder, http url, or git url.
+459 verbose exit 1
+460 timing npm Completed in 17178ms
+461 verbose unfinished npm timer reify 1761905876674
+462 verbose unfinished npm timer reify:loadTrees 1761905876676
+463 verbose code 1
+464 error A complete log of this run can be found in: /Users/dimakulikov/Desktop/Askcal/.npm-cache/_logs/2025-10-31T10_17_56_529Z-debug-0.log

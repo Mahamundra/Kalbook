@@ -1,0 +1,11 @@
+{
+  "/booking/page": "app/booking/page.js",
+  "/admin/services/page": "app/admin/services/page.js",
+  "/admin/calendar/page": "app/admin/calendar/page.js",
+  "/admin/workers/page": "app/admin/workers/page.js",
+  "/admin/customers/page": "app/admin/customers/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/templates/page": "app/admin/templates/page.js",
+  "/admin/qr/page": "app/admin/qr/page.js",
+  "/admin/settings/page": "app/admin/settings/page.js"
+}

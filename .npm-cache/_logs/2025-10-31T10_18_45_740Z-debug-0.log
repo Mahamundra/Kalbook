@@ -1,0 +1,142 @@
+0 verbose cli /Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/bin/node /Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/bin/npm
+1 info using npm@10.5.0
+2 info using node@v18.20.0
+3 timing npm:load:whichnode Completed in 1ms
+4 timing config:load:defaults Completed in 1ms
+5 timing config:load:file:/Users/dimakulikov/Library/Application Support/Herd/config/nvm/versions/node/v18.20.0/lib/node_modules/npm/npmrc Completed in 0ms
+6 timing config:load:builtin Completed in 0ms
+7 timing config:load:cli Completed in 1ms
+8 timing config:load:env Completed in 1ms
+9 timing config:load:file:/Users/dimakulikov/Desktop/Askcal/.npmrc Completed in 0ms
+10 timing config:load:project Completed in 1ms
+11 timing config:load:file:/Users/dimakulikov/.npmrc Completed in 1ms
+12 timing config:load:user Completed in 1ms
+13 timing config:load:file:/Users/dimakulikov/.npm-global/etc/npmrc Completed in 0ms
+14 timing config:load:global Completed in 0ms
+15 timing config:load:setEnvs Completed in 1ms
+16 timing config:load Completed in 6ms
+17 timing npm:load:configload Completed in 6ms
+18 timing config:load:flatten Completed in 1ms
+19 timing npm:load:mkdirpcache Completed in 0ms
+20 timing npm:load:mkdirplogs Completed in 0ms
+21 verbose title npm install react-day-picker
+22 verbose argv "install" "react-day-picker" "--save" "--cache" ".npm-cache" "--no-audit" "--no-fund"
+23 timing npm:load:setTitle Completed in 0ms
+24 timing npm:load:display Completed in 0ms
+25 verbose logfile logs-max:10 dir:/Users/dimakulikov/Desktop/Askcal/.npm-cache/_logs/2025-10-31T10_18_45_740Z-
+26 verbose logfile /Users/dimakulikov/Desktop/Askcal/.npm-cache/_logs/2025-10-31T10_18_45_740Z-debug-0.log
+27 timing npm:load:logFile Completed in 4ms
+28 timing npm:load:timers Completed in 0ms
+29 timing npm:load:configScope Completed in 0ms
+30 timing npm:load Completed in 18ms
+31 timing arborist:ctor Completed in 0ms
+32 silly logfile done cleaning log files
+33 timing idealTree:init Completed in 117ms
+34 timing idealTree:userRequests Completed in 0ms
+35 silly idealTree buildDeps
+36 silly fetch manifest react-day-picker@*
+37 timing arborist:ctor Completed in 0ms
+38 http fetch GET 200 https://registry.npmjs.org/react-day-picker 193ms (cache miss)
+39 silly fetch manifest react@18.3.1
+40 http fetch GET 200 https://registry.npmjs.org/react 11ms (cache hit)
+41 silly placeDep ROOT react-day-picker@9.11.1 OK for:  want: *
+42 silly fetch manifest @date-fns/tz@^1.4.1
+43 silly fetch manifest date-fns@^4.1.0
+44 silly fetch manifest date-fns-jalali@^4.1.0-0
+45 http fetch GET 200 https://registry.npmjs.org/date-fns-jalali 236ms (cache miss)
+46 http fetch GET 200 https://registry.npmjs.org/@date-fns%2ftz 274ms (cache miss)
+47 http fetch GET 200 https://registry.npmjs.org/date-fns 351ms (cache miss)
+48 timing idealTree:#root Completed in 609ms
+49 silly placeDep ROOT @date-fns/tz@1.4.1 OK for: react-day-picker@9.11.1 want: ^1.4.1
+50 silly placeDep ROOT date-fns@4.1.0 OK for: react-day-picker@9.11.1 want: ^4.1.0
+51 silly placeDep ROOT date-fns-jalali@4.1.0-0 OK for: react-day-picker@9.11.1 want: ^4.1.0-0
+52 timing idealTree:node_modules/react-day-picker Completed in 3ms
+53 timing idealTree:node_modules/@date-fns/tz Completed in 0ms
+54 timing idealTree:node_modules/date-fns Completed in 0ms
+55 timing idealTree:node_modules/date-fns-jalali Completed in 0ms
+56 timing idealTree:buildDeps Completed in 613ms
+57 timing idealTree:fixDepFlags Completed in 7ms
+58 timing idealTree Completed in 741ms
+59 timing reify:loadTrees Completed in 742ms
+60 timing reify:diffTrees Completed in 3ms
+61 silly reify moves {}
+62 timing reify:retireShallow Completed in 1ms
+63 timing reify:createSparse Completed in 3ms
+64 timing reify:loadBundles Completed in 0ms
+65 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-win32-x64-msvc
+66 silly reify mark deleted [
+66 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-win32-x64-msvc'
+66 silly reify ]
+67 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-win32-ia32-msvc
+68 silly reify mark deleted [
+68 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-win32-ia32-msvc'
+68 silly reify ]
+69 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-win32-arm64-msvc
+70 silly reify mark deleted [
+70 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-win32-arm64-msvc'
+70 silly reify ]
+71 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-x64-musl
+72 silly reify mark deleted [
+72 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-x64-musl'
+72 silly reify ]
+73 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-x64-gnu
+74 silly reify mark deleted [
+74 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-x64-gnu'
+74 silly reify ]
+75 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-arm64-musl
+76 silly reify mark deleted [
+76 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-arm64-musl'
+76 silly reify ]
+77 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-arm64-gnu
+78 silly reify mark deleted [
+78 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-linux-arm64-gnu'
+78 silly reify ]
+79 verbose reify failed optional dependency /Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-darwin-x64
+80 silly reify mark deleted [
+80 silly reify   '/Users/dimakulikov/Desktop/Askcal/node_modules/@next/swc-darwin-x64'
+80 silly reify ]
+81 timing reifyNode:node_modules/@next/swc-win32-x64-msvc Completed in 3ms
+82 timing reifyNode:node_modules/@next/swc-win32-ia32-msvc Completed in 3ms
+83 timing reifyNode:node_modules/@next/swc-win32-arm64-msvc Completed in 3ms
+84 timing reifyNode:node_modules/@next/swc-linux-x64-musl Completed in 3ms
+85 timing reifyNode:node_modules/@next/swc-linux-x64-gnu Completed in 3ms
+86 timing reifyNode:node_modules/@next/swc-linux-arm64-musl Completed in 3ms
+87 timing reifyNode:node_modules/@next/swc-linux-arm64-gnu Completed in 3ms
+88 timing reifyNode:node_modules/@next/swc-darwin-x64 Completed in 3ms
+89 silly tarball no local data for date-fns-jalali@https://registry.npmjs.org/date-fns-jalali/-/date-fns-jalali-4.1.0-0.tgz. Extracting by manifest.
+90 silly tarball no local data for date-fns@https://registry.npmjs.org/date-fns/-/date-fns-4.1.0.tgz. Extracting by manifest.
+91 silly tarball no local data for react-day-picker@https://registry.npmjs.org/react-day-picker/-/react-day-picker-9.11.1.tgz. Extracting by manifest.
+92 silly tarball no local data for @date-fns/tz@https://registry.npmjs.org/@date-fns/tz/-/tz-1.4.1.tgz. Extracting by manifest.
+93 http fetch GET 200 https://registry.npmjs.org/@date-fns/tz/-/tz-1.4.1.tgz 203ms (cache miss)
+94 timing reifyNode:node_modules/@date-fns/tz Completed in 209ms
+95 http fetch GET 200 https://registry.npmjs.org/react-day-picker/-/react-day-picker-9.11.1.tgz 267ms (cache miss)
+96 timing reifyNode:node_modules/react-day-picker Completed in 273ms
+97 http fetch GET 200 https://registry.npmjs.org/date-fns-jalali/-/date-fns-jalali-4.1.0-0.tgz 646ms (cache miss)
+98 timing reifyNode:node_modules/date-fns-jalali Completed in 650ms
+99 http fetch GET 200 https://registry.npmjs.org/date-fns/-/date-fns-4.1.0.tgz 1075ms (cache miss)
+100 timing reifyNode:node_modules/date-fns Completed in 1080ms
+101 timing reify:unpack Completed in 1080ms
+102 timing reify:unretire Completed in 0ms
+103 timing build:queue Completed in 0ms
+104 timing build:deps Completed in 0ms
+105 timing build Completed in 0ms
+106 timing reify:build Completed in 0ms
+107 timing reify:trash Completed in 1ms
+108 timing reify:save Completed in 119ms
+109 timing reify Completed in 2041ms
+110 silly ADD node_modules/date-fns-jalali
+111 silly ADD node_modules/date-fns
+112 silly ADD node_modules/@date-fns/tz
+113 silly ADD node_modules/react-day-picker
+114 silly ADD
+115 silly ADD
+116 silly ADD
+117 silly ADD
+118 silly ADD
+119 silly ADD
+120 silly ADD
+121 silly ADD
+122 timing command:install Completed in 2044ms
+123 verbose exit 0
+124 timing npm Completed in 2177ms
+125 info ok
