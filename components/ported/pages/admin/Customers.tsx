@@ -717,7 +717,7 @@ const Customers = () => {
       render: (customer: Customer) => (
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {customer.blocked && (
-            <Shield className="w-4 h-4 text-destructive shrink-0" title={t('customers.block') || 'Blocked'} />
+            <Shield className="w-4 h-4 text-destructive shrink-0" />
           )}
           <span>{customer.name}</span>
         </div>
