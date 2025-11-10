@@ -59,12 +59,13 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Verify customer exists and belongs to the business
-    const { data: customer, error: customerError } = await supabase
+    const customerResult = await supabase
       .from('customers')
       .select('id')
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: { id: string } | null; error: any };
+    const { data: customer, error: customerError } = customerResult;
 
     if (customerError || !customer) {
       return NextResponse.json(
@@ -101,7 +102,8 @@ export async function GET(
     // Order by start date
     query = query.order('start', { ascending: false });
 
-    const { data: appointments, error } = await query;
+    const appointmentsResult = await query as { data: any[] | null; error: any };
+    const { data: appointments, error } = appointmentsResult;
 
     if (error) {
       return NextResponse.json(

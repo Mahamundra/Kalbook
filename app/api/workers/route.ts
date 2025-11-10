@@ -236,8 +236,8 @@ export async function POST(request: NextRequest) {
 
       if (existingUser) {
         // Update existing user
-        const { error: updateUserError } = await supabase
-          .from('users')
+        const updateUserResult = await (supabase
+          .from('users') as any)
           .update({
             name: body.name.trim(),
             email: body.email,
@@ -246,7 +246,8 @@ export async function POST(request: NextRequest) {
             is_main_admin: false, // Ensure workers are never marked as main admin
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existingUser.id);
+          .eq('id', existingUser.id) as { error: any };
+        const { error: updateUserError } = updateUserResult;
 
         if (updateUserError) {
           console.error('Failed to update admin user:', updateUserError);

@@ -43,14 +43,15 @@ export async function GET(
     }
 
     // Get worker services with service details
-    const { data: workerServices, error } = await supabase
+    const workerServicesResult = await supabase
       .from('worker_services')
       .select(`
         service_id,
         services!inner (*)
       `)
       .eq('worker_id', workerId)
-      .eq('services.business_id', tenantInfo.businessId);
+      .eq('services.business_id', tenantInfo.businessId) as { data: any[] | null; error: any };
+    const { data: workerServices, error } = workerServicesResult;
 
     if (error) {
       return NextResponse.json(
@@ -211,10 +212,11 @@ export async function POST(
     }
 
     // Get updated service list
-    const { data: updatedAssignments } = await supabase
+    const updatedAssignmentsResult = await supabase
       .from('worker_services')
       .select('service_id')
-      .eq('worker_id', workerId);
+      .eq('worker_id', workerId) as { data: Array<{ service_id: string }> | null; error: any };
+    const { data: updatedAssignments } = updatedAssignmentsResult;
 
     const allServiceIds = updatedAssignments?.map((a) => a.service_id) || [];
 

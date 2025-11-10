@@ -3,6 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
 import type { Appointment } from '@/components/ported/types/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 interface ScheduleItem {
   id: string;
@@ -134,11 +138,12 @@ export async function GET(request: NextRequest) {
     const businessId = tenantInfo.businessId;
 
     // Get business currency for formatting
-    const { data: business } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .select('currency')
       .eq('id', businessId)
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: business } = businessResult;
 
     const currency = (business as any)?.currency || 'USD';
 
@@ -172,7 +177,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Revenue MTD (Month-to-Date) - sum of confirmed appointments
-    const { data: mtdAppointments, error: mtdError } = await supabase
+    const mtdAppointmentsResult = await supabase
       .from('appointments')
       .select(`
         id,
@@ -181,7 +186,8 @@ export async function GET(request: NextRequest) {
       .eq('business_id', businessId)
       .eq('status', 'confirmed')
       .gte('start', monthBounds.start.toISOString())
-      .lte('start', monthBounds.end.toISOString());
+      .lte('start', monthBounds.end.toISOString()) as { data: any[] | null; error: any };
+    const { data: mtdAppointments, error: mtdError } = mtdAppointmentsResult;
 
     if (mtdError) {
       console.error('Error fetching MTD revenue:', mtdError);
@@ -213,7 +219,7 @@ export async function GET(request: NextRequest) {
       : 0;
 
     // 5. Today's schedule with full details
-    const { data: todaysAppointments, error: scheduleError } = await supabase
+    const todaysAppointmentsResult = await supabase
       .from('appointments')
       .select(`
         *,
@@ -224,7 +230,8 @@ export async function GET(request: NextRequest) {
       .eq('business_id', businessId)
       .gte('start', todayBounds.start.toISOString())
       .lte('start', todayBounds.end.toISOString())
-      .order('start', { ascending: true });
+      .order('start', { ascending: true }) as { data: any[] | null; error: any };
+    const { data: todaysAppointments, error: scheduleError } = todaysAppointmentsResult;
 
     if (scheduleError) {
       console.error('Error fetching today schedule:', scheduleError);

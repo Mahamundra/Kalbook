@@ -105,7 +105,8 @@ export async function GET(request: NextRequest) {
       workersQuery = workersQuery.eq('worker_id', workerId);
     }
 
-    const { data: workerServices, error: workersError } = await workersQuery;
+    const workerServicesResult = await workersQuery as { data: any[] | null; error: any };
+    const { data: workerServices, error: workersError } = workerServicesResult;
 
     if (workersError || !workerServices || workerServices.length === 0) {
       return NextResponse.json(

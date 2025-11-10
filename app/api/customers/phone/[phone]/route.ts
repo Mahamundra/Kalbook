@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapCustomerToInterface, normalizePhone } from '@/lib/customers/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type CustomerTagRow = Database['public']['Tables']['customer_tags']['Row'];
+type VisitRow = Database['public']['Tables']['visits']['Row'];
 
 /**
  * GET /api/customers/phone/[phone]
@@ -51,17 +55,19 @@ export async function GET(
     }
 
     // Get customer tags
-    const { data: tags } = await supabase
+    const tagsResult = await supabase
       .from('customer_tags')
       .select('*')
-      .eq('customer_id', customer.id);
+      .eq('customer_id', customer.id) as { data: CustomerTagRow[] | null; error: any };
+    const { data: tags } = tagsResult;
 
     // Get visit history
-    const { data: visits } = await supabase
+    const visitsResult = await supabase
       .from('visits')
       .select('*')
       .eq('customer_id', customer.id)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false }) as { data: VisitRow[] | null; error: any };
+    const { data: visits } = visitsResult;
 
     // Map to Customer interface
     const mappedCustomer = await mapCustomerToInterface(

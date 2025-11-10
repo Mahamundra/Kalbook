@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
+import type { Database } from '@/lib/supabase/database.types';
+
+type WorkerRow = Database['public']['Tables']['workers']['Row'];
+type ServiceRow = Database['public']['Tables']['services']['Row'];
+type WorkerServiceRow = Database['public']['Tables']['worker_services']['Row'];
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 /**
  * DELETE /api/workers/[id]/services/[serviceId]
@@ -26,12 +32,13 @@ export async function DELETE(
     const supabase = createAdminClient();
 
     // Verify worker exists and belongs to business
-    const { data: worker, error: workerError } = await supabase
+    const workerResult = await supabase
       .from('workers')
       .select('id')
       .eq('id', workerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
+    const { data: worker, error: workerError } = workerResult;
 
     if (workerError || !worker) {
       return NextResponse.json(
@@ -41,12 +48,13 @@ export async function DELETE(
     }
 
     // Verify service exists and belongs to business
-    const { data: service, error: serviceError } = await supabase
+    const serviceResult = await supabase
       .from('services')
       .select('id')
       .eq('id', serviceId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: service, error: serviceError } = serviceResult;
 
     if (serviceError || !service) {
       return NextResponse.json(
@@ -56,12 +64,13 @@ export async function DELETE(
     }
 
     // Check if assignment exists
-    const { data: assignment, error: assignmentError } = await supabase
+    const assignmentResult = await supabase
       .from('worker_services')
       .select('*')
       .eq('worker_id', workerId)
       .eq('service_id', serviceId)
-      .single();
+      .single() as { data: WorkerServiceRow | null; error: any };
+    const { data: assignment, error: assignmentError } = assignmentResult;
 
     if (assignmentError || !assignment) {
       return NextResponse.json(
@@ -71,13 +80,14 @@ export async function DELETE(
     }
 
     // Check if worker has appointments for this service
-    const { data: appointments, error: appointmentsError } = await supabase
+    const appointmentsResult = await supabase
       .from('appointments')
       .select('id')
       .eq('worker_id', workerId)
       .eq('service_id', serviceId)
       .in('status', ['confirmed', 'pending'])
-      .limit(1);
+      .limit(1) as { data: AppointmentRow[] | null; error: any };
+    const { data: appointments, error: appointmentsError } = appointmentsResult;
 
     if (appointmentsError) {
       console.error('Error checking appointments:', appointmentsError);
