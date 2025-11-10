@@ -50,20 +50,20 @@ export async function POST(request: NextRequest) {
       targetBusinessId = businessId;
     } else if (businessSlug) {
       // Get business by slug
-      const { data: business, error: businessError } = await supabase
+      const { data: businessBySlug, error: businessError } = await supabase
         .from('businesses')
         .select('id, name')
         .eq('slug', businessSlug)
         .single();
 
-      if (businessError || !business) {
+      if (businessError || !businessBySlug) {
         return NextResponse.json(
           { error: 'Business not found' },
           { status: 404 }
         );
       }
 
-      targetBusinessId = business.id;
+      targetBusinessId = businessBySlug.id;
     } else {
       // Get first business
       const { data: businesses, error: businessesError } = await supabase
