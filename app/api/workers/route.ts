@@ -32,7 +32,7 @@ async function mapWorkerToInterface(
       .eq('business_id', businessId)
       .or(`email.eq.${worker.email || ''},phone.eq.${worker.phone || ''}`)
       .in('role', ['admin', 'owner'])
-      .maybeSingle() as { data: UserRow | null; error: any };
+      .maybeSingle() as { data: (UserRow & { is_main_admin?: boolean }) | null; error: any };
     const { data: adminUser } = adminUserResult;
     
     if (adminUser) {
