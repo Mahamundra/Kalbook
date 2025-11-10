@@ -7,6 +7,7 @@ import type { Worker } from '@/components/ported/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type WorkerRow = Database['public']['Tables']['workers']['Row'];
+type UserRow = Database['public']['Tables']['users']['Row'];
 
 /**
  * Map database worker row to Worker interface
@@ -25,13 +26,14 @@ async function mapWorkerToInterface(
   let userId: string | undefined = undefined;
   
   if (worker.email || worker.phone) {
-    const { data: adminUser } = await supabase
+    const adminUserResult = await supabase
       .from('users')
       .select('id, role, is_main_admin')
       .eq('business_id', businessId)
       .or(`email.eq.${worker.email || ''},phone.eq.${worker.phone || ''}`)
       .in('role', ['admin', 'owner'])
-      .maybeSingle();
+      .maybeSingle() as { data: UserRow | null; error: any };
+    const { data: adminUser } = adminUserResult;
     
     if (adminUser) {
       isAdmin = true;
@@ -175,11 +177,12 @@ export async function POST(request: NextRequest) {
     };
 
     // Create worker
-    const { data: newWorker, error } = await supabase
+    const workerResult = await supabase
       .from('workers')
       .insert(workerData as any)
       .select()
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
+    const { data: newWorker, error } = workerResult;
 
     if (error) {
       return NextResponse.json(
@@ -219,12 +222,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user already exists for this worker (by email or phone in E.164 format)
-      const { data: existingUser, error: userCheckError } = await supabase
+      const existingUserResult = await supabase
         .from('users')
         .select('*')
         .eq('business_id', tenantInfo.businessId)
         .or(`email.eq.${body.email},phone.eq.${e164Phone}`)
-        .maybeSingle();
+        .maybeSingle() as { data: UserRow | null; error: any };
+      const { data: existingUser, error: userCheckError } = existingUserResult;
 
       if (userCheckError) {
         console.error('Error checking for existing user:', userCheckError);
@@ -291,28 +295,31 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // If worker is not admin, remove from users table if exists
-      const { data: existingUser } = await supabase
+      const existingUserResult2 = await supabase
         .from('users')
         .select('id')
         .eq('business_id', tenantInfo.businessId)
         .or(`email.eq.${body.email || ''},phone.eq.${body.phone || ''}`)
-        .maybeSingle();
+        .maybeSingle() as { data: UserRow | null; error: any };
+      const { data: existingUser } = existingUserResult2;
 
       if (existingUser) {
         // Only remove if this user was created from a worker (not an owner)
-        const { data: userCheck } = await supabase
+        const userCheckResult = await supabase
           .from('users')
           .select('role')
           .eq('id', existingUser.id)
-          .single();
+          .single() as { data: UserRow | null; error: any };
+        const { data: userCheck } = userCheckResult;
 
         if (userCheck?.role === 'admin') {
           // Check if this is a main admin - cannot be deleted
-          const { data: userDetails } = await supabase
+          const userDetailsResult = await supabase
             .from('users')
             .select('is_main_admin')
             .eq('id', existingUser.id)
-            .single();
+            .single() as { data: UserRow | null; error: any };
+          const { data: userDetails } = userDetailsResult;
           
           if (!userDetails?.is_main_admin) {
             await supabase.from('users').delete().eq('id', existingUser.id);
@@ -326,11 +333,12 @@ export async function POST(request: NextRequest) {
     // Assign services if provided
     if (body.services && Array.isArray(body.services) && body.services.length > 0) {
       // Verify all services belong to the business
-      const { data: services, error: servicesError } = await supabase
+      const servicesResult = await supabase
         .from('services')
         .select('id')
         .eq('business_id', tenantInfo.businessId)
-        .in('id', body.services);
+        .in('id', body.services) as { data: Array<{ id: string }> | null; error: any };
+      const { data: services, error: servicesError } = servicesResult;
 
       if (servicesError) {
         return NextResponse.json(
