@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
             .from('users')
             .select('is_main_admin')
             .eq('id', existingUser.id)
-            .single() as { data: UserRow | null; error: any };
+            .single() as { data: (UserRow & { is_main_admin?: boolean }) | null; error: any };
           const { data: userDetails } = userDetailsResult;
           
           if (!userDetails?.is_main_admin) {
