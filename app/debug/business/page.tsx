@@ -241,8 +241,8 @@ export default function BusinessDebugPage() {
                       const selected = data.customers.find((c: any) => c.id === idStr);
                       const compared = compareData.customers.find((c: any) => c.id === idStr);
                       return (
-                        <li key={id}>
-                          ID: {id.slice(0, 8)}... | 
+                        <li key={idStr}>
+                          ID: {idStr.slice(0, 8)}... | 
                           Selected: {selected?.name} (business_id: {selected?.business_id.slice(0, 8)}...) | 
                           Compare: {compared?.name} (business_id: {compared?.business_id.slice(0, 8)}...)
                         </li>
