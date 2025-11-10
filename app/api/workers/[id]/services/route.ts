@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
+import type { Database } from '@/lib/supabase/database.types';
+
+type ServiceRow = Database['public']['Tables']['services']['Row'];
 
 /**
  * GET /api/workers/[id]/services
@@ -130,11 +133,12 @@ export async function POST(
     }
 
     // Verify all services exist and belong to business
-    const { data: services, error: servicesError } = await supabase
+    const servicesResult = await supabase
       .from('services')
       .select('id')
       .eq('business_id', tenantInfo.businessId)
-      .in('id', body.serviceIds);
+      .in('id', body.serviceIds) as { data: Array<{ id: string }> | null; error: any };
+    const { data: services, error: servicesError } = servicesResult;
 
     if (servicesError) {
       return NextResponse.json(
