@@ -141,7 +141,7 @@ export async function getBusinessOwnerSession(): Promise<BusinessOwnerSession | 
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .single() as { data: UserRow | null; error: any };
+    .single() as { data: (UserRow & { is_main_admin?: boolean }) | null; error: any };
   const { data: userData, error } = userDataResult;
 
   if (error || !userData) {
