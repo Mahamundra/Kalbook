@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
           } as any);
         } else {
           // Update business_id if different
-          // @ts-expect-error - Type inference issue with Supabase update
           await (supabase
             .from('users') as any)
             .update({ business_id: targetBusinessId })
