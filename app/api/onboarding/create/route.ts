@@ -5,16 +5,18 @@ import { toE164Format } from '@/lib/customers/utils';
 import type { BusinessType } from '@/lib/supabase/database.types';
 import type { Database } from '@/lib/supabase/database.types';
 
-type Business = Database['public']['Tables']['businesses']['Row'];
-type User = Database['public']['Tables']['users']['Row'];
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
+type UserRow = Database['public']['Tables']['users']['Row'];
+type WorkerRow = Database['public']['Tables']['workers']['Row'];
 
 /**
  * POST /api/onboarding/create
  * Create a new business with default services, settings, and admin user
  */
 export async function POST(request: NextRequest) {
+  let body: any = null;
   try {
-    const body = await request.json();
+    body = await request.json();
     const { businessType, businessInfo, adminUser } = body;
 
     // Validate required fields
@@ -103,11 +105,12 @@ export async function POST(request: NextRequest) {
       business_type: businessType as BusinessType,
     };
 
-    const { data: newBusiness, error: businessError } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .insert(businessData as any)
       .select()
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: newBusiness, error: businessError } = businessResult;
 
     if (businessError) {
       if (businessError.code === '23505') {
@@ -183,11 +186,12 @@ export async function POST(request: NextRequest) {
 
       // Check if phone already exists in users table (if phone is provided)
       if (e164Phone) {
-        const { data: existingUserByPhone } = await supabase
+        const existingUserByPhoneResult = await supabase
           .from('users')
           .select('id, email, phone')
           .eq('phone', e164Phone)
-          .maybeSingle();
+          .maybeSingle() as { data: UserRow | null; error: any };
+        const { data: existingUserByPhone } = existingUserByPhoneResult;
         
         if (existingUserByPhone) {
           // Phone already registered - check if it's the same email
@@ -331,11 +335,12 @@ export async function POST(request: NextRequest) {
       adminUserPhone: adminUser.phone,
     });
 
-    const { data: newUser, error: userError } = await supabase
+    const userResult = await supabase
       .from('users')
       .insert(userData as any)
       .select()
-      .single();
+      .single() as { data: UserRow | null; error: any };
+    const { data: newUser, error: userError } = userResult;
 
     if (userError) {
       console.error('Failed to create user in users table:', {
@@ -408,11 +413,12 @@ export async function POST(request: NextRequest) {
       color: '#3B82F6', // Default blue color
     };
 
-    const { data: newWorker, error: workerError } = await supabase
+    const workerResult = await supabase
       .from('workers')
       .insert(workerData as any)
       .select()
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
+    const { data: newWorker, error: workerError } = workerResult;
 
     if (workerError) {
       // Worker creation failure is not critical, but log it
@@ -457,7 +463,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error in onboarding:', error);
     console.error('Error stack:', error.stack);
-    console.error('Request body:', JSON.stringify({ businessType, businessInfo, adminUser, services: body.services?.length }, null, 2));
+    console.error('Request body:', body ? JSON.stringify({ businessType: body.businessType, businessInfo: body.businessInfo, adminUser: body.adminUser, services: body.services?.length }, null, 2) : 'N/A');
     return NextResponse.json(
       { error: error.message || 'Failed to complete onboarding', details: error.stack },
       { status: 500 }

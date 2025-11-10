@@ -28,12 +28,13 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Get customer by phone
-    const { data: customer, error } = await supabase
+    const customerResult = await supabase
       .from('customers')
       .select('*')
       .eq('business_id', tenantInfo.businessId)
       .eq('phone', normalizedPhone)
-      .maybeSingle();
+      .maybeSingle() as { data: any; error: any };
+    const { data: customer, error } = customerResult;
 
     if (error) {
       return NextResponse.json(

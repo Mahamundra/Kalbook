@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 /**
  * POST /api/appointments/[id]/cancel
@@ -27,19 +30,21 @@ export async function POST(
     const supabase = createAdminClient();
 
     // Verify appointment exists and belongs to business
-    const { data: existingAppointment, error: checkError } = await supabase
+    const appointmentResult = await supabase
       .from('appointments')
       .select('id, business_id, status')
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: AppointmentRow | null; error: any };
 
-    if (checkError || !existingAppointment) {
+    if (appointmentResult.error || !appointmentResult.data) {
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
       );
     }
+
+    const existingAppointment = appointmentResult.data;
 
     // Check if already cancelled
     if (existingAppointment.status === 'cancelled') {
@@ -50,8 +55,8 @@ export async function POST(
     }
 
     // Update appointment status to cancelled
-    const { data: updatedAppointment, error: updateError } = await supabase
-      .from('appointments')
+    const updateResult = await (supabase
+      .from('appointments') as any)
       .update({ status: 'cancelled' })
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
@@ -61,7 +66,8 @@ export async function POST(
         customers (*),
         workers (*)
       `)
-      .single();
+      .single() as { data: any; error: any };
+    const { data: updatedAppointment, error: updateError } = updateResult;
 
     if (updateError || !updatedAppointment) {
       return NextResponse.json(

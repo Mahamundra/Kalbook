@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 
 /**
  * Debug endpoint to check if multiple slugs map to the same business_id
@@ -14,17 +17,19 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get both businesses
-    const { data: business1 } = await supabase
+    const business1Result = await supabase
       .from('businesses')
       .select('*')
       .eq('slug', slug1)
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: business1 } = business1Result;
 
-    const { data: business2 } = await supabase
+    const business2Result = await supabase
       .from('businesses')
       .select('*')
       .eq('slug', slug2)
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: business2 } = business2Result;
 
     // Check if they have the same business_id
     const sameId = business1?.id === business2?.id;

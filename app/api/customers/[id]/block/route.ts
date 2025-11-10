@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapCustomerToInterface } from '@/lib/customers/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type CustomerRow = Database['public']['Tables']['customers']['Row'];
 
 /**
  * POST /api/customers/[id]/block
@@ -37,12 +40,13 @@ export async function POST(
     const supabase = createAdminClient();
 
     // Verify customer exists and belongs to the business
-    const { data: existingCustomer, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('customers')
       .select('business_id')
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: CustomerRow | null; error: any };
+    const { data: existingCustomer, error: checkError } = checkResult;
 
     if (checkError || !existingCustomer) {
       return NextResponse.json(
@@ -52,13 +56,14 @@ export async function POST(
     }
 
     // Update blocked status
-    const { data: updatedCustomer, error: updateError } = await supabase
-      .from('customers')
+    const updateResult = await (supabase
+      .from('customers') as any)
       .update({ blocked })
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
       .select()
-      .single();
+      .single() as { data: any; error: any };
+    const { data: updatedCustomer, error: updateError } = updateResult;
 
     if (updateError || !updatedCustomer) {
       return NextResponse.json(

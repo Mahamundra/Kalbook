@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
+type UserRow = Database['public']['Tables']['users']['Row'];
+type CustomerRow = Database['public']['Tables']['customers']['Row'];
+type ServiceRow = Database['public']['Tables']['services']['Row'];
+type WorkerRow = Database['public']['Tables']['workers']['Row'];
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
+type SettingsRow = Database['public']['Tables']['settings']['Row'];
+type TemplateRow = Database['public']['Tables']['templates']['Row'];
 
 /**
  * GET /api/debug/business-data?businessId=xxx
@@ -38,7 +48,16 @@ export async function GET(request: NextRequest) {
       supabase.from('appointments').select('*').eq('business_id', businessId),
       supabase.from('settings').select('*').eq('business_id', businessId).maybeSingle(),
       supabase.from('templates').select('*').eq('business_id', businessId),
-    ]);
+    ]) as [
+      { data: BusinessRow | null; error: any },
+      { data: UserRow[] | null; error: any },
+      { data: (CustomerRow & { customer_tags: any[] })[] | null; error: any },
+      { data: ServiceRow[] | null; error: any },
+      { data: (WorkerRow & { worker_services: any[] })[] | null; error: any },
+      { data: AppointmentRow[] | null; error: any },
+      { data: SettingsRow | null; error: any },
+      { data: TemplateRow[] | null; error: any },
+    ];
 
     // Get visits
     const customerIds = customersResult.data?.map(c => c.id) || [];

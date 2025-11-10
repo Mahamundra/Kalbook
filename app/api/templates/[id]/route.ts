@@ -43,12 +43,13 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Get template and verify it belongs to the business
-    const { data: template, error } = await supabase
+    const templateResult = await supabase
       .from('templates')
       .select('*')
       .eq('id', templateId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: TemplateRow | null; error: any };
+    const { data: template, error } = templateResult;
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -110,12 +111,13 @@ export async function PATCH(
     const supabase = createAdminClient();
 
     // Get existing template
-    const { data: existingTemplate, error: fetchError } = await supabase
+    const fetchResult = await supabase
       .from('templates')
       .select('*')
       .eq('id', templateId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: TemplateRow | null; error: any };
+    const { data: existingTemplate, error: fetchError } = fetchResult;
 
     if (fetchError || !existingTemplate) {
       return NextResponse.json(
@@ -191,7 +193,7 @@ export async function PATCH(
       const checkType = body.type !== undefined ? body.type : existingTemplate.type;
       const checkLocale = body.locale !== undefined ? body.locale : existingTemplate.locale;
 
-      const { data: duplicateTemplate } = await supabase
+      const duplicateTemplateResult = await supabase
         .from('templates')
         .select('id')
         .eq('business_id', tenantInfo.businessId)
@@ -199,7 +201,8 @@ export async function PATCH(
         .eq('type', checkType)
         .eq('locale', checkLocale)
         .neq('id', templateId)
-        .maybeSingle();
+        .maybeSingle() as { data: TemplateRow | null; error: any };
+      const { data: duplicateTemplate } = duplicateTemplateResult;
 
       if (duplicateTemplate) {
         return NextResponse.json(
@@ -222,13 +225,14 @@ export async function PATCH(
     }
 
     // Update template
-    const { data: updatedTemplate, error: updateError } = await supabase
-      .from('templates')
+    const updateResult = await (supabase
+      .from('templates') as any)
       .update(updateData)
       .eq('id', templateId)
       .eq('business_id', tenantInfo.businessId)
       .select()
-      .single();
+      .single() as { data: TemplateRow | null; error: any };
+    const { data: updatedTemplate, error: updateError } = updateResult;
 
     if (updateError || !updatedTemplate) {
       return NextResponse.json(
@@ -276,12 +280,13 @@ export async function DELETE(
     const supabase = createAdminClient();
 
     // Verify template exists and belongs to business
-    const { data: existingTemplate, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('templates')
       .select('id, business_id')
       .eq('id', templateId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: TemplateRow | null; error: any };
+    const { data: existingTemplate, error: checkError } = checkResult;
 
     if (checkError || !existingTemplate) {
       return NextResponse.json(

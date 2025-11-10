@@ -3,6 +3,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
 import type { Appointment } from '@/components/ported/types/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type CustomerRow = Database['public']['Tables']['customers']['Row'];
+type ServiceRow = Database['public']['Tables']['services']['Row'];
+type WorkerRow = Database['public']['Tables']['workers']['Row'];
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 /**
  * GET /api/appointments
@@ -175,15 +181,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify customer exists and belongs to business
-    const { data: customer, error: customerError } = await supabase
+    const customerResult = await supabase
       .from('customers')
       .select('id, blocked')
       .eq('id', body.customerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: CustomerRow | null; error: any };
 
-    if (customerError || !customer) {
-      console.error('Customer lookup error:', customerError);
+    if (customerResult.error || !customerResult.data) {
+      console.error('Customer lookup error:', customerResult.error);
       console.error('Customer ID:', body.customerId);
       console.error('Business ID:', tenantInfo.businessId);
       return NextResponse.json(
@@ -192,6 +198,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const customer = customerResult.data;
     const customerData = customer as { id: string; blocked: boolean };
     if (customerData.blocked) {
       return NextResponse.json(
@@ -201,16 +208,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify service exists and belongs to business
-    const { data: service, error: serviceError } = await supabase
+    const serviceResult = await supabase
       .from('services')
       .select('*')
       .eq('id', body.serviceId)
       .eq('business_id', tenantInfo.businessId)
       .eq('active', true)
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
 
-    if (serviceError || !service) {
-      console.error('Service lookup error:', serviceError);
+    if (serviceResult.error || !serviceResult.data) {
+      console.error('Service lookup error:', serviceResult.error);
       console.error('Service ID:', body.serviceId);
       console.error('Business ID:', tenantInfo.businessId);
       return NextResponse.json(
@@ -219,19 +226,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const service = serviceResult.data;
     const serviceData = service as { id: string; duration: number; [key: string]: any };
 
     // Verify worker exists and belongs to business
-    const { data: worker, error: workerError } = await supabase
+    const workerResult = await supabase
       .from('workers')
       .select('*, worker_services!inner(service_id)')
       .eq('id', body.workerId)
       .eq('business_id', tenantInfo.businessId)
       .eq('active', true)
-      .single();
+      .single() as { data: (WorkerRow & { worker_services: any[] }) | null; error: any };
 
-    if (workerError || !worker) {
-      console.error('Worker lookup error:', workerError);
+    if (workerResult.error || !workerResult.data) {
+      console.error('Worker lookup error:', workerResult.error);
       console.error('Worker ID:', body.workerId);
       console.error('Business ID:', tenantInfo.businessId);
       return NextResponse.json(
@@ -240,6 +248,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const worker = workerResult.data;
     const workerData = worker as { worker_services: Array<{ service_id: string }>; [key: string]: any };
     // Check if worker can provide this service
     const workerServiceIds = (workerData.worker_services || []).map(
@@ -289,11 +298,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get working hours from settings (optional validation)
-    const { data: settings } = await supabase
+    const settingsResult = await supabase
       .from('settings')
       .select('calendar')
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: any; error: any };
+    const settings = settingsResult.data;
 
     const settingsData = settings as { calendar?: { workingHours?: { start?: string; end?: string } } } | null;
     // Only validate working hours if they are properly configured
@@ -338,11 +348,12 @@ export async function POST(request: NextRequest) {
     });
 
     // First, insert the appointment
-    const { data: newAppointment, error: createError } = await supabase
+    const createResult = await supabase
       .from('appointments')
       .insert(appointmentData as any)
       .select()
-      .single();
+      .single() as { data: AppointmentRow | null; error: any };
+    const { data: newAppointment, error: createError } = createResult;
 
     if (createError || !newAppointment) {
       console.error('Error creating appointment in database:', createError);
@@ -365,7 +376,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch related data for the response
     const appointmentRecord = newAppointment as { id: string };
-    const { data: appointmentWithRelations, error: fetchError } = await supabase
+    const fetchResult = await supabase
       .from('appointments')
       .select(`
         *,
@@ -374,7 +385,8 @@ export async function POST(request: NextRequest) {
         workers (*)
       `)
       .eq('id', appointmentRecord.id)
-      .single();
+      .single() as { data: any; error: any };
+    const { data: appointmentWithRelations, error: fetchError } = fetchResult;
 
     if (fetchError || !appointmentWithRelations) {
       console.error('Error fetching appointment with relations:', fetchError);

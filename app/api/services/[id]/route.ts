@@ -45,12 +45,13 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Get service and verify it belongs to the business
-    const { data: service, error } = await supabase
+    const serviceResult = await supabase
       .from('services')
       .select('*')
       .eq('id', serviceId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: service, error } = serviceResult;
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -112,12 +113,13 @@ export async function PATCH(
     const supabase = createAdminClient();
 
     // Verify service exists and belongs to the business
-    const { data: existingService, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('services')
       .select('business_id')
       .eq('id', serviceId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: existingService, error: checkError } = checkResult;
 
     if (checkError || !existingService) {
       return NextResponse.json(
@@ -191,13 +193,14 @@ export async function PATCH(
     }
 
     // Update service
-    const { data: updatedService, error: updateError } = await supabase
-      .from('services')
+    const updateResult = await (supabase
+      .from('services') as any)
       .update(updateData)
       .eq('id', serviceId)
       .eq('business_id', tenantInfo.businessId)
       .select()
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: updatedService, error: updateError } = updateResult;
 
     if (updateError || !updatedService) {
       return NextResponse.json(
@@ -245,12 +248,13 @@ export async function DELETE(
     const supabase = createAdminClient();
 
     // Verify service exists and belongs to the business
-    const { data: existingService, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('services')
       .select('id, business_id')
       .eq('id', serviceId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: existingService, error: checkError } = checkResult;
 
     if (checkError || !existingService) {
       return NextResponse.json(
@@ -273,11 +277,12 @@ export async function DELETE(
 
     if (appointments && appointments.length > 0) {
       // Instead of hard delete, soft delete by setting active to false
-      const { error: deactivateError } = await supabase
-        .from('services')
+      const deactivateResult = await (supabase
+        .from('services') as any)
         .update({ active: false })
         .eq('id', serviceId)
-        .eq('business_id', tenantInfo.businessId);
+        .eq('business_id', tenantInfo.businessId) as { error: any };
+      const { error: deactivateError } = deactivateResult;
 
       if (deactivateError) {
         return NextResponse.json(

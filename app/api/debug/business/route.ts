@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 
 /**
  * GET /api/debug/business
@@ -20,11 +23,12 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Check if business exists
-    const { data: business, error } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .select('*')
       .eq('slug', slug)
-      .maybeSingle();
+      .maybeSingle() as { data: BusinessRow | null; error: any };
+    const { data: business, error } = businessResult;
 
     if (error) {
       return NextResponse.json({

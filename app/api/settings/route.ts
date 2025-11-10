@@ -3,6 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapSettingsToInterface, prepareSettingsUpdate, mergeSettingsUpdate } from '@/lib/settings/utils';
 import type { Settings } from '@/components/ported/types/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
+type SettingsRow = Database['public']['Tables']['settings']['Row'];
 
 /**
  * GET /api/settings
@@ -38,11 +42,12 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get business data
-    const { data: business, error: businessError } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .select('*')
       .eq('id', tenantInfo.businessId)
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: business, error: businessError } = businessResult;
 
     if (businessError || !business) {
       return NextResponse.json(
@@ -101,11 +106,12 @@ export async function PATCH(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get current business data
-    const { data: business, error: businessError } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .select('*')
       .eq('id', tenantInfo.businessId)
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: business, error: businessError } = businessResult;
 
     if (businessError || !business) {
       return NextResponse.json(
@@ -115,11 +121,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Get current settings
-    const { data: currentSettings, error: settingsError } = await supabase
+    const settingsResult = await supabase
       .from('settings')
       .select('*')
       .eq('business_id', tenantInfo.businessId)
-      .maybeSingle();
+      .maybeSingle() as { data: SettingsRow | null; error: any };
+    const { data: currentSettings, error: settingsError } = settingsResult;
 
     if (settingsError && settingsError.code !== 'PGRST116') {
       return NextResponse.json(
@@ -142,10 +149,11 @@ export async function PATCH(request: NextRequest) {
 
     // Update business table if needed
     if (Object.keys(businessUpdate).length > 0) {
-      const { error: updateBusinessError } = await supabase
-        .from('businesses')
-        .update(businessUpdate)
-        .eq('id', tenantInfo.businessId);
+        const updateBusinessResult = await (supabase
+          .from('businesses') as any)
+          .update(businessUpdate)
+          .eq('id', tenantInfo.businessId) as { error: any };
+        const { error: updateBusinessError } = updateBusinessResult;
 
       if (updateBusinessError) {
         return NextResponse.json(
@@ -157,7 +165,7 @@ export async function PATCH(request: NextRequest) {
 
     // Update or create settings
     if (Object.keys(settingsUpdate).length > 0) {
-      if (currentSettings) {
+      if (currentSettings && currentSettings !== null) {
         // Update existing settings with deep merge for JSONB columns
         const mergedSettings: any = {
           branding: currentSettings.branding
@@ -184,10 +192,11 @@ export async function PATCH(request: NextRequest) {
           }
         });
 
-        const { error: updateSettingsError } = await supabase
-          .from('settings')
+        const updateSettingsResult = await (supabase
+          .from('settings') as any)
           .update(mergedSettings)
-          .eq('business_id', tenantInfo.businessId);
+          .eq('business_id', tenantInfo.businessId) as { error: any };
+        const { error: updateSettingsError } = updateSettingsResult;
 
         if (updateSettingsError) {
           return NextResponse.json(
@@ -214,17 +223,19 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Fetch updated data
-    const { data: updatedBusiness } = await supabase
+    const updatedBusinessResult = await supabase
       .from('businesses')
       .select('*')
       .eq('id', tenantInfo.businessId)
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: updatedBusiness } = updatedBusinessResult;
 
-    const { data: updatedSettingsData } = await supabase
+    const updatedSettingsResult = await supabase
       .from('settings')
       .select('*')
       .eq('business_id', tenantInfo.businessId)
-      .maybeSingle();
+      .maybeSingle() as { data: SettingsRow | null; error: any };
+    const { data: updatedSettingsData } = updatedSettingsResult;
 
     // Map to Settings interface
     const finalSettings = mapSettingsToInterface(updatedBusiness!, updatedSettingsData);

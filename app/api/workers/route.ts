@@ -101,10 +101,11 @@ export async function GET(request: NextRequest) {
 
     // Get all worker services
     const workerIds = (workers || []).map((w: any) => w.id);
-    const { data: allWorkerServices } = await supabase
+    const allWorkerServicesResult = await supabase
       .from('worker_services')
       .select('worker_id, service_id')
-      .in('worker_id', workerIds);
+      .in('worker_id', workerIds) as { data: Array<{ worker_id: string; service_id: string }> | null; error: any };
+    const { data: allWorkerServices } = allWorkerServicesResult;
 
     // Group services by worker_id
     const servicesByWorker = new Map<string, string[]>();
@@ -373,12 +374,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get worker services for response
-    const { data: workerServices } = await supabase
+    const workerServicesResult = await supabase
       .from('worker_services')
       .select('service_id')
-      .eq('worker_id', (newWorker as any).id);
+      .eq('worker_id', (newWorker as any).id) as { data: Array<{ service_id: string }> | null; error: any };
+    const { data: workerServices } = workerServicesResult;
 
-    const serviceIds = (workerServices || []).map((ws: any) => ws.service_id);
+    const serviceIds = (workerServices || []).map((ws) => ws.service_id);
 
     // Map to Worker interface
     const mappedWorker = await mapWorkerToInterface(newWorker as any, serviceIds, supabase, tenantInfo.businessId);

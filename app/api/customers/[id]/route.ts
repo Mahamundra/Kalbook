@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapCustomerToInterface, normalizePhone } from '@/lib/customers/utils';
 import type { Customer } from '@/components/ported/types/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type CustomerRow = Database['public']['Tables']['customers']['Row'];
 
 /**
  * GET /api/customers/[id]
@@ -27,26 +30,27 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Get customer and verify it belongs to the business
-    const { data: customer, error } = await supabase
+    const customerResult = await supabase
       .from('customers')
       .select('*')
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: CustomerRow | null; error: any };
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (customerResult.error) {
+      if (customerResult.error.code === 'PGRST116') {
         return NextResponse.json(
           { error: 'Customer not found' },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        { error: error.message || 'Failed to fetch customer' },
+        { error: customerResult.error.message || 'Failed to fetch customer' },
         { status: 500 }
       );
     }
 
+    const customer = customerResult.data;
     if (!customer) {
       return NextResponse.json(
         { error: 'Customer not found' },
@@ -112,19 +116,21 @@ export async function PATCH(
     const supabase = createAdminClient();
 
     // Verify customer exists and belongs to the business
-    const { data: existingCustomer, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('customers')
       .select('business_id, phone')
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: CustomerRow | null; error: any };
 
-    if (checkError || !existingCustomer) {
+    if (checkResult.error || !checkResult.data) {
       return NextResponse.json(
         { error: 'Customer not found' },
         { status: 404 }
       );
     }
+
+    const existingCustomer = checkResult.data;
 
     // Build update object
     const updateData: any = {};
@@ -213,11 +219,12 @@ export async function PATCH(
 
     // If no fields to update, return current customer
     if (Object.keys(updateData).length === 0) {
-      const { data: customer } = await supabase
+      const customerResult = await supabase
         .from('customers')
         .select('*')
         .eq('id', customerId)
-        .single();
+        .single() as { data: CustomerRow | null; error: any };
+      const customer = customerResult.data;
 
       if (customer) {
         const { data: tags } = await supabase
@@ -234,13 +241,14 @@ export async function PATCH(
     }
 
     // Update customer
-    const { data: updatedCustomer, error: updateError } = await supabase
-      .from('customers')
+    const updateResult = await (supabase
+      .from('customers') as any)
       .update(updateData)
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
       .select()
-      .single();
+      .single() as { data: any; error: any };
+    const { data: updatedCustomer, error: updateError } = updateResult;
 
     if (updateError || !updatedCustomer) {
       return NextResponse.json(
@@ -308,14 +316,14 @@ export async function DELETE(
     const supabase = createAdminClient();
 
     // Verify customer exists and belongs to the business
-    const { data: existingCustomer, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('customers')
       .select('id, business_id, name')
       .eq('id', customerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: CustomerRow | null; error: any };
 
-    if (checkError || !existingCustomer) {
+    if (checkResult.error || !checkResult.data) {
       // DEBUG: Check if customer exists with different business_id
       const { data: allCustomersWithThisId } = await supabase
         .from('customers')
@@ -334,6 +342,7 @@ export async function DELETE(
       );
     }
 
+    const existingCustomer = checkResult.data;
     // DEBUG: Log customer being deleted
     console.log('[DELETE CUSTOMER] Customer found:', {
       customerId: existingCustomer.id,

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface, checkAppointmentConflict } from '@/lib/appointments/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
+type ServiceRow = Database['public']['Tables']['services']['Row'];
+type WorkerRow = Database['public']['Tables']['workers']['Row'];
 
 /**
  * GET /api/appointments/[id]
@@ -26,7 +31,7 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Get appointment with related data
-    const { data: appointment, error } = await supabase
+    const appointmentResult = await supabase
       .from('appointments')
       .select(`
         *,
@@ -36,21 +41,22 @@ export async function GET(
       `)
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: any; error: any };
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (appointmentResult.error) {
+      if (appointmentResult.error.code === 'PGRST116') {
         return NextResponse.json(
           { error: 'Appointment not found' },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        { error: error.message || 'Failed to fetch appointment' },
+        { error: appointmentResult.error.message || 'Failed to fetch appointment' },
         { status: 500 }
       );
     }
 
+    const appointment = appointmentResult.data;
     if (!appointment) {
       return NextResponse.json(
         { error: 'Appointment not found' },
@@ -98,19 +104,21 @@ export async function PATCH(
     const supabase = createAdminClient();
 
     // Get existing appointment
-    const { data: existingAppointment, error: fetchError } = await supabase
+    const existingResult = await supabase
       .from('appointments')
       .select('*')
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: AppointmentRow | null; error: any };
 
-    if (fetchError || !existingAppointment) {
+    if (existingResult.error || !existingResult.data) {
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
       );
     }
+
+    const existingAppointment = existingResult.data;
 
     // Build update object
     const updateData: any = {};
@@ -187,13 +195,14 @@ export async function PATCH(
 
       // Validate service duration if service or time changed
       if (body.serviceId !== undefined || body.start !== undefined || body.end !== undefined) {
-        const { data: service } = await supabase
+        const serviceResult = await supabase
           .from('services')
           .select('*')
           .eq('id', serviceId)
           .eq('business_id', tenantInfo.businessId)
-          .single();
+          .single() as { data: ServiceRow | null; error: any };
 
+        const service = serviceResult.data;
         if (service) {
           const durationMs = end.getTime() - start.getTime();
           const durationMinutes = durationMs / (1000 * 60);
@@ -210,13 +219,14 @@ export async function PATCH(
 
       // Validate worker can provide service if changed
       if (body.workerId !== undefined || body.serviceId !== undefined) {
-        const { data: worker } = await supabase
+        const workerResult = await supabase
           .from('workers')
           .select('*, worker_services!inner(service_id)')
           .eq('id', workerId)
           .eq('business_id', tenantInfo.businessId)
-          .single();
+          .single() as { data: (WorkerRow & { worker_services: any[] }) | null; error: any };
 
+        const worker = workerResult.data;
         if (worker) {
           const workerServiceIds = (worker.worker_services as any[]).map(
             (ws: any) => ws.service_id
@@ -233,7 +243,7 @@ export async function PATCH(
 
     // If no fields to update
     if (Object.keys(updateData).length === 0) {
-      const { data: appointment } = await supabase
+      const appointmentResult = await supabase
         .from('appointments')
         .select(`
           *,
@@ -242,8 +252,9 @@ export async function PATCH(
           workers (*)
         `)
         .eq('id', appointmentId)
-        .single();
+        .single() as { data: any; error: any };
 
+      const appointment = appointmentResult.data;
       if (appointment) {
         return NextResponse.json({
           success: true,
@@ -253,8 +264,8 @@ export async function PATCH(
     }
 
     // Update appointment
-    const { data: updatedAppointment, error: updateError } = await supabase
-      .from('appointments')
+    const updateResult = await (supabase
+      .from('appointments') as any)
       .update(updateData)
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
@@ -264,7 +275,8 @@ export async function PATCH(
         customers (*),
         workers (*)
       `)
-      .single();
+      .single() as { data: any; error: any };
+    const { data: updatedAppointment, error: updateError } = updateResult;
 
     if (updateError || !updatedAppointment) {
       return NextResponse.json(
@@ -312,22 +324,24 @@ export async function DELETE(
     const supabase = createAdminClient();
 
     // Verify appointment exists and belongs to business
-    const { data: existingAppointment, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('appointments')
       .select('id, business_id, status, start')
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: AppointmentRow | null; error: any };
 
-    if (checkError || !existingAppointment) {
+    if (checkResult.error || !checkResult.data) {
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
       );
     }
 
+    const existingAppointment = checkResult.data;
+
     // Prevent deletion of appointments that have already started
-    const appointmentStart = new Date(existingAppointment.start);
+    const appointmentStart = new Date(existingAppointment.start as string);
     if (appointmentStart < new Date()) {
       return NextResponse.json(
         {

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { checkAppointmentConflict, isWithinWorkingHours } from '@/lib/appointments/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type ServiceRow = Database['public']['Tables']['services']['Row'];
+type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 interface AvailableTimeSlot {
   start: string;
@@ -49,13 +53,14 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get service details
-    const { data: service, error: serviceError } = await supabase
+    const serviceResult = await supabase
       .from('services')
       .select('*')
       .eq('id', serviceId)
       .eq('business_id', tenantInfo.businessId)
       .eq('active', true)
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: service, error: serviceError } = serviceResult;
 
     if (serviceError || !service) {
       return NextResponse.json(
@@ -65,11 +70,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get working hours from settings
-    const { data: settings } = await supabase
+    const settingsResult = await supabase
       .from('settings')
       .select('calendar')
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: { calendar?: any } | null; error: any };
+    const settings = settingsResult.data;
 
     const workingHours = settings?.calendar?.workingHours || {
       start: '09:00',
@@ -126,13 +132,14 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(requestedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const { data: existingAppointments } = await supabase
+    const appointmentsResult = await supabase
       .from('appointments')
       .select('*')
       .eq('business_id', tenantInfo.businessId)
       .gte('start', startOfDay.toISOString())
       .lte('start', endOfDay.toISOString())
-      .in('status', ['confirmed', 'pending']);
+      .in('status', ['confirmed', 'pending']) as { data: AppointmentRow[] | null; error: any };
+    const existingAppointments = appointmentsResult.data;
 
     // Generate time slots
     const [startHour, startMin] = workingHours.start.split(':').map(Number);

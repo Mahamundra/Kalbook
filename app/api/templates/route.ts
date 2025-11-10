@@ -179,16 +179,17 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Check if template with same channel, type, and locale already exists
-    const { data: existingTemplate } = await supabase
-      .from('templates')
-      .select('id')
-      .eq('business_id', tenantInfo.businessId)
-      .eq('channel', body.channel)
-      .eq('type', body.type)
-      .eq('locale', body.locale)
-      .maybeSingle();
+      const existingTemplateResult = await supabase
+        .from('templates')
+        .select('id')
+        .eq('business_id', tenantInfo.businessId)
+        .eq('channel', body.channel)
+        .eq('type', body.type)
+        .eq('locale', body.locale)
+        .maybeSingle() as { data: TemplateRow | null; error: any };
+      const { data: existingTemplate } = existingTemplateResult;
 
-    if (existingTemplate) {
+      if (existingTemplate) {
       return NextResponse.json(
         {
           error: 'Template with this channel, type, and locale already exists',

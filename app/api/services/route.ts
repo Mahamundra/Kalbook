@@ -123,15 +123,16 @@ export async function POST(request: NextRequest) {
     };
 
     // Create service
-    const { data: newService, error } = await supabase
+    const serviceResult = await supabase
       .from('services')
-      .insert(serviceData)
+      .insert(serviceData as any)
       .select()
-      .single();
+      .single() as { data: ServiceRow | null; error: any };
+    const { data: newService, error } = serviceResult;
 
-    if (error) {
+    if (error || !newService) {
       return NextResponse.json(
-        { error: error.message || 'Failed to create service' },
+        { error: error?.message || 'Failed to create service' },
         { status: 500 }
       );
     }

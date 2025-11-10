@@ -4,6 +4,10 @@ import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { toE164Format } from '@/lib/customers/utils';
 import type { Worker } from '@/components/ported/types/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type WorkerRow = Database['public']['Tables']['workers']['Row'];
+type UserRow = Database['public']['Tables']['users']['Row'];
 
 /**
  * Map worker with services to Worker interface
@@ -76,26 +80,27 @@ export async function GET(
     const supabase = createAdminClient();
 
     // Get worker and verify it belongs to the business
-    const { data: worker, error } = await supabase
+    const workerResult = await supabase
       .from('workers')
       .select('*')
       .eq('id', workerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (workerResult.error) {
+      if (workerResult.error.code === 'PGRST116') {
         return NextResponse.json(
           { error: 'Worker not found' },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        { error: error.message || 'Failed to fetch worker' },
+        { error: workerResult.error.message || 'Failed to fetch worker' },
         { status: 500 }
       );
     }
 
+    const worker = workerResult.data;
     if (!worker) {
       return NextResponse.json(
         { error: 'Worker not found' },
@@ -104,10 +109,11 @@ export async function GET(
     }
 
     // Get worker services
-    const { data: workerServices } = await supabase
+    const workerServicesResult = await supabase
       .from('worker_services')
       .select('service_id')
-      .eq('worker_id', workerId);
+      .eq('worker_id', workerId) as { data: Array<{ service_id: string }> | null; error: any };
+    const { data: workerServices } = workerServicesResult;
 
     const serviceIds = workerServices?.map((ws) => ws.service_id) || [];
 
@@ -151,14 +157,14 @@ export async function PATCH(
     const supabase = createAdminClient();
 
     // Verify worker exists and belongs to the business
-    const { data: existingWorker, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('workers')
       .select('business_id')
       .eq('id', workerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
 
-    if (checkError || !existingWorker) {
+    if (checkResult.error || !checkResult.data) {
       return NextResponse.json(
         { error: 'Worker not found' },
         { status: 404 }
@@ -214,18 +220,20 @@ export async function PATCH(
       }
       
       // Get current worker data (including name)
-      const { data: currentWorker, error: workerFetchError } = await supabase
+      const currentWorkerResult = await supabase
         .from('workers')
         .select('name, email, phone')
         .eq('id', workerId)
-        .single();
+        .single() as { data: WorkerRow | null; error: any };
 
-      if (workerFetchError || !currentWorker) {
+      if (currentWorkerResult.error || !currentWorkerResult.data) {
         return NextResponse.json(
           { error: 'Failed to fetch worker data' },
           { status: 500 }
         );
       }
+
+      const currentWorker = currentWorkerResult.data;
 
       if (body.isAdmin) {
         // Worker is being marked as admin
@@ -269,8 +277,8 @@ export async function PATCH(
 
         if (existingUser) {
           // Update existing user
-          const { error: updateUserError } = await supabase
-            .from('users')
+          const updateUserResult = await (supabase
+            .from('users') as any)
             .update({
               name: workerName,
               email: email,
@@ -279,7 +287,8 @@ export async function PATCH(
               is_main_admin: false, // Ensure workers are never marked as main admin
               updated_at: new Date().toISOString(),
             })
-            .eq('id', existingUser.id);
+            .eq('id', existingUser.id) as { error: any };
+          const { error: updateUserError } = updateUserResult;
 
           if (updateUserError) {
             console.error('Failed to update admin user:', updateUserError);
@@ -354,11 +363,12 @@ export async function PATCH(
 
           if (!userCheckError && existingUser && existingUser.role === 'admin') {
             // Check if this is a main admin - cannot be deleted
-            const { data: userDetails } = await supabase
+            const userDetailsResult = await supabase
               .from('users')
               .select('is_main_admin')
               .eq('id', existingUser.id)
-              .single();
+              .single() as { data: { is_main_admin?: boolean } | null; error: any };
+            const userDetails = userDetailsResult.data;
             
             if (!userDetails?.is_main_admin) {
               const { error: deleteError } = await supabase
@@ -381,17 +391,19 @@ export async function PATCH(
     // If no fields to update
     if (Object.keys(updateData).length === 0) {
       // Get current worker with services
-      const { data: worker } = await supabase
+      const workerResult = await supabase
         .from('workers')
         .select('*')
         .eq('id', workerId)
-        .single();
+        .single() as { data: WorkerRow | null; error: any };
+      const worker = workerResult.data;
 
       if (worker) {
-        const { data: workerServices } = await supabase
+        const workerServicesResult = await supabase
           .from('worker_services')
           .select('service_id')
-          .eq('worker_id', workerId);
+          .eq('worker_id', workerId) as { data: Array<{ service_id: string }> | null; error: any };
+        const { data: workerServices } = workerServicesResult;
 
         const serviceIds = workerServices?.map((ws) => ws.service_id) || [];
         const mappedWorker = await mapWorkerToInterface(worker, serviceIds, supabase, tenantInfo.businessId);
@@ -404,13 +416,14 @@ export async function PATCH(
     }
 
     // Update worker
-    const { data: updatedWorker, error: updateError } = await supabase
-      .from('workers')
+    const updateResult = await (supabase
+      .from('workers') as any)
       .update(updateData)
       .eq('id', workerId)
       .eq('business_id', tenantInfo.businessId)
       .select()
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
+    const { data: updatedWorker, error: updateError } = updateResult;
 
     if (updateError || !updatedWorker) {
       return NextResponse.json(
@@ -420,10 +433,11 @@ export async function PATCH(
     }
 
     // Get worker services
-    const { data: workerServices } = await supabase
+    const workerServicesResult = await supabase
       .from('worker_services')
       .select('service_id')
-      .eq('worker_id', workerId);
+      .eq('worker_id', workerId) as { data: Array<{ service_id: string }> | null; error: any };
+    const { data: workerServices } = workerServicesResult;
 
     const serviceIds = workerServices?.map((ws) => ws.service_id) || [];
 
@@ -466,14 +480,14 @@ export async function DELETE(
     const supabase = createAdminClient();
 
     // Verify worker exists and belongs to business
-    const { data: existingWorker, error: checkError } = await supabase
+    const checkResult = await supabase
       .from('workers')
       .select('id, business_id')
       .eq('id', workerId)
       .eq('business_id', tenantInfo.businessId)
-      .single();
+      .single() as { data: WorkerRow | null; error: any };
 
-    if (checkError || !existingWorker) {
+    if (checkResult.error || !checkResult.data) {
       return NextResponse.json(
         { error: 'Worker not found' },
         { status: 404 }
@@ -494,11 +508,12 @@ export async function DELETE(
 
     if (appointments && appointments.length > 0) {
       // Instead of hard delete, deactivate the worker
-      const { error: deactivateError } = await supabase
-        .from('workers')
+      const deactivateResult = await (supabase
+        .from('workers') as any)
         .update({ active: false })
         .eq('id', workerId)
-        .eq('business_id', tenantInfo.businessId);
+        .eq('business_id', tenantInfo.businessId) as { error: any };
+      const { error: deactivateError } = deactivateResult;
 
       if (deactivateError) {
         return NextResponse.json(

@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
     const to = from + limit - 1;
     query = query.order('created_at', { ascending: false }).range(from, to);
 
-    const { data: customers, error, count } = await query;
+    const queryResult = await query as { data: CustomerRow[] | null; error: any; count: number | null };
+    const { data: customers, error, count } = queryResult;
 
     if (error) {
       return NextResponse.json(
@@ -65,13 +66,14 @@ export async function GET(request: NextRequest) {
 
     // Get tags for all customers
     const customerIds = (customers || []).map((c) => c.id);
-    const { data: allTags } = await supabase
+    const tagsResult = await supabase
       .from('customer_tags')
       .select('*')
-      .in('customer_id', customerIds);
+      .in('customer_id', customerIds) as { data: Array<{ customer_id: string; tag: string }> | null; error: any };
+    const allTags = tagsResult.data;
 
     // Group tags by customer_id
-    const tagsByCustomer = new Map<string, typeof allTags>();
+    const tagsByCustomer = new Map<string, Array<{ customer_id: string; tag: string }>>();
     allTags?.forEach((tag) => {
       if (!tagsByCustomer.has(tag.customer_id)) {
         tagsByCustomer.set(tag.customer_id, []);
@@ -192,19 +194,20 @@ export async function POST(request: NextRequest) {
     };
 
     // Create customer
-    const { data: newCustomer, error } = await supabase
-      .from('customers')
+    const createResult = await (supabase
+      .from('customers') as any)
       .insert(customerData)
       .select()
-      .single();
+      .single() as { data: CustomerRow | null; error: any };
+    const { data: newCustomer, error } = createResult;
 
-    if (error) {
+    if (error || !newCustomer) {
       console.error('Error creating customer:', error);
       console.error('Customer data attempted:', { ...customerData, email: finalEmail ? '***' : null });
       return NextResponse.json(
         { 
-          error: error.message || 'Failed to create customer',
-          details: process.env.NODE_ENV === 'development' ? error.details : undefined
+          error: error?.message || 'Failed to create customer',
+          details: process.env.NODE_ENV === 'development' ? error?.details : undefined
         },
         { status: 500 }
       );

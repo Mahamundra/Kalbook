@@ -308,10 +308,11 @@ export async function POST(request: NextRequest) {
 
       if (settingsError) {
         // Try to update if already exists
-        const { error: updateError } = await supabase
-          .from('settings')
+        const updateResult = await (supabase
+          .from('settings') as any)
           .update(settingsData as any)
-          .eq('business_id', businessId);
+          .eq('business_id', businessId) as { error: any };
+        const { error: updateError } = updateResult;
 
         if (updateError) {
           throw new Error(`Failed to migrate settings: ${updateError.message}`);
