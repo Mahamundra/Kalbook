@@ -34,6 +34,9 @@ export interface Customer {
   notes?: string;
   visitHistory: Visit[];
   consentMarketing: boolean;
+  dateOfBirth?: string;
+  gender?: string;
+  blocked?: boolean;
 }
 
 export interface Visit {
@@ -57,6 +60,7 @@ export interface Settings {
   locale: LocaleSettings;
   notifications: NotificationSettings;
   calendar: CalendarSettings;
+  registration?: RegistrationSettings;
 }
 
 export interface BusinessProfile {
@@ -67,11 +71,45 @@ export interface BusinessProfile {
   address: string;
   timezone: string;
   currency: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+    linkedin?: string;
+    youtube?: string;
+  };
 }
 
 export interface Branding {
   logoUrl?: string;
   themeColor: string;
+  bannerCover?: {
+    type: 'upload' | 'pattern';
+    uploadUrl?: string;
+    videoUrl?: string;
+    patternId?: string;
+    position?: {
+      x: number; // percentage (0-100)
+      y: number; // percentage (0-100)
+    };
+  };
+  guestMessage?: string;
+  loggedInMessage?: string;
+}
+
+export interface CustomField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'date' | 'textarea';
+  required: boolean;
+  options?: string[]; // For select type
+  placeholder?: string;
+}
+
+export interface RegistrationSettings {
+  customFields?: CustomField[];
+  defaultGender?: 'male' | 'female' | 'other' | '';
 }
 
 export interface LocaleSettings {
@@ -82,6 +120,7 @@ export interface LocaleSettings {
 export interface NotificationSettings {
   senderName: string;
   senderEmail: string;
+  reminderMessage?: string;
 }
 
 export interface CalendarSettings {
@@ -90,6 +129,13 @@ export interface CalendarSettings {
   workingHours: {
     start: string; // Format: "HH:mm" (e.g., "09:00")
     end: string; // Format: "HH:mm" (e.g., "18:00")
+  };
+  timeSlotGap?: number; // Time slot gap in minutes (5-60), default 60
+  contactMessage?: {
+    enabled: boolean;
+    message: string;
+    showPhone: boolean;
+    showWhatsApp: boolean;
   };
 }
 
@@ -113,6 +159,11 @@ export interface Worker {
   phone?: string;
   services: string[]; // Service IDs that this worker can provide
   active: boolean;
+  color?: string; // Hex color code for the worker (e.g., "#3B82F6")
+  isAdmin?: boolean; // Whether this worker has admin access (deprecated, use role instead)
+  isMainAdmin?: boolean; // Whether this worker is the main admin (owner) - cannot be deleted
+  role?: 'admin' | 'worker'; // Worker's role - 'admin' if they can login, 'worker' if they cannot
+  userId?: string; // User ID from users table if this worker has admin access
 }
 
 

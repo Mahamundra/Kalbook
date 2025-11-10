@@ -5,6 +5,7 @@ import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { dir, isTransitioning } = useDirection();
@@ -31,14 +32,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   animate={{ opacity: 0.6, scale: 0.98 }}
                   exit={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4 }}
-                  className="p-6 md:p-8"
+                  className="p-6 md:p-8 flex items-center justify-center min-h-[60vh]"
                 >
-                  <div className="max-w-7xl mx-auto space-y-4">
-                    <div className="h-8 w-48 bg-gradient-to-r from-muted via-muted/50 to-muted rounded-lg animate-pulse" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-32 bg-gradient-to-r from-muted via-muted/50 to-muted rounded-xl animate-pulse" />
-                      ))}
+                  <div className="text-center space-y-6">
+                    <KalBookLogo size="xl" variant="full" />
+                    <div className="max-w-7xl mx-auto space-y-4">
+                      <div className="h-8 w-48 bg-gradient-to-r from-muted via-muted/50 to-muted rounded-lg animate-pulse mx-auto" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="h-32 bg-gradient-to-r from-muted via-muted/50 to-muted rounded-xl animate-pulse" />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </motion.div>

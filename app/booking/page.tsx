@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
@@ -7,29 +8,38 @@ import { Button } from '@/components/ported/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ported/ui/input';
 import { Label } from '@/components/ported/ui/label';
+import { useParams, useSearchParams } from 'next/navigation';
 import { 
-  getServices, 
-  getAppointments, 
-  getSettings, 
+  getSettings as getMockSettings,
   createCustomer, 
   createAppointment,
-  getWorkers
 } from '@/components/ported/lib/mockData';
+import { 
+  getServices, 
+  getWorkers 
+} from '@/lib/api/services';
 import { toast } from 'sonner';
-import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, MessageCircle, Check, CheckCircle2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, ChevronDown, Check, CheckCircle2, Phone, LogIn, LogOut } from 'lucide-react';
 import type { Service, Appointment, Worker } from '@/types/admin';
 import Link from 'next/link';
+import { LoginRegisterDialog } from '@/components/ported/components/LoginRegisterDialog';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 type BookingStep = 1 | 2 | 3 | 4;
 
 export default function BookingPage() {
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  // Get slug from route params (when accessed via /b/[slug]) or from query params (legacy)
+  const slug = (params?.slug as string) || searchParams.get('slug') || searchParams.get('ui') || null;
   const [step, setStep] = useState<BookingStep>(1);
   const [services, setServices] = useState<Service[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [settings, setSettings] = useState(() => getSettings());
+  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -40,6 +50,22 @@ export default function BookingPage() {
     phone: '',
   });
   const [isBooking, setIsBooking] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+
+  // Auto-fill customer info if logged in
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      setCustomerInfo({
+        name: currentUser.name || '',
+        email: currentUser.email || '',
+        phone: currentUser.phone || '',
+      });
+    }
+  }, [isLoggedIn, currentUser]);
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, 1 = next month, etc.
+  const workerTimeSectionRef = useRef<HTMLDivElement>(null);
   const [confirmedAppointment, setConfirmedAppointment] = useState<{
     service: string;
     worker: string;
@@ -47,26 +73,129 @@ export default function BookingPage() {
     time: string;
   } | null>(null);
 
+  // Check for valid session on mount
   useEffect(() => {
-    setServices(getServices().filter(s => s.active));
-    setAppointments(getAppointments());
-    setWorkers(getWorkers().filter(w => w.active));
-    setSettings(getSettings());
+    const storedSession = localStorage.getItem('userSession');
+    if (storedSession) {
+      try {
+        const session = JSON.parse(storedSession);
+        const expirationTime = session.expirationTime;
+        
+        // Check if session is still valid (not expired)
+        if (expirationTime && new Date().getTime() < expirationTime) {
+          setIsLoggedIn(true);
+          setCurrentUser(session.user);
+          setCustomerInfo({
+            name: session.user.name || '',
+            email: session.user.email || '',
+            phone: session.user.phone || '',
+          });
+        } else {
+          // Session expired, clear it
+          localStorage.removeItem('userSession');
+        }
+      } catch (error) {
+        // Invalid session data, clear it
+        localStorage.removeItem('userSession');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      
+      // If we have a slug, fetch all data from API
+      if (slug) {
+        try {
+          // Fetch settings
+          const settingsResponse = await fetch(`/api/settings?businessSlug=${slug}`);
+          if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json();
+            if (settingsData.success && settingsData.settings) {
+              setSettings(settingsData.settings);
+            }
+          }
+          
+          // Fetch services (only active ones)
+          try {
+            const servicesData = await getServices();
+            setServices(servicesData.filter(s => s.active));
+          } catch (error) {
+            console.error('Error fetching services:', error);
+            setServices([]);
+          }
+          
+          // Fetch workers (only active ones)
+          try {
+            const workersData = await getWorkers();
+            setWorkers(workersData.filter(w => w.active));
+          } catch (error) {
+            console.error('Error fetching workers:', error);
+            setWorkers([]);
+          }
+          
+          // Appointments will be fetched when needed (for date selection)
+          setAppointments([]);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          // Fallback to mock data on error
+          setSettings(getMockSettings());
+          setServices([]);
+          setWorkers([]);
+          setAppointments([]);
+        }
+      } else {
+        // No slug, use mock data
+        setSettings(getMockSettings());
+        setServices([]);
+        setWorkers([]);
+        setAppointments([]);
+      }
+      
+      setLoading(false);
+    };
+
+    loadData();
 
     // Listen for settings updates
-    const handleSettingsUpdate = () => {
-      setSettings(getSettings());
+    const handleSettingsUpdate = async () => {
+      if (slug) {
+        // Reload all data from API if we have a slug
+        try {
+          const settingsResponse = await fetch(`/api/settings?businessSlug=${slug}`);
+          if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json();
+            if (settingsData.success && settingsData.settings) {
+              setSettings(settingsData.settings);
+            }
+          }
+          
+          // Reload services
+          const servicesData = await getServices();
+          setServices(servicesData.filter(s => s.active));
+          
+          // Reload workers
+          const workersData = await getWorkers();
+          setWorkers(workersData.filter(w => w.active));
+        } catch (err) {
+          console.error('Error reloading data:', err);
+        }
+      } else {
+        setSettings(getMockSettings());
+      }
     };
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
     return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
-  }, []);
+  }, [slug]);
 
-  // Get working hours and days from settings
-  const workingHours = settings.calendar?.workingHours || { start: '09:00', end: '18:00' };
-  const workingDays = settings.calendar?.workingDays || [0, 1, 2, 3, 4];
-  const businessName = settings.businessProfile?.name || '';
-  const logoUrl = settings.branding?.logoUrl || '';
-  const whatsapp = settings.businessProfile?.whatsapp || '';
+  // Get working hours and days from settings (with safe defaults)
+  const workingHours = settings?.calendar?.workingHours || { start: '09:00', end: '18:00' };
+  const workingDays = settings?.calendar?.workingDays || [0, 1, 2, 3, 4];
+  const businessName = settings?.businessProfile?.name || '';
+  const logoUrl = settings?.branding?.logoUrl || '';
+  const whatsapp = settings?.businessProfile?.whatsapp || '';
+  const phone = settings?.businessProfile?.phone || '';
 
   // Helper functions
   const isWorkingDay = (date: Date): boolean => {
@@ -77,17 +206,25 @@ export default function BookingPage() {
   const getTimeSlots = (): string[] => {
     const startTimeStr = typeof workingHours.start === 'string' ? workingHours.start : '09:00';
     const endTimeStr = typeof workingHours.end === 'string' ? workingHours.end : '18:00';
-    const [startHour] = startTimeStr.split(':').map(Number);
-    const [endHour] = endTimeStr.split(':').map(Number);
+    const timeSlotGap = settings.calendar?.timeSlotGap || 60; // Default 60 minutes
     
-    if (isNaN(startHour) || isNaN(endHour)) {
+    const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+    const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+    
+    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
       return [];
     }
     
     const slots: string[] = [];
-    for (let hour = startHour; hour < endHour; hour++) {
-      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    
+    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += timeSlotGap) {
+      const hour = Math.floor(currentMinutes / 60);
+      const minute = currentMinutes % 60;
+      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
     }
+    
     return slots;
   };
 
@@ -105,6 +242,84 @@ export default function BookingPage() {
     }
     
     return dates;
+  };
+
+  // Get calendar dates for the current month view
+  const getCalendarDates = (): Date[] => {
+    const today = new Date();
+    const viewDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+    const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+    const lastDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
+    
+    // Get first day of week for the month (0 = Sunday, 1 = Monday, etc.)
+    const firstDayWeekday = firstDayOfMonth.getDay();
+    // Adjust for Monday as first day (ISO standard) - if Sunday (0), make it 6
+    const startOffset = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+    
+    const dates: Date[] = [];
+    
+    // Add days from previous month to fill the first week (greyed out, not clickable)
+    for (let i = startOffset - 1; i >= 0; i--) {
+      const date = new Date(firstDayOfMonth);
+      date.setDate(date.getDate() - i - 1);
+      dates.push(date);
+    }
+    
+    // Add all days of the current month
+    for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+      dates.push(new Date(viewDate.getFullYear(), viewDate.getMonth(), day));
+    }
+    
+    return dates;
+  };
+
+  // Get month and year display
+  const getMonthYearDisplay = (): string => {
+    const today = new Date();
+    const viewDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+    
+    const localeMap: Record<string, string> = {
+      en: 'en-US',
+      he: 'he-IL',
+      ar: 'ar-SA',
+      ru: 'ru-RU'
+    };
+    const localeString = localeMap[locale] || 'en-US';
+    
+    return viewDate.toLocaleDateString(localeString, { month: 'long', year: 'numeric' });
+  };
+
+  // Get day names for the calendar header
+  const getDayNames = (): string[] => {
+    const localeMap: Record<string, string> = {
+      en: 'en-US',
+      he: 'he-IL',
+      ar: 'ar-SA',
+      ru: 'ru-RU'
+    };
+    const localeString = localeMap[locale] || 'en-US';
+    
+    const dayNames: string[] = [];
+    // Start from Monday (January 1, 2024 is a Monday)
+    const baseDate = new Date(2024, 0, 1);
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(baseDate);
+      date.setDate(baseDate.getDate() + i);
+      dayNames.push(date.toLocaleDateString(localeString, { weekday: 'short' }));
+    }
+    
+    return dayNames;
+  };
+
+  // Navigate to previous month
+  const handlePreviousMonth = () => {
+    setMonthOffset(prev => Math.max(0, prev - 1)); // Don't go before current month
+  };
+
+  // Navigate to next month
+  const handleNextMonth = () => {
+    setMonthOffset(prev => prev + 1);
   };
 
   // Check if a time slot is available for the selected date
@@ -213,18 +428,83 @@ export default function BookingPage() {
     return date.toLocaleDateString(localeString, { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  const availableDates = getAvailableDates();
-  const timeSlots = getTimeSlots();
-  const availableWorkers = getAvailableWorkers();
+  // Calculate derived values (only if settings loaded)
+  const availableDates = settings ? getAvailableDates() : [];
+  const allTimeSlots = settings ? getTimeSlots() : [];
+  const availableWorkers = settings ? getAvailableWorkers() : [];
+  
+  // Filter out past time slots for today
+  const getFilteredTimeSlots = (): string[] => {
+    if (!selectedDate) return allTimeSlots;
+    
+    const today = new Date();
+    const selectedDateOnly = new Date(selectedDate);
+    selectedDateOnly.setHours(0, 0, 0, 0);
+    const todayOnly = new Date(today);
+    todayOnly.setHours(0, 0, 0, 0);
+    
+    // If selected date is today, filter out past times and times too close to now
+    if (selectedDateOnly.getTime() === todayOnly.getTime()) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentMinutes = currentHour * 60 + currentMinute;
+      // Add 15 minute buffer to avoid booking conflicts
+      const minBookableMinutes = currentMinutes + 15;
+      
+      return allTimeSlots.filter(timeSlot => {
+        const [hour, minute] = timeSlot.split(':').map(Number);
+        const slotMinutes = hour * 60 + minute;
+        return slotMinutes >= minBookableMinutes;
+      });
+    }
+    
+    return allTimeSlots;
+  };
+  
+  const timeSlots = settings ? getFilteredTimeSlots() : [];
 
   // Auto-select first worker if only one available
   useEffect(() => {
+    if (!settings) return; // Don't run if settings not loaded
     if (availableWorkers.length === 1 && !selectedWorker) {
       setSelectedWorker(availableWorkers[0].id);
     } else if (availableWorkers.length === 0) {
       setSelectedWorker(null);
     }
-  }, [selectedService, availableWorkers.length]);
+  }, [selectedService, availableWorkers.length, settings, selectedWorker]);
+
+  // Show loading state until settings are loaded (AFTER all hooks)
+  if (loading || !settings) {
+    return (
+      <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in">
+        <div className="text-center space-y-6 px-4">
+          {/* Logo */}
+          <div className="flex justify-center mb-4">
+            <KalBookLogo size="lg" variant="full" />
+          </div>
+          {/* Modern animated spinner with smooth gradient */}
+          <div className="relative mx-auto w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-primary/40 border-l-primary/40 animate-spin" style={{ animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
+          </div>
+          {/* Friendly loading message with pulse animation */}
+          <div className="space-y-2">
+            <p className="text-lg font-medium text-foreground animate-pulse" style={{ animationDuration: '2s' }}>
+              {t('common.justAMoment')}
+            </p>
+            {/* Subtle dots animation */}
+            <div className="flex justify-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0s', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // WhatsApp link helper
   const getWhatsAppLink = (phone: string): string => {
@@ -236,12 +516,21 @@ export default function BookingPage() {
     setSelectedService(service);
     setSelectedDate(null);
     setSelectedTime(null);
+    setMonthOffset(0); // Reset to current month
     setStep(2);
   };
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
+    // Scroll to worker and time selection after a short delay to allow state update
+    setTimeout(() => {
+      workerTimeSectionRef.current?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+    }, 100);
   };
 
   const handleTimeSelect = (timeSlot: string) => {
@@ -267,6 +556,35 @@ export default function BookingPage() {
     } else if (step === 3) {
       setStep(2);
       setSelectedTime(null);
+    }
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    // Only allow navigation to accessible steps
+    if (targetStep === 1) {
+      // Always allow going back to step 1
+      setStep(1);
+      if (targetStep < step) {
+        // Going back, clear selections
+        setSelectedService(null);
+        setSelectedDate(null);
+        setSelectedTime(null);
+      }
+    } else if (targetStep === 2) {
+      // Only allow if service is selected
+      if (selectedService) {
+        setStep(2);
+        if (targetStep < step) {
+          // Going back, clear date and time
+          setSelectedDate(null);
+          setSelectedTime(null);
+        }
+      }
+    } else if (targetStep === 3) {
+      // Only allow if service, date, and time are selected
+      if (selectedService && selectedDate && selectedTime) {
+        setStep(3);
+      }
     }
   };
 
@@ -345,8 +663,8 @@ export default function BookingPage() {
       // Go to success screen
       setStep(4);
       
-      // Refresh appointments
-      setAppointments(getAppointments());
+      // Appointments will be refreshed when date is selected
+      // (They are fetched dynamically based on selected date)
     } catch (error) {
       toast.error(t('booking.bookingError'));
     } finally {
@@ -478,142 +796,503 @@ export default function BookingPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Step Indicator */}
-        <div className="mb-8 flex justify-center items-center">
-          <div className="flex items-center justify-center gap-8">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center">
-                <div className="flex flex-col items-center justify-center">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                      step >= s
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
+        {/* Banner Cover */}
+        {settings.branding?.bannerCover && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 sm:mt-0"
+          >
+            <div className="relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-none sm:rounded-lg">
+              {settings.branding.bannerCover?.type === 'upload' && settings.branding.bannerCover?.uploadUrl ? (
+                <>
+                  {settings.branding.bannerCover.videoUrl ? (
+                    <video
+                      src={settings.branding.bannerCover.videoUrl}
+                      className="w-full h-full object-cover"
+                      style={{
+                        objectPosition: settings.branding.bannerCover.position
+                          ? `${settings.branding.bannerCover.position.x}% ${settings.branding.bannerCover.position.y}%`
+                          : '50% 50%',
+                      }}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={settings.branding.bannerCover.uploadUrl}
+                      alt="Banner"
+                      className="w-full h-full object-cover"
+                      style={{
+                        objectPosition: settings.branding.bannerCover.position
+                          ? `${settings.branding.bannerCover.position.x}% ${settings.branding.bannerCover.position.y}%`
+                          : '50% 50%',
+                      }}
+                    />
+                  )}
+                </>
+              ) : (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    background: settings.branding.bannerCover.patternId === 'pattern1' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                               settings.branding.bannerCover.patternId === 'pattern2' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
+                               settings.branding.bannerCover.patternId === 'pattern3' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' :
+                               settings.branding.bannerCover.patternId === 'pattern4' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' :
+                               'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  }}
+                />
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Guest/Logged-in Message */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <Card className="p-4">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className={`flex gap-3 w-full sm:w-auto justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {!isLoggedIn ? (
+                  <Button
+                    variant="default"
+                    size="lg"
+                    onClick={() => setShowLoginDialog(true)}
+                    className="w-full sm:w-auto px-8 flex items-center"
+                    dir="ltr"
                   >
-                    {step > s ? <Check className="w-6 h-6" /> : s}
-                  </div>
-                  <div className={`mt-2 text-sm text-center whitespace-nowrap ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
-                    {t(`booking.step${s}`)}
+                    <LogIn className="w-5 h-5 mr-2" />
+                    {t('booking.loginOrRegister')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => {
+                      setIsLoggedIn(false);
+                      setCurrentUser(null);
+                      setCustomerInfo({ name: '', email: '', phone: '' });
+                      localStorage.removeItem('userSession');
+                      toast.success(t('auth.logoutSuccess'));
+                    }}
+                    className="w-full sm:w-auto px-8 flex items-center"
+                    dir="ltr"
+                  >
+                    <LogOut className="w-5 h-5 mr-2" />
+                    {t('auth.logout')}
+                  </Button>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {isLoggedIn && currentUser
+                    ? (settings.branding?.loggedInMessage || 'שלום {name}, ברוך הבא!').replace('{name}', currentUser.name || '')
+                    : settings.branding?.guestMessage || 'שלום אורח, ברוך הבא!'}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Booking Section - Only show if logged in */}
+        {isLoggedIn ? (
+          <>
+          {/* Step Indicator */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8 flex justify-center items-center px-2 sm:px-0 overflow-hidden"
+          >
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-8 w-full max-w-full">
+            {[1, 2, 3].map((s) => (
+              <motion.div 
+                key={s} 
+                className="flex items-center flex-1 min-w-0"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: s * 0.1, duration: 0.3 }}
+              >
+                <div className="flex flex-col items-center justify-center w-full min-w-0">
+                  <motion.div
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-base sm:text-lg flex-shrink-0 cursor-pointer transition-colors ${
+                      step >= s
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : 'bg-muted text-muted-foreground'
+                    } ${
+                      // Determine if step is clickable
+                      s === 1 || (s === 2 && selectedService) || (s === 3 && selectedService && selectedDate && selectedTime)
+                        ? 'hover:bg-primary hover:text-primary-foreground'
+                        : 'cursor-not-allowed opacity-50'
+                    }`}
+                    animate={step === s ? { 
+                      scale: [1, 1.1, 1]
+                    } : { scale: 1 }}
+                    transition={{ duration: 0.5, repeat: step === s ? Infinity : 0, repeatDelay: 2 }}
+                    whileHover={s === 1 || (s === 2 && selectedService) || (s === 3 && selectedService && selectedDate && selectedTime) ? { scale: 1.05 } : {}}
+                    onClick={() => handleStepClick(s)}
+                  >
+                    {step > s ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Check className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </motion.div>
+                    ) : (
+                      <span className="text-sm sm:text-base">{s === 1 ? '🎯' : s === 2 ? '📅' : '✍️'}</span>
+                    )}
+                  </motion.div>
+                  <div className={`mt-1.5 sm:mt-2 text-[10px] sm:text-xs md:text-sm text-center px-0.5 sm:px-1 max-w-full overflow-hidden ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
+                    <span className="block truncate">{t(`booking.step${s}`)}</span>
                   </div>
                 </div>
                 {s < 3 && (
-                  <div className={`w-16 h-0.5 mx-2 ${step > s ? 'bg-primary' : 'bg-muted'}`} />
+                  <motion.div 
+                    className={`w-4 sm:w-8 md:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0 ${step > s ? 'bg-primary' : 'bg-muted'}`}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: step > s ? 1 : 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                  />
                 )}
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Step 1: Service Selection */}
-        {step === 1 && (
-          <Card className="p-6">
-            <h2 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('booking.step1')}</h2>
-            {services.length === 0 ? (
-              <p className="text-muted-foreground text-center">{t('booking.noServicesAvailable')}</p>
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-                {services.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => handleServiceSelect(service)}
-                    className={`p-4 rounded-lg border-2 transition-all hover:border-primary/50 ${
-                      selectedService?.id === service.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border'
-                    } ${isRTL ? 'text-right' : 'text-left'}`}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                  >
-                    <div className="font-semibold mb-1">{service.name}</div>
-                    <div className="text-sm text-muted-foreground mb-2">{service.description}</div>
-                    <div className={`flex items-center gap-4 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {service.duration} {t('services.minutes') || 'min'}
-                      </span>
-                      <span className="font-medium">{t('services.price')}: ₪{service.price}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Card>
-        )}
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-2xl">🎯</span>
+                  <h2 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('booking.step1')}</h2>
+                </div>
+                {services.length === 0 ? (
+                  <p className="text-muted-foreground text-center">{t('booking.noServicesAvailable')}</p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                    {services.map((service, index) => (
+                      <motion.button
+                        key={service.id}
+                        onClick={() => handleServiceSelect(service)}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1, duration: 0.3 }}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`p-4 rounded-lg border-2 transition-all hover:border-primary/50 hover:shadow-md ${
+                          selectedService?.id === service.id
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : 'border-border'
+                        } ${isRTL ? 'text-right' : 'text-left'}`}
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                      >
+                        <div className="font-semibold mb-1">{service.name}</div>
+                        <div className="text-sm text-muted-foreground mb-2">{service.description}</div>
+                        <div className={`flex items-center gap-4 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {service.duration} {t('services.minutes') || 'min'}
+                          </span>
+                          <span className="font-medium">{t('services.price')}: ₪{service.price}</span>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Step 2: Date & Time Selection */}
-        {step === 2 && selectedService && (
-          <div className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">{t('booking.step2')}</h2>
-                <Button variant="outline" onClick={handleBack} size="sm">
-                  {isRTL ? <ChevronRight className="w-4 h-4 ml-1" /> : <ChevronLeft className="w-4 h-4 mr-1" />}
-                  {t('booking.back')}
-                </Button>
-              </div>
+        <AnimatePresence mode="wait">
+          {step === 2 && selectedService && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="space-y-6"
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">📅</span>
+                    <h2 className="text-lg font-semibold">{t('booking.step2')}</h2>
+                  </div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleBack} 
+                      size="sm"
+                      className={isRTL ? 'flex-row-reverse' : ''}
+                    >
+                      {isRTL ? (
+                        <>
+                          {t('booking.back')}
+                          <ChevronRight className="w-4 h-4 mr-2" />
+                        </>
+                      ) : (
+                        <>
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                          {t('booking.back')}
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                </div>
               
               {/* Selected Service Info */}
-              <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-                <div className="font-semibold mb-1">{selectedService.name}</div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="mb-6 p-4 bg-muted/30 rounded-lg border border-primary/20"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">✨</span>
+                  <div className="font-semibold">{selectedService.name}</div>
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {selectedService.duration} {t('services.minutes')} • ₪{selectedService.price}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Date Selection */}
               <div className="mb-6">
-                <h3 className="text-md font-medium mb-3">{t('booking.selectDate')}</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-medium flex items-center gap-2">
+                    <span>📆</span>
+                    {t('booking.selectDate')}
+                  </h3>
+                </div>
+                
+                {/* Month Navigation */}
+                <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  {/* In RTL: Left button = Next month, Right button = Previous month */}
+                  {/* In LTR: Left button = Previous month, Right button = Next month */}
+                  <motion.button
+                    onClick={isRTL ? handleNextMonth : handlePreviousMonth}
+                    disabled={!isRTL && monthOffset === 0}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-2 rounded-lg border transition-all ${
+                      !isRTL && monthOffset === 0
+                        ? 'border-muted text-muted-foreground cursor-not-allowed opacity-50'
+                        : 'border-border hover:border-primary hover:bg-primary/5'
+                    }`}
+                    aria-label={isRTL ? (t('booking.nextMonth') || 'חודש הבא') : (t('booking.previousMonth') || 'Previous Month')}
+                  >
+                    {/* In LTR: Left arrow for Previous | In RTL: Left arrow for Next (forward in RTL) */}
+                    <ChevronLeft className="w-5 h-5" />
+                  </motion.button>
+                  
+                  <motion.h4
+                    key={monthOffset}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-lg font-semibold capitalize"
+                  >
+                    {getMonthYearDisplay()}
+                  </motion.h4>
+                  
+                  <motion.button
+                    onClick={isRTL ? handlePreviousMonth : handleNextMonth}
+                    disabled={isRTL && monthOffset === 0}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-2 rounded-lg border transition-all ${
+                      isRTL && monthOffset === 0
+                        ? 'border-muted text-muted-foreground cursor-not-allowed opacity-50'
+                        : 'border-border hover:border-primary hover:bg-primary/5'
+                    }`}
+                    aria-label={isRTL ? (t('booking.previousMonth') || 'חודש קודם') : (t('booking.nextMonth') || 'Next Month')}
+                  >
+                    {/* In LTR: Right arrow for Next | In RTL: Right arrow for Previous (backward in RTL) */}
+                    <ChevronRight className="w-5 h-5" />
+                  </motion.button>
+                </div>
+
+                {/* Day Names Header */}
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {getDayNames().map((dayName, index) => (
+                    <div
+                      key={index}
+                      className="text-center text-xs font-semibold text-muted-foreground py-1"
+                    >
+                      {dayName}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-2">
-                  {availableDates.slice(0, 14).map((date, index) => {
-                    const isToday = date.toDateString() === new Date().toDateString();
-                    const isTomorrow = date.toDateString() === new Date(Date.now() + 86400000).toDateString();
+                  {getCalendarDates().map((date, index) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const viewDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+                    const isCurrentMonth = date.getMonth() === viewDate.getMonth();
+                    const dateOnly = new Date(date);
+                    dateOnly.setHours(0, 0, 0, 0);
+                    const todayOnly = new Date();
+                    todayOnly.setHours(0, 0, 0, 0);
+                    const isToday = dateOnly.getTime() === todayOnly.getTime();
+                    const tomorrowOnly = new Date(todayOnly);
+                    tomorrowOnly.setDate(tomorrowOnly.getDate() + 1);
+                    const isTomorrow = dateOnly.getTime() === tomorrowOnly.getTime();
                     const isSelected = selectedDate?.toDateString() === date.toDateString();
+                    const isPast = dateOnly < todayOnly && !isToday;
+                    const isWorking = isWorkingDay(date);
+                    const isAvailable = isCurrentMonth && !isPast && isWorking;
                     
                     return (
-                      <button
-                        key={index}
-                        onClick={() => handleDateSelect(date)}
-                        className={`p-3 rounded-lg border-2 transition-all text-sm ${
-                          isSelected
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border hover:border-primary/50'
+                      <motion.button
+                        key={`${date.getTime()}-${index}`}
+                        onClick={() => isAvailable && handleDateSelect(date)}
+                        disabled={!isCurrentMonth || !isAvailable}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.01, duration: 0.15 }}
+                        whileHover={isAvailable && isCurrentMonth ? { scale: 1.05, y: -2 } : {}}
+                        whileTap={isAvailable && isCurrentMonth ? { scale: 0.95 } : {}}
+                        className={`p-3 rounded-lg border-2 transition-all text-sm flex items-center justify-center ${
+                          isSelected && isCurrentMonth
+                            ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                            : !isCurrentMonth
+                            ? 'border-transparent bg-transparent text-muted-foreground opacity-40 cursor-not-allowed'
+                            : !isAvailable
+                            ? 'border-muted bg-muted/20 text-muted-foreground opacity-50 cursor-not-allowed'
+                            : 'border-border hover:border-primary/50 hover:shadow-md'
                         }`}
                       >
-                        <div className="font-semibold">
-                          {isToday ? t('booking.today') : isTomorrow ? t('booking.tomorrow') : formatDate(date).split(' ')[0]}
+                        <div className={`text-sm ${isSelected && isCurrentMonth ? 'font-bold' : 'font-medium'}`}>
+                          {date.getDate()}
                         </div>
-                        <div className="text-xs opacity-80">{date.getDate()}</div>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
+                
+                {/* Contact Message - Did not find your specific date */}
+                {(phone || whatsapp) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className={`mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  >
+                    <div className={`text-sm text-blue-900 dark:text-blue-100 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <p className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('booking.didNotFindDate') || 'Did not find your specific date? Contact us and we will try our best to fit you in.'}
+                      </p>
+                      <div className={`flex flex-col gap-3 ${isRTL ? 'items-start' : 'items-start'}`}>
+                        {phone && (
+                          <motion.a
+                            href={`tel:${phone}`}
+                            className={`flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 font-medium underline transition-colors ${
+                              isRTL ? 'flex-row-reverse' : ''
+                            }`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            dir="ltr"
+                          >
+                            <Phone className="w-4 h-4 flex-shrink-0" />
+                            <span>{phone}</span>
+                          </motion.a>
+                        )}
+                        {whatsapp && (
+                          <motion.a
+                            href={getWhatsAppLink(whatsapp)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 font-medium underline transition-colors ${
+                              isRTL ? 'flex-row-reverse' : ''
+                            }`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            dir="ltr"
+                          >
+                            <img 
+                              src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
+                              alt="WhatsApp" 
+                              className="w-4 h-4 flex-shrink-0"
+                              style={{ width: '16px', height: '16px' }}
+                            />
+                            <span>{whatsapp}</span>
+                          </motion.a>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               {/* Time Selection */}
               {selectedDate && (
-                <div>
-                  <h3 className="text-md font-medium mb-3">{t('booking.selectTime')}</h3>
+                <motion.div
+                  ref={workerTimeSectionRef}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <h3 className="text-md font-medium mb-3 flex items-center gap-2">
+                    <span>⏰</span>
+                    {t('booking.selectTime')}
+                  </h3>
                   {availableWorkers.length > 1 && (
-                    <div className="mb-4">
+                    <motion.div 
+                      className="mb-4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                    >
                       <Label className={`mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {t('calendar.selectWorker')}
+                        👤 {t('calendar.selectWorker')}
                       </Label>
-                      <select
-                        value={selectedWorker || ''}
-                        onChange={(e) => setSelectedWorker(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg"
-                        dir={isRTL ? 'rtl' : 'ltr'}
-                      >
-                        {availableWorkers.map((worker) => (
-                          <option key={worker.id} value={worker.id}>
-                            {worker.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                      <div className="relative">
+                        <select
+                          value={selectedWorker || ''}
+                          onChange={(e) => setSelectedWorker(e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg transition-all hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none bg-white ${
+                            isRTL ? 'pr-10 pl-3 text-right' : 'pl-10 pr-3 text-left'
+                          }`}
+                          dir={isRTL ? 'rtl' : 'ltr'}
+                        >
+                          {availableWorkers.map((worker) => (
+                            <option key={worker.id} value={worker.id}>
+                              {worker.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${
+                          isRTL ? 'left-3' : 'right-3'
+                        }`}>
+                          <ChevronDown 
+                            className="w-4 h-4 text-muted-foreground" 
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
                   )}
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {timeSlots.map((timeSlot) => {
+                    {timeSlots.map((timeSlot, index) => {
                       const workerToCheck = selectedWorker || availableWorkers[0]?.id;
                       if (!workerToCheck) return null;
                       
@@ -623,212 +1302,634 @@ export default function BookingPage() {
                       const isBooked = !!appointmentInfo;
                       
                       return (
-                        <button
+                        <motion.button
                           key={timeSlot}
                           onClick={() => handleTimeSelect(timeSlot)}
                           disabled={!isAvailable || isBooked}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.02, duration: 0.2 }}
+                          whileHover={isAvailable && !isBooked ? { scale: 1.05, y: -2 } : {}}
+                          whileTap={isAvailable && !isBooked ? { scale: 0.95 } : {}}
                           className={`p-3 rounded-lg border-2 text-sm transition-all relative ${
                             isSelected
-                              ? 'border-primary bg-primary text-primary-foreground'
+                              ? 'border-primary bg-primary text-primary-foreground shadow-md'
                               : isBooked
                               ? 'border-muted bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
                               : isAvailable
-                              ? 'border-border hover:border-primary/50 cursor-pointer'
+                              ? 'border-border hover:border-primary/50 cursor-pointer hover:shadow-md'
                               : 'border-muted bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
                           }`}
                           title={appointmentInfo ? `${appointmentInfo.service} - ${appointmentInfo.customer}` : undefined}
                         >
                           {timeSlot}
+                          {isSelected && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className={`absolute ${isRTL ? 'left-1' : 'right-1'} top-1`}
+                            >
+                              <span className="text-xs">✓</span>
+                            </motion.div>
+                          )}
                           {appointmentInfo && (
                             <div className={`absolute ${isRTL ? 'left-1' : 'right-1'} top-1`}>
                               <X className="w-3 h-3 text-destructive" />
                             </div>
                           )}
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
                   {timeSlots.filter(ts => isTimeSlotAvailable(ts, selectedDate, selectedService.id)).length === 0 && (
-                    <p className="text-muted-foreground mt-4 text-center">{t('booking.noAvailableSlots')}</p>
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-muted-foreground mt-4 text-center"
+                    >
+                      😔 {t('booking.noAvailableSlots')}
+                    </motion.p>
                   )}
-                </div>
+                </motion.div>
               )}
             </Card>
-          </div>
-        )}
+          </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Step 3: Customer Information */}
-        {step === 3 && selectedService && selectedDate && selectedTime && (
-          <div className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">{t('booking.step3')}</h2>
-                <Button variant="outline" onClick={handleBack} size="sm">
-                  {isRTL ? <ChevronRight className="w-4 h-4 ml-1" /> : <ChevronLeft className="w-4 h-4 mr-1" />}
-                  {t('booking.back')}
-                </Button>
-              </div>
-
-              {/* Booking Summary */}
-              <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('booking.service')}:</span>
-                    <span className="font-medium">{selectedService.name}</span>
+        <AnimatePresence mode="wait">
+          {step === 3 && selectedService && selectedDate && selectedTime && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="space-y-6"
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">✍️</span>
+                    <h2 className="text-lg font-semibold">{t('booking.step3')}</h2>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('booking.selectDate')}:</span>
-                    <span className="font-medium">{formatDate(selectedDate)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('booking.selectTime')}:</span>
-                    <span className="font-medium">{selectedTime}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('services.price')}:</span>
-                    <span className="font-medium">₪{selectedService.price}</span>
-                  </div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleBack} 
+                      size="sm"
+                      className={isRTL ? 'flex-row-reverse' : ''}
+                    >
+                      {isRTL ? (
+                        <>
+                          {t('booking.back')}
+                          <ChevronRight className="w-4 h-4 mr-2" />
+                        </>
+                      ) : (
+                        <>
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                          {t('booking.back')}
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
                 </div>
-              </div>
+
+                {/* Booking Summary */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="mb-6 p-4 bg-muted/30 rounded-lg border border-primary/20"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">📋</span>
+                    <span className="text-sm font-medium text-muted-foreground">{t('booking.bookingSummary') || 'Booking Summary'}</span>
+                  </div>
+                  <div className="space-y-2">
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <span className="text-muted-foreground">{t('booking.service')}:</span>
+                      <span className="font-medium">{selectedService.name}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <span className="text-muted-foreground">{t('booking.selectDate')}:</span>
+                      <span className="font-medium">{formatDate(selectedDate)}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <span className="text-muted-foreground">{t('booking.selectTime')}:</span>
+                      <span className="font-medium">{selectedTime}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <span className="text-muted-foreground">{t('services.price')}:</span>
+                      <span className="font-medium">₪{selectedService.price}</span>
+                    </motion.div>
+                  </div>
+                </motion.div>
 
               {/* Customer Information Form */}
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name" className={isRTL ? 'text-right' : 'text-left'}>
-                    {t('booking.name')} *
-                  </Label>
-                  <Input
-                    id="name"
-                    value={customerInfo.name}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                    placeholder={t('booking.namePlaceholder')}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email" className={isRTL ? 'text-right' : 'text-left'}>
-                    {t('booking.email')} *
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={customerInfo.email}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                    placeholder={t('booking.emailPlaceholder')}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone" className={isRTL ? 'text-right' : 'text-left'}>
-                    {t('booking.phone')} *
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={customerInfo.phone}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                    placeholder={t('booking.phonePlaceholder')}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    className="mt-2"
-                  />
-                </div>
-                <Button
-                  onClick={handleBookAppointment}
-                  disabled={isBooking || !customerInfo.name || !customerInfo.email || !customerInfo.phone}
-                  className="w-full"
-                  size="lg"
+                {isLoggedIn && currentUser ? (
+                  // Show user info as read-only when logged in
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="p-4 bg-muted rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span>👤</span>
+                        <span className="text-sm font-medium">{t('booking.name')}</span>
+                      </div>
+                      <p className={`text-base ${isRTL ? 'text-right' : 'text-left'}`}>{customerInfo.name}</p>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="p-4 bg-muted rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span>📧</span>
+                        <span className="text-sm font-medium">{t('booking.email')}</span>
+                      </div>
+                      <p className={`text-base ${isRTL ? 'text-right' : 'text-left'}`} dir="ltr">{customerInfo.email}</p>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="p-4 bg-muted rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span>📱</span>
+                        <span className="text-sm font-medium">{t('booking.phone')}</span>
+                      </div>
+                      <p className={`text-base ${isRTL ? 'text-right' : 'text-left'}`} dir="ltr">{customerInfo.phone}</p>
+                    </motion.div>
+                  </>
+                ) : (
+                  // Show input fields for guests
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <Label htmlFor="name" className={`flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <span>👤</span>
+                        {t('booking.name')} *
+                      </Label>
+                      <Input
+                        id="name"
+                        value={customerInfo.name}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                        placeholder={t('booking.namePlaceholder')}
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                        className="mt-2 transition-all focus:ring-2 focus:ring-primary/20"
+                      />
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <Label htmlFor="email" className={`flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <span>📧</span>
+                        {t('booking.email')} *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={customerInfo.email}
+                        onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                        placeholder={t('booking.emailPlaceholder')}
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                        className="mt-2 transition-all focus:ring-2 focus:ring-primary/20"
+                      />
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <Label htmlFor="phone" className={`flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <span>📱</span>
+                        {t('booking.phone')} *
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // If there's a + anywhere, move it to the beginning
+                          if (value.includes('+')) {
+                            value = '+' + value.replace(/\+/g, '');
+                          }
+                          setCustomerInfo({ ...customerInfo, phone: value });
+                        }}
+                        placeholder={t('booking.phonePlaceholder')}
+                        dir="ltr"
+                        className="mt-2 transition-all focus:ring-2 focus:ring-primary/20"
+                      />
+                    </motion.div>
+                  </>
+                )}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {isBooking ? t('common.loading') : t('booking.confirmBooking')}
-                </Button>
+                  <Button
+                    onClick={handleBookAppointment}
+                    disabled={isBooking || (isLoggedIn ? false : (!customerInfo.name || !customerInfo.email || !customerInfo.phone))}
+                    className="w-full relative overflow-hidden"
+                    size="lg"
+                  >
+                    {isBooking ? (
+                      <span className="flex items-center gap-2">
+                        <motion.span
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        >
+                          ⏳
+                        </motion.span>
+                        {t('common.loading')}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <span>✨</span>
+                        {t('booking.confirmBooking')}
+                      </span>
+                    )}
+                  </Button>
+                </motion.div>
               </div>
             </Card>
-          </div>
-        )}
+          </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Step 4: Success/Confirmation Screen */}
-        {step === 4 && confirmedAppointment && selectedService && selectedDate && selectedTime && (
-          <Card className="p-8 text-center">
-            <div className="flex flex-col items-center justify-center mb-6">
-              <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-              <h2 className="text-2xl font-bold mb-2">{t('booking.thankYou')}</h2>
-              <p className="text-muted-foreground mb-6">{t('booking.appointmentConfirmed')}</p>
-            </div>
-
-            <div className={`max-w-md mx-auto mb-8 ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
-              <h3 className="text-lg font-semibold mb-4">{t('booking.appointmentDetails')}</h3>
-              <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('booking.serviceName')}:</span>
-                  <span className="font-medium">{confirmedAppointment.service}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('booking.workerName')}:</span>
-                  <span className="font-medium">{confirmedAppointment.worker}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('booking.appointmentDateTime')}:</span>
-                  <span className="font-medium">{formatDateTimeDisplay(confirmedAppointment.date, confirmedAppointment.time)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
-                onClick={addToGoogleCalendar}
-                variant="outline"
-                className={`w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <CalendarIcon className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {t('booking.addToGoogleCalendar')}
-              </Button>
-              <Button
-                onClick={addToAppleCalendar}
-                variant="outline"
-                className={`w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <CalendarIcon className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {t('booking.addToAppleCalendar')}
-              </Button>
-            </div>
-
-            <Button
-              onClick={() => {
-                setStep(1);
-                setSelectedService(null);
-                setSelectedDate(null);
-                setSelectedTime(null);
-                setCustomerInfo({ name: '', email: '', phone: '' });
-                setConfirmedAppointment(null);
-              }}
-              className="mt-6"
-              variant="default"
+        <AnimatePresence mode="wait">
+          {step === 4 && confirmedAppointment && selectedService && selectedDate && selectedTime && (
+            <motion.div
+              key="step4"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              {t('booking.bookAnotherAppointment')}
-            </Button>
-          </Card>
+              <Card className="p-8 text-center relative overflow-hidden">
+                {/* Confetti effect */}
+                {[...Array(20)].map((_, i) => {
+                  const randomX = Math.random() * 200 - 100; // -100 to 100
+                  const randomY = Math.random() * 200 + 50; // 50 to 250
+                  const randomRotate = Math.random() * 720 - 360; // -360 to 360
+                  return (
+                    <motion.div
+                      key={i}
+                      className="absolute text-2xl pointer-events-none"
+                      style={{
+                        left: '50%',
+                        top: '20%',
+                      }}
+                      initial={{ 
+                        x: 0,
+                        y: 0,
+                        opacity: 1,
+                        rotate: 0,
+                        scale: 1
+                      }}
+                      animate={{
+                        x: randomX,
+                        y: randomY,
+                        opacity: [1, 1, 0],
+                        rotate: randomRotate,
+                        scale: [1, 1.5, 0.5]
+                      }}
+                      transition={{
+                        duration: 2,
+                        delay: i * 0.05,
+                        ease: "easeOut"
+                      }}
+                    >
+                      {['🎉', '✨', '🎊', '🌟', '💫'][i % 5]}
+                    </motion.div>
+                  );
+                })}
+                
+                <motion.div 
+                  className="flex flex-col items-center justify-center mb-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 15,
+                      delay: 0.3
+                    }}
+                  >
+                    <CheckCircle2 className="w-20 h-20 text-green-500 mb-4" />
+                  </motion.div>
+                  <motion.h2 
+                    className="text-3xl font-bold mb-2 flex items-center gap-2 justify-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <span>🎉</span>
+                    {t('booking.thankYou')}
+                    <span>🎉</span>
+                  </motion.h2>
+                  <motion.p 
+                    className="text-muted-foreground mb-6 text-lg"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    {t('booking.appointmentConfirmed')} ✨
+                  </motion.p>
+                </motion.div>
+
+                <motion.div 
+                  className={`max-w-md mx-auto mb-8 ${isRTL ? 'text-right' : 'text-left'}`} 
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span>📝</span>
+                    {t('booking.appointmentDetails')}
+                  </h3>
+                  <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-primary/20">
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <span className="text-muted-foreground">{t('booking.serviceName')}:</span>
+                      <span className="font-medium">{confirmedAppointment.service}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.8 }}
+                    >
+                      <span className="text-muted-foreground">{t('booking.workerName')}:</span>
+                      <span className="font-medium">{confirmedAppointment.worker}</span>
+                    </motion.div>
+                    <motion.div 
+                      className="flex justify-between"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.9 }}
+                    >
+                      <span className="text-muted-foreground">{t('booking.appointmentDateTime')}:</span>
+                      <span className="font-medium">{formatDateTimeDisplay(confirmedAppointment.date, confirmedAppointment.time)}</span>
+                    </motion.div>
+                  </div>
+                </motion.div>
+
+                <motion.div 
+                  className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1 }}
+                >
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={addToGoogleCalendar}
+                      variant="outline"
+                      className={`w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+                    >
+                      <CalendarIcon className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t('booking.addToGoogleCalendar')}
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      onClick={addToAppleCalendar}
+                      variant="outline"
+                      className={`w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+                    >
+                      <CalendarIcon className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t('booking.addToAppleCalendar')}
+                    </Button>
+                  </motion.div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    onClick={() => {
+                      setStep(1);
+                      setSelectedService(null);
+                      setSelectedDate(null);
+                      setSelectedTime(null);
+                      // Preserve customer info if user is logged in, otherwise reset
+                      if (isLoggedIn && currentUser) {
+                        setCustomerInfo({
+                          name: currentUser.name || '',
+                          email: currentUser.email || '',
+                          phone: currentUser.phone || '',
+                        });
+                      } else {
+                        setCustomerInfo({ name: '', email: '', phone: '' });
+                      }
+                      setConfirmedAppointment(null);
+                    }}
+                    className="mt-6"
+                    variant="default"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>🔄</span>
+                      {t('booking.bookAnotherAppointment')}
+                    </span>
+                  </Button>
+                </motion.div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+          </>
+        ) : null}
+
+        {/* Social Media Links - Footer (Always Visible) */}
+        {settings.businessProfile?.socialLinks && (
+          (settings.businessProfile.socialLinks.facebook ||
+           settings.businessProfile.socialLinks.instagram ||
+           settings.businessProfile.socialLinks.twitter ||
+           settings.businessProfile.socialLinks.tiktok ||
+           settings.businessProfile.socialLinks.linkedin ||
+           settings.businessProfile.socialLinks.youtube) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-12 pb-8 border-t pt-8"
+            >
+              <p className="text-center mb-4 text-sm text-muted-foreground">
+                {t('booking.followUsOnSocial')}
+              </p>
+              <div className={`flex items-center justify-center gap-4 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {settings.businessProfile.socialLinks.facebook && (
+                  <motion.a
+                    href={settings.businessProfile.socialLinks.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center text-white hover:bg-[#1565C0] transition-colors shadow-lg"
+                    aria-label="Facebook"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </motion.a>
+                )}
+                {settings.businessProfile.socialLinks.instagram && (
+                  <motion.a
+                    href={settings.businessProfile.socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 flex items-center justify-center text-white hover:opacity-90 transition-opacity shadow-lg"
+                    aria-label="Instagram"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                  </motion.a>
+                )}
+                {settings.businessProfile.socialLinks.twitter && (
+                  <motion.a
+                    href={settings.businessProfile.socialLinks.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 rounded-full bg-[#1DA1F2] flex items-center justify-center text-white hover:bg-[#0d8bd9] transition-colors shadow-lg"
+                    aria-label="Twitter"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                    </svg>
+                  </motion.a>
+                )}
+                {settings.businessProfile.socialLinks.tiktok && (
+                  <motion.a
+                    href={settings.businessProfile.socialLinks.tiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-white hover:bg-gray-800 transition-colors shadow-lg"
+                    aria-label="TikTok"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+                    </svg>
+                  </motion.a>
+                )}
+                {settings.businessProfile.socialLinks.linkedin && (
+                  <motion.a
+                    href={settings.businessProfile.socialLinks.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 rounded-full bg-[#0077B5] flex items-center justify-center text-white hover:bg-[#005885] transition-colors shadow-lg"
+                    aria-label="LinkedIn"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-8.385H7.078v8.385H3.555V9h13.338v-3.47H3.555V2h13.338v3.47h3.554v11.982z"/>
+                    </svg>
+                  </motion.a>
+                )}
+                {settings.businessProfile.socialLinks.youtube && (
+                  <motion.a
+                    href={settings.businessProfile.socialLinks.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-12 h-12 rounded-full bg-[#FF0000] flex items-center justify-center text-white hover:bg-[#CC0000] transition-colors shadow-lg"
+                    aria-label="YouTube"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                  </motion.a>
+                )}
+              </div>
+            </motion.div>
+          )
         )}
 
-        {/* WhatsApp Help Message - At the bottom */}
-        {whatsapp && (
-          <Card className="p-4 mt-8 bg-blue-50 border-blue-200">
-            <div className={`flex flex-col gap-2 ${isRTL ? 'text-right items-end' : 'text-left items-start'}`} dir={isRTL ? 'rtl' : 'ltr'}>
-              <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <MessageCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                <p className="text-sm text-blue-900">{t('booking.whatsappHelp')}</p>
-              </div>
-              <Link 
-                href={getWhatsAppLink(whatsapp)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 font-medium underline"
-              >
-                {t('booking.whatsappClickHere')}
-              </Link>
-            </div>
-          </Card>
-        )}
+        {/* Login/Register Dialog */}
+        <LoginRegisterDialog
+          open={showLoginDialog}
+          onClose={() => setShowLoginDialog(false)}
+          onSuccess={(userData) => {
+            setIsLoggedIn(true);
+            setCurrentUser(userData);
+            setCustomerInfo({
+              name: userData.name || '',
+              email: userData.email || '',
+              phone: userData.phone || '',
+            });
+            
+            // Save session to localStorage with 14-day expiration
+            const expirationTime = new Date().getTime() + (14 * 24 * 60 * 60 * 1000); // 14 days in milliseconds
+            const session = {
+              user: userData,
+              expirationTime: expirationTime
+            };
+            localStorage.setItem('userSession', JSON.stringify(session));
+            
+            setShowLoginDialog(false);
+            // Don't show toast here - LoginRegisterDialog already handles the appropriate message
+          }}
+          registrationSettings={settings.registration}
+        />
       </main>
     </div>
   );

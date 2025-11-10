@@ -27,10 +27,39 @@ const defaultTemplates: Template[] = [
 ];
 
 const defaultSettings: Settings = {
-  businessProfile: { name: 'Style Studio', email: 'info@stylestudio.com', phone: '+972-50-123-4567', whatsapp: '+972-50-123-4567', address: '123 Main St, Tel Aviv, Israel', timezone: 'Asia/Jerusalem', currency: 'ILS' },
-  branding: { logoUrl: '', themeColor: '#0EA5E9' },
+  businessProfile: { 
+    name: 'Style Studio', 
+    email: 'info@stylestudio.com', 
+    phone: '+972-50-123-4567', 
+    whatsapp: '+972-50-123-4567', 
+    address: '123 Main St, Tel Aviv, Israel', 
+    timezone: 'Asia/Jerusalem', 
+    currency: 'ILS',
+    socialLinks: {
+      facebook: '',
+      instagram: '',
+      twitter: '',
+      tiktok: '',
+      linkedin: '',
+      youtube: '',
+    }
+  },
+  branding: { 
+    logoUrl: '', 
+    themeColor: '#0EA5E9',
+    bannerCover: {
+      type: 'pattern',
+      patternId: 'pattern1',
+    },
+    guestMessage: 'שלום אורח, ברוך הבא!',
+    loggedInMessage: 'שלום {name}, ברוך הבא!',
+  },
   locale: { language: 'en', rtl: false },
-  notifications: { senderName: 'Style Studio', senderEmail: 'noreply@stylestudio.com' },
+  notifications: { 
+    senderName: 'Style Studio', 
+    senderEmail: 'noreply@stylestudio.com',
+    reminderMessage: 'A reminder that you have an appointment for {{service}} on {{date}}, see you soon!'
+  },
   calendar: {
     weekStartDay: 0, // Sunday
     workingDays: [0, 1, 2, 3, 4], // Sunday to Thursday
@@ -38,8 +67,28 @@ const defaultSettings: Settings = {
       start: '09:00',
       end: '18:00',
     },
+    timeSlotGap: 60, // Default 60 minutes (1 hour)
+    contactMessage: {
+      enabled: true,
+      message: '',
+      showPhone: true,
+      showWhatsApp: true,
+    },
+  },
+  registration: {
+    customFields: [],
+    defaultGender: '',
   },
 };
+
+// Predefined banner patterns
+export const bannerPatterns = [
+  { id: 'pattern1', name: 'Gradient Blue', url: '/patterns/gradient-blue.svg' },
+  { id: 'pattern2', name: 'Gradient Purple', url: '/patterns/gradient-purple.svg' },
+  { id: 'pattern3', name: 'Abstract Lines', url: '/patterns/abstract-lines.svg' },
+  { id: 'pattern4', name: 'Geometric Shapes', url: '/patterns/geometric-shapes.svg' },
+  { id: 'pattern5', name: 'Wave Pattern', url: '/patterns/wave-pattern.svg' },
+];
 
 const defaultAppointments: Appointment[] = [
   { id: '1', staffId: '1', workerId: '1', service: 'Haircut', serviceId: '1', customer: 'John Doe', customerId: '1', start: '2025-10-30T09:00:00', end: '2025-10-30T09:30:00', status: 'confirmed' },
@@ -49,8 +98,8 @@ const defaultAppointments: Appointment[] = [
 ];
 
 const defaultWorkers: Worker[] = [
-  { id: '1', name: 'David Cohen', email: 'david@stylestudio.com', phone: '+972-50-111-2222', services: ['1', '2', '3'], active: true },
-  { id: '2', name: 'Sarah Levy', email: 'sarah@stylestudio.com', phone: '+972-50-333-4444', services: ['1', '3', '4'], active: true },
+  { id: '1', name: 'David Cohen', email: 'david@stylestudio.com', phone: '+972-50-111-2222', services: ['1', '2', '3'], active: true, color: '#3B82F6' },
+  { id: '2', name: 'Sarah Levy', email: 'sarah@stylestudio.com', phone: '+972-50-333-4444', services: ['1', '3', '4'], active: true, color: '#EC4899' },
 ];
 
 const getFromStorage = <T>(key: string, defaultValue: T): T => {
@@ -64,7 +113,22 @@ const getFromStorage = <T>(key: string, defaultValue: T): T => {
 
 const saveToStorage = <T>(key: string, value: T): void => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    const serialized = JSON.stringify(value);
+    const sizeInMB = new Blob([serialized]).size / (1024 * 1024);
+    
+    // Check if data is too large (localStorage limit is typically ~5-10MB)
+    if (sizeInMB > 4.5) {
+      throw new Error(`Storage quota exceeded. Data size: ${sizeInMB.toFixed(2)}MB. Please remove large files like videos.`);
+    }
+    
+    localStorage.setItem(key, serialized);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      throw new Error('Storage quota exceeded. Please remove large files like videos or images to save settings.');
+    }
+    throw error;
+  }
 };
 
 export const getMetrics = (t?: (key: string) => string): Metric[] => {
@@ -177,6 +241,16 @@ export const getCustomer = (id: string): Customer | null => {
   return customers.find((c) => c.id === id) || null;
 };
 
+export const getCustomerByPhone = (phone: string): Customer | null => {
+  const customers = getCustomers();
+  // Normalize phone number for comparison (remove spaces, dashes, and ensure consistent format)
+  const normalizedPhone = phone.replace(/[\s-]/g, '').toLowerCase();
+  return customers.find((c) => {
+    const customerPhone = c.phone.replace(/[\s-]/g, '').toLowerCase();
+    return customerPhone === normalizedPhone;
+  }) || null;
+};
+
 export const createCustomer = (data: Omit<Customer, 'id'>): Customer => {
   const customers = getCustomers();
   const newCustomer: Customer = { ...data, id: Date.now().toString() };
@@ -201,6 +275,47 @@ export const deleteCustomer = (id: string): boolean => {
   return true;
 };
 
+export const deleteCustomers = (ids: string[]): number => {
+  const customers = getCustomers();
+  const filtered = customers.filter((c) => !ids.includes(c.id));
+  const deletedCount = customers.length - filtered.length;
+  if (deletedCount > 0) {
+    saveToStorage(CUSTOMERS_KEY, filtered);
+  }
+  return deletedCount;
+};
+
+// Get appointments for a specific customer
+export const getAppointmentsByCustomerId = (customerId: string): Appointment[] => {
+  const appointments = getAppointments();
+  return appointments.filter((apt) => apt.customerId === customerId);
+};
+
+// Cancel all appointments for a customer
+export const cancelCustomerAppointments = (customerId: string): number => {
+  const appointments = getAppointments();
+  let canceledCount = 0;
+  
+  const updatedAppointments = appointments.map((apt) => {
+    if (apt.customerId === customerId && apt.status !== 'cancelled') {
+      canceledCount++;
+      return { ...apt, status: 'cancelled' as const };
+    }
+    return apt;
+  });
+  
+  if (canceledCount > 0) {
+    saveToStorage(APPOINTMENTS_KEY, updatedAppointments);
+  }
+  
+  return canceledCount;
+};
+
+// Block/unblock a customer
+export const toggleCustomerBlocked = (customerId: string, blocked: boolean): Customer | null => {
+  return updateCustomer(customerId, { blocked });
+};
+
 export const getTemplates = (channel?: 'email' | 'message'): Template[] => {
   const templates = getFromStorage(TEMPLATES_KEY, defaultTemplates);
   return channel ? templates.filter((t) => t.channel === channel) : templates;
@@ -222,11 +337,40 @@ export const updateSettings = (data: Partial<Settings>): Settings => {
   const updated = {
     ...current,
     ...data,
-    businessProfile: { ...current.businessProfile, ...data.businessProfile },
-    branding: { ...current.branding, ...data.branding },
-    locale: { ...current.locale, ...data.locale },
-    notifications: { ...current.notifications, ...data.notifications },
-    calendar: { ...current.calendar, ...data.calendar },
+    businessProfile: { 
+      ...current.businessProfile, 
+      ...(data.businessProfile || {}),
+      socialLinks: {
+        ...(current.businessProfile.socialLinks || {}),
+        ...(data.businessProfile?.socialLinks || {}),
+      },
+    },
+    branding: { 
+      ...current.branding, 
+      ...(data.branding || {}),
+      bannerCover: {
+        ...(current.branding.bannerCover || {}),
+        ...(data.branding?.bannerCover || {}),
+      },
+    },
+    locale: { ...current.locale, ...(data.locale || {}) },
+    notifications: { ...current.notifications, ...(data.notifications || {}) },
+    calendar: { 
+      ...current.calendar, 
+      ...(data.calendar || {}),
+      workingHours: {
+        ...(current.calendar.workingHours || {}),
+        ...(data.calendar?.workingHours || {}),
+      },
+      contactMessage: {
+        ...(current.calendar.contactMessage || {}),
+        ...(data.calendar?.contactMessage || {}),
+      },
+    },
+    registration: { 
+      ...(current.registration || {}), 
+      ...(data.registration || {}),
+    },
   } as Settings;
   saveToStorage(SETTINGS_KEY, updated);
   return updated;

@@ -55,10 +55,14 @@
     "saveChanges": "Save Changes",
     "appointmentUpdated": "Appointment updated successfully",
     "appointmentDeleted": "Appointment deleted successfully",
+    "appointmentCreated": "Appointment created successfully",
     "selectWorker": "Select Worker",
     "selectService": "Select Service",
     "selectCustomer": "Select Customer",
     "createAppointment": "Create New Appointment",
+    "addNewCustomer": "Add New Customer",
+    "quickCustomerDescription": "Quickly create a new customer to continue booking",
+    "createCustomer": "Create Customer",
     "required": "All fields are required",
     "allowManualEndTime": "Allow manual end time editing",
     "autoCalculatedEndTime": "End time is auto-calculated based on service duration",
@@ -82,6 +86,7 @@
     "price": "Price",
     "taxRate": "Tax Rate",
     "taxRatePercent": "Tax Rate (%)",
+    "changeToOtherVatValue": "Allow edit",
     "active": "Active",
     "actions": "Actions",
     "createService": "Create New Service",
@@ -126,7 +131,17 @@
     "confirmDelete": "Are you sure you want to delete this worker?",
     "required": "This field is required",
     "noServicesSelected": "No services selected",
-    "atLeastOneService": "Please assign at least one service to this worker."
+    "atLeastOneService": "Please assign at least one service to this worker.",
+    "pickColorForDisplay": "Pick a color for worker display",
+    "calendarPreview": "Calendar Preview",
+    "sampleClient": "Client Name",
+    "sampleService": "Service",
+    "isAdmin": "Is Admin (will allow worker to login to admin panel)",
+    "adminRequiresEmailPhone": "Admin requires email and phone",
+    "admin": "Admin",
+    "worker": "Worker",
+    "owner": "Owner",
+    "role": "Role"
   },
   "customers": {
     "title": "Customers",
@@ -136,6 +151,9 @@
     "phone": "Phone",
     "email": "Email",
     "lastVisit": "Last Visit",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "selectDateOfBirth": "Pick a date",
     "tags": "Tags",
     "notes": "Notes",
     "actions": "Actions",
@@ -147,6 +165,7 @@
     "tagsHint": "Separate multiple tags with commas",
     "notesPlaceholder": "Additional notes about this customer",
     "consentMarketing": "Marketing Consent",
+    "phoneExists": "A customer with this phone number already exists",
     "required": "This field is required",
     "cancel": "Cancel",
     "updateCustomer": "Update Customer",
@@ -154,7 +173,32 @@
     "customerCreated": "Customer created successfully",
     "customerUpdated": "Customer updated successfully",
     "customerDeleted": "Customer deleted successfully",
-    "confirmDelete": "Are you sure you want to delete this customer?"
+    "customersDeleted": "{count} customer(s) deleted successfully",
+    "confirmDelete": "Are you sure you want to delete this customer?",
+    "confirmBulkDelete": "Are you sure you want to delete {count} customer(s)?\n\n{names}",
+    "deleteSelected": "Delete Selected ({count})",
+    "noCustomersFound": "No customers found",
+    "customerDetails": "Customer Details",
+    "information": "Information",
+    "appointments": "Appointments",
+    "sendMessage": "Send Message",
+    "sendReminder": "Send Reminder",
+    "messagePlaceholder": "Type a message here...",
+    "messageRequired": "Please enter a message",
+    "messageSent": "Message sent successfully",
+    "reminderSent": "Reminder sent successfully",
+    "call": "Call",
+    "viewEdit": "View/Edit",
+    "block": "Block",
+    "unblock": "Unblock",
+    "customerBlocked": "Customer blocked from future appointments",
+    "customerUnblocked": "Customer unblocked",
+    "cancelAllAppointments": "Cancel All Appointments",
+    "confirmCancelAppointments": "Are you sure you want to cancel {count} appointment(s)?",
+    "appointmentsCancelled": "{count} appointment(s) cancelled",
+    "createAppointment": "Create Appointment",
+    "noAppointments": "No appointments found",
+    "redirectingToCalendar": "Redirecting to calendar to create appointment..."
   },
   "templates": {
     "title": "Templates",
@@ -179,6 +223,7 @@
   },
   "settings": {
     "title": "Settings",
+    "loading": "Loading settings...",
     "businessProfile": "Business Profile",
     "businessName": "Business Name",
     "email": "Email",
@@ -188,6 +233,7 @@
     "timezone": "Timezone",
     "currency": "Currency",
     "branding": "Branding",
+    "bookingPageAppearance": "Booking Page Appearance",
     "logo": "Logo",
     "businessLogo": "Business logo",
     "uploadLogo": "Upload Logo",
@@ -195,6 +241,7 @@
     "removeLogo": "Remove Logo",
     "noLogo": "No logo",
     "themeColor": "Theme Color",
+    "dragToReposition": "Drag to reposition",
     "languageAndLocalization": "Language & Localization",
     "language": "Language",
     "locale": "Locale & RTL",
@@ -203,6 +250,19 @@
     "workingDays": "Working Days",
     "workingHoursStart": "Working Hours Start",
     "workingHoursEnd": "Working Hours End",
+    "timeSlotGap": "Time Slot Interval",
+    "timeSlotGapDescription": "Choose the interval between available time slots (affects booking page and calendar)",
+    "minute": "minute",
+    "minutes": "minutes",
+    "contactMessageEnabled": "Show Contact Message",
+    "contactMessageText": "Contact Message Text",
+    "contactMessagePlaceholder": "Enter your custom message for customers who don't find their preferred date",
+    "contactMessageDescription": "This message will appear below the calendar on the booking page. If left empty, a default message will be shown. Use line breaks (Enter) to create multiple lines.",
+    "contactMessageHelp": "The contact section will only be displayed if at least one contact method (phone or WhatsApp) is enabled and available.",
+    "showPhoneInContact": "Show Phone Number",
+    "contactPhoneNote": "Uses phone number from Business Profile",
+    "showWhatsAppInContact": "Show WhatsApp Number",
+    "contactWhatsAppNote": "Uses WhatsApp number from Business Profile",
     "sunday": "Sunday",
     "monday": "Monday",
     "tuesday": "Tuesday",
@@ -213,7 +273,126 @@
     "notifications": "Notifications",
     "senderName": "Sender Name",
     "senderEmail": "Sender Email",
-    "save": "Save Changes"
+    "reminderMessage": "Reminder Message",
+    "reminderMessageHint": "Use {{service}} and {{date}} as placeholders",
+    "save": "Save Changes",
+    "savedSuccessfully": "Settings saved successfully",
+    "socialLinks": "Social Media Links",
+    "socialLinksDescription": "Add your social media links to display at the bottom of the booking page. Links will open in the respective apps when clicked.",
+    "addSocialLink": "Add Social Link",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "twitter": "Twitter",
+    "tiktok": "TikTok",
+    "linkedin": "LinkedIn",
+    "youtube": "YouTube",
+    "bannerCover": "Banner Cover",
+    "uploadBanner": "Upload Banner",
+    "choosePattern": "Choose Pattern",
+    "uploadBannerImage": "Upload Banner Image",
+    "cropImage": "Crop Image",
+    "confirmCrop": "Apply Crop",
+    "cancel": "Cancel",
+    "addVideo": "Add Video",
+    "changeVideo": "Change Video",
+    "removeVideo": "Remove Video",
+    "videoTooLarge": "Video file is too large. Maximum size is 3MB to avoid storage issues.",
+    "videoTooLargeForStorage": "Video file is too large to store. Please use a smaller video file or compress it.",
+    "videoReadError": "Failed to read video file. Please try again.",
+    "videoSaved": "Video saved successfully",
+    "videoRemoved": "Video removed successfully",
+    "saveError": "Failed to save. Storage quota exceeded. Please remove large files.",
+    "guestMessage": "Guest Customer Message",
+    "guestMessagePlaceholder": "Welcome message for guests (e.g., Hello guest, welcome!)",
+    "guestMessageDescription": "This message will be displayed to visitors who are not logged in",
+    "loggedInMessage": "Logged-in Customer Message",
+    "loggedInMessagePlaceholder": "Welcome message for logged-in users (use {name} for customer name)",
+    "loggedInMessageDescription": "This message will be displayed to logged-in customers. Use {name} to include the customer's name",
+    "registrationSettings": "Registration Settings",
+    "defaultGender": "Default Gender",
+    "noDefault": "No Default",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "customFields": "Custom Fields",
+    "addCustomField": "Add Custom Field",
+    "field": "Field",
+    "fieldLabel": "Field Label",
+    "fieldType": "Field Type",
+    "text": "Text",
+    "number": "Number",
+    "select": "Select",
+    "date": "Date",
+    "textarea": "Textarea",
+    "options": "Options",
+    "optionsPlaceholder": "Option 1, Option 2, Option 3",
+    "optionsHint": "Separate options with commas",
+    "placeholder": "Placeholder",
+    "required": "Required",
+    "noCustomFields": "No custom fields added yet"
+  },
+  "auth": {
+    "enterPhone": "Enter Phone Number",
+    "verifyCode": "Verify Code",
+    "completeRegistration": "Complete Registration",
+    "phoneNumber": "Phone Number",
+    "phonePlaceholder": "+1 (555) 123-4567",
+    "sendCode": "Send Code",
+    "sending": "Sending...",
+    "verificationCode": "Verification Code",
+    "codeSentTo": "Code sent to",
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "fullName": "Full Name",
+    "namePlaceholder": "Enter your full name",
+    "age": "Age",
+    "agePlaceholder": "Enter your age",
+    "dateOfBirth": "Date of Birth",
+    "dateOfBirthPlaceholder": "Pick a date",
+    "year": "Year",
+    "month": "Month",
+    "day": "Day",
+    "gender": "Gender",
+    "selectGender": "Select Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "email": "Email",
+    "emailPlaceholder": "your.email@example.com",
+    "selectOption": "Select an option",
+    "registering": "Registering...",
+    "registrationSuccess": "Registration successful! Welcome!",
+    "invalidCode": "Invalid verification code. Please try again.",
+    "invalidOrExpiredCode": "Invalid or expired code",
+    "welcomeBack": "Welcome back {{name}}!",
+    "customerNotFound": "Customer not found. Please register to continue.",
+    "codeSentViaWhatsApp": "Verification code sent via WhatsApp",
+    "registrationError": "Registration failed. Please try again.",
+    "logout": "Logout",
+    "logoutSuccess": "Logged out successfully",
+    "verifiedPhone": "Verified Phone:"
+  },
+  "adminLogin": {
+    "title": "Admin Login",
+    "subtitle": "Sign in to manage your business",
+    "subtitleWithBusiness": "Sign in to {businessName}",
+    "phone": "Phone Number",
+    "phonePlaceholder": "+1234567890",
+    "phoneRequired": "Phone number is required",
+    "sendCode": "Send Code",
+    "sending": "Sending...",
+    "sendCodeError": "Failed to send code",
+    "codeSent": "Code sent successfully",
+    "enterCode": "Enter verification code",
+    "codeHint": "Enter the 6-digit code sent to your phone, or use 1234 for testing",
+    "testCodeHint": "For testing, use code: 1234",
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "invalidCode": "Invalid code",
+    "loginSuccess": "Logged in successfully",
+    "back": "Back",
+    "noAccount": "Don't have an account?",
+    "contactOwner": "Contact your business owner to create an admin account."
   },
   "common": {
     "save": "Save",
@@ -222,7 +401,9 @@
     "delete": "Delete",
     "close": "Close",
     "loading": "Loading...",
-    "search": "Search..."
+    "search": "Search...",
+    "or": "or",
+    "justAMoment": "Just a moment, we are with you"
   },
   "home": {
     "title": "BookingHub - Simple System That Brings You More Bookings",
@@ -311,7 +492,7 @@
     }
   },
   "onboarding": {
-    "stepOf": "Step {step} of 3",
+    "stepOf": "Step {step} of {total}",
     "complete": "Complete",
     "chooseBusinessType": {
       "title": "Choose Your Business Type",
@@ -339,7 +520,10 @@
       "title": "Business Information",
       "subtitle": "Tell us about your business.",
       "name": "Business Name *",
-      "namePlaceholder": "e.g., Style Studio",
+      "namePlaceholder": "e.g., סטודיו סטייל",
+      "englishName": "English Name for URL *",
+      "englishNamePlaceholder": "e.g., Style Studio",
+      "englishNameHint": "This will be used to create your unique URL (e.g., yourbusiness.com/b/style-studio). Use only English letters, numbers, and hyphens.",
       "email": "Email *",
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "Phone Number *",
@@ -358,9 +542,116 @@
         "Email templates for confirmations and reminders"
       ]
     },
+    "services": {
+      "title": "Configure Your Services",
+      "subtitle": "Review and customize the default services for your business type. You can edit, remove, or add new services.",
+      "name": "Service Name",
+      "namePlaceholder": "e.g., Haircut",
+      "description": "Description",
+      "descriptionPlaceholder": "Service description",
+      "category": "Category",
+      "categoryPlaceholder": "e.g., Hair, Beard",
+      "duration": "Duration (minutes)",
+      "durationPlaceholder": "30",
+      "price": "Price",
+      "pricePlaceholder": "0.00",
+      "addService": "Add Service",
+      "defaultServices": {
+        "barbershop": {
+          "haircut": {
+            "name": "Haircut",
+            "description": "Professional haircut service",
+            "category": "Hair"
+          },
+          "beardTrim": {
+            "name": "Beard Trim",
+            "description": "Beard trimming and styling",
+            "category": "Beard"
+          },
+          "haircutBeard": {
+            "name": "Haircut + Beard",
+            "description": "Complete haircut and beard trim",
+            "category": "Hair"
+          },
+          "kidsHaircut": {
+            "name": "Kids Haircut",
+            "description": "Haircut for children",
+            "category": "Hair"
+          }
+        },
+        "nail_salon": {
+          "manicure": {
+            "name": "Manicure",
+            "description": "Professional nail care and polish",
+            "category": "Nails"
+          },
+          "pedicure": {
+            "name": "Pedicure",
+            "description": "Foot care and nail polish",
+            "category": "Nails"
+          },
+          "nailArt": {
+            "name": "Nail Art",
+            "description": "Custom nail art design",
+            "category": "Nails"
+          },
+          "fullSet": {
+            "name": "Full Set",
+            "description": "Complete manicure and pedicure",
+            "category": "Nails"
+          }
+        },
+        "gym_trainer": {
+          "personalTraining": {
+            "name": "Personal Training",
+            "description": "One-on-one personal training session",
+            "category": "Training"
+          },
+          "groupClass": {
+            "name": "Group Class",
+            "description": "Group fitness class",
+            "category": "Training"
+          },
+          "consultation": {
+            "name": "Consultation",
+            "description": "Initial fitness consultation",
+            "category": "Consultation"
+          },
+          "assessment": {
+            "name": "Assessment",
+            "description": "Fitness assessment and evaluation",
+            "category": "Consultation"
+          }
+        },
+        "other": {
+          "service1": {
+            "name": "Service 1",
+            "description": "Standard service",
+            "category": "General"
+          },
+          "service2": {
+            "name": "Service 2",
+            "description": "Premium service",
+            "category": "General"
+          },
+          "service3": {
+            "name": "Service 3",
+            "description": "Deluxe service",
+            "category": "General"
+          }
+        }
+      }
+    },
     "errors": {
       "selectBusinessType": "Please select a business type to continue.",
-      "fillRequiredFields": "Please fill in all required fields."
+      "fillRequiredFields": "Please fill in all required fields.",
+      "invalidEmail": "Please enter a valid email address.",
+      "invalidPhone": "Please enter a valid phone number.",
+      "invalidEnglishName": "English name must contain only English letters, numbers, spaces, hyphens, and underscores.",
+      "atLeastOneService": "Please add at least one service to continue.",
+      "invalidService": "Please ensure all services have a name, valid duration (>0), and valid price (≥0).",
+      "setupFailed": "Failed to set up your business. Please try again.",
+      "phoneAlreadyRegistered": "Phone number already registered by another user"
     },
     "success": {
       "businessSetup": "Your business is being set up. Redirecting to dashboard..."
@@ -391,6 +682,7 @@
     "selectDateFirst": "Please select a date first",
     "selectTimeFirst": "Please select a time first",
     "fillAllFields": "Please fill in all required fields",
+    "bookingSummary": "Booking Summary",
     "service": "Service",
     "duration": "Duration",
     "price": "Price",
@@ -403,6 +695,7 @@
     "tomorrow": "Tomorrow",
     "whatsappHelp": "If you have any questions, we can help you on WhatsApp",
     "whatsappClickHere": "Click here to chat on WhatsApp",
+    "didNotFindDate": "Did not find your specific date? You can contact us through one of the following ways and we will do our best to fit your schedule.",
     "step1": "Select Service",
     "step2": "Select Date & Time",
     "step3": "Your Information",
@@ -418,6 +711,8 @@
     "addToCalendar": "Add to Calendar",
     "addToGoogleCalendar": "Add to Google Calendar",
     "addToAppleCalendar": "Add to Apple Calendar",
-    "bookAnotherAppointment": "Book Another Appointment"
+    "bookAnotherAppointment": "Book Another Appointment",
+    "followUsOnSocial": "Follow us on social media",
+    "loginOrRegister": "Login or Register"
   }
 }

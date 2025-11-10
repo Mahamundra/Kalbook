@@ -1,2 +1,27 @@
-.cursor/
+# deps and builds
+node_modules/
+.next/
+.next/cache/
+dist/
+build/
+coverage/
+.turbo/
+
+# env and editor
 .env
+.env.*
+.vscode/
+.cursor/
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+Thumbs.db
+*.swp
+*~

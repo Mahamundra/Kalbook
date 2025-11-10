@@ -63,11 +63,23 @@ export const formatCurrency = (amount: number, currency: string, locale: Locale)
 };
 
 export const formatDate = (date: string, locale: Locale): string => {
+  // Handle invalid, empty, or missing dates
+  if (!date || date.trim() === '') {
+    return '-';
+  }
+  
+  const dateObj = new Date(date);
+  
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return '-';
+  }
+  
   const localeMap = { en: 'en-US', he: 'he-IL', ar: 'ar-SA', ru: 'ru-RU' } as const;
   const resolved = (localeMap as unknown as Record<string, string>)[locale] ?? 'en-US';
   return new Intl.DateTimeFormat(resolved, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  }).format(new Date(date));
+  }).format(dateObj);
 };

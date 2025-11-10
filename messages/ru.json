@@ -55,10 +55,14 @@
     "saveChanges": "Сохранить изменения",
     "appointmentUpdated": "Запись успешно обновлена",
     "appointmentDeleted": "Запись успешно удалена",
+    "appointmentCreated": "Запись успешно создана",
     "selectWorker": "Выберите работника",
     "selectService": "Выберите услугу",
     "selectCustomer": "Выберите клиента",
     "createAppointment": "Создать новую запись",
+    "addNewCustomer": "Добавить нового клиента",
+    "quickCustomerDescription": "Быстро создайте нового клиента для продолжения бронирования",
+    "createCustomer": "Создать клиента",
     "required": "Все поля обязательны",
     "allowManualEndTime": "Разрешить ручное редактирование времени окончания",
     "autoCalculatedEndTime": "Время окончания рассчитывается автоматически на основе длительности услуги",
@@ -82,6 +86,7 @@
     "price": "Цена",
     "taxRate": "Налоговая ставка",
     "taxRatePercent": "Налоговая ставка (%)",
+    "changeToOtherVatValue": "Разрешить редактирование",
     "active": "Активна",
     "actions": "Действия",
     "createService": "Создать новую услугу",
@@ -126,7 +131,17 @@
     "confirmDelete": "Вы уверены, что хотите удалить этого работника?",
     "required": "Это поле обязательно",
     "noServicesSelected": "Услуги не выбраны",
-    "atLeastOneService": "Пожалуйста, назначьте хотя бы одну услугу этому работнику."
+    "atLeastOneService": "Пожалуйста, назначьте хотя бы одну услугу этому работнику.",
+    "pickColorForDisplay": "Выберите цвет для отображения работника",
+    "calendarPreview": "Предварительный просмотр календаря",
+    "sampleClient": "Имя клиента",
+    "sampleService": "Услуга",
+    "isAdmin": "Администратор (позволит работнику войти в панель администратора)",
+    "adminRequiresEmailPhone": "Администратору требуется email и телефон",
+    "admin": "Администратор",
+    "worker": "Работник",
+    "owner": "Владелец",
+    "role": "Роль"
   },
   "customers": {
     "title": "Клиенты",
@@ -136,6 +151,9 @@
     "phone": "Телефон",
     "email": "Email",
     "lastVisit": "Последний визит",
+    "dateOfBirth": "Дата рождения",
+    "gender": "Пол",
+    "selectDateOfBirth": "Выберите дату",
     "tags": "Теги",
     "notes": "Заметки",
     "actions": "Действия",
@@ -147,6 +165,7 @@
     "tagsHint": "Разделяйте несколько тегов запятыми",
     "notesPlaceholder": "Дополнительные заметки об этом клиенте",
     "consentMarketing": "Согласие на маркетинг",
+    "phoneExists": "Клиент с таким номером телефона уже существует",
     "required": "Это поле обязательно",
     "cancel": "Отмена",
     "updateCustomer": "Обновить клиента",
@@ -154,7 +173,32 @@
     "customerCreated": "Клиент успешно создан",
     "customerUpdated": "Клиент успешно обновлен",
     "customerDeleted": "Клиент успешно удален",
-    "confirmDelete": "Вы уверены, что хотите удалить этого клиента?"
+    "customersDeleted": "{count} клиент(ов) успешно удалено",
+    "confirmDelete": "Вы уверены, что хотите удалить этого клиента?",
+    "confirmBulkDelete": "Вы уверены, что хотите удалить {count} клиент(ов)?\n\n{names}",
+    "deleteSelected": "Удалить выбранные ({count})",
+    "noCustomersFound": "Клиенты не найдены",
+    "customerDetails": "Детали клиента",
+    "information": "Информация",
+    "appointments": "Встречи",
+    "sendMessage": "Отправить сообщение",
+    "sendReminder": "Отправить напоминание",
+    "messagePlaceholder": "Введите сообщение здесь...",
+    "messageRequired": "Пожалуйста, введите сообщение",
+    "messageSent": "Сообщение успешно отправлено",
+    "reminderSent": "Напоминание успешно отправлено",
+    "call": "Позвонить",
+    "viewEdit": "Просмотр/Редактирование",
+    "block": "Заблокировать",
+    "unblock": "Разблокировать",
+    "customerBlocked": "Клиент заблокирован от будущих встреч",
+    "customerUnblocked": "Клиент разблокирован",
+    "cancelAllAppointments": "Отменить все встречи",
+    "confirmCancelAppointments": "Вы уверены, что хотите отменить {count} встреч(и)?",
+    "appointmentsCancelled": "{count} встреч(и) отменено",
+    "createAppointment": "Создать встречу",
+    "noAppointments": "Встречи не найдены",
+    "redirectingToCalendar": "Перенаправление в календарь для создания встречи..."
   },
   "templates": {
     "title": "Шаблоны",
@@ -179,6 +223,7 @@
   },
   "settings": {
     "title": "Настройки",
+    "loading": "Загрузка настроек...",
     "businessProfile": "Профиль бизнеса",
     "businessName": "Название бизнеса",
     "email": "Email",
@@ -188,6 +233,7 @@
     "timezone": "Часовой пояс",
     "currency": "Валюта",
     "branding": "Брендинг",
+    "bookingPageAppearance": "Внешний вид страницы бронирования",
     "logo": "Логотип",
     "businessLogo": "Логотип бизнеса",
     "uploadLogo": "Загрузить логотип",
@@ -195,6 +241,7 @@
     "removeLogo": "Удалить логотип",
     "noLogo": "Нет логотипа",
     "themeColor": "Цвет темы",
+    "dragToReposition": "Перетащите для изменения позиции",
     "languageAndLocalization": "Язык и локализация",
     "language": "Язык",
     "locale": "Язык и RTL",
@@ -203,6 +250,19 @@
     "workingDays": "Рабочие дни",
     "workingHoursStart": "Начало рабочего дня",
     "workingHoursEnd": "Конец рабочего дня",
+    "timeSlotGap": "Интервал временных слотов",
+    "timeSlotGapDescription": "Выберите интервал между доступными временными слотами (влияет на страницу бронирования и календарь)",
+    "minute": "минута",
+    "minutes": "минут",
+    "contactMessageEnabled": "Показать сообщение для связи",
+    "contactMessageText": "Текст сообщения для связи",
+    "contactMessagePlaceholder": "Введите ваше сообщение для клиентов, которые не нашли желаемую дату",
+    "contactMessageDescription": "Это сообщение появится под календарем на странице бронирования. Если оставить пустым, будет показано сообщение по умолчанию. Используйте переносы строк (Enter) для создания нескольких строк.",
+    "contactMessageHelp": "Раздел контактов будет отображаться только в том случае, если включен и доступен хотя бы один способ связи (телефон или WhatsApp).",
+    "showPhoneInContact": "Показать номер телефона",
+    "contactPhoneNote": "Использует номер телефона из Профиля бизнеса",
+    "showWhatsAppInContact": "Показать номер WhatsApp",
+    "contactWhatsAppNote": "Использует номер WhatsApp из Профиля бизнеса",
     "sunday": "Воскресенье",
     "monday": "Понедельник",
     "tuesday": "Вторник",
@@ -213,7 +273,126 @@
     "notifications": "Уведомления",
     "senderName": "Имя отправителя",
     "senderEmail": "Email отправителя",
-    "save": "Сохранить изменения"
+    "reminderMessage": "Сообщение-напоминание",
+    "reminderMessageHint": "Используйте {{service}} и {{date}} как заполнители",
+    "save": "Сохранить изменения",
+    "savedSuccessfully": "Настройки успешно сохранены",
+    "socialLinks": "Социальные сети",
+    "socialLinksDescription": "Добавьте ссылки на ваши социальные сети для отображения внизу страницы бронирования. Ссылки откроются в соответствующих приложениях при нажатии.",
+    "addSocialLink": "Добавить ссылку",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "twitter": "Twitter",
+    "tiktok": "TikTok",
+    "linkedin": "LinkedIn",
+    "youtube": "YouTube",
+    "bannerCover": "Обложка баннера",
+    "uploadBanner": "Загрузить баннер",
+    "choosePattern": "Выбрать шаблон",
+    "uploadBannerImage": "Загрузить изображение баннера",
+    "cropImage": "Обрезать изображение",
+    "confirmCrop": "Применить обрезку",
+    "cancel": "Отмена",
+    "addVideo": "Добавить видео",
+    "changeVideo": "Изменить видео",
+    "removeVideo": "Удалить видео",
+    "videoTooLarge": "Видеофайл слишком большой. Максимальный размер 3MB, чтобы избежать проблем с хранилищем.",
+    "videoTooLargeForStorage": "Видеофайл слишком большой для хранения. Пожалуйста, используйте файл меньшего размера или сожмите его.",
+    "videoReadError": "Не удалось прочитать видеофайл. Пожалуйста, попробуйте снова.",
+    "videoSaved": "Видео успешно сохранено",
+    "videoRemoved": "Видео успешно удалено",
+    "saveError": "Не удалось сохранить. Превышена квота хранилища. Пожалуйста, удалите большие файлы.",
+    "guestMessage": "Сообщение для гостей",
+    "guestMessagePlaceholder": "Приветственное сообщение для гостей (например, Привет, гость, добро пожаловать!)",
+    "guestMessageDescription": "Это сообщение будет отображаться посетителям, которые не вошли в систему",
+    "loggedInMessage": "Сообщение для зарегистрированных",
+    "loggedInMessagePlaceholder": "Приветственное сообщение для зарегистрированных пользователей (используйте {name} для имени клиента)",
+    "loggedInMessageDescription": "Это сообщение будет отображаться зарегистрированным клиентам. Используйте {name} для включения имени клиента",
+    "registrationSettings": "Настройки регистрации",
+    "defaultGender": "Пол по умолчанию",
+    "noDefault": "Нет по умолчанию",
+    "male": "Мужской",
+    "female": "Женский",
+    "other": "Другое",
+    "customFields": "Настраиваемые поля",
+    "addCustomField": "Добавить поле",
+    "field": "Поле",
+    "fieldLabel": "Метка поля",
+    "fieldType": "Тип поля",
+    "text": "Текст",
+    "number": "Число",
+    "select": "Выбор",
+    "date": "Дата",
+    "textarea": "Текстовая область",
+    "options": "Варианты",
+    "optionsPlaceholder": "Вариант 1, Вариант 2, Вариант 3",
+    "optionsHint": "Разделите варианты запятыми",
+    "placeholder": "Заполнитель",
+    "required": "Обязательно",
+    "noCustomFields": "Пользовательских полей пока нет"
+  },
+  "auth": {
+    "enterPhone": "Введите номер телефона",
+    "verifyCode": "Проверка кода",
+    "completeRegistration": "Завершить регистрацию",
+    "phoneNumber": "Номер телефона",
+    "phonePlaceholder": "+7 (999) 123-4567",
+    "sendCode": "Отправить код",
+    "sending": "Отправка...",
+    "verificationCode": "Код проверки",
+    "codeSentTo": "Код отправлен на",
+    "verify": "Проверить",
+    "verifying": "Проверка...",
+    "fullName": "Полное имя",
+    "namePlaceholder": "Введите ваше полное имя",
+    "age": "Возраст",
+    "agePlaceholder": "Введите ваш возраст",
+    "dateOfBirth": "Дата рождения",
+    "dateOfBirthPlaceholder": "Выберите дату",
+    "year": "Год",
+    "month": "Месяц",
+    "day": "День",
+    "gender": "Пол",
+    "selectGender": "Выберите пол",
+    "male": "Мужской",
+    "female": "Женский",
+    "other": "Другое",
+    "email": "Email",
+    "emailPlaceholder": "your.email@example.com",
+    "selectOption": "Выберите вариант",
+    "registering": "Регистрация...",
+    "registrationSuccess": "Регистрация успешна! Добро пожаловать!",
+    "invalidCode": "Неверный код подтверждения. Пожалуйста, попробуйте снова.",
+    "invalidOrExpiredCode": "Неверный или истекший код",
+    "welcomeBack": "С возвращением, {{name}}!",
+    "customerNotFound": "Клиент не найден. Пожалуйста, зарегистрируйтесь, чтобы продолжить.",
+    "codeSentViaWhatsApp": "Код подтверждения отправлен через WhatsApp",
+    "registrationError": "Регистрация не удалась. Пожалуйста, попробуйте снова.",
+    "logout": "Выйти",
+    "logoutSuccess": "Вы успешно вышли",
+    "verifiedPhone": "Подтвержденный телефон:"
+  },
+  "adminLogin": {
+    "title": "Вход администратора",
+    "subtitle": "Войдите, чтобы управлять своим бизнесом",
+    "subtitleWithBusiness": "Войдите в {businessName}",
+    "phone": "Номер телефона",
+    "phonePlaceholder": "+7 (999) 123-4567",
+    "phoneRequired": "Требуется номер телефона",
+    "sendCode": "Отправить код",
+    "sending": "Отправка...",
+    "sendCodeError": "Не удалось отправить код",
+    "codeSent": "Код успешно отправлен",
+    "enterCode": "Введите код подтверждения",
+    "codeHint": "Введите 6-значный код, отправленный на ваш телефон, или используйте 1234 для тестирования",
+    "testCodeHint": "Для тестирования используйте код: 1234",
+    "verify": "Проверить",
+    "verifying": "Проверка...",
+    "invalidCode": "Неверный код",
+    "loginSuccess": "Успешный вход",
+    "back": "Назад",
+    "noAccount": "Нет аккаунта?",
+    "contactOwner": "Свяжитесь с владельцем бизнеса, чтобы создать учетную запись администратора."
   },
   "common": {
     "save": "Сохранить",
@@ -222,7 +401,9 @@
     "delete": "Удалить",
     "close": "Закрыть",
     "loading": "Загрузка...",
-    "search": "Поиск..."
+    "search": "Поиск...",
+    "or": "или",
+    "justAMoment": "Момент, мы с вами"
   },
   "home": {
     "title": "BookingHub - Простая система для увеличения числа записей",
@@ -311,7 +492,7 @@
     }
   },
   "onboarding": {
-    "stepOf": "Шаг {step} из 3",
+    "stepOf": "Шаг {step} из {total}",
     "complete": "Завершено",
     "chooseBusinessType": {
       "title": "Выберите тип вашего бизнеса",
@@ -340,6 +521,9 @@
       "subtitle": "Расскажите нам о вашем бизнесе.",
       "name": "Название бизнеса *",
       "namePlaceholder": "например, Style Studio",
+      "englishName": "Английское название для URL *",
+      "englishNamePlaceholder": "например, Style Studio",
+      "englishNameHint": "Это будет использоваться для создания вашего уникального URL (например, yourbusiness.com/b/style-studio). Используйте только английские буквы, цифры и дефисы.",
       "email": "Email *",
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "Номер телефона *",
@@ -358,9 +542,116 @@
         "Шаблоны электронной почты для подтверждений и напоминаний"
       ]
     },
+    "services": {
+      "title": "Настройте ваши услуги",
+      "subtitle": "Просмотрите и настройте услуги по умолчанию для вашего типа бизнеса. Вы можете редактировать, удалять или добавлять новые услуги.",
+      "name": "Название услуги",
+      "namePlaceholder": "например, Стрижка",
+      "description": "Описание",
+      "descriptionPlaceholder": "Описание услуги",
+      "category": "Категория",
+      "categoryPlaceholder": "например, Волосы, Борода",
+      "duration": "Продолжительность (минуты)",
+      "durationPlaceholder": "30",
+      "price": "Цена",
+      "pricePlaceholder": "0.00",
+      "addService": "Добавить услугу",
+      "defaultServices": {
+        "barbershop": {
+          "haircut": {
+            "name": "Стрижка",
+            "description": "Профессиональная стрижка",
+            "category": "Волосы"
+          },
+          "beardTrim": {
+            "name": "Стрижка бороды",
+            "description": "Стрижка и укладка бороды",
+            "category": "Борода"
+          },
+          "haircutBeard": {
+            "name": "Стрижка + Борода",
+            "description": "Полная стрижка и стрижка бороды",
+            "category": "Волосы"
+          },
+          "kidsHaircut": {
+            "name": "Детская стрижка",
+            "description": "Стрижка для детей",
+            "category": "Волосы"
+          }
+        },
+        "nail_salon": {
+          "manicure": {
+            "name": "Маникюр",
+            "description": "Профессиональный уход за ногтями и покрытие",
+            "category": "Ногти"
+          },
+          "pedicure": {
+            "name": "Педикюр",
+            "description": "Уход за стопами и покрытие ногтей",
+            "category": "Ногти"
+          },
+          "nailArt": {
+            "name": "Дизайн ногтей",
+            "description": "Индивидуальный дизайн ногтей",
+            "category": "Ногти"
+          },
+          "fullSet": {
+            "name": "Полный набор",
+            "description": "Полный маникюр и педикюр",
+            "category": "Ногти"
+          }
+        },
+        "gym_trainer": {
+          "personalTraining": {
+            "name": "Персональная тренировка",
+            "description": "Индивидуальная персональная тренировка",
+            "category": "Тренировка"
+          },
+          "groupClass": {
+            "name": "Групповое занятие",
+            "description": "Групповое фитнес-занятие",
+            "category": "Тренировка"
+          },
+          "consultation": {
+            "name": "Консультация",
+            "description": "Первичная фитнес-консультация",
+            "category": "Консультация"
+          },
+          "assessment": {
+            "name": "Оценка",
+            "description": "Оценка и проверка физической формы",
+            "category": "Консультация"
+          }
+        },
+        "other": {
+          "service1": {
+            "name": "Услуга 1",
+            "description": "Стандартная услуга",
+            "category": "Общее"
+          },
+          "service2": {
+            "name": "Услуга 2",
+            "description": "Премиум услуга",
+            "category": "Общее"
+          },
+          "service3": {
+            "name": "Услуга 3",
+            "description": "Делюкс услуга",
+            "category": "Общее"
+          }
+        }
+      }
+    },
     "errors": {
       "selectBusinessType": "Пожалуйста, выберите тип бизнеса для продолжения.",
-      "fillRequiredFields": "Пожалуйста, заполните все обязательные поля."
+      "fillRequiredFields": "Пожалуйста, заполните все обязательные поля.",
+      "invalidEmail": "Пожалуйста, введите действительный адрес электронной почты.",
+      "invalidPhone": "Пожалуйста, введите действительный номер телефона.",
+      "invalidEnglishName": "Английское название должно содержать только английские буквы, цифры, пробелы, дефисы и подчеркивания.",
+      "atLeastOneService": "Пожалуйста, добавьте хотя бы одну услугу для продолжения.",
+      "invalidService": "Пожалуйста, убедитесь, что все услуги имеют название, действительную продолжительность (>0) и действительную цену (≥0).",
+      "setupFailed": "Не удалось настроить ваш бизнес. Пожалуйста, попробуйте снова.",
+      "phoneAlreadyRegistered": "Номер телефона уже зарегистрирован другим пользователем"
     },
     "success": {
       "businessSetup": "Ваш бизнес настраивается. Перенаправление на панель управления..."
@@ -391,6 +682,7 @@
     "selectDateFirst": "Пожалуйста, сначала выберите дату",
     "selectTimeFirst": "Пожалуйста, сначала выберите время",
     "fillAllFields": "Пожалуйста, заполните все обязательные поля",
+    "bookingSummary": "Сводка бронирования",
     "service": "Услуга",
     "duration": "Длительность",
     "price": "Цена",
@@ -403,6 +695,7 @@
     "tomorrow": "Завтра",
     "whatsappHelp": "Если у вас есть вопросы, мы можем помочь вам в WhatsApp",
     "whatsappClickHere": "Нажмите здесь, чтобы написать в WhatsApp",
+    "didNotFindDate": "Не нашли нужную дату? Вы можете связаться с нами одним из следующих способов, и мы сделаем всё возможное, чтобы подобрать удобное для вас время.",
     "step1": "Выберите услугу",
     "step2": "Выберите дату и время",
     "step3": "Ваша информация",
@@ -418,6 +711,8 @@
     "addToCalendar": "Добавить в календарь",
     "addToGoogleCalendar": "Добавить в Google Calendar",
     "addToAppleCalendar": "Добавить в Apple Calendar",
-    "bookAnotherAppointment": "Записаться еще раз"
+    "bookAnotherAppointment": "Записаться еще раз",
+    "followUsOnSocial": "Следите за нами в социальных сетях",
+    "loginOrRegister": "Войти или Зарегистрироваться"
   }
 }

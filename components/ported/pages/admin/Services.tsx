@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { DataTable } from '@/components/admin/DataTable';
 import { useLocale } from '@/components/ported/hooks/useLocale';
-import { getServices, deleteService, createService, updateService } from '@/components/ported/lib/mockData';
+import { useDirection } from '@/components/providers/DirectionProvider';
+import { getServices, deleteService, createService, updateService } from '@/lib/api/services';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Service } from '@/types/admin';
@@ -20,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ported/ui/checkbox';
 
 function ActiveSwitchField({ formData, setFormData, t }: { 
   formData: { active: boolean; name: string; description: string; duration: number; price: number; taxRate: number }; 
@@ -27,6 +29,9 @@ function ActiveSwitchField({ formData, setFormData, t }: {
   t: (key: string) => string 
 }) {
   const { isRTL } = useLocale();
+  const handleActiveChange = useCallback((checked: boolean) => {
+    setFormData((prev) => ({ ...prev, active: checked }));
+  }, [setFormData]);
   
   return (
     <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -34,7 +39,7 @@ function ActiveSwitchField({ formData, setFormData, t }: {
       <Switch
         id="active"
         checked={formData.active}
-        onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+        onCheckedChange={handleActiveChange}
       />
     </div>
   );
@@ -45,28 +50,70 @@ const defaultFormData = {
   description: '',
   duration: 30,
   price: 0,
-  taxRate: 17,
+  taxRate: 18,
   active: true,
 };
 
 const Services = () => {
-  const { t } = useLocale();
+  const { t, isRTL } = useLocale();
+  const [mounted, setMounted] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [editingServiceName, setEditingServiceName] = useState<string>('');
   const [editingCategory, setEditingCategory] = useState<string>('Other');
   const [formData, setFormData] = useState(defaultFormData);
+  const [isVatEditable, setIsVatEditable] = useState(true);
+  const formRef = useRef<HTMLFormElement>(null);
   
   useEffect(() => {
-    setServices(getServices());
+    setMounted(true);
+    // Fetch services from API
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        const data = await getServices();
+        setServices(data);
+      } catch (error) {
+        console.error('Failed to fetch services:', error);
+        toast.error('Failed to load services');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
   }, []);
+  
+  const { localeReady } = useDirection();
+  
+  // Don't render until mounted and locale is ready to avoid hydration mismatch
+  if (!mounted || !localeReady) {
+    return (
+      <div className="border rounded-lg p-12 flex flex-col items-center justify-center space-y-4">
+        <div className="relative mx-auto w-12 h-12">
+          <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
+        </div>
+        <p className="text-sm text-muted-foreground">{localeReady ? (t('common.loading') || 'Loading...') : 'Loading...'}</p>
+      </div>
+    );
+  }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm(t('services.confirmDelete'))) {
-      deleteService(id);
-      setServices(getServices());
-      toast.success(t('services.serviceDeleted'));
+      try {
+        setLoading(true);
+        await deleteService(id);
+        const data = await getServices();
+        setServices(data);
+        toast.success(t('services.serviceDeleted'));
+      } catch (error) {
+        console.error('Failed to delete service:', error);
+        toast.error('Failed to delete service');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -75,6 +122,7 @@ const Services = () => {
     setEditingServiceName('');
     setEditingCategory('Other');
     setFormData(defaultFormData);
+    setIsVatEditable(true);
     setIsDialogOpen(true);
   };
 
@@ -87,9 +135,11 @@ const Services = () => {
       description: service.description || '',
       duration: service.duration,
       price: service.price,
-      taxRate: service.taxRate,
+      taxRate: service.taxRate || 18,
       active: service.active,
     });
+    // Always allow editing by default
+    setIsVatEditable(true);
     setIsDialogOpen(true);
   };
 
@@ -99,9 +149,10 @@ const Services = () => {
     setEditingServiceName('');
     setEditingCategory('Other');
     setFormData(defaultFormData);
+    setIsVatEditable(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -119,22 +170,37 @@ const Services = () => {
       return;
     }
 
-    if (editingServiceId) {
-      updateService(editingServiceId, { ...formData, category: editingCategory });
-      toast.success(t('services.serviceUpdated'));
-    } else {
-      createService({ ...formData, category: 'Other' });
-      toast.success(t('services.serviceCreated'));
+    try {
+      if (editingServiceId) {
+        await updateService(editingServiceId, { ...formData, category: editingCategory });
+        toast.success(t('services.serviceUpdated'));
+      } else {
+        await createService({ ...formData, category: 'Other' });
+        toast.success(t('services.serviceCreated'));
+      }
+      
+      // Refresh services list
+      setLoading(true);
+      const data = await getServices();
+      setServices(data);
+      setLoading(false);
+      handleClose();
+    } catch (error) {
+      console.error('Failed to save service:', error);
+      toast.error(editingServiceId ? 'Failed to update service' : 'Failed to create service');
     }
-    
-    setServices(getServices());
-    handleClose();
   };
 
-  const handleToggleActive = (serviceId: string, currentActive: boolean) => {
-    updateService(serviceId, { active: !currentActive });
-    setServices(getServices());
-    toast.success(t('services.serviceUpdated'));
+  const handleToggleActive = async (serviceId: string, currentActive: boolean) => {
+    try {
+      await updateService(serviceId, { active: !currentActive });
+      const data = await getServices();
+      setServices(data);
+      toast.success(t('services.serviceUpdated'));
+    } catch (error) {
+      console.error('Failed to update service:', error);
+      toast.error('Failed to update service');
+    }
   };
 
   const columns = [
@@ -157,27 +223,12 @@ const Services = () => {
       render: (service: Service) => `₪${service.price}`,
     },
     {
-      key: 'active',
-      label: t('services.active'),
-      render: (service: Service) => {
-        return (
-          <div className="flex items-center justify-center">
-            <Switch
-              checked={service.active}
-              onCheckedChange={() => handleToggleActive(service.id, service.active)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        );
-      },
-    },
-    {
       key: 'actions',
       label: t('services.actions'),
       render: (service: Service) => {
         const { isRTL } = useLocale();
         return (
-          <div className={`flex gap-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+          <div className={`flex items-center gap-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
             <Button
               variant="ghost"
               size="sm"
@@ -198,6 +249,11 @@ const Services = () => {
             >
               <Trash2 className="w-4 h-4" />
             </Button>
+            <Switch
+              checked={service.active}
+              onCheckedChange={() => handleToggleActive(service.id, service.active)}
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         );
       },
@@ -221,12 +277,14 @@ const Services = () => {
         columns={columns}
         searchable
         searchPlaceholder={t('services.search')}
-        emptyMessage="No services found"
+        emptyMessage={t('services.noServicesFound')}
+        loading={loading}
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full">
+          {/* Sticky Header */}
+          <DialogHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
             <DialogTitle>
               {editingServiceId 
                 ? t('services.editServiceTitle').replace('{name}', editingServiceName)
@@ -239,7 +297,8 @@ const Services = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Scrollable Content */}
+          <form ref={formRef} id="service-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Label htmlFor="name">{t('services.name')} *</Label>
@@ -290,31 +349,85 @@ const Services = () => {
 
               <div>
                 <Label htmlFor="taxRate">{t('services.taxRatePercent')}</Label>
-                <Input
-                  id="taxRate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={formData.taxRate}
-                  onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 0 })}
-                />
+                <div className="space-y-2">
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={formData.taxRate}
+                    onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 18 })}
+                    disabled={!isVatEditable}
+                  />
+                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} ${isRTL ? 'justify-end' : 'justify-start'} gap-3`}>
+                    {isRTL ? (
+                      <>
+                        <Label
+                          htmlFor="vatEditable"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {t('services.changeToOtherVatValue')}
+                        </Label>
+                        <Checkbox
+                          id="vatEditable"
+                          checked={isVatEditable}
+                          onCheckedChange={(checked) => {
+                            setIsVatEditable(checked as boolean);
+                            if (!checked) {
+                              // Reset to 18% when unchecking
+                              setFormData({ ...formData, taxRate: 18 });
+                            }
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Checkbox
+                          id="vatEditable"
+                          checked={isVatEditable}
+                          onCheckedChange={(checked) => {
+                            setIsVatEditable(checked as boolean);
+                            if (!checked) {
+                              // Reset to 18% when unchecking
+                              setFormData({ ...formData, taxRate: 18 });
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor="vatEditable"
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {t('services.changeToOtherVatValue')}
+                        </Label>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="md:col-span-2">
                 <ActiveSwitchField formData={formData} setFormData={setFormData} t={t} />
               </div>
             </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
-                {t('services.cancel')}
-              </Button>
-              <Button type="submit">
-                {editingServiceId ? t('services.updateService') : t('services.addService')}
-              </Button>
-            </DialogFooter>
           </form>
+
+          {/* Sticky Footer */}
+          <DialogFooter className="p-6 pt-4 border-t sticky bottom-0 bg-background z-10">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              {t('services.cancel')}
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                if (formRef.current) {
+                  formRef.current.requestSubmit();
+                }
+              }}
+            >
+              {editingServiceId ? t('services.updateService') : t('services.addService')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

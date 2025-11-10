@@ -11,6 +11,7 @@ interface DirectionContextType {
   dir: 'ltr' | 'rtl';
   isRTL: boolean;
   isTransitioning: boolean;
+  localeReady: boolean;
 }
 
 const DirectionContext = createContext<DirectionContextType | undefined>(undefined);
@@ -39,7 +40,15 @@ export const DirectionProvider = ({ children }: { children: ReactNode }) => {
   });
   
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [localeReady, setLocaleReady] = useState(false);
   const dir = checkRTL(locale) ? 'rtl' : 'ltr';
+
+  // Mark locale as ready after mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLocaleReady(true);
+    }
+  }, []);
 
   // Detect browser language on first visit
   useEffect(() => {
@@ -109,6 +118,7 @@ export const DirectionProvider = ({ children }: { children: ReactNode }) => {
         dir,
         isRTL: checkRTL(locale),
         isTransitioning,
+        localeReady,
       }}
     >
       {children}

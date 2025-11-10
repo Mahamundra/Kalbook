@@ -55,10 +55,14 @@
     "saveChanges": "حفظ التغييرات",
     "appointmentUpdated": "تم تحديث الموعد بنجاح",
     "appointmentDeleted": "تم حذف الموعد بنجاح",
+    "appointmentCreated": "تم إنشاء الموعد بنجاح",
     "selectWorker": "اختر العامل",
     "selectService": "اختر الخدمة",
     "selectCustomer": "اختر العميل",
     "createAppointment": "إنشاء موعد جديد",
+    "addNewCustomer": "إضافة عميل جديد",
+    "quickCustomerDescription": "إنشاء عميل جديد بسرعة للمتابعة في الحجز",
+    "createCustomer": "إنشاء عميل",
     "required": "جميع الحقول مطلوبة",
     "allowManualEndTime": "السماح بتعديل وقت الانتهاء يدوياً",
     "autoCalculatedEndTime": "يتم حساب وقت الانتهاء تلقائياً بناءً على مدة الخدمة",
@@ -82,6 +86,7 @@
     "price": "السعر",
     "taxRate": "معدل الضريبة",
     "taxRatePercent": "معدل الضريبة (%)",
+    "changeToOtherVatValue": "السماح بالتعديل",
     "active": "نشط",
     "actions": "الإجراءات",
     "createService": "إنشاء خدمة جديدة",
@@ -126,7 +131,17 @@
     "confirmDelete": "هل أنت متأكد من حذف هذا العامل؟",
     "required": "هذا الحقل مطلوب",
     "noServicesSelected": "لم يتم تحديد خدمات",
-    "atLeastOneService": "يرجى تعيين خدمة واحدة على الأقل لهذا العامل."
+    "atLeastOneService": "يرجى تعيين خدمة واحدة على الأقل لهذا العامل.",
+    "pickColorForDisplay": "اختر لونًا لعرض العامل",
+    "calendarPreview": "معاينة التقويم",
+    "sampleClient": "اسم العميل",
+    "sampleService": "خدمة",
+    "isAdmin": "مدير (سيسمح للعامل بتسجيل الدخول إلى لوحة الإدارة)",
+    "adminRequiresEmailPhone": "يتطلب المدير البريد الإلكتروني والهاتف",
+    "admin": "مدير",
+    "worker": "عامل",
+    "owner": "المالك",
+    "role": "الدور"
   },
   "customers": {
     "title": "العملاء",
@@ -136,6 +151,9 @@
     "phone": "الهاتف",
     "email": "البريد الإلكتروني",
     "lastVisit": "آخر زيارة",
+    "dateOfBirth": "تاريخ الميلاد",
+    "gender": "الجنس",
+    "selectDateOfBirth": "اختر تاريخ",
     "tags": "العلامات",
     "notes": "ملاحظات",
     "actions": "الإجراءات",
@@ -147,6 +165,7 @@
     "tagsHint": "افصل العلامات المتعددة بفواصل",
     "notesPlaceholder": "ملاحظات إضافية حول هذا العميل",
     "consentMarketing": "الموافقة على التسويق",
+    "phoneExists": "يوجد بالفعل عميل بهذا الرقم",
     "required": "هذا الحقل مطلوب",
     "cancel": "إلغاء",
     "updateCustomer": "تحديث العميل",
@@ -154,7 +173,32 @@
     "customerCreated": "تم إنشاء العميل بنجاح",
     "customerUpdated": "تم تحديث العميل بنجاح",
     "customerDeleted": "تم حذف العميل بنجاح",
-    "confirmDelete": "هل أنت متأكد من أنك تريد حذف هذا العميل؟"
+    "customersDeleted": "تم حذف {count} عميل/عملاء بنجاح",
+    "confirmDelete": "هل أنت متأكد من أنك تريد حذف هذا العميل؟",
+    "confirmBulkDelete": "هل أنت متأكد من أنك تريد حذف {count} عميل/عملاء؟\n\n{names}",
+    "deleteSelected": "حذف المحدد ({count})",
+    "noCustomersFound": "لم يتم العثور على عملاء",
+    "customerDetails": "تفاصيل العميل",
+    "information": "المعلومات",
+    "appointments": "المواعيد",
+    "sendMessage": "إرسال رسالة",
+    "sendReminder": "إرسال تذكير",
+    "messagePlaceholder": "اكتب رسالة هنا...",
+    "messageRequired": "الرجاء إدخال رسالة",
+    "messageSent": "تم إرسال الرسالة بنجاح",
+    "reminderSent": "تم إرسال التذكير بنجاح",
+    "call": "اتصل",
+    "viewEdit": "عرض/تعديل",
+    "block": "حظر",
+    "unblock": "إلغاء الحظر",
+    "customerBlocked": "تم حظر العميل من المواعيد المستقبلية",
+    "customerUnblocked": "تم إلغاء حظر العميل",
+    "cancelAllAppointments": "إلغاء جميع المواعيد",
+    "confirmCancelAppointments": "هل أنت متأكد من أنك تريد إلغاء {count} موعد/مواعيد؟",
+    "appointmentsCancelled": "تم إلغاء {count} موعد/مواعيد",
+    "createAppointment": "إنشاء موعد",
+    "noAppointments": "لم يتم العثور على مواعيد",
+    "redirectingToCalendar": "إعادة التوجيه إلى التقويم لإنشاء موعد..."
   },
   "templates": {
     "title": "القوالب",
@@ -179,6 +223,7 @@
   },
   "settings": {
     "title": "الإعدادات",
+    "loading": "جاري تحميل الإعدادات...",
     "businessProfile": "ملف العمل",
     "businessName": "اسم العمل",
     "email": "البريد الإلكتروني",
@@ -188,6 +233,7 @@
     "timezone": "المنطقة الزمنية",
     "currency": "العملة",
     "branding": "العلامة التجارية",
+    "bookingPageAppearance": "مظهر صفحة الحجز",
     "logo": "الشعار",
     "businessLogo": "شعار العمل",
     "uploadLogo": "رفع الشعار",
@@ -195,6 +241,7 @@
     "removeLogo": "إزالة الشعار",
     "noLogo": "لا يوجد شعار",
     "themeColor": "لون السمة",
+    "dragToReposition": "اسحب لإعادة الموضع",
     "languageAndLocalization": "اللغة والتوطين",
     "language": "اللغة",
     "locale": "اللغة وRTL",
@@ -203,6 +250,19 @@
     "workingDays": "أيام العمل",
     "workingHoursStart": "ساعة بداية العمل",
     "workingHoursEnd": "ساعة نهاية العمل",
+    "timeSlotGap": "فترة المواعيد الزمنية",
+    "timeSlotGapDescription": "اختر الفترة بين المواعيد الزمنية المتاحة (يؤثر على صفحة الحجز والتقويم)",
+    "minute": "دقيقة",
+    "minutes": "دقائق",
+    "contactMessageEnabled": "إظهار رسالة الاتصال",
+    "contactMessageText": "نص رسالة الاتصال",
+    "contactMessagePlaceholder": "أدخل رسالتك المخصصة للعملاء الذين لا يجدون تاريخهم المفضل",
+    "contactMessageDescription": "ستظهر هذه الرسالة أسفل التقويم في صفحة الحجز. إذا تُركت فارغة، سيتم عرض رسالة افتراضية. استخدم الأسطر الجديدة (Enter) لإنشاء عدة أسطر.",
+    "contactMessageHelp": "سيتم عرض قسم الاتصال فقط إذا كان هناك طريقة اتصال واحدة على الأقل (الهاتف أو WhatsApp) مفعلة ومتاحة.",
+    "showPhoneInContact": "إظهار رقم الهاتف",
+    "contactPhoneNote": "يستخدم رقم الهاتف من ملف تعريف العمل",
+    "showWhatsAppInContact": "إظهار رقم WhatsApp",
+    "contactWhatsAppNote": "يستخدم رقم WhatsApp من ملف تعريف العمل",
     "sunday": "الأحد",
     "monday": "الاثنين",
     "tuesday": "الثلاثاء",
@@ -213,7 +273,126 @@
     "notifications": "الإشعارات",
     "senderName": "اسم المرسل",
     "senderEmail": "البريد الإلكتروني للمرسل",
-    "save": "حفظ التغييرات"
+    "reminderMessage": "رسالة التذكير",
+    "reminderMessageHint": "استخدم {{service}} و{{date}} كعناصر نائبة",
+    "save": "حفظ التغييرات",
+    "savedSuccessfully": "تم حفظ الإعدادات بنجاح",
+    "socialLinks": "روابط وسائل التواصل الاجتماعي",
+    "socialLinksDescription": "أضف روابط وسائل التواصل الاجتماعي الخاصة بك للعرض في أسفل صفحة الحجز. ستفتح الروابط في التطبيقات المقابلة عند النقر عليها.",
+    "addSocialLink": "إضافة رابط اجتماعي",
+    "facebook": "فيسبوك",
+    "instagram": "إنستغرام",
+    "twitter": "تويتر",
+    "tiktok": "تيك توك",
+    "linkedin": "لينكد إن",
+    "youtube": "يوتيوب",
+    "bannerCover": "غطاء الشعار",
+    "uploadBanner": "رفع شعار",
+    "choosePattern": "اختر نمط",
+    "uploadBannerImage": "رفع صورة الشعار",
+    "cropImage": "قص الصورة",
+    "confirmCrop": "تطبيق القص",
+    "cancel": "إلغاء",
+    "addVideo": "إضافة فيديو",
+    "changeVideo": "تغيير الفيديو",
+    "removeVideo": "إزالة الفيديو",
+    "videoTooLarge": "ملف الفيديو كبير جداً. الحد الأقصى للحجم هو 3MB لتجنب مشاكل التخزين.",
+    "videoTooLargeForStorage": "ملف الفيديو كبير جداً للتخزين. يرجى استخدام ملف فيديو أصغر أو ضغطه.",
+    "videoReadError": "فشل في قراءة ملف الفيديو. يرجى المحاولة مرة أخرى.",
+    "videoSaved": "تم حفظ الفيديو بنجاح",
+    "videoRemoved": "تم إزالة الفيديو بنجاح",
+    "saveError": "فشلت عملية الحفظ. تجاوزت مدة التخزين. يرجى إزالة الملفات الكبيرة.",
+    "guestMessage": "رسالة العميل الضيف",
+    "guestMessagePlaceholder": "رسالة ترحيب للضيوف (مثل، مرحباً ضيف، أهلاً بك!)",
+    "guestMessageDescription": "ستظهر هذه الرسالة للزوار غير المسجلين",
+    "loggedInMessage": "رسالة العميل المسجل",
+    "loggedInMessagePlaceholder": "رسالة ترحيب للمستخدمين المسجلين (استخدم {name} لاسم العميل)",
+    "loggedInMessageDescription": "ستظهر هذه الرسالة للعملاء المسجلين. استخدم {name} لتضمين اسم العميل",
+    "registrationSettings": "إعدادات التسجيل",
+    "defaultGender": "الجنس الافتراضي",
+    "noDefault": "لا يوجد افتراضي",
+    "male": "ذكر",
+    "female": "أنثى",
+    "other": "آخر",
+    "customFields": "حقول مخصصة",
+    "addCustomField": "إضافة حقل مخصص",
+    "field": "حقل",
+    "fieldLabel": "تسمية الحقل",
+    "fieldType": "نوع الحقل",
+    "text": "نص",
+    "number": "رقم",
+    "select": "اختيار",
+    "date": "تاريخ",
+    "textarea": "منطقة نص",
+    "options": "خيارات",
+    "optionsPlaceholder": "خيار 1، خيار 2، خيار 3",
+    "optionsHint": "افصل الخيارات بفواصل",
+    "placeholder": "نص توضيحي",
+    "required": "مطلوب",
+    "noCustomFields": "لم تتم إضافة حقول مخصصة بعد"
+  },
+  "auth": {
+    "enterPhone": "أدخل رقم الهاتف",
+    "verifyCode": "التحقق من الكود",
+    "completeRegistration": "إكمال التسجيل",
+    "phoneNumber": "رقم الهاتف",
+    "phonePlaceholder": "+966501234567",
+    "sendCode": "إرسال الكود",
+    "sending": "جاري الإرسال...",
+    "verificationCode": "رمز التحقق",
+    "codeSentTo": "تم إرسال الكود إلى",
+    "verify": "تحقق",
+    "verifying": "جاري التحقق...",
+    "fullName": "الاسم الكامل",
+    "namePlaceholder": "أدخل اسمك الكامل",
+    "age": "العمر",
+    "agePlaceholder": "أدخل عمرك",
+    "dateOfBirth": "تاريخ الميلاد",
+    "dateOfBirthPlaceholder": "اختر تاريخ",
+    "year": "السنة",
+    "month": "الشهر",
+    "day": "اليوم",
+    "gender": "الجنس",
+    "selectGender": "اختر الجنس",
+    "male": "ذكر",
+    "female": "أنثى",
+    "other": "آخر",
+    "email": "البريد الإلكتروني",
+    "emailPlaceholder": "your.email@example.com",
+    "selectOption": "اختر خياراً",
+    "registering": "جاري التسجيل...",
+    "registrationSuccess": "تم التسجيل بنجاح! أهلاً بك!",
+    "invalidCode": "رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.",
+    "invalidOrExpiredCode": "رمز غير صحيح أو منتهي الصلاحية",
+    "welcomeBack": "مرحباً بعودتك {{name}}!",
+    "customerNotFound": "العميل غير موجود. يرجى التسجيل للمتابعة.",
+    "codeSentViaWhatsApp": "تم إرسال رمز التحقق عبر WhatsApp",
+    "registrationError": "فشل التسجيل. يرجى المحاولة مرة أخرى.",
+    "logout": "تسجيل الخروج",
+    "logoutSuccess": "تم تسجيل الخروج بنجاح",
+    "verifiedPhone": "الهاتف المؤكد:"
+  },
+  "adminLogin": {
+    "title": "تسجيل دخول المدير",
+    "subtitle": "قم بتسجيل الدخول لإدارة عملك",
+    "subtitleWithBusiness": "قم بتسجيل الدخول إلى {businessName}",
+    "phone": "رقم الهاتف",
+    "phonePlaceholder": "+966501234567",
+    "phoneRequired": "رقم الهاتف مطلوب",
+    "sendCode": "إرسال الكود",
+    "sending": "جاري الإرسال...",
+    "sendCodeError": "فشل إرسال الكود",
+    "codeSent": "تم إرسال الكود بنجاح",
+    "enterCode": "أدخل رمز التحقق",
+    "codeHint": "أدخل الرمز المكون من 6 أرقام المرسل إلى هاتفك، أو استخدم 1234 للاختبار",
+    "testCodeHint": "للاختبار، استخدم الكود: 1234",
+    "verify": "تحقق",
+    "verifying": "جاري التحقق...",
+    "invalidCode": "رمز غير صحيح",
+    "loginSuccess": "تم تسجيل الدخول بنجاح",
+    "back": "رجوع",
+    "noAccount": "ليس لديك حساب؟",
+    "contactOwner": "اتصل بمالك العمل لإنشاء حساب مدير."
   },
   "common": {
     "save": "حفظ",
@@ -222,7 +401,9 @@
     "delete": "حذف",
     "close": "إغلاق",
     "loading": "جاري التحميل...",
-    "search": "بحث..."
+    "search": "بحث...",
+    "or": "أو",
+    "justAMoment": "لحظة، نحن معك"
   },
   "home": {
     "title": "BookingHub - النظام البسيط الذي يجلب لك المزيد من الحجوزات",
@@ -311,7 +492,7 @@
     }
   },
   "onboarding": {
-    "stepOf": "الخطوة {step} من 3",
+    "stepOf": "الخطوة {step} من {total}",
     "complete": "مكتمل",
     "chooseBusinessType": {
       "title": "اختر نوع عملك",
@@ -340,6 +521,9 @@
       "subtitle": "أخبرنا عن عملك.",
       "name": "اسم العمل *",
       "namePlaceholder": "مثال: ستوديو ستايل",
+      "englishName": "الاسم بالإنجليزية للرابط *",
+      "englishNamePlaceholder": "مثال: Style Studio",
+      "englishNameHint": "سيتم استخدامه لإنشاء رابطك الفريد (مثل: yourbusiness.com/b/style-studio). استخدم فقط الأحرف الإنجليزية والأرقام والشرطات.",
       "email": "البريد الإلكتروني *",
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "رقم الهاتف *",
@@ -358,9 +542,116 @@
         "قوالب البريد الإلكتروني للتأكيدات والتذكيرات"
       ]
     },
+    "services": {
+      "title": "تكوين خدماتك",
+      "subtitle": "راجع وخصص الخدمات الافتراضية لنوع عملك. يمكنك التعديل أو الحذف أو إضافة خدمات جديدة.",
+      "name": "اسم الخدمة",
+      "namePlaceholder": "مثال: قصة شعر",
+      "description": "الوصف",
+      "descriptionPlaceholder": "وصف الخدمة",
+      "category": "الفئة",
+      "categoryPlaceholder": "مثال: شعر، لحية",
+      "duration": "المدة (بالدقائق)",
+      "durationPlaceholder": "30",
+      "price": "السعر",
+      "pricePlaceholder": "0.00",
+      "addService": "إضافة خدمة",
+      "defaultServices": {
+        "barbershop": {
+          "haircut": {
+            "name": "قصة شعر",
+            "description": "خدمة قص شعر احترافية",
+            "category": "شعر"
+          },
+          "beardTrim": {
+            "name": "تشذيب اللحية",
+            "description": "تشذيب وتصفيف اللحية",
+            "category": "لحية"
+          },
+          "haircutBeard": {
+            "name": "قصة شعر + لحية",
+            "description": "قصة شعر كاملة وتشذيب اللحية",
+            "category": "شعر"
+          },
+          "kidsHaircut": {
+            "name": "قصة شعر للأطفال",
+            "description": "قصة شعر للأطفال",
+            "category": "شعر"
+          }
+        },
+        "nail_salon": {
+          "manicure": {
+            "name": "مانيكير",
+            "description": "رعاية أظافر احترافية وطلاء",
+            "category": "أظافر"
+          },
+          "pedicure": {
+            "name": "بيديكير",
+            "description": "رعاية القدمين وطلاء الأظافر",
+            "category": "أظافر"
+          },
+          "nailArt": {
+            "name": "فن الأظافر",
+            "description": "تصميم فن أظافر مخصص",
+            "category": "أظافر"
+          },
+          "fullSet": {
+            "name": "مجموعة كاملة",
+            "description": "مانيكير وبيديكير كامل",
+            "category": "أظافر"
+          }
+        },
+        "gym_trainer": {
+          "personalTraining": {
+            "name": "تدريب شخصي",
+            "description": "جلسة تدريب شخصي واحد لواحد",
+            "category": "تدريب"
+          },
+          "groupClass": {
+            "name": "فصل جماعي",
+            "description": "فصل لياقة بدنية جماعي",
+            "category": "تدريب"
+          },
+          "consultation": {
+            "name": "استشارة",
+            "description": "استشارة لياقة بدنية أولية",
+            "category": "استشارة"
+          },
+          "assessment": {
+            "name": "تقييم",
+            "description": "تقييم وفحص اللياقة البدنية",
+            "category": "استشارة"
+          }
+        },
+        "other": {
+          "service1": {
+            "name": "خدمة 1",
+            "description": "خدمة قياسية",
+            "category": "عام"
+          },
+          "service2": {
+            "name": "خدمة 2",
+            "description": "خدمة مميزة",
+            "category": "عام"
+          },
+          "service3": {
+            "name": "خدمة 3",
+            "description": "خدمة فاخرة",
+            "category": "عام"
+          }
+        }
+      }
+    },
     "errors": {
       "selectBusinessType": "يرجى اختيار نوع العمل للمتابعة.",
-      "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة."
+      "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة.",
+      "invalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح.",
+      "invalidPhone": "يرجى إدخال رقم هاتف صالح.",
+      "invalidEnglishName": "يجب أن يحتوي الاسم بالإنجليزية على الأحرف الإنجليزية والأرقام والمسافات والشرطات والشرطات السفلية فقط.",
+      "atLeastOneService": "يرجى إضافة خدمة واحدة على الأقل للمتابعة.",
+      "invalidService": "يرجى التأكد من أن جميع الخدمات تحتوي على اسم ومدة صالحة (>0) وسعر صالح (≥0).",
+      "setupFailed": "فشل في إعداد عملك. يرجى المحاولة مرة أخرى.",
+      "phoneAlreadyRegistered": "رقم الهاتف مسجل بالفعل لمستخدم آخر"
     },
     "success": {
       "businessSetup": "يتم إعداد عملك. إعادة التوجيه إلى لوحة التحكم..."
@@ -391,6 +682,7 @@
     "selectDateFirst": "يرجى اختيار تاريخ أولاً",
     "selectTimeFirst": "يرجى اختيار وقت أولاً",
     "fillAllFields": "يرجى ملء جميع الحقول المطلوبة",
+    "bookingSummary": "ملخص الحجز",
     "service": "الخدمة",
     "duration": "المدة",
     "price": "السعر",
@@ -403,6 +695,7 @@
     "tomorrow": "غداً",
     "whatsappHelp": "إذا كان لديك أي أسئلة، يمكننا مساعدتك على واتساب",
     "whatsappClickHere": "انقر هنا للدردشة على واتساب",
+    "didNotFindDate": "لم تجد تاريخك المحدد؟ يمكنك التواصل معنا من خلال إحدى الطرق التالية وسنبذل قصارى جهدنا لتناسب جدولك الزمني.",
     "step1": "اختر الخدمة",
     "step2": "اختر التاريخ والوقت",
     "step3": "معلوماتك",
@@ -418,6 +711,8 @@
     "addToCalendar": "أضف إلى التقويم",
     "addToGoogleCalendar": "أضف إلى تقويم Google",
     "addToAppleCalendar": "أضف إلى تقويم Apple",
-    "bookAnotherAppointment": "احجز موعد آخر"
+    "bookAnotherAppointment": "احجز موعد آخر",
+    "followUsOnSocial": "تابعنا على وسائل التواصل الاجتماعي",
+    "loginOrRegister": "تسجيل الدخول أو التسجيل"
   }
 }

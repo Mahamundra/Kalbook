@@ -92,6 +92,19 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-20px)" },
         },
+        "circle-merge-separate": {
+          "0%": { transform: "translate(0, 0)" },
+          "40%": { transform: "translate(0, 0)" },
+          "50%": { transform: "translate(calc(var(--offset-x) * 1px), calc(var(--offset-y) * 1px))" },
+          "80%": { transform: "translate(calc(var(--offset-x) * 1px), calc(var(--offset-y) * 1px))" },
+          "100%": { transform: "translate(0, 0)" },
+        },
+        "text-float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "25%": { transform: "translateY(-2px)" },
+          "50%": { transform: "translateY(-3px)" },
+          "75%": { transform: "translateY(-2px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -99,6 +112,8 @@ const config: Config = {
         "fade-in": "fade-in 0.5s ease-out",
         "slide-up": "slide-up 0.6s ease-out",
         "float": "float 3s ease-in-out infinite",
+        "circle-merge-separate": "circle-merge-separate 8s linear infinite",
+        "text-float": "text-float 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

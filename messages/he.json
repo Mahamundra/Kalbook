@@ -55,10 +55,14 @@
     "saveChanges": "שמור שינויים",
     "appointmentUpdated": "התור עודכן בהצלחה",
     "appointmentDeleted": "התור נמחק בהצלחה",
+    "appointmentCreated": "התור נוצר בהצלחה",
     "selectWorker": "בחר עובד",
     "selectService": "בחר שירות",
     "selectCustomer": "בחר לקוח",
     "createAppointment": "צור תור חדש",
+    "addNewCustomer": "הוסף לקוח חדש",
+    "quickCustomerDescription": "צור לקוח חדש במהירות להמשך יצירת התור",
+    "createCustomer": "צור לקוח",
     "required": "כל השדות נדרשים",
     "allowManualEndTime": "אפשר עריכת שעת סיום ידנית",
     "autoCalculatedEndTime": "שעת הסיום מחושבת אוטומטית בהתאם למשך השירות",
@@ -82,6 +86,7 @@
     "price": "מחיר",
     "taxRate": "שיעור מס",
     "taxRatePercent": "שיעור מס (%)",
+    "changeToOtherVatValue": "אפשר עריכה",
     "active": "פעיל",
     "actions": "פעולות",
     "createService": "צור שירות חדש",
@@ -126,7 +131,17 @@
     "confirmDelete": "האם אתה בטוח שברצונך למחוק עובד זה?",
     "required": "שדה זה נדרש",
     "noServicesSelected": "לא נבחרו שירותים",
-    "atLeastOneService": "אנא הקצה לפחות שירות אחד לעובד זה."
+    "atLeastOneService": "אנא הקצה לפחות שירות אחד לעובד זה.",
+    "pickColorForDisplay": "בחר צבע לתצוגת העובד",
+    "calendarPreview": "תצוגה מקדימה של לוח השנה",
+    "sampleClient": "שם לקוח",
+    "sampleService": "שירות",
+    "isAdmin": "מנהל (יאפשר לעובד להתחבר ללוח הבקרה)",
+    "adminRequiresEmailPhone": "מנהל דורש אימייל וטלפון",
+    "admin": "מנהל",
+    "worker": "עובד",
+    "owner": "בעלים",
+    "role": "תפקיד"
   },
   "customers": {
     "title": "לקוחות",
@@ -136,6 +151,9 @@
     "phone": "טלפון",
     "email": "אימייל",
     "lastVisit": "ביקור אחרון",
+    "dateOfBirth": "תאריך לידה",
+    "gender": "מין",
+    "selectDateOfBirth": "בחר תאריך",
     "tags": "תגיות",
     "notes": "הערות",
     "actions": "פעולות",
@@ -147,6 +165,7 @@
     "tagsHint": "הפרד תגיות מרובות בפסיקים",
     "notesPlaceholder": "הערות נוספות על הלקוח",
     "consentMarketing": "הסכמה לשיווק",
+    "phoneExists": "לקוח עם מספר טלפון זה כבר קיים",
     "required": "שדה זה נדרש",
     "cancel": "ביטול",
     "updateCustomer": "עדכן לקוח",
@@ -154,7 +173,32 @@
     "customerCreated": "לקוח נוצר בהצלחה",
     "customerUpdated": "לקוח עודכן בהצלחה",
     "customerDeleted": "לקוח נמחק בהצלחה",
-    "confirmDelete": "האם אתה בטוח שברצונך למחוק את הלקוח הזה?"
+    "customersDeleted": "{count} לקוחות נמחקו בהצלחה",
+    "confirmDelete": "האם אתה בטוח שברצונך למחוק את הלקוח הזה?",
+    "confirmBulkDelete": "האם אתה בטוח שברצונך למחוק {count} לקוח/ות?\n\n{names}",
+    "deleteSelected": "מחק נבחרים ({count})",
+    "noCustomersFound": "לא נמצאו לקוחות",
+    "customerDetails": "פרטי לקוח",
+    "information": "מידע",
+    "appointments": "תורים",
+    "sendMessage": "שלח הודעה",
+    "sendReminder": "שלח תזכורת",
+    "messagePlaceholder": "הקלד הודעה כאן...",
+    "messageRequired": "אנא הזן הודעה",
+    "messageSent": "הודעה נשלחה בהצלחה",
+    "reminderSent": "תזכורת נשלחה בהצלחה",
+    "call": "התקשר",
+    "viewEdit": "צפה/ערוך",
+    "block": "חסום",
+    "unblock": "בטל חסימה",
+    "customerBlocked": "לקוח נחסם מהתורים העתידיים",
+    "customerUnblocked": "לקוח בוטל חסימה",
+    "cancelAllAppointments": "בטל את כל התורים",
+    "confirmCancelAppointments": "האם אתה בטוח שברצונך לבטל {count} תור/ות?",
+    "appointmentsCancelled": "{count} תורים בוטלו",
+    "createAppointment": "צור תור",
+    "noAppointments": "לא נמצאו תורים",
+    "redirectingToCalendar": "מעביר ליומן ליצירת תור..."
   },
   "templates": {
     "title": "תבניות",
@@ -179,6 +223,7 @@
   },
   "settings": {
     "title": "הגדרות",
+    "loading": "טוען הגדרות...",
     "businessProfile": "פרופיל עסק",
     "businessName": "שם העסק",
     "email": "אימייל",
@@ -188,6 +233,7 @@
     "timezone": "אזור זמן",
     "currency": "מטבע",
     "branding": "מיתוג",
+    "bookingPageAppearance": "מראה דף ההזמנות",
     "logo": "לוגו",
     "businessLogo": "לוגו העסק",
     "uploadLogo": "העלה לוגו",
@@ -195,6 +241,7 @@
     "removeLogo": "הסר לוגו",
     "noLogo": "אין לוגו",
     "themeColor": "צבע ערכת נושא",
+    "dragToReposition": "גרור כדי לשנות מיקום",
     "languageAndLocalization": "שפה והתאמה מקומית",
     "language": "שפה",
     "locale": "שפה ו-RTL",
@@ -203,6 +250,19 @@
     "workingDays": "ימי עבודה",
     "workingHoursStart": "שעת התחלת עבודה",
     "workingHoursEnd": "שעת סיום עבודה",
+    "timeSlotGap": "מרווח זמני תורים",
+    "timeSlotGapDescription": "בחר את המרווח בין זמני התורים הזמינים (משפיע על דף ההזמנות והלוח שנה)",
+    "minute": "דקה",
+    "minutes": "דקות",
+    "contactMessageEnabled": "הצג הודעת יצירת קשר",
+    "contactMessageText": "טקסט הודעת יצירת קשר",
+    "contactMessagePlaceholder": "הזן הודעה מותאמת אישית ללקוחות שלא מוצאים את התאריך המועדף עליהם",
+    "contactMessageDescription": "הודעה זו תוצג מתחת ללוח השנה בדף ההזמנות. אם לא תוזן הודעה, תוצג הודעה ברירת מחדל. השתמש בשורות חדשות (Enter) כדי ליצור מספר שורות.",
+    "contactMessageHelp": "סעיף יצירת הקשר יוצג רק אם לפחות אמצעי קשר אחד (טלפון או WhatsApp) מופעל וזמין.",
+    "showPhoneInContact": "הצג מספר טלפון",
+    "contactPhoneNote": "משתמש במספר הטלפון מפרופיל העסק",
+    "showWhatsAppInContact": "הצג מספר WhatsApp",
+    "contactWhatsAppNote": "משתמש במספר WhatsApp מפרופיל העסק",
     "sunday": "ראשון",
     "monday": "שני",
     "tuesday": "שלישי",
@@ -213,7 +273,126 @@
     "notifications": "התראות",
     "senderName": "שם השולח",
     "senderEmail": "אימייל השולח",
-    "save": "שמור שינויים"
+    "reminderMessage": "הודעת תזכורת",
+    "reminderMessageHint": "השתמש ב-{{service}} וב-{{date}} כממלאי מקום",
+    "save": "שמור שינויים",
+    "savedSuccessfully": "הגדרות נשמרו בהצלחה",
+    "socialLinks": "קישורי רשתות חברתיות",
+    "socialLinksDescription": "הוסף קישורי רשתות חברתיות להצגה בתחתית עמוד ההזמנות. הקישורים יפתחו באפליקציות המתאימות בלחיצה.",
+    "addSocialLink": "הוסף קישור חברתי",
+    "facebook": "פייסבוק",
+    "instagram": "אינסטגרם",
+    "twitter": "טוויטר",
+    "tiktok": "טיקטוק",
+    "linkedin": "לינקדאין",
+    "youtube": "יוטיוב",
+    "bannerCover": "כיסוי באנר",
+    "uploadBanner": "העלה באנר",
+    "choosePattern": "בחר דוגמה",
+    "uploadBannerImage": "העלה תמונת באנר",
+    "cropImage": "חתוך תמונה",
+    "confirmCrop": "אשר חיתוך",
+    "cancel": "בטל",
+    "addVideo": "הוסף וידאו",
+    "changeVideo": "שנה וידאו",
+    "removeVideo": "הסר וידאו",
+    "videoTooLarge": "קובץ הווידאו גדול מדי. הגודל המקסימלי הוא 3MB כדי להימנע מבעיות אחסון.",
+    "videoTooLargeForStorage": "קובץ הווידאו גדול מדי לאחסון. אנא השתמש בקובץ וידאו קטן יותר או דחוס אותו.",
+    "videoReadError": "נכשל בקריאת קובץ הווידאו. אנא נסה שוב.",
+    "videoSaved": "הווידאו נשמר בהצלחה",
+    "videoRemoved": "הווידאו הוסר בהצלחה",
+    "saveError": "שמירה נכשלה. מכסת האחסון עברה. אנא הסר קבצים גדולים.",
+    "guestMessage": "הודעת לקוח אורח",
+    "guestMessagePlaceholder": "הודעת ברכה לאורחים (למשל, שלום אורח, ברוך הבא!)",
+    "guestMessageDescription": "הודעה זו תוצג למבקרים שאינם מחוברים",
+    "loggedInMessage": "הודעת לקוח מחובר",
+    "loggedInMessagePlaceholder": "הודעת ברכה למשתמשים מחוברים (השתמש ב {name} לשם הלקוח)",
+    "loggedInMessageDescription": "הודעה זו תוצג ללקוחות מחוברים. השתמש ב {name} לכלול את שם הלקוח",
+    "registrationSettings": "הגדרות הרשמה",
+    "defaultGender": "מין ברירת מחדל",
+    "noDefault": "אין ברירת מחדל",
+    "male": "זכר",
+    "female": "נקבה",
+    "other": "אחר",
+    "customFields": "שדות מותאמים אישית",
+    "addCustomField": "הוסף שדה מותאם",
+    "field": "שדה",
+    "fieldLabel": "תווית שדה",
+    "fieldType": "סוג שדה",
+    "text": "טקסט",
+    "number": "מספר",
+    "select": "בחירה",
+    "date": "תאריך",
+    "textarea": "אזור טקסט",
+    "options": "אפשרויות",
+    "optionsPlaceholder": "אפשרות 1, אפשרות 2, אפשרות 3",
+    "optionsHint": "הפרד אפשרויות בפסיקים",
+    "placeholder": "מציין מקום",
+    "required": "נדרש",
+    "noCustomFields": "עדיין לא נוספו שדות מותאמים אישית"
+  },
+  "auth": {
+    "enterPhone": "הזן מספר טלפון",
+    "verifyCode": "אימות קוד",
+    "completeRegistration": "השלם הרשמה",
+    "phoneNumber": "מספר טלפון",
+    "phonePlaceholder": "+972-50-123-4567",
+    "sendCode": "שלח קוד",
+    "sending": "שולח...",
+    "verificationCode": "קוד אימות",
+    "codeSentTo": "קוד נשלח אל",
+    "verify": "אמת",
+    "verifying": "מוודא...",
+    "fullName": "שם מלא",
+    "namePlaceholder": "הזן את שמך המלא",
+    "age": "גיל",
+    "agePlaceholder": "הזן את גילך",
+    "dateOfBirth": "תאריך לידה",
+    "dateOfBirthPlaceholder": "בחר תאריך",
+    "year": "שנה",
+    "month": "חודש",
+    "day": "יום",
+    "gender": "מין",
+    "selectGender": "בחר מין",
+    "male": "זכר",
+    "female": "נקבה",
+    "other": "אחר",
+    "email": "אימייל",
+    "emailPlaceholder": "your.email@example.com",
+    "selectOption": "בחר אפשרות",
+    "registering": "נרשם...",
+    "registrationSuccess": "ההרשמה בוצעה בהצלחה! ברוך הבא!",
+    "invalidCode": "קוד אימות שגוי. אנא נסה שוב.",
+    "invalidOrExpiredCode": "קוד לא תקין או שפג תוקפו",
+    "welcomeBack": "ברוך שובך {{name}}!",
+    "customerNotFound": "לקוח לא נמצא. אנא הירשם כדי להמשיך.",
+    "codeSentViaWhatsApp": "קוד אימות נשלח ב-WhatsApp",
+    "registrationError": "ההרשמה נכשלה. אנא נסה שוב.",
+    "logout": "התנתק",
+    "logoutSuccess": "התנתקת בהצלחה",
+    "verifiedPhone": "טלפון מאומת:"
+  },
+  "adminLogin": {
+    "title": "כניסת מנהל",
+    "subtitle": "התחבר כדי לנהל את העסק שלך",
+    "subtitleWithBusiness": "התחבר ל-{businessName}",
+    "phone": "מספר טלפון",
+    "phonePlaceholder": "+972-50-123-4567",
+    "phoneRequired": "מספר טלפון נדרש",
+    "sendCode": "שלח קוד",
+    "sending": "שולח...",
+    "sendCodeError": "שליחת קוד נכשלה",
+    "codeSent": "קוד נשלח בהצלחה",
+    "enterCode": "הזן קוד אימות",
+    "codeHint": "הזן את הקוד בן 6 הספרות שנשלח לטלפון שלך, או השתמש ב-1234 לבדיקה",
+    "testCodeHint": "לבדיקה, השתמש בקוד: 1234",
+    "verify": "אמת",
+    "verifying": "מוודא...",
+    "invalidCode": "קוד לא תקין",
+    "loginSuccess": "התחברת בהצלחה",
+    "back": "חזור",
+    "noAccount": "אין לך חשבון?",
+    "contactOwner": "צור קשר עם בעל העסק כדי ליצור חשבון מנהל."
   },
   "common": {
     "save": "שמור",
@@ -222,7 +401,9 @@
     "delete": "מחק",
     "close": "סגור",
     "loading": "טוען...",
-    "search": "חיפוש..."
+    "search": "חיפוש...",
+    "or": "או",
+    "justAMoment": "רגע, אנחנו איתך"
   },
   "home": {
     "title": "BookingHub - המערכת הפשוטה שמביאה לכם עוד הזמנות",
@@ -311,7 +492,7 @@
     }
   },
   "onboarding": {
-    "stepOf": "שלב {step} מתוך 3",
+    "stepOf": "שלב {step} מתוך {total}",
     "complete": "הושלם",
     "chooseBusinessType": {
       "title": "בחרו את סוג העסק שלכם",
@@ -340,6 +521,9 @@
       "subtitle": "ספרו לנו על העסק שלכם.",
       "name": "שם העסק *",
       "namePlaceholder": "לדוגמה: סטודיו סטייל",
+      "englishName": "שם באנגלית לכתובת URL *",
+      "englishNamePlaceholder": "לדוגמה: Style Studio",
+      "englishNameHint": "זה ישמש ליצירת כתובת ה-URL הייחודית שלכם (למשל, yourbusiness.com/b/style-studio). השתמשו רק באותיות אנגליות, מספרים ומקפים.",
       "email": "אימייל *",
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "מספר טלפון *",
@@ -358,9 +542,116 @@
         "תבניות אימייל לאישורים ותזכורות"
       ]
     },
+    "services": {
+      "title": "הגדרת השירותים שלכם",
+      "subtitle": "עברו על השירותים המוגדרים כברירת מחדל לסוג העסק שלכם וקבעו אותם. ניתן לערוך, למחוק או להוסיף שירותים חדשים.",
+      "name": "שם שירות",
+      "namePlaceholder": "לדוגמה: תספורת",
+      "description": "תיאור",
+      "descriptionPlaceholder": "תיאור השירות",
+      "category": "קטגוריה",
+      "categoryPlaceholder": "לדוגמה: שיער, זקן",
+      "duration": "משך (דקות)",
+      "durationPlaceholder": "30",
+      "price": "מחיר",
+      "pricePlaceholder": "0.00",
+      "addService": "הוסף שירות",
+      "defaultServices": {
+        "barbershop": {
+          "haircut": {
+            "name": "תספורת",
+            "description": "שירות תספורת מקצועי",
+            "category": "שיער"
+          },
+          "beardTrim": {
+            "name": "גילוח זקן",
+            "description": "גילוח ועיצוב זקן",
+            "category": "זקן"
+          },
+          "haircutBeard": {
+            "name": "תספורת + זקן",
+            "description": "תספורת מלאה וגילוח זקן",
+            "category": "שיער"
+          },
+          "kidsHaircut": {
+            "name": "תספורת ילדים",
+            "description": "תספורת לילדים",
+            "category": "שיער"
+          }
+        },
+        "nail_salon": {
+          "manicure": {
+            "name": "מניקור",
+            "description": "טיפול מקצועי בציפורניים ולכה",
+            "category": "ציפורניים"
+          },
+          "pedicure": {
+            "name": "פדיקור",
+            "description": "טיפול בכפות רגליים ולכה",
+            "category": "ציפורניים"
+          },
+          "nailArt": {
+            "name": "אמנות ציפורניים",
+            "description": "עיצוב ציפורניים מותאם אישית",
+            "category": "ציפורניים"
+          },
+          "fullSet": {
+            "name": "סט מלא",
+            "description": "מניקור ופדיקור מלא",
+            "category": "ציפורניים"
+          }
+        },
+        "gym_trainer": {
+          "personalTraining": {
+            "name": "אימון אישי",
+            "description": "אימון אישי אחד על אחד",
+            "category": "אימון"
+          },
+          "groupClass": {
+            "name": "שיעור קבוצתי",
+            "description": "שיעור כושר קבוצתי",
+            "category": "אימון"
+          },
+          "consultation": {
+            "name": "ייעוץ",
+            "description": "ייעוץ כושר ראשוני",
+            "category": "ייעוץ"
+          },
+          "assessment": {
+            "name": "הערכה",
+            "description": "הערכת כושר ובדיקה",
+            "category": "ייעוץ"
+          }
+        },
+        "other": {
+          "service1": {
+            "name": "שירות 1",
+            "description": "שירות סטנדרטי",
+            "category": "כללי"
+          },
+          "service2": {
+            "name": "שירות 2",
+            "description": "שירות פרימיום",
+            "category": "כללי"
+          },
+          "service3": {
+            "name": "שירות 3",
+            "description": "שירות דלוקס",
+            "category": "כללי"
+          }
+        }
+      }
+    },
     "errors": {
       "selectBusinessType": "אנא בחרו סוג עסק להמשיך.",
-      "fillRequiredFields": "אנא מלאו את כל השדות הנדרשים."
+      "fillRequiredFields": "אנא מלאו את כל השדות הנדרשים.",
+      "invalidEmail": "אנא הזינו כתובת אימייל תקינה.",
+      "invalidPhone": "אנא הזינו מספר טלפון תקין.",
+      "invalidEnglishName": "שם באנגלית חייב להכיל רק אותיות אנגליות, מספרים, רווחים, מקפים וקווים תחתונים.",
+      "atLeastOneService": "אנא הוסיפו לפחות שירות אחד להמשיך.",
+      "invalidService": "אנא ודאו שכל השירותים כוללים שם, משך תקין (>0) ומחיר תקין (≥0).",
+      "setupFailed": "נכשל בהגדרת העסק שלכם. אנא נסו שוב.",
+      "phoneAlreadyRegistered": "מספר טלפון זה כבר רשום למשתמש אחר"
     },
     "success": {
       "businessSetup": "העסק שלכם מוגדר. מעבירים לדף הניהול..."
@@ -391,6 +682,7 @@
     "selectDateFirst": "אנא בחר תאריך תחילה",
     "selectTimeFirst": "אנא בחר שעה תחילה",
     "fillAllFields": "אנא מלא את כל השדות הנדרשים",
+    "bookingSummary": "סיכום הזמנה",
     "service": "שירות",
     "duration": "משך",
     "price": "מחיר",
@@ -403,6 +695,7 @@
     "tomorrow": "מחר",
     "whatsappHelp": "אם יש לך שאלות, אנחנו יכולים לעזור לך בוואטסאפ",
     "whatsappClickHere": "לחץ כאן לשיחה בווצאפ",
+    "didNotFindDate": "לא מצאת את התאריך המבוקש?\nיכול ליצור איתנו קשר באחת מין הדרכים הבאות ואנחנו נעשה את מירב המאמצים כדי להתאים לזמן שלך",
     "step1": "בחר שירות",
     "step2": "בחר תאריך ושעה",
     "step3": "המידע שלך",
@@ -418,6 +711,8 @@
     "addToCalendar": "הוסף ליומן",
     "addToGoogleCalendar": "הוסף ליומן Google",
     "addToAppleCalendar": "הוסף ליומן Apple",
-    "bookAnotherAppointment": "קבע תור נוסף"
+    "bookAnotherAppointment": "קבע תור נוסף",
+    "followUsOnSocial": "עקבו אחרינו ברשתות החברתיות",
+    "loginOrRegister": "התחברות או הרשמה"
   }
 }
