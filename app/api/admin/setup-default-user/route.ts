@@ -78,11 +78,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const { data: existingUser } = await supabase
+    const existingUserResult = await supabase
       .from('users')
       .select('id, email')
       .eq('email', email)
       .maybeSingle() as { data: { id: string; email: string } | null; error: any };
+    const existingUser = existingUserResult.data;
 
     let authUserId: string;
 
@@ -99,21 +100,21 @@ export async function POST(request: NextRequest) {
       authUserId = existingAuthUser.id;
 
       // Ensure user record exists and is linked to this business
-      if (existingUser?.data) {
+      if (existingUser) {
         // Update existing user record if needed
-        if (existingUser.data.id !== authUserId) {
+        if (existingUser.id !== authUserId) {
           // Delete old user record
           // Check if this is a main admin - cannot be deleted
           const { data: userDetails } = await supabase
             .from('users')
             .select('is_main_admin')
-            .eq('id', existingUser.data.id)
+            .eq('id', existingUser.id)
             .single();
           
           if (!userDetails?.is_main_admin) {
-            await supabase.from('users').delete().eq('id', existingUser.data.id);
+            await supabase.from('users').delete().eq('id', existingUser.id);
           } else {
-            console.log('Cannot delete main admin user:', existingUser.data.id);
+            console.log('Cannot delete main admin user:', existingUser.id);
           }
           // Create new user record with correct ID
           await supabase.from('users').insert({
@@ -167,9 +168,9 @@ export async function POST(request: NextRequest) {
       authUserId = authData.user.id;
 
       // Create or update user record
-      if (existingUser?.data && existingUser.data.id !== authUserId) {
+      if (existingUser && existingUser.id !== authUserId) {
         // Delete old user record if ID is different
-        await supabase.from('users').delete().eq('id', existingUser.data.id);
+        await supabase.from('users').delete().eq('id', existingUser.id);
       }
 
       // Upsert user record (insert or update)
