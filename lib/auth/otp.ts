@@ -34,8 +34,8 @@ export async function storeOTPCode(
   const supabase = createAdminClient();
 
   // Invalidate any existing unverified OTPs for this phone
-  await supabase
-    .from('otp_codes')
+  await (supabase
+    .from('otp_codes') as any)
     .update({ verified: true }) // Mark as verified to invalidate
     .eq('phone', phone)
     .eq('verified', false);
