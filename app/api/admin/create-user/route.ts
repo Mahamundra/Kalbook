@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { toE164Format } from '@/lib/customers/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 
 /**
  * POST /api/admin/create-user
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
         .from('businesses')
         .select('id, name')
         .eq('slug', businessSlug)
-        .single();
+        .single() as { data: BusinessRow | null; error: any };
 
       if (businessError || !businessBySlug) {
         return NextResponse.json(
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
         .from('businesses')
         .select('id, name')
         .limit(1)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: BusinessRow[] | null; error: any };
 
       if (businessesError || !businesses || businesses.length === 0) {
         return NextResponse.json(
@@ -79,7 +82,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      targetBusinessId = businesses[0].id;
+      const firstBusiness = businesses[0] as BusinessRow | undefined;
+      if (!firstBusiness) {
+        return NextResponse.json(
+          { error: 'No business found. Please create a business first.' },
+          { status: 404 }
+        );
+      }
+
+      targetBusinessId = firstBusiness.id;
     }
 
     // Check if user already exists
