@@ -105,11 +105,12 @@ export async function POST(request: NextRequest) {
         if (existingUser.id !== authUserId) {
           // Delete old user record
           // Check if this is a main admin - cannot be deleted
-          const { data: userDetails } = await supabase
+          const userDetailsResult = await supabase
             .from('users')
             .select('is_main_admin')
             .eq('id', existingUser.id)
-            .single();
+            .single() as { data: { is_main_admin?: boolean } | null; error: any };
+          const userDetails = userDetailsResult.data;
           
           if (!userDetails?.is_main_admin) {
             await supabase.from('users').delete().eq('id', existingUser.id);
