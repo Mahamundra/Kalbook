@@ -236,9 +236,10 @@ export default function BusinessDebugPage() {
                     Found {duplicates.length} customer(s) with the SAME ID in both businesses:
                   </p>
                   <ul className="list-disc list-inside mt-2 text-sm text-red-700">
-                    {duplicates.map((id: string) => {
-                      const selected = data.customers.find((c: any) => c.id === id);
-                      const compared = compareData.customers.find((c: any) => c.id === id);
+                    {duplicates.map((id: unknown) => {
+                      const idStr = String(id);
+                      const selected = data.customers.find((c: any) => c.id === idStr);
+                      const compared = compareData.customers.find((c: any) => c.id === idStr);
                       return (
                         <li key={id}>
                           ID: {id.slice(0, 8)}... | 
