@@ -127,11 +127,11 @@ export async function POST(request: NextRequest) {
           } as any);
         } else {
           // Update business_id if different
-          const updateResult = supabase
+          // @ts-ignore - Type inference issue with Supabase update
+          await supabase
             .from('users')
-            .update({ business_id: targetBusinessId } as any)
+            .update({ business_id: targetBusinessId })
             .eq('id', authUserId);
-          await updateResult;
         }
       } else {
         // Create user record
