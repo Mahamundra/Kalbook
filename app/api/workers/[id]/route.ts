@@ -260,12 +260,13 @@ export async function PATCH(
         }
 
         // Check if user already exists (by email or phone in E.164 format)
-        const { data: existingUser, error: userCheckError } = await supabase
+        const existingUserResult = await supabase
           .from('users')
           .select('*')
           .eq('business_id', tenantInfo.businessId)
           .or(`email.eq.${email},phone.eq.${e164Phone}`)
-          .maybeSingle();
+          .maybeSingle() as { data: UserRow | null; error: any };
+        const { data: existingUser, error: userCheckError } = existingUserResult;
 
         if (userCheckError) {
           console.error('Error checking for existing user:', userCheckError);
@@ -354,12 +355,13 @@ export async function PATCH(
           : phoneConditions;
         
         if (queryConditions) {
-          const { data: existingUser, error: userCheckError } = await supabase
+          const existingUserResult = await supabase
             .from('users')
             .select('id, role')
             .eq('business_id', tenantInfo.businessId)
             .or(queryConditions)
-            .maybeSingle();
+            .maybeSingle() as { data: UserRow | null; error: any };
+          const { data: existingUser, error: userCheckError } = existingUserResult;
 
           if (!userCheckError && existingUser && existingUser.role === 'admin') {
             // Check if this is a main admin - cannot be deleted
