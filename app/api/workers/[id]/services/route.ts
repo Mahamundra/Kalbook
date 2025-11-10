@@ -163,10 +163,11 @@ export async function POST(
     }
 
     // Get existing assignments
-    const { data: existingAssignments } = await supabase
+    const existingAssignmentsResult = await supabase
       .from('worker_services')
       .select('service_id')
-      .eq('worker_id', workerId);
+      .eq('worker_id', workerId) as { data: Array<{ service_id: string }> | null; error: any };
+    const { data: existingAssignments } = existingAssignmentsResult;
 
     const existingServiceIds = existingAssignments?.map((a) => a.service_id) || [];
 
