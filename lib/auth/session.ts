@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
-type Customer = Database['public']['Tables']['customers']['Row'];
-type User = Database['public']['Tables']['users']['Row'];
+type CustomerRow = Database['public']['Tables']['customers']['Row'];
+type UserRow = Database['public']['Tables']['users']['Row'];
 
 /**
  * Customer session data
@@ -48,12 +48,13 @@ export async function getOrCreateCustomerSession(
   const supabase = createAdminClient();
 
   // Check if customer exists
-  const { data: existingCustomer } = await supabase
+  const existingCustomerResult = await supabase
     .from('customers')
     .select('*')
     .eq('business_id', businessId)
     .eq('phone', phone)
-    .maybeSingle();
+    .maybeSingle() as { data: CustomerRow | null; error: any };
+  const { data: existingCustomer } = existingCustomerResult;
 
   if (existingCustomer) {
     return {
@@ -67,15 +68,16 @@ export async function getOrCreateCustomerSession(
   }
 
   // Create new customer
-  const { data: newCustomer, error } = await supabase
+  const newCustomerResult = await supabase
     .from('customers')
     .insert({
       business_id: businessId,
       phone,
       name: phone, // Default name to phone, user can update later
-    })
+    } as any)
     .select()
-    .single();
+    .single() as { data: CustomerRow | null; error: any };
+  const { data: newCustomer, error } = newCustomerResult;
 
   if (error || !newCustomer) {
     throw new Error(`Failed to create customer: ${error?.message}`);
@@ -99,11 +101,12 @@ export async function getCustomerSession(
 ): Promise<CustomerSession | null> {
   const supabase = createAdminClient();
 
-  const { data: customer, error } = await supabase
+  const customerResult = await supabase
     .from('customers')
     .select('*')
     .eq('id', customerId)
-    .single();
+    .single() as { data: CustomerRow | null; error: any };
+  const { data: customer, error } = customerResult;
 
   if (error || !customer) {
     return null;
@@ -134,11 +137,12 @@ export async function getBusinessOwnerSession(): Promise<BusinessOwnerSession | 
   }
 
   // Get user record from users table
-  const { data: userData, error } = await supabase
+  const userDataResult = await supabase
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .single() as { data: UserRow | null; error: any };
+  const { data: userData, error } = userDataResult;
 
   if (error || !userData) {
     return null;
