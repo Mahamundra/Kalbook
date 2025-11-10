@@ -631,7 +631,13 @@ export async function migrateLocalStorageToSupabase(
     return {
       success: false,
       errors,
-      migrated: undefined,
+      migrated: {
+        services: 0,
+        customers: 0,
+        workers: 0,
+        appointments: 0,
+        templates: 0,
+      },
     };
   }
 }
