@@ -127,10 +127,11 @@ export async function POST(request: NextRequest) {
           } as any);
         } else {
           // Update business_id if different
-          await supabase
+          const updateResult = supabase
             .from('users')
-            .update({ business_id: targetBusinessId })
+            .update({ business_id: targetBusinessId } as any)
             .eq('id', authUserId);
+          await updateResult;
         }
       } else {
         // Create user record
