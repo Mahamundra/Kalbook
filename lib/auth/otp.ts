@@ -46,7 +46,7 @@ export async function storeOTPCode(
     code,
     expires_at: expiresAt.toISOString(),
     verified: false,
-  });
+  } as any);
 
   if (error) {
     throw new Error(`Failed to store OTP code: ${error.message}`);
@@ -62,7 +62,7 @@ export async function verifyOTPCode(
 ): Promise<boolean> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  const otpResult = await supabase
     .from('otp_codes')
     .select('*')
     .eq('phone', phone)
@@ -71,15 +71,16 @@ export async function verifyOTPCode(
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .single() as { data: OTPCode | null; error: any };
+  const { data, error } = otpResult;
 
   if (error || !data) {
     return false;
   }
 
   // Mark OTP as verified
-  await supabase
-    .from('otp_codes')
+  await (supabase
+    .from('otp_codes') as any)
     .update({ verified: true })
     .eq('id', data.id);
 
@@ -112,12 +113,13 @@ export async function hasRecentOTPRequest(phone: string): Promise<boolean> {
 
   const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
 
-  const { data, error } = await supabase
+  const recentOtpResult = await supabase
     .from('otp_codes')
     .select('id')
     .eq('phone', phone)
     .gte('created_at', oneMinuteAgo.toISOString())
-    .limit(1);
+    .limit(1) as { data: Array<{ id: string }> | null; error: any };
+  const { data, error } = recentOtpResult;
 
   if (error || !data || data.length === 0) {
     return false;
