@@ -477,10 +477,10 @@ const Customers = () => {
     window.location.href = `tel:${phone}`;
   };
 
-  const handleSendReminderForAppointment = (apt: any) => {
+  const handleSendReminderForAppointment = async (apt: any) => {
     if (!selectedCustomer) return;
     // Get settings for reminder message template
-    const settings = getSettings();
+    const settings = await getSettings();
     const reminderMessage = settings.notifications?.reminderMessage || 
       `A reminder that you have an appointment for {{service}} on {{date}}, see you soon!`;
     
