@@ -93,10 +93,11 @@ export async function verifyOTPCode(
 export async function cleanupExpiredOTPs(): Promise<number> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  const deleteResult = await supabase
     .from('otp_codes')
     .delete()
-    .lt('expires_at', new Date().toISOString());
+    .lt('expires_at', new Date().toISOString()) as { data: OTPCode[] | null; error: any };
+  const { data, error } = deleteResult;
 
   if (error) {
     throw new Error(`Failed to cleanup OTP codes: ${error.message}`);
