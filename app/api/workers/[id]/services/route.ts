@@ -193,7 +193,7 @@ export async function POST(
 
     const { error: insertError } = await supabase
       .from('worker_services')
-      .insert(assignments);
+      .insert(assignments as any);
 
     if (insertError) {
       // Check if it's a duplicate key error (already assigned)
