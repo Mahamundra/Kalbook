@@ -18,13 +18,14 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get businesses with count
-    const { data: businesses, error, count } = await supabase
+    const businessesResult = await supabase
       .from('businesses')
       .select('id, slug, name, email, phone, business_type, created_at', {
         count: 'exact',
       })
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(offset, offset + limit - 1) as { data: any[] | null; error: any; count: number | null };
+    const { data: businesses, error, count } = businessesResult;
 
     if (error) {
       return NextResponse.json(

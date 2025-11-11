@@ -9,10 +9,11 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    const { data: businesses, error } = await supabase
+    const businessesResult = await supabase
       .from('businesses')
       .select('id, slug, name')
-      .order('slug');
+      .order('slug') as { data: any[] | null; error: any };
+    const { data: businesses, error } = businessesResult;
 
     if (error) {
       return NextResponse.json(

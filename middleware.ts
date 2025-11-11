@@ -98,7 +98,7 @@ export async function middleware(request: NextRequest) {
             try {
               adminSessionUser = JSON.parse(adminSessionCookie);
               // Verify the session user has access to this business
-              if (adminSessionUser.businessId !== business.id) {
+              if (adminSessionUser && adminSessionUser.businessId !== business.id) {
                 adminSessionUser = null; // Business mismatch, invalidate session
               }
             } catch (error) {
@@ -136,11 +136,12 @@ export async function middleware(request: NextRequest) {
         // Verify user has access to this business
         // If using admin_session cookie, we already verified business_id matches
         if (user) {
-          const { data: userData, error: userError } = await supabase
+          const userDataResult = await supabase
             .from('users')
             .select('business_id')
             .eq('id', user.id)
-            .single();
+            .single() as { data: { business_id: string } | null; error: any };
+          const { data: userData, error: userError } = userDataResult;
 
           if (userError || !userData) {
             // In development, allow access even if user record doesn't exist
@@ -287,11 +288,12 @@ export async function middleware(request: NextRequest) {
     }
 
     // Get user's business_id from users table
-    const { data: userData, error: userError } = await supabase
+    const userDataResult = await supabase
       .from('users')
       .select('business_id')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { business_id: string } | null; error: any };
+    const { data: userData, error: userError } = userDataResult;
 
     if (userError || !userData) {
       return response;

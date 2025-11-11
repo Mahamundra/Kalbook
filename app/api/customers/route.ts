@@ -160,12 +160,13 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Check if customer with this phone already exists
-    const { data: existingCustomer } = await supabase
+    const existingCustomerResult = await supabase
       .from('customers')
       .select('id')
       .eq('business_id', tenantInfo.businessId)
       .eq('phone', normalizedPhone)
-      .maybeSingle();
+      .maybeSingle() as { data: { id: string } | null; error: any };
+    const { data: existingCustomer } = existingCustomerResult;
 
     if (existingCustomer) {
       return NextResponse.json(

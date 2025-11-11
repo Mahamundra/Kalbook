@@ -22,16 +22,18 @@ export async function GET() {
     }
     
     // Test 2: Get services
-    const { data: services, error: servicesError } = await supabase
+    const servicesResult = await supabase
       .from('services')
       .select('*')
-      .eq('business_id', business.id);
+      .eq('business_id', business.id) as { data: any[] | null; error: any };
+    const { data: services, error: servicesError } = servicesResult;
     
     // Test 3: Get workers
-    const { data: workers, error: workersError } = await supabase
+    const workersResult = await supabase
       .from('workers')
       .select('*')
-      .eq('business_id', business.id);
+      .eq('business_id', business.id) as { data: any[] | null; error: any };
+    const { data: workers, error: workersError } = workersResult;
 
     return NextResponse.json({
       success: true,
