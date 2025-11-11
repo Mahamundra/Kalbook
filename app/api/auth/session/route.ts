@@ -4,6 +4,8 @@ import { getBusinessOwnerSession } from '@/lib/auth/session';
 import { getCustomerSession } from '@/lib/auth/session';
 import { BUSINESS_SLUG_COOKIE } from '@/lib/tenant';
 
+export const dynamic = 'force-dynamic';
+
 // Get business-specific session cookie name
 function getSessionCookieName(businessSlug: string): string {
   return `customer_session_${businessSlug}`;

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
@@ -27,7 +27,11 @@ import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 type BookingStep = 1 | 2 | 3 | 4;
 
-export default function BookingPage() {
+// Force dynamic rendering to prevent prerender errors
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
+function BookingPageContent() {
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const params = useParams();
@@ -1932,5 +1936,20 @@ export default function BookingPage() {
         />
       </main>
     </div>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <BookingPageContent />
+    </Suspense>
   );
 }

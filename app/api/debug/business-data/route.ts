@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
+export const dynamic = 'force-dynamic';
+
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 type UserRow = Database['public']['Tables']['users']['Row'];
 type CustomerRow = Database['public']['Tables']['customers']['Row'];

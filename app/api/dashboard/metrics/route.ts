@@ -5,6 +5,8 @@ import { mapAppointmentToInterface } from '@/lib/appointments/utils';
 import type { Appointment } from '@/components/ported/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
+export const dynamic = 'force-dynamic';
+
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 

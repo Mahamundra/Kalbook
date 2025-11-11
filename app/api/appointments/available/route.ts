@@ -4,6 +4,8 @@ import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { checkAppointmentConflict, isWithinWorkingHours } from '@/lib/appointments/utils';
 import type { Database } from '@/lib/supabase/database.types';
 
+export const dynamic = 'force-dynamic';
+
 type ServiceRow = Database['public']['Tables']['services']['Row'];
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
