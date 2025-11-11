@@ -8,6 +8,8 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { Database } from '../lib/supabase/database.types';
 
+type BusinessRow = Database['public']['Tables']['businesses']['Row'];
+
 // Load environment variables from .env.local
 const envPath = resolve(process.cwd(), '.env.local');
 let envVars: Record<string, string> = {};
@@ -43,14 +45,15 @@ async function testConnection() {
   try {
     // Test 1: Get business by slug
     console.log('📋 Test 1: Fetching business by slug "demo-barbershop"...');
-    const { data: business, error: businessError } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .select('*')
       .eq('slug', 'demo-barbershop')
-      .single();
+      .single() as { data: BusinessRow | null; error: any };
+    const { data: business, error: businessError } = businessResult;
 
-    if (businessError) {
-      console.error('❌ Error fetching business:', businessError.message);
+    if (businessError || !business) {
+      console.error('❌ Error fetching business:', businessError?.message || 'Business not found');
       return;
     }
 
@@ -67,10 +70,11 @@ async function testConnection() {
 
     // Test 2: Check services
     console.log('📋 Test 2: Checking services...');
-    const { data: services, error: servicesError } = await supabase
+    const servicesResult = await supabase
       .from('services')
       .select('*')
-      .eq('business_id', business.id);
+      .eq('business_id', business.id) as { data: any[] | null; error: any };
+    const { data: services, error: servicesError } = servicesResult;
 
     if (servicesError) {
       console.error('❌ Error fetching services:', servicesError.message);
@@ -86,10 +90,11 @@ async function testConnection() {
     }
 
     console.log('\n📋 Test 3: Checking workers...');
-    const { data: workers, error: workersError } = await supabase
+    const workersResult = await supabase
       .from('workers')
       .select('*')
-      .eq('business_id', business.id);
+      .eq('business_id', business.id) as { data: any[] | null; error: any };
+    const { data: workers, error: workersError } = workersResult;
 
     if (workersError) {
       console.error('❌ Error fetching workers:', workersError.message);

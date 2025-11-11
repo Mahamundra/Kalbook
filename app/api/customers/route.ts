@@ -225,10 +225,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Map to Customer interface
-    const { data: customerTags } = await supabase
+    const customerTagsResult = await supabase
       .from('customer_tags')
       .select('*')
-      .eq('customer_id', newCustomer.id);
+      .eq('customer_id', newCustomer.id) as { data: any[] | null; error: any };
+    const { data: customerTags } = customerTagsResult;
 
     const mappedCustomer = await mapCustomerToInterface(
       newCustomer,
