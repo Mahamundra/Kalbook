@@ -131,8 +131,8 @@ export async function POST(
 
     // Update appointment with pending status
     // The reschedule request details are stored in activity_logs metadata
-    const updateResult = await supabase
-      .from('appointments')
+    const updateResult = await (supabase
+      .from('appointments') as any)
       .update({
         status: 'pending',
       })
@@ -150,8 +150,8 @@ export async function POST(
 
     // Create activity log entry for reschedule request
     try {
-      const logResult = await supabase
-        .from('activity_logs')
+      const logResult = await (supabase
+        .from('activity_logs') as any)
         .insert({
           business_id: tenantInfo.businessId,
           appointment_id: appointmentId,
@@ -167,7 +167,7 @@ export async function POST(
             workerName: fullAppointment.workers?.name || 'Unknown Worker',
           },
           status: 'pending',
-        })
+        } as any)
         .select()
         .single() as { data: any; error: any };
 

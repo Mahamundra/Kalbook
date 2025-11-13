@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .from('plans')
       .select('name, price')
       .eq('active', true)
-      .order('price', { ascending: true });
+      .order('price', { ascending: true }) as { data: Array<{ name: string; price: number }> | null; error: any };
 
     if (plansResult.error) {
       throw new Error(plansResult.error.message || 'Failed to fetch plans');

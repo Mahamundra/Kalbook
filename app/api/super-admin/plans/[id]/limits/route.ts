@@ -75,8 +75,8 @@ export async function PATCH(
     }
 
     // Update plan with new features
-    const updateResult = await supabase
-      .from('plans')
+    const updateResult = await (supabase
+      .from('plans') as any)
       .update({ features: updatedFeatures })
       .eq('id', planId)
       .select()

@@ -106,8 +106,8 @@ export async function POST(
 
     // Create activity log entry for cancellation
     try {
-      await supabase
-        .from('activity_logs')
+      await (supabase
+        .from('activity_logs') as any)
         .insert({
           business_id: tenantInfo.businessId,
           appointment_id: appointmentId,
@@ -121,7 +121,7 @@ export async function POST(
             workerName: fullAppointment.workers?.name || 'Unknown Worker',
           },
           status: 'completed',
-        });
+        } as any);
     } catch (logError) {
       console.error('Error creating activity log for cancellation:', logError);
       // Don't fail the request if logging fails

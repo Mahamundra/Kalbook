@@ -530,8 +530,8 @@ export async function POST(request: NextRequest) {
     if (createdBy === 'customer') {
       try {
         const appointmentForLog = appointmentWithRelations || newAppointment;
-        await supabase
-          .from('activity_logs')
+        await (supabase
+          .from('activity_logs') as any)
           .insert({
             business_id: tenantInfo.businessId,
             appointment_id: (newAppointment as any).id,
@@ -545,7 +545,7 @@ export async function POST(request: NextRequest) {
               end: end.toISOString(),
             },
             status: 'completed',
-          });
+          } as any);
       } catch (logError) {
         console.error('Error creating activity log for appointment creation:', logError);
         // Don't fail the request if logging fails

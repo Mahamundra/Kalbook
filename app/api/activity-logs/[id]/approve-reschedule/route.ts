@@ -117,8 +117,8 @@ export async function POST(
       end: requestedEnd.toISOString(),
       status: 'confirmed',
     };
-    const updateResult = await supabase
-      .from('appointments')
+    const updateResult = await (supabase
+      .from('appointments') as any)
       .update(updateData)
       .eq('id', appointment.id)
       .eq('business_id', tenantInfo.businessId)
@@ -140,14 +140,14 @@ export async function POST(
     const updatedAppointment = updateResult.data;
 
     // Update activity log status
-    await supabase
-      .from('activity_logs')
+    await (supabase
+      .from('activity_logs') as any)
       .update({ status: 'approved' })
       .eq('id', activityLogId);
 
     // Create new activity log entry for approved reschedule
-    await supabase
-      .from('activity_logs')
+    await (supabase
+      .from('activity_logs') as any)
       .insert({
         business_id: tenantInfo.businessId,
         appointment_id: appointment.id,
@@ -163,7 +163,7 @@ export async function POST(
           workerName: updatedAppointment.workers?.name || metadata.workerName,
         },
         status: 'completed',
-      });
+      } as any);
 
     // Send email notification to customer
     try {

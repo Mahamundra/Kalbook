@@ -64,8 +64,8 @@ export async function POST(
     const metadata = activityLog.metadata as any;
 
     // Update activity log status
-    await supabase
-      .from('activity_logs')
+    await (supabase
+      .from('activity_logs') as any)
       .update({ status: 'rejected' })
       .eq('id', activityLogId);
 
@@ -78,16 +78,16 @@ export async function POST(
         .single() as { data: AppointmentRow | null; error: any };
 
       if (appointmentResult.data && appointmentResult.data.status === 'pending') {
-        await supabase
-          .from('appointments')
+        await (supabase
+          .from('appointments') as any)
           .update({ status: 'confirmed' })
           .eq('id', activityLog.appointment_id);
       }
     }
 
     // Create new activity log entry for rejected reschedule
-    await supabase
-      .from('activity_logs')
+    await (supabase
+      .from('activity_logs') as any)
       .insert({
         business_id: tenantInfo.businessId,
         appointment_id: activityLog.appointment_id,
@@ -104,7 +104,7 @@ export async function POST(
           rejectionMessage,
         },
         status: 'completed',
-      });
+      } as any);
 
     // Send email notification to customer
     try {
