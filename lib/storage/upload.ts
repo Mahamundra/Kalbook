@@ -1,9 +1,9 @@
 /**
  * Supabase Storage utility functions for file uploads
+ * Note: For server-side only functions, see upload-server.ts
  */
 
 import { supabase } from '@/lib/supabase/client';
-import { createAdminClient } from '@/lib/supabase/admin';
 
 const BUCKET_NAME = 'business-assets';
 

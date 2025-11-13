@@ -308,6 +308,7 @@ const Customers = () => {
     status: 'confirmed' as 'confirmed' | 'pending' | 'cancelled',
   });
   const [allowManualEndTime, setAllowManualEndTime] = useState(false);
+  const [canManageCustomers, setCanManageCustomers] = useState(true); // Default to true to avoid blocking
   
   useEffect(() => {
     setMounted(true);
@@ -327,6 +328,19 @@ const Customers = () => {
       }
     };
     loadData();
+
+    // Check feature access
+    fetch('/api/admin/feature-check?feature=manage_customers')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCanManageCustomers(data.canPerform);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking feature:', error);
+        // Default to true if check fails
+      });
   }, []);
   
   const { localeReady } = useDirection();
@@ -664,6 +678,22 @@ const Customers = () => {
     }
 
     try {
+      // Check feature access when creating new customer
+      if (!editingCustomerId) {
+        try {
+          const featureCheck = await fetch('/api/admin/feature-check?feature=manage_customers');
+          const featureData = await featureCheck.json();
+          
+          if (!featureData.canPerform) {
+            toast.error('Your plan doesn\'t allow adding customers. Please upgrade to continue.');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking feature:', error);
+          // Continue if check fails (don't block user)
+        }
+      }
+
       // Check for duplicate phone number (only when creating new customer or updating to a different phone)
       if (!editingCustomerId) {
         // Creating new customer - check if phone already exists
@@ -813,7 +843,12 @@ const Customers = () => {
                   `Delete (${selectedIds.length})`}
               </Button>
             )}
-            <Button onClick={handleCreate} className="w-full sm:w-auto">
+            <Button 
+              onClick={handleCreate} 
+              className="w-full sm:w-auto"
+              disabled={!canManageCustomers}
+              title={!canManageCustomers ? 'Your plan doesn\'t allow adding customers. Please upgrade to continue.' : ''}
+            >
               <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
               {t('customers.add')}
             </Button>

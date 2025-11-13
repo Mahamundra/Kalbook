@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
+import { isTrialExpired, canBusinessPerformAction } from '@/lib/trial/utils';
 import type { Appointment } from '@/components/ported/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -41,9 +42,9 @@ export async function GET(request: NextRequest) {
       .from('appointments')
       .select(`
         *,
-        services (*),
-        customers (*),
-        workers (*)
+        services (name, max_capacity),
+        customers (name),
+        workers (name)
       `)
       .eq('business_id', tenantInfo.businessId);
 
@@ -135,6 +136,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if trial expired
+    const expired = await isTrialExpired(tenantInfo.businessId);
+    if (expired) {
+      return NextResponse.json(
+        { error: 'Trial period has expired. Please upgrade your plan to continue booking appointments.' },
+        { status: 403 }
+      );
+    }
+
+    // Check if business can create appointments
+    const canCreate = await canBusinessPerformAction(tenantInfo.businessId, 'create_appointments');
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow creating appointments. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
+    // Check max_bookings_per_month limit
+    const { checkPlanLimit, countBusinessAppointmentsThisMonth } = await import('@/lib/trial/utils');
+    const currentAppointmentCount = await countBusinessAppointmentsThisMonth(tenantInfo.businessId);
+    const limitCheck = await checkPlanLimit(tenantInfo.businessId, 'max_bookings_per_month', currentAppointmentCount);
+    if (!limitCheck.canProceed) {
+      return NextResponse.json(
+        { 
+          error: `You have reached the maximum number of appointments this month (${limitCheck.limit}) for your plan. Please upgrade to continue booking.`,
+          limit: limitCheck.limit,
+          current: currentAppointmentCount
+        },
+        { status: 403 }
+      );
+    }
+
     const body = requestBody;
 
     // Validate required fields
@@ -151,6 +185,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Determine if appointment is created by customer or admin
+    // Check referer header or createdBy parameter
+    const referer = request.headers.get('referer') || '';
+    const isCustomerRequest = referer.includes('/booking') || referer.includes('/b/') || body.createdBy === 'customer';
+    const createdBy = body.createdBy || (isCustomerRequest ? 'customer' : 'admin');
 
     const supabase = createAdminClient();
 
@@ -273,28 +313,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for conflicts
-    const { checkAppointmentConflict } = await import('@/lib/appointments/utils');
-    const conflictCheck = await checkAppointmentConflict(
-      supabase,
-      tenantInfo.businessId,
-      body.workerId,
-      start,
-      end
-    );
-
-    if (conflictCheck.hasConflict) {
-      return NextResponse.json(
-        {
-          error: 'Time slot is already booked',
-          conflict: {
-            appointmentId: conflictCheck.conflictingAppointment?.id,
-            start: conflictCheck.conflictingAppointment?.start,
-            end: conflictCheck.conflictingAppointment?.end,
-          },
-        },
-        { status: 409 }
+    // Check if service is a group service
+    const { isGroupService, findExistingGroupAppointment, addParticipantToAppointment } = await import('@/lib/appointments/group-utils');
+    const serviceIsGroup = await isGroupService(body.serviceId);
+    
+    let existingGroupAppointment = null;
+    if (serviceIsGroup) {
+      // Try to find existing group appointment at same time/worker
+      existingGroupAppointment = await findExistingGroupAppointment(
+        body.serviceId,
+        body.workerId,
+        start.toISOString(),
+        end.toISOString()
       );
+    }
+    
+    // Check for conflicts (only for non-group services or if no existing group appointment found)
+    if (!serviceIsGroup || !existingGroupAppointment) {
+      const { checkAppointmentConflict } = await import('@/lib/appointments/utils');
+      const conflictCheck = await checkAppointmentConflict(
+        supabase,
+        tenantInfo.businessId,
+        body.workerId,
+        start,
+        end,
+        undefined, // excludeAppointmentId
+        body.serviceId // serviceId for group service check
+      );
+
+      if (conflictCheck.hasConflict) {
+        return NextResponse.json(
+          {
+            error: 'Time slot is already booked',
+            conflict: {
+              appointmentId: conflictCheck.conflictingAppointment?.id,
+              start: conflictCheck.conflictingAppointment?.start,
+              end: conflictCheck.conflictingAppointment?.end,
+            },
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Get working hours from settings (optional validation)
@@ -329,49 +388,106 @@ export async function POST(request: NextRequest) {
       ? (body.status as 'confirmed' | 'pending' | 'cancelled')
       : 'pending';
 
-    // Create appointment
-    const appointmentData = {
-      business_id: tenantInfo.businessId,
-      customer_id: body.customerId,
-      service_id: body.serviceId,
-      worker_id: body.workerId,
-      start: start.toISOString(),
-      end: end.toISOString(),
-      status,
-    };
-
-    console.log('Creating appointment with data:', {
-      ...appointmentData,
-      customer_id: body.customerId,
-      service_id: body.serviceId,
-      worker_id: body.workerId,
-    });
-
-    // First, insert the appointment
-    const createResult = await supabase
-      .from('appointments')
-      .insert(appointmentData as any)
-      .select()
-      .single() as { data: AppointmentRow | null; error: any };
-    const { data: newAppointment, error: createError } = createResult;
-
-    if (createError || !newAppointment) {
-      console.error('Error creating appointment in database:', createError);
-      console.error('Appointment data attempted:', appointmentData);
-      console.error('Error code:', createError?.code);
-      console.error('Error details:', createError?.details);
-      console.error('Error hint:', createError?.hint);
-      return NextResponse.json(
-        { 
-          error: createError?.message || 'Failed to create appointment',
-          details: process.env.NODE_ENV === 'development' ? {
-            code: createError?.code,
-            details: createError?.details,
-            hint: createError?.hint,
-          } : undefined
-        },
-        { status: 500 }
+    let newAppointment: AppointmentRow;
+    
+    // If group service and existing appointment found, join it
+    if (serviceIsGroup && existingGroupAppointment) {
+      // Add customer as participant to existing appointment
+      const addResult = await addParticipantToAppointment(
+        existingGroupAppointment.id,
+        body.customerId,
+        'confirmed'
       );
+      
+      if (!addResult.success) {
+        return NextResponse.json(
+          { error: addResult.error || 'Failed to join group appointment' },
+          { status: 400 }
+        );
+      }
+      
+      // Get updated appointment
+      const updatedResult = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', existingGroupAppointment.id)
+        .single() as { data: AppointmentRow | null; error: any };
+      
+      if (updatedResult.error || !updatedResult.data) {
+        return NextResponse.json(
+          { error: 'Failed to retrieve updated appointment' },
+          { status: 500 }
+        );
+      }
+      
+      newAppointment = updatedResult.data;
+    } else {
+      // Create new appointment
+      const appointmentData: any = {
+        business_id: tenantInfo.businessId,
+        customer_id: body.customerId,
+        service_id: body.serviceId,
+        worker_id: body.workerId,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        status,
+        is_group_appointment: serviceIsGroup,
+        current_participants: 1,
+      };
+
+      console.log('Creating appointment with data:', {
+        ...appointmentData,
+        customer_id: body.customerId,
+        service_id: body.serviceId,
+        worker_id: body.workerId,
+      });
+
+      // Insert the appointment
+      const createResult = await supabase
+        .from('appointments')
+        .insert(appointmentData)
+        .select()
+        .single() as { data: AppointmentRow | null; error: any };
+      const { data: createdAppointment, error: createError } = createResult;
+
+      if (createError || !createdAppointment) {
+        console.error('Error creating appointment in database:', createError);
+        console.error('Appointment data attempted:', appointmentData);
+        console.error('Error code:', createError?.code);
+        console.error('Error details:', createError?.details);
+        console.error('Error hint:', createError?.hint);
+        return NextResponse.json(
+          { 
+            error: createError?.message || 'Failed to create appointment',
+            details: process.env.NODE_ENV === 'development' ? {
+              code: createError?.code,
+              details: createError?.details,
+              hint: createError?.hint,
+            } : undefined
+          },
+          { status: 500 }
+        );
+      }
+      
+      newAppointment = createdAppointment;
+      
+      // If group service, add customer as first participant
+      if (serviceIsGroup) {
+        const addResult = await addParticipantToAppointment(
+          newAppointment.id,
+          body.customerId,
+          'confirmed'
+        );
+        
+        if (!addResult.success) {
+          // Rollback: delete the appointment if participant creation fails
+          await supabase.from('appointments').delete().eq('id', newAppointment.id);
+          return NextResponse.json(
+            { error: addResult.error || 'Failed to add participant to group appointment' },
+            { status: 500 }
+          );
+        }
+      }
     }
 
     // Fetch related data for the response
@@ -380,9 +496,9 @@ export async function POST(request: NextRequest) {
       .from('appointments')
       .select(`
         *,
-        services (*),
-        customers (*),
-        workers (*)
+        services (name, max_capacity),
+        customers (name),
+        workers (name)
       `)
       .eq('id', appointmentRecord.id)
       .single() as { data: any; error: any };
@@ -408,6 +524,32 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       );
+    }
+
+    // Create activity log entry for customer-created appointments
+    if (createdBy === 'customer') {
+      try {
+        const appointmentForLog = appointmentWithRelations || newAppointment;
+        await supabase
+          .from('activity_logs')
+          .insert({
+            business_id: tenantInfo.businessId,
+            appointment_id: (newAppointment as any).id,
+            customer_id: body.customerId,
+            activity_type: 'appointment_created',
+            created_by: 'customer',
+            metadata: {
+              serviceName: appointmentForLog.services?.name || 'Unknown Service',
+              workerName: appointmentForLog.workers?.name || 'Unknown Worker',
+              start: start.toISOString(),
+              end: end.toISOString(),
+            },
+            status: 'completed',
+          });
+      } catch (logError) {
+        console.error('Error creating activity log for appointment creation:', logError);
+        // Don't fail the request if logging fails
+      }
     }
 
     return NextResponse.json(

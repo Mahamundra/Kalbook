@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +31,22 @@ const Templates = () => {
   );
   const [subject, setSubject] = useState(selectedTemplate?.subject || '');
   const [body, setBody] = useState(selectedTemplate?.body || '');
+  const [canManageTemplates, setCanManageTemplates] = useState(true); // Default to true to avoid blocking
+
+  useEffect(() => {
+    // Check feature access for managing templates
+    fetch('/api/admin/feature-check?feature=manage_templates')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCanManageTemplates(data.canPerform);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking feature:', error);
+        // Default to true if check fails to avoid blocking unnecessarily
+      });
+  }, []);
 
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
@@ -39,10 +55,33 @@ const Templates = () => {
   };
 
   const handleSave = () => {
-    if (selectedTemplate) {
-      updateTemplate(selectedTemplate.id, { subject, body });
-      toast.success('Template saved successfully');
+    if (!canManageTemplates) {
+      toast.error('Your plan doesn\'t allow managing templates. Please upgrade to continue.');
+      return;
     }
+
+    // Double-check with API before proceeding
+    fetch('/api/admin/feature-check?feature=manage_templates')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.canPerform) {
+          toast.error('Your plan doesn\'t allow managing templates. Please upgrade to continue.');
+          return;
+        }
+
+        if (selectedTemplate) {
+          updateTemplate(selectedTemplate.id, { subject, body });
+          toast.success('Template saved successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Error checking feature:', error);
+        // Continue if check fails (don't block user due to API error)
+        if (selectedTemplate) {
+          updateTemplate(selectedTemplate.id, { subject, body });
+          toast.success('Template saved successfully');
+        }
+      });
   };
 
   const insertVariable = (variable: string) => {
@@ -104,6 +143,7 @@ const Templates = () => {
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       placeholder="Email subject"
+                      disabled={!canManageTemplates}
                     />
                   </div>
 
@@ -114,6 +154,7 @@ const Templates = () => {
                       onChange={(e) => setBody(e.target.value)}
                       rows={12}
                       placeholder="Email body"
+                      disabled={!canManageTemplates}
                     />
                   </div>
 
@@ -136,7 +177,11 @@ const Templates = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button onClick={handleSave}>
+                    <Button 
+                      onClick={handleSave}
+                      disabled={!canManageTemplates}
+                      title={!canManageTemplates ? 'Your plan doesn\'t allow managing templates. Please upgrade to continue.' : ''}
+                    >
                       <Save className="w-4 h-4 me-2" />
                       {t('templates.save')}
                     </Button>

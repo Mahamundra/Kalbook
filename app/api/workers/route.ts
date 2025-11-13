@@ -145,8 +145,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
@@ -155,6 +153,32 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Check if business can manage workers
+    const { canBusinessPerformAction, checkPlanLimit, countBusinessWorkers } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_workers');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing workers. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
+    // Check max_staff limit
+    const currentWorkerCount = await countBusinessWorkers(tenantInfo.businessId);
+    const limitCheck = await checkPlanLimit(tenantInfo.businessId, 'max_staff', currentWorkerCount);
+    if (!limitCheck.canProceed) {
+      return NextResponse.json(
+        { 
+          error: `You have reached the maximum number of staff members (${limitCheck.limit}) for your plan. Please upgrade to add more staff.`,
+          limit: limitCheck.limit,
+          current: currentWorkerCount
+        },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
 
     // Validate required fields
     if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {

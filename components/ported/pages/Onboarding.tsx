@@ -5,12 +5,13 @@ import { Input } from "@/components/ported/ui/input";
 import { Label } from "@/components/ported/ui/label";
 import { Button } from "@/components/ported/ui/button";
 import { useRouter } from "next/navigation";
-import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus } from "lucide-react";
+import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home } from "lucide-react";
 import { useToast } from "@/components/ported/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLocale } from "@/components/ported/hooks/useLocale";
 import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ported/ui/select";
 import en from "@/messages/en.json";
 import he from "@/messages/he.json";
 import ar from "@/messages/ar.json";
@@ -28,6 +29,7 @@ type Service = {
 const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [businessInfo, setBusinessInfo] = useState({
@@ -75,14 +77,16 @@ const Onboarding = () => {
   // Load default services when business type is selected and moving to step 2
   useEffect(() => {
     if (businessType && step === 2) {
-      // If business type changed or services are empty, load defaults
+      // Always reload services when business type changes or when locale changes
+      // Get translations for default services
+      const servicesTranslations = getTranslation(`onboarding.services.defaultServices.${businessType}`);
+      const defaultServices = getDefaultServices(businessType, servicesTranslations ? {
+        [businessType]: servicesTranslations
+      } : undefined);
+      
+      // Only update if business type changed or services are empty
+      // This prevents overwriting user edits when only locale changes
       if (lastBusinessTypeRef.current !== businessType || services.length === 0) {
-        // Get translations for default services
-        const servicesTranslations = getTranslation(`onboarding.services.defaultServices.${businessType}`);
-        const defaultServices = getDefaultServices(businessType, servicesTranslations ? {
-          [businessType]: servicesTranslations
-        } : undefined);
-        
         setServices(
           defaultServices.map((service, index) => ({
             id: `default-${index}`,
@@ -100,26 +104,95 @@ const Onboarding = () => {
       icon: Scissors,
       title: t('onboarding.chooseBusinessType.businessTypes.barbershop.title'),
       description: t('onboarding.chooseBusinessType.businessTypes.barbershop.description'),
+      category: 'beauty_aesthetics',
     },
     {
-      id: "nail_salon" as BusinessType,
-      icon: Sparkles,
-      title: t('onboarding.chooseBusinessType.businessTypes.nail_salon.title'),
-      description: t('onboarding.chooseBusinessType.businessTypes.nail_salon.description'),
+      id: "beauty_salon" as BusinessType,
+      icon: Heart,
+      title: t('onboarding.chooseBusinessType.businessTypes.beauty_salon.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.beauty_salon.description'),
+      category: 'beauty_aesthetics',
+    },
+    {
+      id: "makeup_artist" as BusinessType,
+      icon: Palette,
+      title: t('onboarding.chooseBusinessType.businessTypes.makeup_artist.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.makeup_artist.description'),
+      category: 'beauty_aesthetics',
     },
     {
       id: "gym_trainer" as BusinessType,
       icon: Dumbbell,
       title: t('onboarding.chooseBusinessType.businessTypes.gym_trainer.title'),
       description: t('onboarding.chooseBusinessType.businessTypes.gym_trainer.description'),
+      category: 'fitness_wellness',
+    },
+    {
+      id: "spa" as BusinessType,
+      icon: Waves,
+      title: t('onboarding.chooseBusinessType.businessTypes.spa.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.spa.description'),
+      category: 'fitness_wellness',
+    },
+    {
+      id: "pilates_studio" as BusinessType,
+      icon: Activity,
+      title: t('onboarding.chooseBusinessType.businessTypes.pilates_studio.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.pilates_studio.description'),
+      category: 'fitness_wellness',
+    },
+    {
+      id: "physiotherapy" as BusinessType,
+      icon: HeartPulse,
+      title: t('onboarding.chooseBusinessType.businessTypes.physiotherapy.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.physiotherapy.description'),
+      category: 'fitness_wellness',
+    },
+    {
+      id: "life_coach" as BusinessType,
+      icon: Users,
+      title: t('onboarding.chooseBusinessType.businessTypes.life_coach.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.life_coach.description'),
+      category: 'personal_care_coaching',
+    },
+    {
+      id: "dietitian" as BusinessType,
+      icon: Apple,
+      title: t('onboarding.chooseBusinessType.businessTypes.dietitian.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.dietitian.description'),
+      category: 'personal_care_coaching',
+    },
+    {
+      id: "nail_salon" as BusinessType,
+      icon: Sparkles,
+      title: t('onboarding.chooseBusinessType.businessTypes.nail_salon.title'),
+      description: t('onboarding.chooseBusinessType.businessTypes.nail_salon.description'),
+      category: 'beauty_aesthetics',
     },
     {
       id: "other" as BusinessType,
       icon: Briefcase,
       title: t('onboarding.chooseBusinessType.businessTypes.other.title'),
       description: t('onboarding.chooseBusinessType.businessTypes.other.description'),
+      category: 'other',
     },
   ];
+
+  // Filter business types by selected category, always include "other" option at the end
+  const otherType = businessTypes.find(type => type.id === 'other');
+  const filteredBusinessTypes = (() => {
+    if (selectedCategory === 'all') {
+      return businessTypes;
+    }
+    
+    // Get business types for the selected category, excluding "other"
+    const categoryTypes = businessTypes.filter(
+      type => type.category === selectedCategory && type.id !== 'other'
+    );
+    
+    // Always add "other" at the end if it exists
+    return otherType ? [...categoryTypes, otherType] : categoryTypes;
+  })();
 
   // Validation functions
   const validateEmail = (email: string): boolean => {
@@ -282,8 +355,9 @@ const Onboarding = () => {
             router.push(`/b/${slug}/admin/dashboard`);
           }, 2000);
         } else {
+          // If no slug, redirect to onboarding to create business
           setTimeout(() => {
-            router.push("/admin/dashboard");
+            router.push("/onboarding");
           }, 2000);
         }
       } catch (error: any) {
@@ -313,8 +387,16 @@ const Onboarding = () => {
 
   return (
     <div dir={dir} className="min-h-screen bg-background flex flex-col p-6">
-      {/* Header with Language Toggle */}
-      <div className="w-full max-w-7xl mx-auto mb-6 flex justify-end">
+      {/* Header with Language Toggle and Home Button */}
+      <div className="w-full max-w-7xl mx-auto mb-6 flex justify-end items-center gap-4">
+        <Button
+          variant="outline"
+          onClick={() => router.push('/')}
+          className="flex items-center gap-2"
+        >
+          <Home className="h-4 w-4" />
+          {t('onboarding.buttons.mainPage') || 'Main Page'}
+        </Button>
         <LanguageToggle />
       </div>
       
@@ -340,16 +422,61 @@ const Onboarding = () => {
             <div className="animate-fade-in">
               <h2 className="text-3xl font-bold mb-2">{t('onboarding.chooseBusinessType.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.chooseBusinessType.subtitle')}</p>
-              <div className="grid md:grid-cols-2 gap-4">
-                {businessTypes.map((type) => (
+              
+              {/* Category Filter */}
+              <div 
+                className="mb-6 flex items-center gap-4"
+                style={dir === 'rtl' ? { flexDirection: 'row', direction: 'rtl' } : { flexDirection: 'row' }}
+                dir={dir}
+              >
+                <Label htmlFor="category-filter" className="whitespace-nowrap">
+                  {t('onboarding.chooseBusinessType.filterByCategory')}:
+                </Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger id="category-filter" className="w-[250px]" dir={dir}>
+                    <SelectValue placeholder={t('onboarding.chooseBusinessType.allCategories')} />
+                  </SelectTrigger>
+                  <SelectContent dir={dir}>
+                    <SelectItem value="all">{t('onboarding.chooseBusinessType.allCategories')}</SelectItem>
+                    <SelectItem value="beauty_aesthetics">{t('onboarding.chooseBusinessType.categories.beauty_aesthetics')}</SelectItem>
+                    <SelectItem value="fitness_wellness">{t('onboarding.chooseBusinessType.categories.fitness_wellness')}</SelectItem>
+                    <SelectItem value="personal_care_coaching">{t('onboarding.chooseBusinessType.categories.personal_care_coaching')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Microcopy based on selected category */}
+              {selectedCategory !== 'all' && (
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground">
+                    {t(`onboarding.chooseBusinessType.microcopy.${selectedCategory}`) || t('onboarding.chooseBusinessType.microcopy.default')}
+                  </p>
+                </div>
+              )}
+
+              {selectedCategory === 'all' && (
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground">
+                    {t('onboarding.chooseBusinessType.microcopy.default')}
+                  </p>
+                </div>
+              )}
+
+              <div 
+                className="grid md:grid-cols-2 gap-4"
+                style={dir === 'rtl' ? { direction: 'rtl' } : undefined}
+                dir={dir}
+              >
+                {filteredBusinessTypes.map((type) => (
                   <button
                     key={type.id}
                     onClick={() => setBusinessType(type.id)}
-                    className={`p-6 rounded-lg border-2 text-left transition-all ${
+                    className={`p-6 rounded-lg border-2 ${dir === 'rtl' ? 'text-right' : 'text-left'} transition-all ${
                       businessType === type.id
                         ? "border-primary bg-accent shadow-soft"
                         : "border-border hover:border-primary/50"
                     }`}
+                    dir={dir}
                   >
                     <type.icon className={`w-8 h-8 mb-3 ${businessType === type.id ? "text-accent-foreground" : "text-muted-foreground"}`} />
                     <h3 className="text-lg font-semibold mb-1">{type.title}</h3>

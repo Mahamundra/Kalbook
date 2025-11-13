@@ -108,6 +108,25 @@ export async function PATCH(
       );
     }
 
+    // Check if business can manage templates
+    const { canBusinessPerformAction, checkPlanFeature } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_templates');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing templates. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
+    // Check if business can create custom templates
+    const hasCustomTemplates = await checkPlanFeature(tenantInfo.businessId, 'custom_templates');
+    if (!hasCustomTemplates) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow creating custom templates. Please upgrade to Professional or Business plan.' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createAdminClient();
 
     // Get existing template
@@ -274,6 +293,16 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Business context required' },
         { status: 400 }
+      );
+    }
+
+    // Check if business can manage templates
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_templates');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing templates. Please upgrade your plan.' },
+        { status: 403 }
       );
     }
 

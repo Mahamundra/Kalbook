@@ -15,6 +15,9 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -105,6 +108,10 @@ const config: Config = {
           "50%": { transform: "translateY(-3px)" },
           "75%": { transform: "translateY(-2px)" },
         },
+        "io-appear": {
+          "0%": { opacity: "0", transform: "translateX(-10px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -114,6 +121,7 @@ const config: Config = {
         "float": "float 3s ease-in-out infinite",
         "circle-merge-separate": "circle-merge-separate 8s linear infinite",
         "text-float": "text-float 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "io-appear": "io-appear 0.6s ease-out 0.3s both",
       },
     },
   },

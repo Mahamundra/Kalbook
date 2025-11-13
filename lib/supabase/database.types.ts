@@ -3,11 +3,12 @@
  * Generated from the database schema
  */
 
-export type BusinessType = 'barbershop' | 'nail_salon' | 'gym_trainer' | 'other';
+export type BusinessType = 'barbershop' | 'nail_salon' | 'gym_trainer' | 'other' | 'beauty_salon' | 'makeup_artist' | 'spa' | 'pilates_studio' | 'physiotherapy' | 'life_coach' | 'dietitian';
 export type UserRole = 'owner' | 'admin';
 export type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled';
 export type TemplateChannel = 'email' | 'message';
 export type TemplateType = 'booking_confirmation' | 'reminder' | 'cancellation';
+export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'cancelled';
 
 export interface Database {
   public: {
@@ -24,6 +25,10 @@ export interface Database {
           timezone: string;
           currency: string;
           business_type: BusinessType | null;
+          plan_id: string | null;
+          trial_started_at: string | null;
+          trial_ends_at: string | null;
+          subscription_status: SubscriptionStatus | null;
           created_at: string;
           updated_at: string;
         };
@@ -38,6 +43,10 @@ export interface Database {
           timezone?: string;
           currency?: string;
           business_type?: BusinessType | null;
+          plan_id?: string | null;
+          trial_started_at?: string | null;
+          trial_ends_at?: string | null;
+          subscription_status?: SubscriptionStatus | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -52,6 +61,10 @@ export interface Database {
           timezone?: string;
           currency?: string;
           business_type?: BusinessType | null;
+          plan_id?: string | null;
+          trial_started_at?: string | null;
+          trial_ends_at?: string | null;
+          subscription_status?: SubscriptionStatus | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -99,6 +112,11 @@ export interface Database {
           price: number;
           tax_rate: number;
           active: boolean;
+          is_group_service: boolean;
+          max_capacity: number | null;
+          min_capacity: number | null;
+          allow_waitlist: boolean;
+          group_pricing_type: 'per_person' | 'fixed' | null;
           created_at: string;
           updated_at: string;
         };
@@ -112,6 +130,11 @@ export interface Database {
           price: number;
           tax_rate?: number;
           active?: boolean;
+          is_group_service?: boolean;
+          max_capacity?: number | null;
+          min_capacity?: number | null;
+          allow_waitlist?: boolean;
+          group_pricing_type?: 'per_person' | 'fixed' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -125,6 +148,11 @@ export interface Database {
           price?: number;
           tax_rate?: number;
           active?: boolean;
+          is_group_service?: boolean;
+          max_capacity?: number | null;
+          min_capacity?: number | null;
+          allow_waitlist?: boolean;
+          group_pricing_type?: 'per_person' | 'fixed' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -278,6 +306,8 @@ export interface Database {
           start: string;
           end: string;
           status: AppointmentStatus;
+          is_group_appointment: boolean;
+          current_participants: number;
           created_at: string;
           updated_at: string;
         };
@@ -290,6 +320,8 @@ export interface Database {
           start: string;
           end: string;
           status?: AppointmentStatus;
+          is_group_appointment?: boolean;
+          current_participants?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -302,8 +334,36 @@ export interface Database {
           start?: string;
           end?: string;
           status?: AppointmentStatus;
+          is_group_appointment?: boolean;
+          current_participants?: number;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      appointment_participants: {
+        Row: {
+          id: string;
+          appointment_id: string;
+          customer_id: string;
+          status: 'confirmed' | 'waitlist' | 'cancelled';
+          joined_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          appointment_id: string;
+          customer_id: string;
+          status?: 'confirmed' | 'waitlist' | 'cancelled';
+          joined_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          appointment_id?: string;
+          customer_id?: string;
+          status?: 'confirmed' | 'waitlist' | 'cancelled';
+          joined_at?: string;
+          created_at?: string;
         };
       };
       settings: {
@@ -402,6 +462,81 @@ export interface Database {
           created_at?: string;
         };
       };
+      plans: {
+        Row: {
+          id: string;
+          name: string;
+          price: number;
+          features: Record<string, any>;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          price?: number;
+          features?: Record<string, any>;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          price?: number;
+          features?: Record<string, any>;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      plan_features: {
+        Row: {
+          id: string;
+          plan_id: string;
+          feature_name: string;
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          feature_name: string;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_id?: string;
+          feature_name?: string;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      super_admin_users: {
+        Row: {
+          id: string;
+          is_super_admin: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          is_super_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          is_super_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
@@ -417,6 +552,9 @@ export type Settings = Database['public']['Tables']['settings']['Row'];
 export type Template = Database['public']['Tables']['templates']['Row'];
 export type Visit = Database['public']['Tables']['visits']['Row'];
 export type OTPCode = Database['public']['Tables']['otp_codes']['Row'];
+export type Plan = Database['public']['Tables']['plans']['Row'];
+export type PlanFeature = Database['public']['Tables']['plan_features']['Row'];
+export type SuperAdminUser = Database['public']['Tables']['super_admin_users']['Row'];
 
 
 

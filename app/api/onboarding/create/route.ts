@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { generateUniqueSlug, getDefaultServices, getDefaultTimezone, getDefaultCurrency } from '@/lib/onboarding/utils';
+import { generateUniqueSlug, getDefaultServices, getDefaultTimezone, getDefaultCurrency, getDefaultThemeColor } from '@/lib/onboarding/utils';
+import { uploadDefaultBannerImage } from '@/lib/storage/upload-server';
 import { toE164Format } from '@/lib/customers/utils';
 import type { BusinessType } from '@/lib/supabase/database.types';
 import type { Database } from '@/lib/supabase/database.types';
@@ -20,9 +21,10 @@ export async function POST(request: NextRequest) {
     const { businessType, businessInfo, adminUser } = body;
 
     // Validate required fields
-    if (!businessType || !['barbershop', 'nail_salon', 'gym_trainer', 'other'].includes(businessType)) {
+    const validBusinessTypes = ['barbershop', 'nail_salon', 'gym_trainer', 'beauty_salon', 'makeup_artist', 'spa', 'pilates_studio', 'physiotherapy', 'life_coach', 'dietitian', 'other'];
+    if (!businessType || !validBusinessTypes.includes(businessType)) {
       return NextResponse.json(
-        { error: 'Valid businessType is required (barbershop, nail_salon, gym_trainer, other)' },
+        { error: `Valid businessType is required. Allowed types: ${validBusinessTypes.join(', ')}` },
         { status: 400 }
       );
     }
@@ -92,6 +94,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get Basic plan for trial (free plan)
+    const planResult = await supabase
+      .from('plans')
+      .select('id')
+      .eq('name', 'basic')
+      .eq('active', true)
+      .single() as { data: { id: string } | null; error: any };
+    
+    const basicPlan = planResult.data;
+    
+    if (!basicPlan) {
+      return NextResponse.json(
+        { error: 'Basic plan not found. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    // Calculate trial dates (14 days from now)
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
     // Create business
     const businessData = {
       slug,
@@ -103,6 +127,10 @@ export async function POST(request: NextRequest) {
       timezone: businessInfo.timezone || getDefaultTimezone(businessType as BusinessType),
       currency: businessInfo.currency || getDefaultCurrency(businessType as BusinessType),
       business_type: businessType as BusinessType,
+      plan_id: basicPlan.id,
+      trial_started_at: trialStartedAt.toISOString(),
+      trial_ends_at: trialEndsAt.toISOString(),
+      subscription_status: 'trial' as const,
     };
 
     const businessResult = await supabase
@@ -365,11 +393,31 @@ export async function POST(request: NextRequest) {
       role: newUser?.role,
     });
 
+    // Upload default banner image to Supabase Storage
+    let bannerCoverUrl: string | null = null;
+    const bannerUploadResult = await uploadDefaultBannerImage(businessId, businessType as BusinessType);
+    if (bannerUploadResult.url) {
+      bannerCoverUrl = bannerUploadResult.url;
+    } else {
+      // Log error but don't fail onboarding if banner upload fails
+      console.error('Failed to upload default banner image:', bannerUploadResult.error);
+    }
+
+    // Get default theme color for business type
+    const defaultThemeColor = getDefaultThemeColor(businessType as BusinessType);
+
     // Create default settings
     const defaultSettings = {
       business_id: businessId,
       branding: {
-        themeColor: '#0EA5E9',
+        themeColor: defaultThemeColor,
+        ...(bannerCoverUrl ? {
+          bannerCover: {
+            type: 'upload' as const,
+            uploadUrl: bannerCoverUrl,
+            position: { x: 50, y: 50 },
+          },
+        } : {}),
       },
       locale: {
         language: 'en',

@@ -11,19 +11,33 @@ import { Label } from '@/components/ported/ui/label';
 import { useParams, useSearchParams } from 'next/navigation';
 import { 
   getSettings as getMockSettings,
-  createCustomer, 
-  createAppointment,
 } from '@/components/ported/lib/mockData';
 import { 
   getServices, 
-  getWorkers 
+  getWorkers,
+  createCustomer,
+  createAppointment,
+  getCustomerByPhone,
+  cancelAppointment,
+  updateAppointment,
 } from '@/lib/api/services';
 import { toast } from 'sonner';
-import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, ChevronDown, Check, CheckCircle2, Phone, LogIn, LogOut } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, ChevronDown, Check, CheckCircle2, Phone, LogIn, LogOut, Users, Edit, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { Service, Appointment, Worker } from '@/types/admin';
 import Link from 'next/link';
 import { LoginRegisterDialog } from '@/components/ported/components/LoginRegisterDialog';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
+import { KalBokLogo } from '@/components/ui/KalBookLogo';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ported/ui/alert-dialog';
 
 type BookingStep = 1 | 2 | 3 | 4;
 
@@ -57,6 +71,29 @@ function BookingPageContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [trialExpired, setTrialExpired] = useState(false);
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+  const [availableGroupAppointments, setAvailableGroupAppointments] = useState<Array<{
+    id: string;
+    start: string;
+    end: string;
+    workerId: string;
+    availableSpots: number;
+    maxCapacity: number;
+    currentParticipants: number;
+  }>>([]);
+  const [customerAppointments, setCustomerAppointments] = useState<Appointment[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
+  const [showAppointments, setShowAppointments] = useState(true);
+  const [reschedulingAppointment, setReschedulingAppointment] = useState<Appointment | null>(null);
+  const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | null>(null);
+  const [rescheduleTime, setRescheduleTime] = useState<string | null>(null);
+  const [rescheduleMonthOffset, setRescheduleMonthOffset] = useState(0);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
+  const [rescheduleAvailableSlots, setRescheduleAvailableSlots] = useState<string[]>([]);
+  const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
 
   // Auto-fill customer info if logged in
   useEffect(() => {
@@ -68,6 +105,34 @@ function BookingPageContent() {
       });
     }
   }, [isLoggedIn, currentUser]);
+
+  // Fetch customer appointments when logged in
+  useEffect(() => {
+    const fetchCustomerAppointments = async () => {
+      if (isLoggedIn && currentUser?.customerId) {
+        setLoadingAppointments(true);
+        try {
+          const response = await fetch(`/api/customers/${currentUser.customerId}/appointments`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.appointments) {
+              // Filter out cancelled appointments and only show upcoming/past confirmed/pending
+              const activeAppointments = data.appointments.filter((apt: Appointment) => apt.status !== 'cancelled');
+              setCustomerAppointments(activeAppointments);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching customer appointments:', error);
+        } finally {
+          setLoadingAppointments(false);
+        }
+      } else {
+        setCustomerAppointments([]);
+      }
+    };
+
+    fetchCustomerAppointments();
+  }, [isLoggedIn, currentUser?.customerId]);
   const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, 1 = next month, etc.
   const workerTimeSectionRef = useRef<HTMLDivElement>(null);
   const [confirmedAppointment, setConfirmedAppointment] = useState<{
@@ -112,6 +177,16 @@ function BookingPageContent() {
       // If we have a slug, fetch all data from API
       if (slug) {
         try {
+          // Check trial status
+          const trialResponse = await fetch(`/api/trial/status?slug=${slug}`);
+          if (trialResponse.ok) {
+            const trialData = await trialResponse.json();
+            if (trialData.success) {
+              setTrialExpired(trialData.trialExpired);
+              setTrialDaysRemaining(trialData.daysRemaining);
+            }
+          }
+          
           // Fetch settings
           const settingsResponse = await fetch(`/api/settings?businessSlug=${slug}`);
           if (settingsResponse.ok) {
@@ -326,6 +401,64 @@ function BookingPageContent() {
     setMonthOffset(prev => prev + 1);
   };
 
+  // Fetch available slots for reschedule date
+  useEffect(() => {
+    const fetchRescheduleSlots = async () => {
+      if (reschedulingAppointment && rescheduleDate) {
+        setLoadingRescheduleSlots(true);
+        try {
+          const dateStr = rescheduleDate.toISOString().split('T')[0];
+          const workerId = reschedulingAppointment.workerId || reschedulingAppointment.staffId;
+          const serviceId = reschedulingAppointment.serviceId;
+          
+          if (!serviceId) {
+            setRescheduleAvailableSlots([]);
+            return;
+          }
+
+          const url = `/api/appointments/available?date=${dateStr}&serviceId=${serviceId}${workerId ? `&workerId=${workerId}` : ''}`;
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.availableSlots) {
+              // Extract time strings from available slots
+              const slots = data.availableSlots
+                .map((slot: { start: string; workerId: string }) => {
+                  const slotDate = new Date(slot.start);
+                  // Include slots for the selected worker (or all if no worker specified)
+                  if (!workerId || slot.workerId === workerId) {
+                    const hours = slotDate.getHours().toString().padStart(2, '0');
+                    const minutes = slotDate.getMinutes().toString().padStart(2, '0');
+                    return `${hours}:${minutes}`;
+                  }
+                  return null;
+                })
+                .filter((slot: string | null): slot is string => slot !== null);
+              
+              // Remove duplicates and sort
+              const uniqueSlots = [...new Set(slots)].sort();
+              setRescheduleAvailableSlots(uniqueSlots);
+            } else {
+              setRescheduleAvailableSlots([]);
+            }
+          } else {
+            setRescheduleAvailableSlots([]);
+          }
+        } catch (error) {
+          console.error('Error fetching reschedule slots:', error);
+          setRescheduleAvailableSlots([]);
+        } finally {
+          setLoadingRescheduleSlots(false);
+        }
+      } else {
+        setRescheduleAvailableSlots([]);
+      }
+    };
+
+    fetchRescheduleSlots();
+  }, [reschedulingAppointment, rescheduleDate]);
+
   // Check if a time slot is available for the selected date
   const isTimeSlotAvailable = (timeSlot: string, date: Date, serviceId: string): boolean => {
     if (!selectedService) return false;
@@ -420,6 +553,149 @@ function BookingPageContent() {
     return workers.filter(w => w.services.includes(selectedService.id));
   };
 
+  // Handle cancel appointment
+  const handleCancelAppointment = (appointmentId: string) => {
+    setAppointmentToCancel(appointmentId);
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancelAppointment = async () => {
+    if (!appointmentToCancel) return;
+
+    setCancellingAppointmentId(appointmentToCancel);
+    setShowCancelDialog(false);
+    
+    try {
+      await cancelAppointment(appointmentToCancel);
+      toast.success(t('booking.appointmentCancelled') || 'Appointment cancelled successfully');
+      
+      // Refresh appointments list
+      if (isLoggedIn && currentUser?.customerId) {
+        const response = await fetch(`/api/customers/${currentUser.customerId}/appointments`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.appointments) {
+            const activeAppointments = data.appointments.filter((apt: Appointment) => apt.status !== 'cancelled');
+            setCustomerAppointments(activeAppointments);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error cancelling appointment:', error);
+      toast.error(error.message || t('booking.cancelError') || 'Failed to cancel appointment');
+    } finally {
+      setCancellingAppointmentId(null);
+      setAppointmentToCancel(null);
+    }
+  };
+
+  // Handle reschedule appointment
+  const handleRescheduleAppointment = async (appointmentId: string, newDate: Date, newTime: string) => {
+    try {
+      // Check if rescheduling is allowed
+      const allowReschedule = settings?.calendar?.reschedule?.allowCustomerReschedule ?? false;
+      if (!allowReschedule) {
+        toast.error(t('booking.rescheduleNotAllowed') || 'Rescheduling is not allowed for this business');
+        return;
+      }
+
+      const [hour, minute] = newTime.split(':').map(Number);
+      const appointmentDate = new Date(newDate);
+      appointmentDate.setHours(hour, minute, 0, 0);
+      
+      const appointment = customerAppointments.find(apt => apt.id === appointmentId);
+      if (!appointment) return;
+
+      // Check if trying to reschedule to the same date and time
+      const currentStart = new Date(appointment.start);
+      const currentDateStr = currentStart.toISOString().split('T')[0];
+      const newDateStr = appointmentDate.toISOString().split('T')[0];
+      const currentTimeStr = `${currentStart.getHours().toString().padStart(2, '0')}:${currentStart.getMinutes().toString().padStart(2, '0')}`;
+      
+      if (currentDateStr === newDateStr && currentTimeStr === newTime) {
+        toast.error(t('booking.sameDateTimeError') || 'Cannot reschedule to the same date and time');
+        return;
+      }
+
+      const service = services.find(s => s.id === appointment.serviceId);
+      if (!service) return;
+
+      const endDate = new Date(appointmentDate);
+      endDate.setMinutes(endDate.getMinutes() + service.duration);
+
+      const requireApproval = settings?.calendar?.reschedule?.requireApproval ?? false;
+
+      if (requireApproval) {
+        // Create a reschedule request
+        const response = await fetch(`/api/appointments/${appointmentId}/reschedule-request`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            requestedStart: appointmentDate.toISOString(),
+            requestedEnd: endDate.toISOString(),
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            toast.success(t('booking.rescheduleRequestSent') || 'Reschedule request sent. Waiting for approval.');
+            setReschedulingAppointment(null);
+            setRescheduleDate(null);
+            setRescheduleTime(null);
+            setRescheduleAvailableSlots([]);
+            
+            // Refresh appointments list
+            if (isLoggedIn && currentUser?.customerId) {
+              const refreshResponse = await fetch(`/api/customers/${currentUser.customerId}/appointments`);
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                if (refreshData.success && refreshData.appointments) {
+                  const activeAppointments = refreshData.appointments.filter((apt: Appointment) => apt.status !== 'cancelled');
+                  setCustomerAppointments(activeAppointments);
+                }
+              }
+            }
+          } else {
+            toast.error(data.error || t('booking.rescheduleError') || 'Failed to send reschedule request');
+          }
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.error || t('booking.rescheduleError') || 'Failed to send reschedule request');
+        }
+      } else {
+        // Direct update (auto-approve)
+        await updateAppointment(appointmentId, {
+          start: appointmentDate.toISOString(),
+          end: endDate.toISOString(),
+        });
+
+        toast.success(t('booking.appointmentRescheduled') || 'Appointment rescheduled successfully');
+        setReschedulingAppointment(null);
+        setRescheduleDate(null);
+        setRescheduleTime(null);
+        setRescheduleAvailableSlots([]);
+        
+        // Refresh appointments list
+        if (isLoggedIn && currentUser?.customerId) {
+          const response = await fetch(`/api/customers/${currentUser.customerId}/appointments`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.appointments) {
+              const activeAppointments = data.appointments.filter((apt: Appointment) => apt.status !== 'cancelled');
+              setCustomerAppointments(activeAppointments);
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error rescheduling appointment:', error);
+      toast.error(error.message || t('booking.rescheduleError') || 'Failed to reschedule appointment');
+    }
+  };
+
   // Format date for display
   const formatDate = (date: Date): string => {
     const localeMap: Record<string, string> = {
@@ -485,7 +761,7 @@ function BookingPageContent() {
         <div className="text-center space-y-6 px-4">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <KalBookLogo size="lg" variant="full" />
+            <KalBokLogo size="lg" variant="full" />
           </div>
           {/* Modern animated spinner with smooth gradient */}
           <div className="relative mx-auto w-16 h-16">
@@ -516,11 +792,32 @@ function BookingPageContent() {
     return `https://wa.me/${cleanedPhone}`;
   };
 
-  const handleServiceSelect = (service: Service) => {
+  const handleServiceSelect = async (service: Service) => {
     setSelectedService(service);
     setSelectedDate(null);
     setSelectedTime(null);
     setMonthOffset(0); // Reset to current month
+    
+    // If group service, fetch available group appointments
+    if (service.isGroupService && slug) {
+      try {
+        const groupResponse = await fetch(
+          `/api/appointments/group/available?serviceId=${service.id}&businessSlug=${slug}`
+        );
+        if (groupResponse.ok) {
+          const groupData = await groupResponse.json();
+          if (groupData.success && groupData.appointments) {
+            setAvailableGroupAppointments(groupData.appointments);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching group appointments:', error);
+        setAvailableGroupAppointments([]);
+      }
+    } else {
+      setAvailableGroupAppointments([]);
+    }
+    
     setStep(2);
   };
 
@@ -593,8 +890,20 @@ function BookingPageContent() {
   };
 
   const handleBookAppointment = async () => {
+    // Check if trial expired
+    if (trialExpired) {
+      toast.error('Trial period has expired. Please contact the business to upgrade.');
+      return;
+    }
+
     if (!selectedService || !selectedDate || !selectedTime || !customerInfo.name || !customerInfo.email || !customerInfo.phone) {
       toast.error(t('booking.fillAllFields'));
+      return;
+    }
+
+    // Check if trial expired before proceeding
+    if (trialExpired) {
+      toast.error('Trial period has expired. Please contact the business to upgrade.');
       return;
     }
 
@@ -623,29 +932,61 @@ function BookingPageContent() {
       const endDate = new Date(appointmentDate);
       endDate.setMinutes(endDate.getMinutes() + selectedService.duration);
 
-      // Create customer
-      const customer = createCustomer({
-        name: customerInfo.name,
-        email: customerInfo.email,
-        phone: customerInfo.phone,
-        lastVisit: selectedDate.toISOString().split('T')[0],
-        tags: [],
-        notes: '',
-        visitHistory: [],
-        consentMarketing: false,
-      });
+      // Get or create customer
+      let customerId: string;
+      
+      if (isLoggedIn && currentUser?.customerId) {
+        // Use existing logged-in customer
+        customerId = currentUser.customerId;
+      } else {
+        // Check if customer exists by phone, otherwise create new one
+        try {
+          const existingCustomer = await getCustomerByPhone(customerInfo.phone);
+          if (existingCustomer) {
+            customerId = existingCustomer.id;
+          } else {
+            // Create new customer
+            const newCustomer = await createCustomer({
+              name: customerInfo.name,
+              email: customerInfo.email,
+              phone: customerInfo.phone,
+              lastVisit: selectedDate.toISOString().split('T')[0],
+              tags: [],
+              notes: '',
+              visitHistory: [],
+              consentMarketing: false,
+            });
+            customerId = newCustomer.id;
+          }
+        } catch (error) {
+          console.error('Error getting/creating customer:', error);
+          // Try to create customer anyway
+          const newCustomer = await createCustomer({
+            name: customerInfo.name,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+            lastVisit: selectedDate.toISOString().split('T')[0],
+            tags: [],
+            notes: '',
+            visitHistory: [],
+            consentMarketing: false,
+          });
+          customerId = newCustomer.id;
+        }
+      }
 
-      // Create appointment
-      createAppointment({
+      // Create appointment using real API
+      await createAppointment({
         service: selectedService.name,
         serviceId: selectedService.id,
         customer: customerInfo.name,
-        customerId: customer.id,
+        customerId: customerId,
         workerId: workerToUse,
         staffId: workerToUse,
         start: appointmentDate.toISOString(),
         end: endDate.toISOString(),
         status: 'confirmed',
+        createdBy: 'customer', // Explicitly mark as customer-created
       });
       
       // Dispatch event to notify other components
@@ -667,8 +1008,30 @@ function BookingPageContent() {
       // Go to success screen
       setStep(4);
       
-      // Appointments will be refreshed when date is selected
-      // (They are fetched dynamically based on selected date)
+      // Refresh customer appointments if logged in (or if we just created/used a customer)
+      // Also update currentUser if we used a customerId
+      if (customerId) {
+        // If user is logged in but didn't have customerId, update it
+        if (isLoggedIn && currentUser && !currentUser.customerId) {
+          setCurrentUser({ ...currentUser, customerId });
+        }
+        
+        // Refresh appointments list
+        try {
+          const response = await fetch(`/api/customers/${customerId}/appointments`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.appointments) {
+              const activeAppointments = data.appointments.filter((apt: Appointment) => apt.status !== 'cancelled');
+              setCustomerAppointments(activeAppointments);
+              // Show appointments by default after booking
+              setShowAppointments(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing customer appointments:', error);
+        }
+      }
     } catch (error) {
       toast.error(t('booking.bookingError'));
     } finally {
@@ -799,6 +1162,29 @@ function BookingPageContent() {
         </div>
       </header>
 
+      {/* Trial Expired Banner */}
+      {trialExpired && (
+        <div className="bg-yellow-50 border-b border-yellow-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <X className="w-5 h-5 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-yellow-800">
+                    Trial Period Expired
+                  </h3>
+                  <p className="text-sm text-yellow-700">
+                    This business's trial period has ended. Please contact them to upgrade their plan.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Banner Cover */}
         {settings.branding?.bannerCover && (
@@ -903,6 +1289,211 @@ function BookingPageContent() {
           </Card>
         </motion.div>
 
+        {/* Customer Appointments - Show when logged in */}
+        {isLoggedIn && customerAppointments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="p-6">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-5 h-5 text-primary" />
+                  <h2 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('booking.myAppointments')} ({customerAppointments.length})
+                  </h2>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAppointments(!showAppointments)}
+                  className={isRTL ? 'flex-row-reverse' : ''}
+                >
+                  {showAppointments ? (
+                    <>
+                      {isRTL ? (
+                        <>
+                          {t('booking.hideAppointments')}
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 mr-2" />
+                          {t('booking.hideAppointments')}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {isRTL ? (
+                        <>
+                          {t('booking.showAppointments')}
+                          <ChevronDown className="w-4 h-4 ml-2" />
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 mr-2" />
+                          {t('booking.showAppointments')}
+                        </>
+                      )}
+                    </>
+                  )}
+                </Button>
+              </div>
+              {showAppointments && (
+                <>
+                  {loadingAppointments ? (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">{t('common.loading')}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                  {customerAppointments.map((apt) => {
+                    const startDate = new Date(apt.start);
+                    const endDate = new Date(apt.end);
+                    const isPast = startDate < new Date();
+                    const localeMap: Record<string, string> = {
+                      en: 'en-US',
+                      he: 'he-IL',
+                      ar: 'ar-SA',
+                      ru: 'ru-RU'
+                    };
+                    const localeString = localeMap[locale] || 'en-US';
+                    const formattedDate = startDate.toLocaleDateString(localeString, {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                    const formattedTime = startDate.toLocaleTimeString(localeString, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+                    const formattedEndTime = endDate.toLocaleTimeString(localeString, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+
+                    return (
+                      <motion.div
+                        key={apt.id}
+                        initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`p-4 rounded-lg border-2 ${
+                          isPast
+                            ? 'border-muted bg-muted/20'
+                            : 'border-primary/30 bg-primary/5'
+                        }`}
+                      >
+                        <div className={`flex flex-col gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-semibold text-base">{apt.service}</div>
+                            <Badge variant={apt.status === 'confirmed' ? 'default' : 'secondary'}>
+                              {apt.status === 'confirmed' 
+                                ? t('calendar.confirmed')
+                                : apt.status === 'pending'
+                                ? t('calendar.pending')
+                                : apt.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <CalendarIcon className="w-4 h-4" />
+                            <span>{formattedDate}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="w-4 h-4" />
+                            <span>{formattedTime} - {formattedEndTime}</span>
+                          </div>
+                          {apt.workerId && (() => {
+                            const worker = workers.find(w => w.id === apt.workerId || w.id === apt.staffId);
+                            return worker ? (
+                              <div className="text-sm text-muted-foreground">
+                                {t('calendar.worker')}: {worker.name}
+                              </div>
+                            ) : null;
+                          })()}
+                          {(apt as any).serviceDescription && (
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {(apt as any).serviceDescription}
+                            </div>
+                          )}
+                          {!isPast && apt.status !== 'cancelled' && (
+                            <div className={`flex gap-2 mt-3 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                              {settings?.calendar?.reschedule?.allowCustomerReschedule && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setReschedulingAppointment(apt);
+                                    setRescheduleDate(null);
+                                    setRescheduleTime(null);
+                                    setRescheduleMonthOffset(0);
+                                    setRescheduleAvailableSlots([]);
+                                  }}
+                                  disabled={cancellingAppointmentId === apt.id}
+                                  className={isRTL ? 'flex-row-reverse' : ''}
+                                >
+                                  <Edit className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                  {t('booking.reschedule')}
+                                </Button>
+                              )}
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleCancelAppointment(apt.id)}
+                                disabled={cancellingAppointmentId === apt.id}
+                                className={isRTL ? 'flex-row-reverse' : ''}
+                              >
+                                {cancellingAppointmentId === apt.id ? (
+                                  <>
+                                    <motion.span
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      className={isRTL ? 'ml-2' : 'mr-2'}
+                                    >
+                                      ⏳
+                                    </motion.span>
+                                    {t('common.loading')}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                    {t('booking.cancel')}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                    </div>
+                  )}
+                </>
+              )}
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Customer Appointments Button - Show when logged in but no appointments or appointments hidden */}
+        {isLoggedIn && customerAppointments.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="p-4">
+              <div className="flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  {t('booking.noAppointmentsFound')}
+                </p>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Booking Section - Only show if logged in */}
         {isLoggedIn ? (
           <>
@@ -1005,7 +1596,14 @@ function BookingPageContent() {
                         } ${isRTL ? 'text-right' : 'text-left'}`}
                         dir={isRTL ? 'rtl' : 'ltr'}
                       >
-                        <div className="font-semibold mb-1">{service.name}</div>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="font-semibold">{service.name}</div>
+                          {service.isGroupService && (
+                            <Badge variant="secondary" className="text-xs">
+                              {t('services.groupBadge')}
+                            </Badge>
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground mb-2">{service.description}</div>
                         <div className={`flex items-center gap-4 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span className="flex items-center gap-1">
@@ -1013,6 +1611,11 @@ function BookingPageContent() {
                             {service.duration} {t('services.minutes') || 'min'}
                           </span>
                           <span className="font-medium">{t('services.price')}: ₪{service.price}</span>
+                          {service.isGroupService && service.maxCapacity && (
+                            <span className="text-xs text-muted-foreground">
+                              {t('services.maxParticipants')?.replace('{count}', service.maxCapacity.toString()) || `Max ${service.maxCapacity} participants`}
+                            </span>
+                          )}
                         </div>
                       </motion.button>
                     ))}
@@ -1069,13 +1672,30 @@ function BookingPageContent() {
                 transition={{ duration: 0.3 }}
                 className="mb-6 p-4 bg-muted/30 rounded-lg border border-primary/20"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">✨</span>
-                  <div className="font-semibold">{selectedService.name}</div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">✨</span>
+                    <div className="font-semibold">{selectedService.name}</div>
+                  </div>
+                  {selectedService.isGroupService && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Users className="w-3 h-3 mr-1" />
+                      {t('services.groupBadge')}
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {selectedService.duration} {t('services.minutes')} • ₪{selectedService.price}
+                  {selectedService.isGroupService && selectedService.maxCapacity && (
+                    <span className="ml-2">• {t('services.maxParticipants')?.replace('{count}', selectedService.maxCapacity.toString()) || `Max ${selectedService.maxCapacity} participants`}</span>
+                  )}
                 </div>
+                {selectedService.isGroupService && (
+                  <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {t('services.joinExistingGroup')}
+                  </div>
+                )}
               </motion.div>
 
               {/* Date Selection */}
@@ -1303,30 +1923,71 @@ function BookingPageContent() {
                       const appointmentInfo = getAppointmentInfo(timeSlot, selectedDate, workerToCheck);
                       const isAvailable = isTimeSlotAvailable(timeSlot, selectedDate, selectedService.id);
                       const isSelected = selectedTime === timeSlot;
-                      const isBooked = !!appointmentInfo;
+                      const isBooked = !!appointmentInfo && !selectedService?.isGroupService;
+                      
+                      // Check if there's an available group appointment at this time
+                      const [hour, minute] = timeSlot.split(':').map(Number);
+                      const slotDate = new Date(selectedDate);
+                      slotDate.setHours(hour, minute, 0, 0);
+                      const slotISO = slotDate.toISOString();
+                      
+                      const groupAppointment = selectedService?.isGroupService 
+                        ? availableGroupAppointments.find(apt => {
+                            const aptDate = new Date(apt.start);
+                            return aptDate.toISOString() === slotISO && apt.workerId === workerToCheck && apt.availableSpots > 0;
+                          })
+                        : null;
+                      
+                      const canJoinGroup = !!groupAppointment;
+                      const isGroupFull = selectedService?.isGroupService && appointmentInfo && 
+                        appointmentInfo.isGroupAppointment && 
+                        appointmentInfo.currentParticipants >= (appointmentInfo.maxCapacity || 1);
                       
                       return (
                         <motion.button
                           key={timeSlot}
                           onClick={() => handleTimeSelect(timeSlot)}
-                          disabled={!isAvailable || isBooked}
+                          disabled={!isAvailable || (isBooked && !canJoinGroup) || isGroupFull}
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: index * 0.02, duration: 0.2 }}
-                          whileHover={isAvailable && !isBooked ? { scale: 1.05, y: -2 } : {}}
-                          whileTap={isAvailable && !isBooked ? { scale: 0.95 } : {}}
+                          whileHover={isAvailable && (!isBooked || canJoinGroup) && !isGroupFull ? { scale: 1.05, y: -2 } : {}}
+                          whileTap={isAvailable && (!isBooked || canJoinGroup) && !isGroupFull ? { scale: 0.95 } : {}}
                           className={`p-3 rounded-lg border-2 text-sm transition-all relative ${
                             isSelected
                               ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                              : isGroupFull
+                              ? 'border-muted bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
+                              : canJoinGroup
+                              ? 'border-green-500 bg-green-50 hover:border-green-600 cursor-pointer hover:shadow-md'
                               : isBooked
                               ? 'border-muted bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
                               : isAvailable
                               ? 'border-border hover:border-primary/50 cursor-pointer hover:shadow-md'
                               : 'border-muted bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
                           }`}
-                          title={appointmentInfo ? `${appointmentInfo.service} - ${appointmentInfo.customer}` : undefined}
+                          title={
+                            canJoinGroup 
+                              ? `Join existing group (${groupAppointment?.availableSpots} spots available)`
+                              : isGroupFull
+                              ? 'Group is full'
+                              : appointmentInfo 
+                              ? `${appointmentInfo.service} - ${appointmentInfo.customer}`
+                              : undefined
+                          }
                         >
-                          {timeSlot}
+                          <div className="flex flex-col items-center gap-1">
+                            <span>{timeSlot}</span>
+                            {canJoinGroup && groupAppointment && (
+                              <span className="text-xs text-green-700 font-medium flex items-center gap-1">
+                                <Users className="w-3 h-3" />
+                                {groupAppointment.availableSpots} left
+                              </span>
+                            )}
+                            {isGroupFull && (
+                              <span className="text-xs text-muted-foreground">Full</span>
+                            )}
+                          </div>
                           {isSelected && (
                             <motion.div
                               initial={{ scale: 0 }}
@@ -1336,7 +1997,7 @@ function BookingPageContent() {
                               <span className="text-xs">✓</span>
                             </motion.div>
                           )}
-                          {appointmentInfo && (
+                          {appointmentInfo && !canJoinGroup && !selectedService?.isGroupService && (
                             <div className={`absolute ${isRTL ? 'left-1' : 'right-1'} top-1`}>
                               <X className="w-3 h-3 text-destructive" />
                             </div>
@@ -1755,38 +2416,63 @@ function BookingPageContent() {
                 </motion.div>
 
                 <motion.div
+                  className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
-                  <Button
-                    onClick={() => {
-                      setStep(1);
-                      setSelectedService(null);
-                      setSelectedDate(null);
-                      setSelectedTime(null);
-                      // Preserve customer info if user is logged in, otherwise reset
-                      if (isLoggedIn && currentUser) {
-                        setCustomerInfo({
-                          name: currentUser.name || '',
-                          email: currentUser.email || '',
-                          phone: currentUser.phone || '',
-                        });
-                      } else {
-                        setCustomerInfo({ name: '', email: '', phone: '' });
-                      }
-                      setConfirmedAppointment(null);
-                    }}
-                    className="mt-6"
-                    variant="default"
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <span className="flex items-center gap-2">
-                      <span>🔄</span>
-                      {t('booking.bookAnotherAppointment')}
-                    </span>
-                  </Button>
+                    <Button
+                      onClick={() => {
+                        setStep(1);
+                        setSelectedService(null);
+                        setSelectedDate(null);
+                        setSelectedTime(null);
+                        // Preserve customer info if user is logged in, otherwise reset
+                        if (isLoggedIn && currentUser) {
+                          setCustomerInfo({
+                            name: currentUser.name || '',
+                            email: currentUser.email || '',
+                            phone: currentUser.phone || '',
+                          });
+                        } else {
+                          setCustomerInfo({ name: '', email: '', phone: '' });
+                        }
+                        setConfirmedAppointment(null);
+                      }}
+                      variant="default"
+                      className="w-full sm:w-auto"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🔄</span>
+                        {t('booking.bookAnotherAppointment')}
+                      </span>
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button
+                      onClick={() => {
+                        if (slug) {
+                          window.location.href = `/b/${slug}`;
+                        } else {
+                          window.location.href = '/';
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🏠</span>
+                        {t('booking.goToMainPage')}
+                      </span>
+                    </Button>
+                  </motion.div>
                 </motion.div>
               </Card>
             </motion.div>
@@ -1908,6 +2594,214 @@ function BookingPageContent() {
           )
         )}
 
+        {/* Cancel Appointment Confirmation Dialog */}
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('booking.cancelAppointment') || 'Cancel Appointment'}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('booking.confirmCancel') || 'Are you sure you want to cancel this appointment? This action cannot be undone.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+              <AlertDialogCancel onClick={() => setShowCancelDialog(false)}>
+                {t('common.cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmCancelAppointment}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t('booking.cancelAppointment') || 'Cancel Appointment'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Reschedule Appointment Dialog */}
+        {reschedulingAppointment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setReschedulingAppointment(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+              dir={isRTL ? 'rtl' : 'ltr'}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">{t('booking.rescheduleAppointment')}</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setReschedulingAppointment(null);
+                    setRescheduleDate(null);
+                    setRescheduleTime(null);
+                    setRescheduleAvailableSlots([]);
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>{t('booking.selectDate')}</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRescheduleMonthOffset(prev => Math.max(0, prev - 1))}
+                        disabled={rescheduleMonthOffset === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRescheduleMonthOffset(prev => prev + 1)}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="grid grid-cols-7 gap-2 mb-2">
+                      {getDayNames().map((dayName, index) => (
+                        <div
+                          key={index}
+                          className="text-center text-xs font-semibold text-muted-foreground py-1"
+                        >
+                          {dayName}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                      {(() => {
+                        const today = new Date();
+                        const viewDate = new Date(today.getFullYear(), today.getMonth() + rescheduleMonthOffset, 1);
+                        const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+                        const lastDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
+                        const firstDayWeekday = firstDayOfMonth.getDay();
+                        const startOffset = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+                        const dates: Date[] = [];
+                        for (let i = startOffset - 1; i >= 0; i--) {
+                          const date = new Date(firstDayOfMonth);
+                          date.setDate(date.getDate() - i - 1);
+                          dates.push(date);
+                        }
+                        for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+                          dates.push(new Date(viewDate.getFullYear(), viewDate.getMonth(), day));
+                        }
+                        return dates;
+                      })().map((date, index) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const viewDate = new Date(today.getFullYear(), today.getMonth() + rescheduleMonthOffset, 1);
+                        const isCurrentMonth = date.getMonth() === viewDate.getMonth();
+                        const dateOnly = new Date(date);
+                        dateOnly.setHours(0, 0, 0, 0);
+                        const todayOnly = new Date();
+                        todayOnly.setHours(0, 0, 0, 0);
+                        const isToday = dateOnly.getTime() === todayOnly.getTime();
+                        const isPast = dateOnly < todayOnly && !isToday;
+                        const isWorking = isWorkingDay(date);
+                        const isAvailable = isCurrentMonth && !isPast && isWorking;
+                        const isSelected = rescheduleDate?.toDateString() === date.toDateString();
+                        
+                        return (
+                          <button
+                            key={`${date.getTime()}-${index}`}
+                            onClick={() => isAvailable && setRescheduleDate(date)}
+                            disabled={!isCurrentMonth || !isAvailable}
+                            className={`p-2 rounded-lg border-2 text-sm ${
+                              isSelected && isCurrentMonth
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : !isCurrentMonth
+                                ? 'border-transparent opacity-40'
+                                : !isAvailable
+                                ? 'border-muted opacity-50 cursor-not-allowed'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            {date.getDate()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                
+                {rescheduleDate && (
+                  <div>
+                    <Label>{t('booking.selectTime')}</Label>
+                    {loadingRescheduleSlots ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2 mt-2">
+                        {timeSlots.map((timeSlot) => {
+                          const isAvailable = rescheduleAvailableSlots.includes(timeSlot);
+                          const isSelected = rescheduleTime === timeSlot;
+                        
+                        return (
+                          <button
+                            key={timeSlot}
+                            onClick={() => isAvailable && setRescheduleTime(timeSlot)}
+                            disabled={!isAvailable}
+                            className={`p-2 rounded-lg border-2 text-sm ${
+                              isSelected
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : isAvailable
+                                ? 'border-border hover:border-primary/50'
+                                : 'border-muted opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            {timeSlot}
+                          </button>
+                        );
+                      })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setReschedulingAppointment(null);
+                      setRescheduleDate(null);
+                      setRescheduleTime(null);
+                      setRescheduleAvailableSlots([]);
+                    }}
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (rescheduleDate && rescheduleTime && reschedulingAppointment) {
+                        handleRescheduleAppointment(reschedulingAppointment.id, rescheduleDate, rescheduleTime);
+                      }
+                    }}
+                    disabled={!rescheduleDate || !rescheduleTime}
+                  >
+                    {t('booking.reschedule')}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* Login/Register Dialog */}
         <LoginRegisterDialog
           open={showLoginDialog}
@@ -1939,16 +2833,43 @@ function BookingPageContent() {
   );
 }
 
-export default function BookingPage() {
+function BookingPageFallback() {
+  const { dir } = useDirection();
+  const { t } = useLocale();
+  
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in">
+      <div className="text-center space-y-6 px-4">
+        {/* Logo */}
+        <div className="flex justify-center mb-4">
+          <KalBokLogo size="lg" variant="full" />
+        </div>
+        {/* Modern animated spinner with smooth gradient */}
+        <div className="relative mx-auto w-16 h-16">
+          <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
+          <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-primary/40 border-l-primary/40 animate-spin" style={{ animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
+        </div>
+        {/* Friendly loading message with pulse animation */}
+        <div className="space-y-2">
+          <p className="text-lg font-medium text-foreground animate-pulse" style={{ animationDuration: '2s' }}>
+            {t('common.justAMoment')}
+          </p>
+          {/* Subtle dots animation */}
+          <div className="flex justify-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0s', animationDuration: '1.4s' }}></div>
+            <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
+            <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
+          </div>
         </div>
       </div>
-    }>
+    </div>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={<BookingPageFallback />}>
       <BookingPageContent />
     </Suspense>
   );

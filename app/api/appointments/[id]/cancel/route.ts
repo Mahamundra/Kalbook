@@ -54,6 +54,28 @@ export async function POST(
       );
     }
 
+    // Get full appointment details before cancelling
+    const fullAppointmentResult = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        services (name),
+        customers (name, id),
+        workers (name)
+      `)
+      .eq('id', appointmentId)
+      .eq('business_id', tenantInfo.businessId)
+      .single() as { data: any; error: any };
+
+    if (fullAppointmentResult.error || !fullAppointmentResult.data) {
+      return NextResponse.json(
+        { error: 'Failed to fetch appointment details' },
+        { status: 500 }
+      );
+    }
+
+    const fullAppointment = fullAppointmentResult.data;
+
     // Update appointment status to cancelled
     const updateResult = await (supabase
       .from('appointments') as any)
@@ -74,6 +96,35 @@ export async function POST(
         { error: updateError?.message || 'Failed to cancel appointment' },
         { status: 500 }
       );
+    }
+
+    // Determine if cancellation is from customer or admin
+    // Check referer header or request body for source
+    const referer = request.headers.get('referer') || '';
+    const isCustomerRequest = referer.includes('/booking') || referer.includes('/b/');
+    const createdBy = body.createdBy || (isCustomerRequest ? 'customer' : 'admin');
+
+    // Create activity log entry for cancellation
+    try {
+      await supabase
+        .from('activity_logs')
+        .insert({
+          business_id: tenantInfo.businessId,
+          appointment_id: appointmentId,
+          customer_id: fullAppointment.customer_id || fullAppointment.customers?.id,
+          activity_type: 'appointment_cancelled',
+          created_by: createdBy,
+          metadata: {
+            originalStart: fullAppointment.start,
+            originalEnd: fullAppointment.end,
+            serviceName: fullAppointment.services?.name || 'Unknown Service',
+            workerName: fullAppointment.workers?.name || 'Unknown Worker',
+          },
+          status: 'completed',
+        });
+    } catch (logError) {
+      console.error('Error creating activity log for cancellation:', logError);
+      // Don't fail the request if logging fails
     }
 
     // Map to Appointment interface

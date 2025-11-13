@@ -5,6 +5,7 @@
         "services": "Services",
         "workers": "Workers",
         "customers": "Customers",
+        "activityLogs": "Activity Logs",
         "templates": "Templates",
         "qr": "QR Codes",
         "settings": "Settings",
@@ -68,7 +69,29 @@
     "autoCalculatedEndTime": "End time is auto-calculated based on service duration",
     "notWorkingDay": "This day is not a working day",
     "outsideWorkingHours": "This time is outside working hours",
-    "endTimeOutsideWorkingHours": "End time is outside working hours"
+    "endTimeOutsideWorkingHours": "End time is outside working hours",
+    "groupAppointment": "Group Appointment",
+    "participants": "Participants",
+    "currentParticipants": "Current Participants",
+    "maxParticipants": "Max Participants",
+    "events": "events",
+    "event": "event",
+    "addEvent": "Add Event",
+    "viewByDay": "View by day",
+    "viewByWeek": "View by week",
+    "viewByMonth": "View by month",
+    "viewByYear": "View by year",
+    "viewByAgenda": "View by agenda",
+    "weeklyViewNotAvailable": "Weekly view is not available on smaller devices.",
+    "switchToDailyOrMonthly": "Please switch to daily or monthly view.",
+    "allUsers": "All Users",
+    "responsible": "Responsible",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "description": "Description",
+    "edit": "Edit",
+    "chooseStartDate": "Choose start date",
+    "chooseEndDate": "Choose end date"
   },
   "services": {
     "title": "Services",
@@ -100,7 +123,33 @@
     "serviceUpdated": "Service updated successfully",
     "serviceDeleted": "Service deleted successfully",
     "confirmDelete": "Are you sure you want to delete this service?",
+    "deleteConfirmTitle": "Delete Service",
+    "deleteConfirmMessage": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "deleteConfirm": "Delete Service",
+    "deleteWarning": "Warning:",
+    "deleteWarningMessage": "Deleting this service will remove it from all future appointments. Existing appointments will remain, but the service details will be lost.",
+    "deleting": "Deleting...",
     "required": "This field is required",
+    "groupService": "Group Service",
+    "groupServiceDescription": "Enable multiple customers to book the same time slot (e.g., classes, group therapy)",
+    "maxCapacity": "Maximum Participants",
+    "maxCapacityRequired": "Maximum Participants *",
+    "maxCapacityDescription": "Maximum number of customers that can join this service",
+    "minCapacity": "Minimum Participants (Optional)",
+    "minCapacityPlaceholder": "e.g., 3",
+    "minCapacityDescription": "Minimum participants required before appointment is confirmed (optional)",
+    "allowWaitlist": "Allow Waitlist",
+    "allowWaitlistDescription": "Allow customers to join waitlist when class is full",
+    "groupBadge": "Group",
+    "maxParticipants": "Max {count} participants",
+    "joinExistingGroup": "You can join existing groups or start a new one",
+    "joinGroupSpots": "Join existing group ({spots} spots available)",
+    "groupFull": "Group is full",
+    "spotsLeft": "{count} left",
+    "full": "Full",
+    "groupClass": "Group class",
+    "groupParticipants": "Group: {current}{max} participants",
+    "groupServiceFormat": "{service} ({current}/{max})",
     "min": "Minimum {value}",
     "max": "Maximum {value}"
   },
@@ -219,7 +268,17 @@
     "placeholder": "Placeholder",
     "bookingUrl": "Booking URL",
     "urlCopied": "URL copied to clipboard",
-    "downloadingQR": "Downloading QR code for {name}"
+    "downloadingQR": "Downloading QR code for {name}",
+    "upgradeRequired": "Upgrade Required",
+    "upgradeMessage": "QR code generation is available in Professional and Business plans. Please upgrade to access this feature."
+  },
+  "limits": {
+    "servicesLimitReached": "Your Plan Supports {{X}} Services",
+    "servicesLimitMessage": "Please Upgrade to Add more Services",
+    "staffLimitReached": "Your Plan Supports {{X}} Staff Members",
+    "staffLimitMessage": "Please Upgrade to Add more Staff",
+    "bookingsLimitReached": "Your Plan Supports {{X}} Bookings per Month",
+    "bookingsLimitMessage": "Please Upgrade to Add more Bookings"
   },
   "settings": {
     "title": "Settings",
@@ -252,6 +311,11 @@
     "workingHoursEnd": "Working Hours End",
     "timeSlotGap": "Time Slot Interval",
     "timeSlotGapDescription": "Choose the interval between available time slots (affects booking page and calendar)",
+    "customerReschedule": "Customer Reschedule Settings",
+    "allowCustomerReschedule": "Allow customers to reschedule appointments",
+    "allowCustomerRescheduleDescription": "Enable this to let customers change their appointment date and time",
+    "requireRescheduleApproval": "Require approval for reschedule requests",
+    "requireRescheduleApprovalDescription": "If enabled, reschedule requests will need admin approval. If disabled, changes will be applied immediately.",
     "minute": "minute",
     "minutes": "minutes",
     "contactMessageEnabled": "Show Contact Message",
@@ -405,66 +469,136 @@
     "or": "or",
     "justAMoment": "Just a moment, we are with you"
   },
+  "trial": {
+    "currentPlan": "Current Plan",
+    "plan": "Plan",
+    "trialExpired": "Trial Expired",
+    "calendarBlockedMessage": "Your trial period has ended. Please contact us to upgrade your plan and continue using the calendar.",
+    "contactUs": "Contact Us:",
+    "phone": "Phone",
+    "email": "Email",
+    "contactToUpgrade": "Contact to Upgrade",
+    "clickHereToUpgrade": "Click here to upgrade",
+    "upgradeNow": "Upgrade Now",
+    "day": "day",
+    "days": "days",
+    "left": "left",
+    "upgradeModal": {
+      "title": "Upgrade Your Plan",
+      "description": "Submit a request to upgrade your plan. We'll contact you shortly to complete the upgrade process.",
+      "currentPlan": "Current Plan",
+      "desiredPlan": "Desired Plan",
+      "desiredPlanRequired": "Please select a desired plan",
+      "contactEmail": "Contact Email",
+      "contactEmailHelper": "We'll use this email to contact you about your upgrade",
+      "message": "Message (Optional)",
+      "messagePlaceholder": "Tell us about your needs or any questions...",
+      "submitRequest": "Submit Request",
+      "submitting": "Submitting...",
+      "cancel": "Cancel",
+      "success": "Upgrade request submitted successfully!",
+      "error": "Failed to submit upgrade request"
+    }
+  },
   "home": {
-    "title": "BookingHub - Simple System That Brings You More Bookings",
-    "subtitle": "One solution for managing service businesses: online bookings, smart calendar, staff and customer management, reminders and messages. Easy, fast, bilingual.",
-    "startNow": "Start Now",
-    "seeFeatures": "See Features",
+    "title": "KalBok",
+    "subtitle": "Everything your service business needs - all in one place.\n\nOnline bookings, smart scheduling, staff and client management, automated reminders and messages.\n\nEasy to use, fast to set up, fully in Hebrew.\n\nGet started today!",
+    "startNow": "Let's Start",
+    "seeFeatures": "What's Inside?",
     "pricingLabel": "Pricing",
     "freeTrial": "Free Trial",
     "adminDemo": "Admin Demo",
     "switchingLanguage": "Switching language...",
     "features": {
+      "subtitle": "Everything you need to run your service business smoothly",
       "setup3min": {
-        "title": "Setup in 3 Minutes",
-        "desc": "Choose business type, add services and first staff member, and start working."
+        "title": "Set up in 3 minutes",
+        "desc": "Pick your business type, add services and your first team member. You're good to go."
       },
       "easyCalendar": {
-        "title": "Easy Calendar",
-        "desc": "Day, week, month views, drag to reschedule, and filter by staff."
+        "title": "Smart calendar",
+        "desc": "Daily, weekly, or monthly view. Drag to reschedule, filter by staff."
       },
       "smartCustomers": {
-        "title": "Smart Customers",
-        "desc": "Customer card with history, notes, and marketing consent."
+        "title": "Smarter clients",
+        "desc": "Full client profiles with history, notes, and marketing consents."
       },
       "reminders": {
-        "title": "Reminders & Messages",
-        "desc": "Confirmation and reminders via email and WhatsApp. Saves calls and no-shows."
+        "title": "Reminders that work",
+        "desc": "Send confirmations and reminders via email and WhatsApp. Fewer calls, fewer no-shows."
       },
       "bilingual": {
-        "title": "Bilingual & RTL",
-        "desc": "Hebrew and English, right-to-left adaptation for every tenant."
+        "title": "Bilingual & RTL ready",
+        "desc": "Hebrew and English support. Works right-to-left and left-to-right."
       },
       "security": {
-        "title": "Security & Simplicity",
-        "desc": "Email code login and ready-to-use message templates."
+        "title": "Simple and secure",
+        "desc": "Email code login, pre-built message templates, and peace of mind."
+      },
+      "analytics": {
+        "title": "Analytics & Insights",
+        "desc": "Know what's working. Track revenue in real time, see booking trends, and understand your customers better."
+      },
+      "qrCodes": {
+        "title": "QR Codes for Easy Booking",
+        "desc": "From scan to scheduled. Create QR codes for booking pages or specific services. Share anywhere, book instantly."
+      },
+      "onlineBooking": {
+        "title": "24/7 Online Booking",
+        "desc": "Always open. Let clients book anytime - even when you're off the clock."
+      },
+      "groupServices": {
+        "title": "Group Services & Packages",
+        "desc": "Bundle services into packages like Haircut + Beard for easy upsells."
+      },
+      "activityLogs": {
+        "title": "Activity Logs",
+        "desc": "Track every change and action in your business, automatically."
+      },
+      "customBranding": {
+        "title": "Custom Branding",
+        "desc": "Make your booking page yours with your logo and brand colors."
+      },
+      "mobileOptimized": {
+        "title": "Mobile-Optimized Booking",
+        "desc": "Fully responsive booking experience that looks great on any device."
+      },
+      "noShowPrevention": {
+        "title": "No-Show Prevention",
+        "desc": "Automated reminders help reduce missed appointments and keep your schedule full."
       }
     },
     "pricing": {
       "title": "Simple & Transparent Pricing",
       "subtitle": "Choose the right plan and start receiving online bookings",
-      "monthlyNote": "Monthly price in NIS. No commitment. Risk-free start.",
+      "monthlyNote": "14 days free trial. No credit card required. Cancel anytime.",
       "bestSeller": "Best Seller",
       "month": "/month",
-      "riskFree": "Risk-free trial",
+      "riskFree": "14 Days Free Trial",
       "plans": {
         "basic": {
           "name": "Basic",
-          "cta": "Try Free",
-          "note": "Upgrade anytime",
-          "highlights": ["One staff member", "Up to 200 bookings/month", "Basic booking page", "Email confirmation & reminder"]
+          "price": "dynamic",
+          "priceNote": "per month after 14-day free trial",
+          "cta": "Start Free Trial",
+          "note": "14 days free, then competitive pricing",
+          "highlights": ["14 days free trial", "1 staff member", "Up to 100 bookings/month", "Basic booking page", "Email confirmation & reminder"]
         },
         "professional": {
           "name": "Professional",
+          "price": "dynamic",
+          "priceNote": "per month",
           "cta": "Start Pro",
           "note": "Recommended for active businesses",
-          "highlights": ["Up to 5 staff", "Packages like Haircut+Beard", "Smart reminders & automation", "WhatsApp link to customer", "Bilingual & RTL"]
+          "highlights": ["Up to 5 staff", "Unlimited bookings", "Packages like Haircut+Beard", "Smart reminders & automation", "WhatsApp integration", "Analytics dashboard", "Custom branding", "Bilingual & RTL"]
         },
         "business": {
           "name": "Business",
+          "price": "dynamic",
+          "priceNote": "per month",
           "cta": "Choose Business",
           "note": "Best for small chains",
-          "highlights": ["Up to 15 staff", "Cloud image & file storage", "Multiple calendars & branches", "Priority support", "Advanced reports"]
+          "highlights": ["Up to 15 staff", "Unlimited bookings", "Cloud image & file storage", "Multiple calendars & branches", "Priority support", "Advanced reports", "API access"]
         }
       }
     },
@@ -496,7 +630,22 @@
     "complete": "Complete",
     "chooseBusinessType": {
       "title": "Choose Your Business Type",
-      "subtitle": "We'll customize your setup based on your business.",
+      "subtitle": "We'll tailor your setup to match your business. Choose the category that fits your services, and we'll configure everything you need to start accepting bookings and controlling your time more efficiently.",
+      "filterByCategory": "Filter by Category",
+      "allCategories": "All Categories",
+      "microcopy": {
+        "beauty_aesthetics": "Perfect for salons, spas, and beauty professionals. We'll set up services tailored to your beauty business.",
+        "fitness_wellness": "Ideal for trainers, studios, and wellness centers. Get started with services designed for fitness and health businesses.",
+        "personal_care_coaching": "Great for coaches, therapists, and consultants. We'll configure services perfect for one-on-one and group sessions.",
+        "other": "Don't see your exact business type? No problem! Choose 'Other' and we'll help you customize everything to fit your unique needs.",
+        "default": "Select a category to see business types that match your industry. Each option comes with pre-configured services to get you started quickly."
+      },
+      "categories": {
+        "beauty_aesthetics": "Beauty & Aesthetics",
+        "fitness_wellness": "Fitness & Wellness",
+        "personal_care_coaching": "Personal Care & Coaching",
+        "other": "Other"
+      },
       "businessTypes": {
         "barbershop": {
           "title": "Barbershop",
@@ -509,6 +658,34 @@
         "gym_trainer": {
           "title": "Personal Trainer",
           "description": "Fitness coaching and training sessions"
+        },
+        "beauty_salon": {
+          "title": "Beauty Salon",
+          "description": "Beauty salons (eyebrows, facial treatments, hair removal, etc.)"
+        },
+        "makeup_artist": {
+          "title": "Makeup Artist / Hair Stylist",
+          "description": "Makeup artists and hair stylists"
+        },
+        "spa": {
+          "title": "Spa / Massage Center",
+          "description": "Massage centers and spas"
+        },
+        "pilates_studio": {
+          "title": "Pilates / Yoga Studio",
+          "description": "Pilates and Yoga studios"
+        },
+        "physiotherapy": {
+          "title": "Physiotherapy Clinic",
+          "description": "Massage or physiotherapy clinics"
+        },
+        "life_coach": {
+          "title": "Life Coach / Therapist",
+          "description": "Life coaches and emotional therapists"
+        },
+        "dietitian": {
+          "title": "Dietitian / Nutritionist",
+          "description": "Dietitians and nutrition services"
         },
         "other": {
           "title": "Other Service",
@@ -623,6 +800,125 @@
             "category": "Consultation"
           }
         },
+        "beauty_salon": {
+          "eyebrowShaping": {
+            "name": "Eyebrow Shaping",
+            "description": "Professional eyebrow shaping and styling",
+            "category": "Eyebrows"
+          },
+          "facialTreatment": {
+            "name": "Facial Treatment",
+            "description": "Deep cleansing and rejuvenating facial",
+            "category": "Facial"
+          },
+          "hairRemoval": {
+            "name": "Hair Removal",
+            "description": "Professional hair removal service",
+            "category": "Hair Removal"
+          }
+        },
+        "makeup_artist": {
+          "makeupApplication": {
+            "name": "Makeup Application",
+            "description": "Professional makeup application",
+            "category": "Makeup"
+          },
+          "hairStyling": {
+            "name": "Hair Styling",
+            "description": "Professional hair styling service",
+            "category": "Hair"
+          },
+          "fullMakeupHair": {
+            "name": "Full Makeup & Hair",
+            "description": "Complete makeup and hair styling package",
+            "category": "Full Service"
+          }
+        },
+        "spa": {
+          "swedishMassage": {
+            "name": "Swedish Massage",
+            "description": "Relaxing Swedish massage therapy",
+            "category": "Massage"
+          },
+          "deepTissueMassage": {
+            "name": "Deep Tissue Massage",
+            "description": "Therapeutic deep tissue massage",
+            "category": "Massage"
+          },
+          "fullBodyTreatment": {
+            "name": "Full Body Treatment",
+            "description": "Complete full body spa treatment",
+            "category": "Full Treatment"
+          }
+        },
+        "pilates_studio": {
+          "pilatesClass": {
+            "name": "Pilates Class",
+            "description": "Group Pilates class session",
+            "category": "Pilates"
+          },
+          "yogaClass": {
+            "name": "Yoga Class",
+            "description": "Group Yoga class session",
+            "category": "Yoga"
+          },
+          "privateSession": {
+            "name": "Private Session",
+            "description": "One-on-one private training session",
+            "category": "Private"
+          }
+        },
+        "physiotherapy": {
+          "initialConsultation": {
+            "name": "Initial Consultation",
+            "description": "Initial assessment and consultation",
+            "category": "Consultation"
+          },
+          "treatmentSession": {
+            "name": "Treatment Session",
+            "description": "Physiotherapy treatment session",
+            "category": "Treatment"
+          },
+          "followUpSession": {
+            "name": "Follow-up Session",
+            "description": "Follow-up treatment session",
+            "category": "Follow-up"
+          }
+        },
+        "life_coach": {
+          "initialConsultation": {
+            "name": "Initial Consultation",
+            "description": "Initial life coaching consultation",
+            "category": "Consultation"
+          },
+          "coachingSession": {
+            "name": "Coaching Session",
+            "description": "Life coaching session",
+            "category": "Coaching"
+          },
+          "followUpSession": {
+            "name": "Follow-up Session",
+            "description": "Follow-up coaching session",
+            "category": "Follow-up"
+          }
+        },
+        "dietitian": {
+          "initialConsultation": {
+            "name": "Initial Consultation",
+            "description": "Initial nutrition consultation",
+            "category": "Consultation"
+          },
+          "nutritionPlan": {
+            "name": "Nutrition Plan",
+            "description": "Custom nutrition plan creation",
+            "category": "Planning"
+          },
+          "followUpSession": {
+            "name": "Follow-up Session",
+            "description": "Follow-up nutrition consultation",
+            "category": "Follow-up"
+          }
+        },
         "other": {
           "service1": {
             "name": "Service 1",
@@ -713,6 +1009,65 @@
     "addToAppleCalendar": "Add to Apple Calendar",
     "bookAnotherAppointment": "Book Another Appointment",
     "followUsOnSocial": "Follow us on social media",
-    "loginOrRegister": "Login or Register"
+    "loginOrRegister": "Login or Register",
+    "myAppointments": "My Appointments",
+    "goToMainPage": "Go to Main Page",
+    "showAppointments": "Show Appointments",
+    "hideAppointments": "Hide Appointments",
+    "noAppointmentsFound": "No appointments found",
+    "cancel": "Cancel",
+    "reschedule": "Reschedule",
+    "rescheduleAppointment": "Reschedule Appointment",
+    "cancelAppointment": "Cancel Appointment",
+    "confirmCancel": "Are you sure you want to cancel this appointment? This action cannot be undone.",
+    "appointmentCancelled": "Appointment cancelled successfully",
+    "cancelError": "Failed to cancel appointment",
+    "appointmentRescheduled": "Appointment rescheduled successfully",
+    "rescheduleError": "Failed to reschedule appointment",
+    "rescheduleNotAllowed": "Rescheduling is not allowed for this business",
+    "rescheduleRequestSent": "Reschedule request sent. Waiting for approval.",
+    "sameDateTimeError": "Cannot reschedule to the same date and time"
+  },
+  "activityLogs": {
+    "title": "Appointment Activity Logs",
+    "description": "View all customer appointment activities including bookings, cancellations, and reschedule requests",
+    "filters": "Filters",
+    "type": "Type",
+    "customer": "Customer",
+    "service": "Service",
+    "worker": "Worker",
+    "dateTime": "Date & Time",
+    "status": "Status",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectConfirm": "Reject Reschedule Request",
+    "rejectMessage": "We're sorry but we could not change the date. If you can't arrive, please cancel.",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "completed": "Completed",
+    "appointmentCreated": "Appointment Created",
+    "appointmentCancelled": "Appointment Cancelled",
+    "rescheduleRequested": "Reschedule Requested",
+    "rescheduleApproved": "Reschedule Approved",
+    "rescheduleRejected": "Reschedule Rejected",
+    "noLogsFound": "No activity logs found",
+    "fetchError": "Failed to fetch activity logs",
+    "approveError": "Failed to approve reschedule request",
+    "rejectError": "Failed to reject reschedule request",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "all": "All",
+    "original": "Original",
+    "requested": "Requested",
+    "apply": "Apply",
+    "logs": "Activity Logs",
+    "showing": "Showing",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "loading": "Loading...",
+    "cancel": "Cancel"
   }
 }

@@ -10,13 +10,13 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, Calendar, Briefcase, Users, Mail, QrCode, Settings, UserCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, Briefcase, Users, Mail, QrCode, Settings, UserCircle, LogOut, FileText } from 'lucide-react';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { useState, useEffect } from 'react';
 import { getSettings } from '@/components/ported/lib/mockData';
 import { toast } from 'sonner';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
+import { KalBokLogo } from '@/components/ui/KalBookLogo';
 
 const menuItemsBase = [
   { icon: LayoutDashboard, labelKey: 'nav.dashboard', slug: 'dashboard' },
@@ -24,6 +24,7 @@ const menuItemsBase = [
   { icon: Briefcase, labelKey: 'nav.services', slug: 'services' },
   { icon: UserCircle, labelKey: 'nav.workers', slug: 'workers' },
   { icon: Users, labelKey: 'nav.customers', slug: 'customers' },
+  { icon: FileText, labelKey: 'nav.activityLogs', slug: 'activity-logs' },
   { icon: Mail, labelKey: 'nav.templates', slug: 'templates' },
   { icon: QrCode, labelKey: 'nav.qr', slug: 'qr' },
   { icon: Settings, labelKey: 'nav.settings', slug: 'settings' },
@@ -105,7 +106,7 @@ export const AdminSidebar = () => {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <KalBookLogo size="lg" variant="full" />
+            <KalBokLogo size="lg" variant="full" />
             {mounted && businessName ? (
               <p className="text-sm text-muted-foreground mt-1 truncate">{businessName}</p>
             ) : !mounted ? (

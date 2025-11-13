@@ -141,6 +141,33 @@ export async function PATCH(request: NextRequest) {
     // Merge updates with current settings (deep merge)
     const updatedSettings = mergeSettingsUpdate(currentMappedSettings, body);
 
+    // Check feature access for settings updates
+    const { canUpdateSettingsPath, getFeatureForSettingsPath } = await import('@/lib/trial/utils');
+    
+    // Check each settings path that's being updated
+    const settingsPaths = Object.keys(body);
+    for (const path of settingsPaths) {
+      const featureName = getFeatureForSettingsPath(path);
+      if (featureName) {
+        const canUpdate = await canUpdateSettingsPath(tenantInfo.businessId, path);
+        if (!canUpdate) {
+          const featureLabels: Record<string, string> = {
+            'custom_branding': 'custom branding',
+            'whatsapp_integration': 'WhatsApp integration',
+            'multi_language': 'multi-language support',
+          };
+          return NextResponse.json(
+            { 
+              error: `Your plan does not allow ${featureLabels[featureName] || featureName}. Please upgrade your plan.`,
+              feature: featureName,
+              path: path,
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // Prepare updates for database
     const { businessUpdate, settingsUpdate } = prepareSettingsUpdate(
       updatedSettings,

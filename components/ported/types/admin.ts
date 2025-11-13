@@ -22,6 +22,11 @@ export interface Service {
   price: number;
   taxRate: number; // percentage
   active: boolean;
+  isGroupService?: boolean;
+  maxCapacity?: number | null;
+  minCapacity?: number | null;
+  allowWaitlist?: boolean;
+  groupPricingType?: 'per_person' | 'fixed' | null;
 }
 
 export interface Customer {
@@ -137,6 +142,10 @@ export interface CalendarSettings {
     showPhone: boolean;
     showWhatsApp: boolean;
   };
+  reschedule?: {
+    allowCustomerReschedule: boolean; // Whether customers can reschedule appointments
+    requireApproval: boolean; // If true, reschedule requests need approval; if false, auto-approve
+  };
 }
 
 export interface Appointment {
@@ -150,6 +159,19 @@ export interface Appointment {
   start: string; // ISO datetime string
   end: string; // ISO datetime string
   status: 'confirmed' | 'pending' | 'cancelled';
+  isGroupAppointment?: boolean;
+  currentParticipants?: number;
+  maxCapacity?: number; // From service
+}
+
+export interface AppointmentParticipant {
+  id: string;
+  appointmentId: string;
+  customerId: string;
+  customerName?: string;
+  status: 'confirmed' | 'waitlist' | 'cancelled';
+  joinedAt: string;
+  createdAt: string;
 }
 
 export interface Worker {

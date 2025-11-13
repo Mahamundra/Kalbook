@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { ScheduleItem } from '@/types/admin';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 
@@ -10,12 +11,18 @@ interface ScheduleListProps {
 
 export const ScheduleList = ({ items, onViewDetails }: ScheduleListProps) => {
   const { t } = useLocale();
+  const pathname = usePathname();
+  
+  // Detect if we're on slug-based admin route
+  const slugMatch = pathname?.match(/^\/b\/([^/]+)\/admin/);
+  const businessSlug = slugMatch?.[1];
+  const basePath = businessSlug ? `/b/${businessSlug}/admin` : '/admin';
   
   if (items.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground mb-4">{t('dashboard.noAppointmentsToday')}</p>
-        <Link href="/admin/calendar">
+        <Link href={`${basePath}/calendar`}>
           <Button variant="default" size="sm">
             {t('dashboard.goToCalendar')}
           </Button>

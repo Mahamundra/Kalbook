@@ -11,11 +11,11 @@ type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
  */
 function mapAppointmentToInterface(
   appointment: AppointmentRow & {
-    services?: { name: string };
+    services?: { name: string; description?: string };
     customers?: { name: string };
     workers?: { name: string };
   }
-): Appointment {
+): Appointment & { serviceDescription?: string } {
   return {
     id: appointment.id,
     staffId: appointment.worker_id,
@@ -27,6 +27,7 @@ function mapAppointmentToInterface(
     start: appointment.start,
     end: appointment.end,
     status: appointment.status,
+    serviceDescription: (appointment.services as any)?.description || undefined,
   };
 }
 
@@ -79,7 +80,7 @@ export async function GET(
       .from('appointments')
       .select(`
         *,
-        services (name),
+        services (name, description),
         customers (name),
         workers (name)
       `)

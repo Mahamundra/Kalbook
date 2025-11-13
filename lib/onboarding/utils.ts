@@ -86,6 +86,41 @@ export function getDefaultServices(
       consultation?: { name: string; description: string; category: string };
       assessment?: { name: string; description: string; category: string };
     };
+    beauty_salon?: {
+      eyebrowShaping?: { name: string; description: string; category: string };
+      facialTreatment?: { name: string; description: string; category: string };
+      hairRemoval?: { name: string; description: string; category: string };
+    };
+    makeup_artist?: {
+      makeupApplication?: { name: string; description: string; category: string };
+      hairStyling?: { name: string; description: string; category: string };
+      fullMakeupHair?: { name: string; description: string; category: string };
+    };
+    spa?: {
+      swedishMassage?: { name: string; description: string; category: string };
+      deepTissueMassage?: { name: string; description: string; category: string };
+      fullBodyTreatment?: { name: string; description: string; category: string };
+    };
+    pilates_studio?: {
+      pilatesClass?: { name: string; description: string; category: string };
+      yogaClass?: { name: string; description: string; category: string };
+      privateSession?: { name: string; description: string; category: string };
+    };
+    physiotherapy?: {
+      initialConsultation?: { name: string; description: string; category: string };
+      treatmentSession?: { name: string; description: string; category: string };
+      followUpSession?: { name: string; description: string; category: string };
+    };
+    life_coach?: {
+      initialConsultation?: { name: string; description: string; category: string };
+      coachingSession?: { name: string; description: string; category: string };
+      followUpSession?: { name: string; description: string; category: string };
+    };
+    dietitian?: {
+      initialConsultation?: { name: string; description: string; category: string };
+      nutritionPlan?: { name: string; description: string; category: string };
+      followUpSession?: { name: string; description: string; category: string };
+    };
     other?: {
       service1?: { name: string; description: string; category: string };
       service2?: { name: string; description: string; category: string };
@@ -197,6 +232,167 @@ export function getDefaultServices(
         price: 60.00,
       },
     ],
+    beauty_salon: [
+      {
+        name: translations?.beauty_salon?.eyebrowShaping?.name || 'Eyebrow Shaping',
+        description: translations?.beauty_salon?.eyebrowShaping?.description || 'Professional eyebrow shaping and styling',
+        category: translations?.beauty_salon?.eyebrowShaping?.category || 'Eyebrows',
+        duration: 30,
+        price: 40.00,
+      },
+      {
+        name: translations?.beauty_salon?.facialTreatment?.name || 'Facial Treatment',
+        description: translations?.beauty_salon?.facialTreatment?.description || 'Deep cleansing and rejuvenating facial',
+        category: translations?.beauty_salon?.facialTreatment?.category || 'Facial',
+        duration: 60,
+        price: 80.00,
+      },
+      {
+        name: translations?.beauty_salon?.hairRemoval?.name || 'Hair Removal',
+        description: translations?.beauty_salon?.hairRemoval?.description || 'Professional hair removal service',
+        category: translations?.beauty_salon?.hairRemoval?.category || 'Hair Removal',
+        duration: 45,
+        price: 60.00,
+      },
+    ],
+    makeup_artist: [
+      {
+        name: translations?.makeup_artist?.makeupApplication?.name || 'Makeup Application',
+        description: translations?.makeup_artist?.makeupApplication?.description || 'Professional makeup application',
+        category: translations?.makeup_artist?.makeupApplication?.category || 'Makeup',
+        duration: 60,
+        price: 100.00,
+      },
+      {
+        name: translations?.makeup_artist?.hairStyling?.name || 'Hair Styling',
+        description: translations?.makeup_artist?.hairStyling?.description || 'Professional hair styling service',
+        category: translations?.makeup_artist?.hairStyling?.category || 'Hair',
+        duration: 45,
+        price: 80.00,
+      },
+      {
+        name: translations?.makeup_artist?.fullMakeupHair?.name || 'Full Makeup & Hair',
+        description: translations?.makeup_artist?.fullMakeupHair?.description || 'Complete makeup and hair styling package',
+        category: translations?.makeup_artist?.fullMakeupHair?.category || 'Full Service',
+        duration: 120,
+        price: 150.00,
+      },
+    ],
+    spa: [
+      {
+        name: translations?.spa?.swedishMassage?.name || 'Swedish Massage',
+        description: translations?.spa?.swedishMassage?.description || 'Relaxing Swedish massage therapy',
+        category: translations?.spa?.swedishMassage?.category || 'Massage',
+        duration: 60,
+        price: 90.00,
+      },
+      {
+        name: translations?.spa?.deepTissueMassage?.name || 'Deep Tissue Massage',
+        description: translations?.spa?.deepTissueMassage?.description || 'Therapeutic deep tissue massage',
+        category: translations?.spa?.deepTissueMassage?.category || 'Massage',
+        duration: 60,
+        price: 110.00,
+      },
+      {
+        name: translations?.spa?.fullBodyTreatment?.name || 'Full Body Treatment',
+        description: translations?.spa?.fullBodyTreatment?.description || 'Complete full body spa treatment',
+        category: translations?.spa?.fullBodyTreatment?.category || 'Full Treatment',
+        duration: 90,
+        price: 150.00,
+      },
+    ],
+    pilates_studio: [
+      {
+        name: translations?.pilates_studio?.pilatesClass?.name || 'Pilates Class',
+        description: translations?.pilates_studio?.pilatesClass?.description || 'Group Pilates class session',
+        category: translations?.pilates_studio?.pilatesClass?.category || 'Pilates',
+        duration: 60,
+        price: 30.00,
+      },
+      {
+        name: translations?.pilates_studio?.yogaClass?.name || 'Yoga Class',
+        description: translations?.pilates_studio?.yogaClass?.description || 'Group Yoga class session',
+        category: translations?.pilates_studio?.yogaClass?.category || 'Yoga',
+        duration: 60,
+        price: 30.00,
+      },
+      {
+        name: translations?.pilates_studio?.privateSession?.name || 'Private Session',
+        description: translations?.pilates_studio?.privateSession?.description || 'One-on-one private training session',
+        category: translations?.pilates_studio?.privateSession?.category || 'Private',
+        duration: 60,
+        price: 80.00,
+      },
+    ],
+    physiotherapy: [
+      {
+        name: translations?.physiotherapy?.initialConsultation?.name || 'Initial Consultation',
+        description: translations?.physiotherapy?.initialConsultation?.description || 'Initial assessment and consultation',
+        category: translations?.physiotherapy?.initialConsultation?.category || 'Consultation',
+        duration: 45,
+        price: 100.00,
+      },
+      {
+        name: translations?.physiotherapy?.treatmentSession?.name || 'Treatment Session',
+        description: translations?.physiotherapy?.treatmentSession?.description || 'Physiotherapy treatment session',
+        category: translations?.physiotherapy?.treatmentSession?.category || 'Treatment',
+        duration: 60,
+        price: 120.00,
+      },
+      {
+        name: translations?.physiotherapy?.followUpSession?.name || 'Follow-up Session',
+        description: translations?.physiotherapy?.followUpSession?.description || 'Follow-up treatment session',
+        category: translations?.physiotherapy?.followUpSession?.category || 'Follow-up',
+        duration: 45,
+        price: 100.00,
+      },
+    ],
+    life_coach: [
+      {
+        name: translations?.life_coach?.initialConsultation?.name || 'Initial Consultation',
+        description: translations?.life_coach?.initialConsultation?.description || 'Initial life coaching consultation',
+        category: translations?.life_coach?.initialConsultation?.category || 'Consultation',
+        duration: 60,
+        price: 120.00,
+      },
+      {
+        name: translations?.life_coach?.coachingSession?.name || 'Coaching Session',
+        description: translations?.life_coach?.coachingSession?.description || 'Life coaching session',
+        category: translations?.life_coach?.coachingSession?.category || 'Coaching',
+        duration: 60,
+        price: 100.00,
+      },
+      {
+        name: translations?.life_coach?.followUpSession?.name || 'Follow-up Session',
+        description: translations?.life_coach?.followUpSession?.description || 'Follow-up coaching session',
+        category: translations?.life_coach?.followUpSession?.category || 'Follow-up',
+        duration: 45,
+        price: 90.00,
+      },
+    ],
+    dietitian: [
+      {
+        name: translations?.dietitian?.initialConsultation?.name || 'Initial Consultation',
+        description: translations?.dietitian?.initialConsultation?.description || 'Initial nutrition consultation',
+        category: translations?.dietitian?.initialConsultation?.category || 'Consultation',
+        duration: 60,
+        price: 120.00,
+      },
+      {
+        name: translations?.dietitian?.nutritionPlan?.name || 'Nutrition Plan',
+        description: translations?.dietitian?.nutritionPlan?.description || 'Custom nutrition plan creation',
+        category: translations?.dietitian?.nutritionPlan?.category || 'Planning',
+        duration: 45,
+        price: 150.00,
+      },
+      {
+        name: translations?.dietitian?.followUpSession?.name || 'Follow-up Session',
+        description: translations?.dietitian?.followUpSession?.description || 'Follow-up nutrition consultation',
+        category: translations?.dietitian?.followUpSession?.category || 'Follow-up',
+        duration: 30,
+        price: 80.00,
+      },
+    ],
     other: [
       {
         name: translations?.other?.service1?.name || 'Service 1',
@@ -239,5 +435,49 @@ export function getDefaultTimezone(businessType: BusinessType): string {
 export function getDefaultCurrency(businessType: BusinessType): string {
   // Default to USD, can be enhanced
   return 'USD';
+}
+
+/**
+ * Get default banner image filename for business type
+ * Returns the appropriate image filename based on business type
+ */
+export function getDefaultBannerImageFilename(businessType: BusinessType): string {
+  // Known mappings for business types to image files
+  const imageMap: Record<BusinessType, string> = {
+    barbershop: 'barber.jpg',
+    beauty_salon: 'hair_saloon.jpg',
+    makeup_artist: 'makeupartist.jpg',
+    nail_salon: 'beauty_spa.jpg',
+    spa: 'spamassage.jpg',
+    gym_trainer: 'gym_trainer.webp',
+    pilates_studio: 'pilates.webp',
+    physiotherapy: 'psyhothrapist-min.jpg',
+    life_coach: 'lifecoach.jpg',
+    dietitian: 'dietitan.jpg',
+    other: 'other.webp',
+  };
+  
+  return imageMap[businessType] || imageMap.other;
+}
+
+/**
+ * Get default theme color for business type
+ */
+export function getDefaultThemeColor(businessType: BusinessType): string {
+  const colorMap: Record<BusinessType, string> = {
+    barbershop: '#1F2937', // dark gray/charcoal
+    beauty_salon: '#EC4899', // pink
+    makeup_artist: '#F59E0B', // amber/gold
+    nail_salon: '#8B5CF6', // purple
+    spa: '#10B981', // emerald green
+    gym_trainer: '#EF4444', // red
+    pilates_studio: '#06B6D4', // cyan
+    physiotherapy: '#3B82F6', // blue
+    life_coach: '#6366F1', // indigo
+    dietitian: '#14B8A6', // teal
+    other: '#0EA5E9', // sky blue (current default)
+  };
+  
+  return colorMap[businessType] || colorMap.other;
 }
 

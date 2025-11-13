@@ -154,6 +154,16 @@ export async function PATCH(
       );
     }
 
+    // Check if business can manage workers
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_workers');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing workers. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createAdminClient();
 
     // Verify worker exists and belongs to the business
@@ -476,6 +486,16 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Business context required' },
         { status: 400 }
+      );
+    }
+
+    // Check if business can manage workers
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_workers');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing workers. Please upgrade your plan.' },
+        { status: 403 }
       );
     }
 

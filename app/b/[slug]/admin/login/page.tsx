@@ -12,7 +12,7 @@ import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { Loader2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
+import { KalBokLogo } from '@/components/ui/KalBookLogo';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -172,7 +172,7 @@ export default function AdminLoginPage() {
                 className="h-12 w-auto object-contain"
               />
             )}
-            <KalBookLogo size="lg" variant="full" />
+            <KalBokLogo size="lg" variant="full" />
           </div>
           
           <CardTitle className={`text-2xl font-bold text-center ${isRTL ? 'text-right' : 'text-left'}`}>

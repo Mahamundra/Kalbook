@@ -1,21 +1,11 @@
-import { useState, useEffect } from 'react';
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useIsMobile } from '@/components/ported/hooks/use-mobile';
-import { 
-  getAppointments, 
-  updateAppointment, 
-  deleteAppointment, 
-  createAppointment,
-  getWorkers,
-  getServices,
-  getCustomers,
-  createCustomer,
-  getCustomerByPhone,
-  getSettings
-} from '@/components/ported/lib/mockData';
 import { 
   Select,
   SelectContent,
@@ -35,103 +25,36 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Scissors, Sparkles, Droplet, User, Bell, Calendar as CalendarIcon } from 'lucide-react';
-import type { Appointment, Worker, Service, Customer } from '@/types/admin';
+import { Plus, ChevronLeft, ChevronRight, Trash2, Bell, AlertCircle } from 'lucide-react';
+import { DateTimePicker } from '@/components/ui/datetime-picker';
+import type { Appointment, Worker, Service, Customer } from '@/components/ported/types/admin';
+import { useAppointments } from '@/lib/calendar/use-appointments';
+import { getCustomers, createCustomer, getCustomerByPhone } from '@/lib/api/services';
+import { getSettings } from '@/lib/api/services';
+import { CalendarProvider, useCalendar } from '@/calendar/contexts/calendar-context';
+import { ClientContainer } from '@/calendar/components/client-container';
+import { appointmentsToBigCalendarEvents, workersToBigCalendarUsers, getAppointmentIdFromEventId, clearEventIdMapping } from '@/lib/calendar/big-calendar-mapper';
+import { CalendarContextAdapter } from '@/lib/calendar/calendar-context-adapter';
+import { AppointmentProvider } from '@/lib/calendar/appointment-context';
+import { Columns, List, Grid2x2 } from 'lucide-react';
+import { formatDate, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { he, ar, ru } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
+import { rangeText, navigateDate } from '@/calendar/helpers';
+import type { IEvent } from '@/calendar/interfaces';
+import type { TCalendarView } from '@/calendar/types';
+import type { ExtendedSchedulerEvent } from '@/lib/calendar/event-mapper';
 
-type ViewMode = 'day' | 'week' | 'year';
+type ViewMode = 'day' | 'week' | 'month';
 
-const ViewModeButtons = ({ currentMode, onModeChange, t, isMobile }: { 
-  currentMode: ViewMode; 
-  onModeChange: (mode: ViewMode) => void; 
-  t: (key: string) => string;
-  isMobile?: boolean;
-}) => (
-  <div className={`flex gap-1 ${isMobile ? 'gap-1' : 'gap-2'}`}>
-    <Button
-      variant={currentMode === 'day' ? 'default' : 'outline'}
-      onClick={() => onModeChange('day')}
-      size={isMobile ? 'sm' : 'sm'}
-      className={isMobile ? 'text-xs px-2' : ''}
-    >
-      {t('calendar.day')}
-    </Button>
-    <Button
-      variant={currentMode === 'week' ? 'default' : 'outline'}
-      onClick={() => onModeChange('week')}
-      size={isMobile ? 'sm' : 'sm'}
-      className={isMobile ? 'text-xs px-2' : ''}
-    >
-      {t('calendar.week')}
-    </Button>
-    <Button
-      variant={currentMode === 'year' ? 'default' : 'outline'}
-      onClick={() => onModeChange('year')}
-      size={isMobile ? 'sm' : 'sm'}
-      className={isMobile ? 'text-xs px-2' : ''}
-    >
-      {t('calendar.year')}
-    </Button>
-  </div>
-);
-
-// Helper function to convert hex to rgba with opacity
-const hexToRgba = (hex: string, opacity: number = 0.2): string => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
-
-// Helper function to get worker color
-const getWorkerColor = (worker: Worker | undefined, defaultColor: string = '#9CA3AF'): { bg: string; border: string; text: string } => {
-  const color = worker?.color || defaultColor;
-  
-  // Calculate if we need light or dark text based on color brightness
-  const hex = color.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  const textColor = brightness > 128 ? 'text-gray-900' : 'text-white';
-  
-  return {
-    bg: hexToRgba(color, 0.2), // Light background with opacity
-    border: color,
-    text: textColor,
-  };
-};
-
-// Helper function to get service icon
-const getServiceIcon = (serviceName: string) => {
-  const name = serviceName.toLowerCase();
-  
-  if (name.includes('gel') || name.includes('nail') || name.includes('polish')) {
-    return <Sparkles className="w-3 h-3" />;
-  }
-  if (name.includes('haircut') || name.includes('hair')) {
-    return <Scissors className="w-3 h-3" />;
-  }
-  if (name.includes('beard') || name.includes('trim')) {
-    return <User className="w-3 h-3" />;
-  }
-  if (name.includes('peeling') || name.includes('peel')) {
-    return <Droplet className="w-3 h-3" />;
-  }
-  if (name.includes('facial') || name.includes('face')) {
-    return <Clock className="w-3 h-3" />;
-  }
-  return <Clock className="w-3 h-3" />;
-};
-
-const Calendar = () => {
+// Inner component
+function CalendarContent() {
   const { t, isRTL, locale } = useLocale();
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedWorker, setSelectedWorker] = useState<string>('all');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -141,7 +64,7 @@ const Calendar = () => {
     phone: '',
     email: '',
   });
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ExtendedSchedulerEvent | null>(null);
   const [formData, setFormData] = useState({
     serviceId: '',
     customerId: '',
@@ -151,38 +74,117 @@ const Calendar = () => {
     status: 'confirmed' as 'confirmed' | 'pending' | 'cancelled',
   });
   const [allowManualEndTime, setAllowManualEndTime] = useState(false);
-  const [settingsVersion, setSettingsVersion] = useState(0); // Force re-render when settings change
+  const [canCreateAppointments, setCanCreateAppointments] = useState(true);
+  const [trialExpired, setTrialExpired] = useState(false);
+  const [bigCalendarView, setBigCalendarView] = useState<TCalendarView>('week');
 
+  // Calculate date range for fetching appointments - memoized to prevent infinite loops
+  const dateRange = useMemo(() => {
+    const start = new Date(currentDate);
+    const end = new Date(currentDate);
+    
+    if (viewMode === 'day') {
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+    } else if (viewMode === 'week') {
+      const weekStartDay = settings?.calendar?.weekStartDay ?? 0;
+      const day = start.getDay();
+      let diff = day - weekStartDay;
+      if (diff < 0) diff += 7;
+      start.setDate(start.getDate() - diff);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+    } else if (viewMode === 'month') {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+    }
+    
+    return { start, end };
+  }, [currentDate, viewMode, settings?.calendar?.weekStartDay]);
+
+  const { start: startDate, end: endDate } = dateRange;
+
+  const {
+    events: appointmentEvents,
+    appointments,
+    workers,
+    services,
+    loading,
+    refresh,
+    create,
+    update,
+    remove,
+  } = useAppointments({
+    startDate,
+    endDate,
+    workerId: selectedWorker !== 'all' ? selectedWorker : undefined,
+  });
+
+  // Convert appointments to big-calendar format
+  const bigCalendarEvents = useMemo(() => {
+    clearEventIdMapping(); // Clear previous mappings
+    return appointmentsToBigCalendarEvents(appointments, workers);
+  }, [appointments, workers]);
+
+  // Convert workers to big-calendar users
+  const bigCalendarUsers = useMemo(() => {
+    return workersToBigCalendarUsers(workers);
+  }, [workers]);
 
   useEffect(() => {
-    setAppointments(getAppointments());
-    setWorkers(getWorkers().filter(w => w.active));
-    setServices(getServices());
-    setCustomers(getCustomers());
-    
-    // Listen for settings updates
-    const handleSettingsUpdate = () => {
-      // Trigger re-render to update calendar based on new settings
-      setSettingsVersion(prev => prev + 1);
+    const loadData = async () => {
+      try {
+        const [customersData, settingsData] = await Promise.all([
+          getCustomers(),
+          getSettings(),
+        ]);
+        setCustomers(customersData);
+        setSettings(settingsData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
     };
-    
-    window.addEventListener('settingsUpdated', handleSettingsUpdate);
-    return () => {
-      window.removeEventListener('settingsUpdated', handleSettingsUpdate);
-    };
+    loadData();
+
+    // Check trial status
+    fetch('/api/admin/trial-status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setTrialExpired(data.trialExpired || false);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking trial status:', error);
+      });
+
+    // Check feature access
+    fetch('/api/admin/feature-check?feature=create_appointments')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCanCreateAppointments(data.canPerform);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking feature:', error);
+      });
   }, []);
 
-  // Helper function to check if a date is a working day
+  // Helper functions
   const isWorkingDay = (date: Date): boolean => {
-    const settings = getSettings();
-    const workingDays = settings.calendar?.workingDays || [0, 1, 2, 3, 4]; // Default Sunday-Thursday
+    if (!settings) return true;
+    const workingDays = settings.calendar?.workingDays || [0, 1, 2, 3, 4];
     const dayOfWeek = date.getDay();
     return workingDays.includes(dayOfWeek);
   };
 
-  // Helper function to check if a time is within working hours
   const isWithinWorkingHours = (date: Date): boolean => {
-    const settings = getSettings();
+    if (!settings) return true;
     const workingHours = settings.calendar?.workingHours || { start: '09:00', end: '18:00' };
     const startTimeStr = typeof workingHours.start === 'string' ? workingHours.start : '09:00';
     const endTimeStr = typeof workingHours.end === 'string' ? workingHours.end : '18:00';
@@ -198,9 +200,8 @@ const Calendar = () => {
     return appointmentTime >= startTime && appointmentTime < endTime;
   };
 
-  // Helper function to check if appointment end time is within working hours
   const isEndTimeWithinWorkingHours = (startDate: Date, endDate: Date): boolean => {
-    const settings = getSettings();
+    if (!settings) return true;
     const workingHours = settings.calendar?.workingHours || { start: '09:00', end: '18:00' };
     const endTimeStr = typeof workingHours.end === 'string' ? workingHours.end : '18:00';
     const [endHour, endMin] = endTimeStr.split(':').map(Number);
@@ -211,79 +212,6 @@ const Calendar = () => {
     const workingEndTime = endHour * 60 + endMin;
     
     return appointmentEndTime <= workingEndTime;
-  };
-
-  const getTimeSlots = () => {
-    const settings = getSettings();
-    const workingHours = settings.calendar?.workingHours || { start: '09:00', end: '18:00' };
-    const timeSlotGap = settings.calendar?.timeSlotGap || 60; // Default 60 minutes
-    const startTimeStr = typeof workingHours.start === 'string' ? workingHours.start : '09:00';
-    const endTimeStr = typeof workingHours.end === 'string' ? workingHours.end : '18:00';
-    const [startHour, startMinute] = startTimeStr.split(':').map(Number);
-    const [endHour, endMinute] = endTimeStr.split(':').map(Number);
-    const slots: string[] = [];
-    
-    // Validate that we got valid numbers
-    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
-      // Fallback to default hours if parsing failed
-      const defaultStart = 9;
-      const defaultEnd = 18;
-      for (let hour = defaultStart; hour < defaultEnd; hour++) {
-        slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      }
-      return slots;
-    }
-    
-    const startMinutes = startHour * 60 + startMinute;
-    const endMinutes = endHour * 60 + endMinute;
-    
-    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += timeSlotGap) {
-      const hour = Math.floor(currentMinutes / 60);
-      const minute = currentMinutes % 60;
-      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-    }
-    
-    return slots;
-  };
-
-  const timeSlots = getTimeSlots();
-
-  const getWeekDates = () => {
-    const settings = getSettings();
-    const weekStartDay = settings.calendar?.weekStartDay ?? 0; // Default to Sunday
-    
-    const start = new Date(currentDate);
-    const day = start.getDay();
-    // Calculate difference to the week start day
-    let diff = day - weekStartDay;
-    if (diff < 0) diff += 7; // If we're before the week start day, go back a week
-    
-    start.setDate(start.getDate() - diff);
-    
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      return date;
-    });
-  };
-
-  const filteredAppointments = appointments.filter((apt) => {
-    if (selectedWorker !== 'all') {
-      const aptWorkerId = apt.workerId || apt.staffId;
-      if (aptWorkerId !== selectedWorker) return false;
-    }
-    return true;
-  });
-
-  const getAppointmentsForDayAndSlot = (date: Date, hour: number) => {
-    return filteredAppointments.filter((apt) => {
-      const aptDate = new Date(apt.start);
-      const aptHour = aptDate.getHours();
-      const aptDateStr = aptDate.toDateString();
-      const slotDateStr = date.toDateString();
-      
-      return aptDateStr === slotDateStr && aptHour === hour;
-    });
   };
 
   const formatDate = (date: Date, currentLocale: string = locale) => {
@@ -297,49 +225,66 @@ const Calendar = () => {
     return date.toLocaleDateString(localeString, { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  const formatDateHeader = (date: Date, currentLocale: string = locale) => {
-    const localeMap: Record<string, string> = {
-      en: 'en-US',
-      he: 'he-IL',
-      ar: 'ar-SA',
-      ru: 'ru-RU'
-    };
-    const localeString = localeMap[currentLocale] || 'en-US';
-    const dayName = date.toLocaleDateString(localeString, { weekday: 'short' });
-    const dayNum = date.getDate();
-    return { dayName, dayNum };
+  const handleEventClick = (event: IEvent) => {
+    const appointmentId = getAppointmentIdFromEventId(event.id);
+    if (!appointmentId) {
+      console.error('Could not find appointment ID for event:', event.id);
+      return;
+    }
+    
+    const appointment = appointments.find(a => a.id === appointmentId);
+    if (appointment) {
+      // Create ExtendedSchedulerEvent for compatibility
+      const extendedEvent: ExtendedSchedulerEvent = {
+        id: appointment.id,
+        title: event.title,
+        description: event.description,
+        startDate: new Date(event.startDate),
+        endDate: new Date(event.endDate),
+        appointmentId: appointment.id,
+        serviceId: appointment.serviceId,
+        customerId: appointment.customerId,
+        workerId: appointment.workerId || appointment.staffId,
+        service: appointment.service,
+        customer: appointment.customer,
+        worker: event.user.name,
+        status: appointment.status,
+        isGroupAppointment: appointment.isGroupAppointment,
+        currentParticipants: appointment.currentParticipants,
+        maxCapacity: appointment.maxCapacity,
+        color: event.color === 'blue' ? '#3B82F6' : event.color === 'green' ? '#10B981' : event.color === 'red' ? '#EF4444' : event.color === 'yellow' ? '#F59E0B' : event.color === 'purple' ? '#8B5CF6' : event.color === 'orange' ? '#F97316' : '#9CA3AF',
+      };
+      
+      setSelectedEvent(extendedEvent);
+      setFormData({
+        serviceId: appointment.serviceId || '',
+        customerId: appointment.customerId || '',
+        workerId: appointment.workerId || appointment.staffId || '',
+        start: appointment.start,
+        end: appointment.end,
+        status: appointment.status,
+      });
+      setIsDialogOpen(true);
+    }
   };
 
-  const handleAppointmentClick = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    const service = services.find(s => s.name === appointment.service || s.id === appointment.serviceId);
-    const customer = customers.find(c => c.name === appointment.customer || c.id === appointment.customerId);
-    
-    setFormData({
-      serviceId: appointment.serviceId || service?.id || '',
-      customerId: appointment.customerId || customer?.id || '',
-      workerId: appointment.workerId || appointment.staffId || '',
-      start: appointment.start,
-      end: appointment.end,
-      status: appointment.status,
-    });
-    setIsDialogOpen(true);
-  };
+  const handleCreateClick = () => {
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow creating appointments. Please upgrade to continue.');
+      return;
+    }
 
-  const handleCreateClick = (date?: Date, hour?: number, workerId?: string) => {
-    const defaultDate = date || currentDate;
+    const defaultDate = currentDate;
     
-    // Check if the date is a working day
     if (!isWorkingDay(defaultDate)) {
       toast.error(t('calendar.notWorkingDay') || 'This day is not a working day');
       return;
     }
     
-    const defaultHour = hour !== undefined ? hour : 9;
+    const defaultHour = 9;
     const defaultStart = new Date(defaultDate);
     defaultStart.setHours(defaultHour, 0, 0, 0);
     
-    // Check if the hour is within working hours
     if (!isWithinWorkingHours(defaultStart)) {
       toast.error(t('calendar.outsideWorkingHours') || 'This time is outside working hours');
       return;
@@ -351,12 +296,13 @@ const Calendar = () => {
     setFormData({
       serviceId: '',
       customerId: '',
-      workerId: workerId || workers[0]?.id || '',
+      workerId: workers[0]?.id || '',
       start: defaultStart.toISOString(),
       end: defaultEnd.toISOString(),
       status: 'confirmed',
     });
     setAllowManualEndTime(false);
+    setSelectedEvent(null);
     setIsCreateDialogOpen(true);
   };
 
@@ -376,43 +322,41 @@ const Calendar = () => {
     }
   };
 
-  const handleQuickCustomerCreate = () => {
+  const handleQuickCustomerCreate = async () => {
     if (!quickCustomerData.name || !quickCustomerData.phone) {
       toast.error(t('calendar.required'));
       return;
     }
 
-    // Check for duplicate phone number
-    const existingCustomer = getCustomerByPhone(quickCustomerData.phone);
-    if (existingCustomer) {
-      toast.error(t('customers.phoneExists') || 'A customer with this phone number already exists');
-      return;
+    try {
+      const existingCustomer = await getCustomerByPhone(quickCustomerData.phone);
+      if (existingCustomer) {
+        toast.error(t('customers.phoneExists') || 'A customer with this phone number already exists');
+        return;
+      }
+
+      const newCustomer = await createCustomer({
+        name: quickCustomerData.name,
+        phone: quickCustomerData.phone,
+        email: quickCustomerData.email || '',
+        lastVisit: new Date().toISOString(),
+        tags: [],
+        visitHistory: [],
+        consentMarketing: false,
+      });
+
+      const updatedCustomers = await getCustomers();
+      setCustomers(updatedCustomers);
+      setFormData({ ...formData, customerId: newCustomer.id });
+      setQuickCustomerData({ name: '', phone: '', email: '' });
+      setIsQuickCustomerDialogOpen(false);
+      toast.success(t('customers.customerCreated') || 'Customer created successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create customer');
     }
-
-    const newCustomer = createCustomer({
-      name: quickCustomerData.name,
-      phone: quickCustomerData.phone,
-      email: quickCustomerData.email || '',
-      lastVisit: new Date().toISOString(),
-      tags: [],
-      visitHistory: [],
-      consentMarketing: false,
-    });
-
-    // Refresh customers list
-    setCustomers(getCustomers());
-    
-    // Auto-select the newly created customer
-    setFormData({ ...formData, customerId: newCustomer.id });
-    
-    // Reset quick customer form and close dialog
-    setQuickCustomerData({ name: '', phone: '', email: '' });
-    setIsQuickCustomerDialogOpen(false);
-    
-    toast.success(t('customers.customerCreated') || 'Customer created successfully');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.serviceId || !formData.customerId || !formData.workerId) {
       toast.error(t('calendar.required'));
       return;
@@ -427,7 +371,6 @@ const Calendar = () => {
       return;
     }
 
-    // Validate appointment time
     if (!formData.start) {
       toast.error(t('calendar.required'));
       return;
@@ -436,91 +379,110 @@ const Calendar = () => {
     const startDate = new Date(formData.start);
     const endDate = new Date(formData.end);
 
-    // Check if the date is a working day
     if (!isWorkingDay(startDate)) {
       toast.error(t('calendar.notWorkingDay') || 'Appointments cannot be scheduled on non-working days');
       return;
     }
 
-    // Check if start time is within working hours
     if (!isWithinWorkingHours(startDate)) {
       toast.error(t('calendar.outsideWorkingHours') || 'Start time is outside working hours');
       return;
     }
 
-    // Check if end time is within working hours
     if (!isEndTimeWithinWorkingHours(startDate, endDate)) {
       toast.error(t('calendar.endTimeOutsideWorkingHours') || 'End time is outside working hours');
       return;
     }
 
-    if (selectedAppointment) {
-      updateAppointment(selectedAppointment.id, {
-        ...formData,
-        service: service.name,
-        customer: customer.name,
-        workerId: formData.workerId,
-        staffId: formData.workerId,
-        serviceId: formData.serviceId,
-      });
-      toast.success(t('calendar.appointmentUpdated'));
-      // Dispatch event to notify dashboard
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('appointmentUpdated'));
-      }
-    } else {
-      createAppointment({
-        ...formData,
-        service: service.name,
-        customer: customer.name,
-        workerId: formData.workerId,
-        staffId: formData.workerId,
-        serviceId: formData.serviceId,
-        customerId: formData.customerId,
-      });
-      toast.success('Appointment created successfully');
-      // Dispatch event to notify dashboard
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('appointmentUpdated'));
-      }
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow managing appointments. Please upgrade to continue.');
+      return;
     }
 
-    setAppointments(getAppointments());
-    setIsDialogOpen(false);
-    setIsCreateDialogOpen(false);
-    setSelectedAppointment(null);
-  };
+    try {
+      const featureCheck = await fetch('/api/admin/feature-check?feature=create_appointments');
+      const featureData = await featureCheck.json();
 
-  const handleDelete = () => {
-    if (selectedAppointment) {
-      deleteAppointment(selectedAppointment.id);
-      toast.success(t('calendar.appointmentDeleted'));
-      // Dispatch event to notify dashboard
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('appointmentDeleted'));
+      if (!featureData.canPerform) {
+        toast.error('Your plan doesn\'t allow managing appointments. Please upgrade to continue.');
+        return;
       }
-      setAppointments(getAppointments());
-      setIsDialogOpen(false);
-      setSelectedAppointment(null);
+    } catch (error) {
+      console.error('Error checking feature:', error);
     }
-  };
 
-  const handleChangeWorker = (newWorkerId: string) => {
-    if (selectedAppointment) {
-      const worker = workers.find(w => w.id === newWorkerId);
-      updateAppointment(selectedAppointment.id, {
-        workerId: newWorkerId,
-        staffId: newWorkerId,
-      });
-      if (worker) {
+    const appointmentData: Omit<Appointment, 'id'> = {
+      service: service.name,
+      serviceId: formData.serviceId,
+      customer: customer.name,
+      customerId: formData.customerId,
+      workerId: formData.workerId,
+      staffId: formData.workerId,
+      start: formData.start,
+      end: formData.end,
+      status: formData.status,
+    };
+
+    if (selectedEvent) {
+      const updated = await update(selectedEvent.appointmentId || selectedEvent.id, appointmentData);
+      if (updated) {
         toast.success(t('calendar.appointmentUpdated'));
-        // Dispatch event to notify dashboard
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('appointmentUpdated'));
         }
-        setAppointments(getAppointments());
+      }
+    } else {
+      const created = await create(appointmentData);
+      if (created) {
+        toast.success('Appointment created successfully');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+        }
+      }
+    }
+
+    setIsDialogOpen(false);
+    setIsCreateDialogOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleDelete = async () => {
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow deleting appointments. Please upgrade to continue.');
+      return;
+    }
+
+    if (selectedEvent) {
+      const success = await remove(selectedEvent.appointmentId || selectedEvent.id);
+      if (success) {
+        toast.success(t('calendar.appointmentDeleted'));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('appointmentDeleted'));
+        }
         setIsDialogOpen(false);
-        setSelectedAppointment(null);
+        setSelectedEvent(null);
+      }
+    }
+  };
+
+  const handleChangeWorker = async (newWorkerId: string) => {
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow managing appointments. Please upgrade to continue.');
+      return;
+    }
+
+    if (selectedEvent) {
+      const updated = await update(selectedEvent.appointmentId || selectedEvent.id, {
+        workerId: newWorkerId,
+        staffId: newWorkerId,
+      });
+      if (updated) {
+        toast.success(t('calendar.appointmentUpdated'));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+        }
+        setIsDialogOpen(false);
+        setSelectedEvent(null);
       }
     }
   };
@@ -531,8 +493,8 @@ const Calendar = () => {
       newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
     } else if (viewMode === 'day') {
       newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
-    } else if (viewMode === 'year') {
-      newDate.setFullYear(newDate.getFullYear() + (direction === 'next' ? 1 : -1));
+    } else if (viewMode === 'month') {
+      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
     }
     setCurrentDate(newDate);
   };
@@ -541,551 +503,322 @@ const Calendar = () => {
     setCurrentDate(new Date());
   };
 
-  // Store viewMode in a variable that won't be narrowed
-  const currentViewMode: ViewMode = viewMode;
+  // Block calendar if trial expired
+  if (trialExpired) {
+    return (
+      <div className="w-full bg-white">
+        <div className="mb-6 flex items-center justify-between pb-4 border-b">
+          <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
+        </div>
+        <Card className="p-8 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {t('trial.trialExpired')}
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {t('trial.calendarBlockedMessage') || 'Your trial period has ended. Please contact us to upgrade your plan and continue using the calendar.'}
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+              <p className="text-sm font-medium text-blue-900 mb-4">
+                {t('trial.contactUs') || 'Contact Us:'}
+              </p>
+              <div className="space-y-3 text-sm text-blue-800">
+                <p>
+                  <strong>{t('trial.phone') || 'Phone'}:</strong>{' '}
+                  <a href="tel:0542636737" className="underline hover:text-blue-900 font-medium">
+                    054-263-6737
+                  </a>
+                </p>
+                <p>
+                  <strong>{t('trial.email') || 'Email'}:</strong>{' '}
+                  <a href="mailto:plans@kalbook.io" className="underline hover:text-blue-900 font-medium">
+                    plans@kalbook.io
+                  </a>
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => window.location.href = 'mailto:plans@kalbook.io?subject=Upgrade Request'}
+              size="lg"
+            >
+              {t('trial.contactToUpgrade') || 'Contact to Upgrade'}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
-      // Daily List View
-      if (currentViewMode === 'day') {
-        const dayDate = currentDate;
-        const isWorking = isWorkingDay(dayDate);
-        const dayAppointments = filteredAppointments
-          .filter((apt) => {
-            const aptDate = new Date(apt.start);
-            return aptDate.toDateString() === dayDate.toDateString();
-          })
-          .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  // Sync viewMode with big-calendar view
+  useEffect(() => {
+    if (viewMode === 'day') setBigCalendarView('day');
+    else if (viewMode === 'week') setBigCalendarView('week');
+    else setBigCalendarView('month');
+  }, [viewMode]);
 
   return (
     <div className="w-full bg-white">
-      {/* Header with navigation */}
-      <div className="mb-6 flex items-center justify-between pb-4 border-b">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <ViewModeButtons currentMode={currentViewMode} onModeChange={setViewMode} t={t} />
-          <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
-            <Bell className="w-5 h-5 text-gray-700" />
-          </Button>
-        </div>
-      </div>
-
-        <Card className="p-6 shadow-card">
-          <div className="flex flex-col md:flex-row gap-4 mb-4 items-start md:items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigateDate('prev')}>
-                {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToToday}>
-                {t('calendar.today')}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateDate('next')}>
-                {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </Button>
-              <span className="font-medium px-2">{formatDate(dayDate)}</span>
+          {/* Header */}
+          <div className="mb-6 flex items-center justify-between pb-4 border-b">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
             </div>
-            
-            <div className="flex gap-2 flex-wrap">
-              <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder={t('calendar.staffFilter')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('calendar.allStaff')}</SelectItem>
-                  {workers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            <Button
-                onClick={() => handleCreateClick(dayDate)} 
-                disabled={!isWorking}
-                title={!isWorking ? t('calendar.notWorkingDay') : undefined}
-              >
-                <Plus className="w-4 h-4 me-2" />
-                {t('calendar.createBooking')}
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
+                <Bell className="w-5 h-5 text-gray-700" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-2">
-            {dayAppointments.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No appointments for this day</p>
+          {/* Calendar Controls - Worker filter, create button, and calendar navigation */}
+          <Card className="p-4 mb-4 shadow-card">
+            <div className={`flex flex-col gap-3 sm:gap-4 ${isRTL ? 'sm:flex-row-reverse' : 'sm:flex-row'} items-start sm:items-center ${isRTL ? 'sm:justify-between' : 'sm:justify-between'}`}>
+              <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+                <Select value={selectedWorker} onValueChange={setSelectedWorker}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder={t('calendar.staffFilter')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('calendar.allStaff')}</SelectItem>
+                    {workers.map((worker) => (
+                      <SelectItem key={worker.id} value={worker.id}>
+                        {worker.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={handleCreateClick} 
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  disabled={!canCreateAppointments}
+                >
+                  <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                  {t('calendar.createBooking')}
+                </Button>
               </div>
-            ) : (
-              dayAppointments.map((apt) => {
-                const start = new Date(apt.start);
-                const end = new Date(apt.end);
-                const worker = workers.find(w => w.id === (apt.workerId || apt.staffId));
-                
-                return (
-                  <div
-                    key={apt.id}
-                    onClick={() => handleAppointmentClick(apt)}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex-shrink-0">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium text-sm">
-                          {start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - 
-                          {end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">{apt.service}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {apt.customer} • {worker?.name || 'Unknown'}
-                      </div>
-                    </div>
-                    <Badge 
-                      variant={
-                        apt.status === 'confirmed' ? 'default' :
-                        apt.status === 'pending' ? 'secondary' : 'destructive'
-                      }
-                    >
-                      {t(`calendar.${apt.status}`)}
-                    </Badge>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  // Year View
-  if (currentViewMode === 'year') {
-    return (
-      <div className="w-full bg-white">
-        {/* Header with navigation */}
-        <div className={`mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 pb-4 border-b`}>
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <ViewModeButtons currentMode={currentViewMode} onModeChange={setViewMode} t={t} isMobile={isMobile} />
-            <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
-            </Button>
-          </div>
-        </div>
-        <Card className="p-6 shadow-card">
-          <p className="text-center text-muted-foreground py-12">Year view coming soon...</p>
-        </Card>
-      </div>
-    );
-  }
-
-  // Weekly Grid View (default) - but on mobile, force day view
-  const weekDates = getWeekDates();
-  const effectiveViewMode = isMobile ? 'day' : currentViewMode;
-
-  // On mobile, show day view instead of week view
-  if (isMobile && effectiveViewMode === 'week') {
-    const dayDate = currentDate;
-    const isWorking = isWorkingDay(dayDate);
-    const dayAppointments = filteredAppointments
-      .filter((apt) => {
-        const aptDate = new Date(apt.start);
-        return aptDate.toDateString() === dayDate.toDateString();
-      })
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-
-    return (
-      <div className="w-full bg-white">
-        {/* Header with navigation */}
-        <div className="mb-6 flex items-center justify-between pb-4 border-b">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <ViewModeButtons currentMode={currentViewMode} onModeChange={setViewMode} t={t} />
-            <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
-              <Bell className="w-5 h-5 text-gray-700" />
-            </Button>
-          </div>
-        </div>
-
-        <Card className="p-3 sm:p-4 md:p-6 shadow-card w-full">
-          <div className="flex flex-col gap-3 sm:gap-4 mb-4">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <Button variant="outline" size="sm" onClick={() => navigateDate('prev')} className="shrink-0">
-                {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToToday} className="shrink-0 text-xs sm:text-sm">
-                {t('calendar.today')}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateDate('next')} className="shrink-0">
-                {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </Button>
-              <span className="font-medium px-2 whitespace-nowrap text-sm sm:text-base">{formatDate(dayDate)}</span>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2 w-full">
-              <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder={t('calendar.staffFilter')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('calendar.allStaff')}</SelectItem>
-                  {workers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id}>
-                      {worker.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            <Button
-                onClick={() => handleCreateClick(dayDate)} 
-                disabled={!isWorking}
-                title={!isWorking ? t('calendar.notWorkingDay') : undefined}
-                className="w-full sm:w-auto"
-              >
-                <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                {t('calendar.createBooking')}
-            </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {dayAppointments.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>{t('calendar.noAppointmentsToday') || 'No appointments for this day'}</p>
-              </div>
-            ) : (
-              dayAppointments.map((apt) => {
-                const start = new Date(apt.start);
-                const end = new Date(apt.end);
-                const worker = workers.find(w => w.id === (apt.workerId || apt.staffId));
-                
-                return (
-                  <div
-                    key={apt.id}
-                    onClick={() => handleAppointmentClick(apt)}
-                    className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="font-medium text-sm whitespace-nowrap">
-                        {start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - 
-                        {end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="font-medium truncate">{apt.service}</div>
-                      <div className="text-sm text-muted-foreground truncate">
-                        {apt.customer} • {worker?.name || 'Unknown'}
-                      </div>
-                    </div>
-                    <Badge 
-                      variant={
-                        apt.status === 'confirmed' ? 'default' :
-                        apt.status === 'pending' ? 'secondary' : 'destructive'
-                      }
-                      className="shrink-0"
-                    >
-                      {t(`calendar.${apt.status}`)}
-                    </Badge>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  // Calculate total columns (days * workers per day)
-  const displayWorkers = selectedWorker === 'all' 
-    ? workers 
-    : workers.filter(w => w.id === selectedWorker);
-  
-  const totalColumns = weekDates.length * displayWorkers.length;
-  const columnWidth = `${100 / (totalColumns + 1)}%`; // +1 for time column
-
-  // Helper to get appointments for a specific day and worker
-  const getAppointmentsForDayAndWorker = (date: Date, workerId: string) => {
-    return filteredAppointments.filter((apt) => {
-      const aptDate = new Date(apt.start);
-      const aptDateStr = aptDate.toDateString();
-      const slotDateStr = date.toDateString();
-      const aptWorkerId = apt.workerId || apt.staffId;
-      return aptDateStr === slotDateStr && aptWorkerId === workerId;
-    });
-  };
-
-  // Calculate position for appointment block
-  const calculateAppointmentPosition = (apt: Appointment) => {
-    const start = new Date(apt.start);
-    const end = new Date(apt.end);
-    const settings = getSettings();
-    const workingHours = settings.calendar?.workingHours || { start: '09:00', end: '18:00' };
-    const startTimeStr = typeof workingHours.start === 'string' ? workingHours.start : '09:00';
-    const [startHour, startMin] = startTimeStr.split(':').map(Number);
-    
-    // Calculate minutes from the start of working hours
-    const workingStartMinutes = startHour * 60 + (startMin || 0);
-    const appointmentStartMinutes = start.getHours() * 60 + start.getMinutes();
-    const minutesFromStart = appointmentStartMinutes - workingStartMinutes;
-    
-    // Each hour slot is 60px, so convert minutes to pixels (60px per hour = 1px per minute)
-    const topPixels = minutesFromStart;
-    
-    const duration = (end.getTime() - start.getTime()) / (1000 * 60);
-    
-    return {
-      top: `${topPixels}px`,
-      height: `${Math.max(duration, 20)}px`,
-    };
-  };
-
-  return (
-      <div className="w-full bg-white">
-        {/* Header with navigation - matching image design */}
-        <div className={`mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 pb-4 border-b`}>
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <ViewModeButtons currentMode={currentViewMode} onModeChange={setViewMode} t={t} isMobile={isMobile} />
-            <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
-            </Button>
-          </div>
-        </div>
-
-      <Card className="p-0 shadow-lg overflow-hidden">
-        {/* Calendar controls */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 items-start sm:items-center justify-between border-b bg-gray-50">
-          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-            <Button variant="outline" size="sm" onClick={() => navigateDate('prev')} className="shrink-0">
-              {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </Button>
-            <Button variant="outline" size="sm" onClick={goToToday} className="shrink-0 text-xs sm:text-sm">
-              {t('calendar.today')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigateDate('next')} className="shrink-0">
-              {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </Button>
-            <span className="font-medium px-2 whitespace-nowrap text-xs sm:text-sm">
-              {formatDate(weekDates[0])} - {formatDate(weekDates[6])}
-            </span>
-          </div>
-          
-          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
-            <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder={t('calendar.staffFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('calendar.allStaff')}</SelectItem>
-                {workers.map((worker) => (
-                  <SelectItem key={worker.id} value={worker.id}>
-                    {worker.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => handleCreateClick()} size="sm" className="w-full sm:w-auto">
-              <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-              {t('calendar.createBooking')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Calendar grid */}
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full">
-            {/* Date and Staff Header Row */}
-            <div className="grid border-b bg-gray-50" style={{ 
-              gridTemplateColumns: `80px repeat(${totalColumns}, minmax(140px, 1fr))` 
-            }}>
-              {/* Time column header - empty for date/staff row */}
-              <div className="border-r bg-gray-50"></div>
               
-              {/* Date and Staff headers */}
-              {weekDates.map((date) => {
-                const { dayName, dayNum } = formatDateHeader(date, locale);
-                const month = date.toLocaleDateString(locale, { month: '2-digit' });
-                const isToday = date.toDateString() === new Date().toDateString();
-                const isWorking = isWorkingDay(date);
+              {/* Calendar navigation controls */}
+              <div className={`flex items-center gap-2 flex-wrap w-full sm:w-auto ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
+                {/* Today button */}
+                {(() => {
+                  const today = new Date();
+                  const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
+                  const dateFnsLocale = localeMap[locale || 'en'];
+                  return (
+                    <button
+                      key="today-button"
+                      className="flex size-14 flex-col items-start overflow-hidden rounded-lg border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      onClick={() => setCurrentDate(new Date())}
+                    >
+                      <p className="flex h-6 w-full items-center justify-center bg-primary text-center text-xs font-semibold text-primary-foreground">
+                        {formatDate(today, "MMM", { locale: dateFnsLocale }).toUpperCase()}
+                      </p>
+                      <p className="flex w-full items-center justify-center text-lg font-bold">{today.getDate()}</p>
+                    </button>
+                  );
+                })()}
                 
-                return (
-                  <div
-                    key={`day-${date.toISOString()}`}
-                    className={`border-r ${displayWorkers.length > 1 ? '' : ''}`}
-                    style={{ gridColumn: `span ${displayWorkers.length}` }}
-                  >
-                    {/* Date header */}
-                    <div className={`p-2 border-b text-center ${isToday ? 'bg-blue-50' : ''}`}>
-                      <div className="text-xs text-gray-600 font-medium">
-                        {isRTL ? `${dayNum}/${month} ${dayName}` : `${dayName} ${month}/${dayNum}`}
-                      </div>
-                    </div>
-                    
-                    {/* Staff names row */}
-                    <div className="grid" style={{ gridTemplateColumns: `repeat(${displayWorkers.length}, 1fr)` }}>
-                      {displayWorkers.map((worker) => {
-                        const isSelected = selectedWorker === worker.id;
-                        return (
-                          <div
-                            key={`worker-${date.toISOString()}-${worker.id}`}
-                            onClick={() => setSelectedWorker(selectedWorker === worker.id ? 'all' : worker.id)}
-                            className={`p-2 text-center text-sm font-medium border-r last:border-r-0 bg-gray-50 cursor-pointer transition-colors hover:bg-gray-100 ${
-                              isSelected ? 'bg-blue-100 font-semibold text-blue-700' : ''
-                            }`}
-                            title={t('calendar.clickToFilter') || `Click to ${isSelected ? 'show all' : 'filter by'} ${worker.name}`}
-                          >
-                            {worker.name}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                {/* Date Navigator */}
+                {(() => {
+                  const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
+                  const dateFnsLocale = localeMap[locale || 'en'];
+                  const month = formatDate(currentDate, "MMMM", { locale: dateFnsLocale });
+                  const year = currentDate.getFullYear();
+                  
+                  // For RTL, swap the navigation logic: left arrow goes forward, right arrow goes backward
+                  const handlePrevious = () => {
+                    if (isRTL) {
+                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "next"));
+                    } else {
+                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "previous"));
+                    }
+                  };
+                  
+                  const handleNext = () => {
+                    if (isRTL) {
+                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "previous"));
+                    } else {
+                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "next"));
+                    }
+                  };
 
-            {/* Time slots and appointments */}
-            <div className="relative" style={{ height: `${timeSlots.length * 60}px` }}>
-              {/* Render the calendar grid with all time slots as one continuous area */}
-              <div className="grid border-b absolute inset-0" style={{ 
-                gridTemplateColumns: `80px repeat(${totalColumns}, minmax(140px, 1fr))`,
-                gridTemplateRows: `repeat(${timeSlots.length}, 60px)`
-              }}>
-                {/* Time labels column */}
-                {timeSlots.map((time, timeIndex) => (
-                  <div
-                    key={`time-${time}`}
-                    className="border-r border-b p-2 text-sm text-gray-500 text-center bg-gray-50 sticky left-0 z-10"
-                    style={{ gridRow: timeIndex + 1, gridColumn: 1 }}
-                  >
-                    {time}
-                  </div>
-                ))}
-                
-                {/* Create columns for each day-worker combination */}
-                {weekDates.map((date, dayIndex) => {
-                  return displayWorkers.map((worker, workerIndex) => {
-                    const columnIndex = dayIndex * displayWorkers.length + workerIndex + 2; // +2 because column 1 is time
-                    const dayAppointments = getAppointmentsForDayAndWorker(date, worker.id);
-                    
-                    return (
-                      <div
-                        key={`column-${date.toISOString()}-${worker.id}`}
-                        className="border-r relative overflow-hidden"
-                        style={{ 
-                          gridColumn: columnIndex,
-                          gridRow: `1 / ${timeSlots.length + 1}`
-                        }}
-                      >
-                        {/* Render hour cells for clickability */}
-                        {timeSlots.map((time, timeIndex) => {
-                          const hour = parseInt(time.split(':')[0]);
-                          const isWorking = isWorkingDay(date);
-                          const testDate = new Date(date);
-                          testDate.setHours(hour, 0, 0, 0);
-                          const isWithinHours = isWithinWorkingHours(testDate);
-                          const isClickable = isWorking && isWithinHours;
-                          
-                          return (
-                            <div
-                              key={`cell-${date.toISOString()}-${worker.id}-${time}`}
-                              className={`border-b relative group ${
-                                isClickable 
-                                  ? 'hover:bg-gray-50/50 cursor-pointer transition-colors' 
-                                  : 'bg-gray-50/30'
-                              }`}
-                              style={{ height: '60px' }}
-                              onClick={() => {
-                                if (isClickable) {
-                                  handleCreateClick(date, hour, worker.id);
-                                }
-                              }}
-                            >
-                              {/* Plus icon on hover for empty cells */}
-                              {isClickable && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-30 transition-opacity pointer-events-none">
-                                  <Plus className="w-4 h-4 text-gray-400" />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        
-                        {/* Render appointments absolutely positioned within this column */}
-                        {dayAppointments.map((apt) => {
-                          const position = calculateAppointmentPosition(apt);
-                          const aptWorker = workers.find(w => w.id === (apt.workerId || apt.staffId));
-                          const colors = getWorkerColor(aptWorker);
-                          const serviceIcon = getServiceIcon(apt.service);
-                          const start = new Date(apt.start);
-                          const end = new Date(apt.end);
-                          
-                          return (
-                            <div
-                              key={apt.id}
-                              className={`absolute left-1 right-1 rounded border-l-4 p-2 cursor-pointer hover:shadow-lg transition-all pointer-events-auto ${colors.text}`}
-                              style={{
-                                top: position.top,
-                                height: position.height,
-                                maxHeight: `calc(100% - ${position.top})`, // Prevent overflow
-                                zIndex: 20,
-                                minHeight: '40px',
-                                backgroundColor: colors.bg,
-                                borderLeftColor: colors.border,
-                                overflow: 'hidden', // Ensure content doesn't overflow
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAppointmentClick(apt);
-                              }}
-                            >
-                              <div className="flex items-start gap-1.5 mb-0.5">
-                                {serviceIcon}
-                                <div className="flex-1 min-w-0 overflow-hidden">
-                                  <div className="font-semibold text-xs truncate">
-                                    {apt.customer}
-                                  </div>
-                                  <div className="text-[10px] opacity-90 mt-0.5 truncate">
-                                    {start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-[10px] font-medium mt-1 truncate">
-                                {apt.service}
-                              </div>
-                            </div>
-                          );
-                        })}
+                  return (
+                    <div key="date-navigator" className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-semibold">
+                          {month} {year}
+                        </span>
+                        <Badge variant="outline" className="px-1.5 text-xs">
+                          {bigCalendarEvents.length} {t('calendar.events')}
+                        </Badge>
                       </div>
-                    );
-                  });
-                })}
+
+                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Button 
+                          variant="outline" 
+                          className="size-6.5 px-0 [&_svg]:size-4.5" 
+                          onClick={handlePrevious}
+                        >
+                          {isRTL ? <ChevronRight /> : <ChevronLeft />}
+                        </Button>
+
+                        <p className="text-xs text-muted-foreground">{rangeText(bigCalendarView, currentDate, locale)}</p>
+
+                        <Button 
+                          variant="outline" 
+                          className="size-6.5 px-0 [&_svg]:size-4.5" 
+                          onClick={handleNext}
+                        >
+                          {isRTL ? <ChevronLeft /> : <ChevronRight />}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* View buttons */}
+                <div className="inline-flex first:rounded-r-none last:rounded-l-none [&:not(:first-child):not(:last-child)]:rounded-none">
+                  <Button 
+                    aria-label={t('calendar.viewByDay')} 
+                    size="icon" 
+                    variant={bigCalendarView === "day" ? "default" : "outline"} 
+                    className="rounded-r-none [&_svg]:size-4" 
+                    onClick={() => {
+                      setBigCalendarView("day");
+                      setViewMode('day');
+                    }}
+                  >
+                    <List strokeWidth={1.8} />
+                  </Button>
+
+                  <Button
+                    aria-label={t('calendar.viewByWeek')}
+                    size="icon"
+                    variant={bigCalendarView === "week" ? "default" : "outline"}
+                    className="-ml-px rounded-none [&_svg]:size-4"
+                    onClick={() => {
+                      setBigCalendarView("week");
+                      setViewMode('week');
+                    }}
+                  >
+                    <Columns strokeWidth={1.8} />
+                  </Button>
+
+                  <Button
+                    aria-label={t('calendar.viewByMonth')}
+                    size="icon"
+                    variant={bigCalendarView === "month" ? "default" : "outline"}
+                    className="-ml-px rounded-l-none [&_svg]:size-4"
+                    onClick={() => {
+                      setBigCalendarView("month");
+                      setViewMode('month');
+                    }}
+                  >
+                    <Grid2x2 strokeWidth={1.8} />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </Card>
+          </Card>
+
+      {/* Big Calendar */}
+      {loading ? (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">Loading calendar...</p>
+        </Card>
+      ) : (
+        <AppointmentProvider
+          services={services}
+          workers={workers}
+          customers={customers}
+          appointments={appointments}
+          onCreateAppointment={async (appointmentData) => {
+            const service = services.find(s => s.id === appointmentData.serviceId);
+            const customer = customers.find(c => c.id === appointmentData.customerId);
+            const worker = workers.find(w => w.id === appointmentData.workerId);
+
+            if (!service || !customer || !worker) {
+              throw new Error('Invalid selection');
+            }
+
+            const appointment: Omit<Appointment, 'id'> = {
+              service: service.name,
+              serviceId: appointmentData.serviceId,
+              customer: customer.name,
+              customerId: appointmentData.customerId,
+              workerId: appointmentData.workerId,
+              staffId: appointmentData.workerId,
+              start: appointmentData.start,
+              end: appointmentData.end,
+              status: appointmentData.status,
+            };
+
+            const created = await create(appointment);
+            if (created) {
+              toast.success('Appointment created successfully');
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+              }
+            }
+          }}
+          onUpdateAppointment={async (appointmentId, appointmentData) => {
+            const updated = await update(appointmentId, appointmentData);
+            if (updated) {
+              toast.success(t('calendar.appointmentUpdated'));
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+              }
+            }
+          }}
+          onDeleteAppointment={async (appointmentId) => {
+            const success = await remove(appointmentId);
+            if (success) {
+              toast.success(t('calendar.appointmentDeleted'));
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('appointmentDeleted'));
+              }
+            }
+          }}
+          onQuickCreateCustomer={() => setIsQuickCustomerDialogOpen(true)}
+        >
+          <CalendarProvider users={bigCalendarUsers} events={bigCalendarEvents}>
+            <CalendarContextAdapter
+              selectedDate={currentDate}
+              onDateChange={setCurrentDate}
+              selectedWorkerId={selectedWorker}
+              onWorkerChange={setSelectedWorker}
+              events={bigCalendarEvents}
+              onEventClick={handleEventClick}
+            />
+            <div className="w-full bg-white">
+              <ClientContainer 
+                view={bigCalendarView} 
+                onViewChange={(newView) => {
+                  setBigCalendarView(newView);
+                  if (newView === 'day') setViewMode('day');
+                  else if (newView === 'week') setViewMode('week');
+                  else if (newView === 'month') setViewMode('month');
+                }}
+              />
+            </div>
+          </CalendarProvider>
+        </AppointmentProvider>
+      )}
 
       {/* Edit Appointment Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full">
-          {/* Sticky Header */}
           <DialogHeader className="p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10">
             <DialogTitle className="text-lg sm:text-xl break-words">{t('calendar.editAppointment')}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">{t('calendar.appointmentDetails')}</DialogDescription>
           </DialogHeader>
           
-          {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             <div>
               <Label>{t('calendar.service')}</Label>
@@ -1093,20 +826,17 @@ const Calendar = () => {
                 value={formData.serviceId}
                 onValueChange={(value) => {
                   const service = services.find(s => s.id === value);
-                  if (service) {
-                    // Auto-update service name and optionally recalculate end time
-                    const newFormData = {
+                  if (service && formData.start) {
+                    const start = new Date(formData.start);
+                    const end = new Date(start);
+                    end.setMinutes(start.getMinutes() + service.duration);
+                    setFormData({
                       ...formData,
                       serviceId: value,
-                    };
-                    // Only auto-calculate if we have a start time and the service changed
-                    if (formData.start) {
-                      const start = new Date(formData.start);
-                      const end = new Date(start);
-                      end.setMinutes(start.getMinutes() + service.duration);
-                      newFormData.end = end.toISOString();
-                    }
-                    setFormData(newFormData);
+                      end: end.toISOString(),
+                    });
+                  } else {
+                    setFormData({ ...formData, serviceId: value });
                   }
                 }}
               >
@@ -1124,15 +854,13 @@ const Calendar = () => {
             </div>
             <div>
               <Label>{t('calendar.customer')}</Label>
-              <p className="text-sm font-medium">{selectedAppointment?.customer}</p>
+              <p className="text-sm font-medium">{selectedEvent?.customer || appointments.find(a => a.id === selectedEvent?.appointmentId)?.customer}</p>
             </div>
             <div>
               <Label>{t('calendar.worker')}</Label>
               <Select
                 value={formData.workerId}
-                onValueChange={(value) => {
-                  handleChangeWorker(value);
-                }}
+                onValueChange={handleChangeWorker}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -1150,7 +878,15 @@ const Calendar = () => {
               <Label>{t('calendar.startTime')}</Label>
               <Input
                 type="datetime-local"
-                value={formData.start ? new Date(formData.start).toISOString().slice(0, 16) : ''}
+                value={formData.start ? (() => {
+                  const d = new Date(formData.start);
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const hours = String(d.getHours()).padStart(2, '0');
+                  const minutes = String(d.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
+                })() : ''}
                 onChange={(e) => {
                   const newStart = new Date(e.target.value);
                   const duration = new Date(formData.end).getTime() - new Date(formData.start).getTime();
@@ -1167,7 +903,15 @@ const Calendar = () => {
               <Label>{t('calendar.endTime')}</Label>
               <Input
                 type="datetime-local"
-                value={formData.end ? new Date(formData.end).toISOString().slice(0, 16) : ''}
+                value={formData.end ? (() => {
+                  const d = new Date(formData.end);
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const hours = String(d.getHours()).padStart(2, '0');
+                  const minutes = String(d.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
+                })() : ''}
                 onChange={(e) => setFormData({ ...formData, end: new Date(e.target.value).toISOString() })}
               />
             </div>
@@ -1191,9 +935,13 @@ const Calendar = () => {
             </div>
           </div>
 
-          {/* Sticky Footer */}
           <DialogFooter className="p-4 sm:p-6 pt-4 border-t sticky bottom-0 bg-background z-10 flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
-            <Button variant="destructive" onClick={handleDelete} className="w-full sm:w-auto order-2 sm:order-1">
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete} 
+              className="w-full sm:w-auto order-2 sm:order-1"
+              disabled={!canCreateAppointments}
+            >
               <Trash2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
               {t('calendar.deleteAppointment')}
             </Button>
@@ -1201,7 +949,11 @@ const Calendar = () => {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1 sm:flex-initial">
                 {t('workers.cancel')}
               </Button>
-              <Button onClick={handleSave} className="flex-1 sm:flex-initial">
+              <Button 
+                onClick={handleSave} 
+                className="flex-1 sm:flex-initial"
+                disabled={!canCreateAppointments}
+              >
                 {t('calendar.saveChanges')}
               </Button>
             </div>
@@ -1212,13 +964,11 @@ const Calendar = () => {
       {/* Create Appointment Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full">
-          {/* Sticky Header */}
           <DialogHeader className="p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10">
             <DialogTitle className="text-lg sm:text-xl break-words">{t('calendar.createAppointment')}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">{t('calendar.appointmentDetails')}</DialogDescription>
           </DialogHeader>
           
-          {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             <div>
               <Label>{t('calendar.selectService')} *</Label>
@@ -1239,34 +989,50 @@ const Calendar = () => {
               </Select>
             </div>
             <div>
-              <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-                <Label>{t('calendar.selectCustomer')} *</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsQuickCustomerDialogOpen(true)}
-                  className="h-6 px-2 text-xs"
-                >
-                  <Plus className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                  {t('calendar.addNewCustomer')}
-                </Button>
+              <Label>{t('calendar.selectCustomer')} *</Label>
+              <div className={`flex items-center gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {isRTL && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsQuickCustomerDialogOpen(true)}
+                    className="h-10 px-3 text-xs whitespace-nowrap"
+                  >
+                    <Plus className="w-3 h-3 ml-1" />
+                    {t('calendar.addNewCustomer')}
+                  </Button>
+                )}
+                <div className="flex-1">
+                  <Select
+                    value={formData.customerId}
+                    onValueChange={(value) => setFormData({ ...formData, customerId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('calendar.selectCustomer')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {!isRTL && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsQuickCustomerDialogOpen(true)}
+                    className="h-10 px-3 text-xs whitespace-nowrap"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    {t('calendar.addNewCustomer')}
+                  </Button>
+                )}
               </div>
-              <Select
-                value={formData.customerId}
-                onValueChange={(value) => setFormData({ ...formData, customerId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('calendar.selectCustomer')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <Label>{t('calendar.selectWorker')} *</Label>
@@ -1287,39 +1053,56 @@ const Calendar = () => {
               </Select>
             </div>
             <div>
-              <Label>{t('calendar.startTime')} *</Label>
-              <Input
-                type="datetime-local"
-                value={formData.start ? new Date(formData.start).toISOString().slice(0, 16) : ''}
-                onChange={(e) => {
-                  const newStart = new Date(e.target.value);
-                  const service = services.find(s => s.id === formData.serviceId);
-                  if (service && !allowManualEndTime) {
-                    // Auto-calculate end time based on service duration
-                    const newEnd = new Date(newStart);
-                    newEnd.setMinutes(newStart.getMinutes() + service.duration);
-                    setFormData({
-                      ...formData,
-                      start: newStart.toISOString(),
-                      end: newEnd.toISOString(),
-                    });
-                  } else {
-                    setFormData({
-                      ...formData,
-                      start: newStart.toISOString(),
-                    });
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <Label>{t('calendar.endTime')} *</Label>
-              <Input
-                type="datetime-local"
-                value={formData.end ? new Date(formData.end).toISOString().slice(0, 16) : ''}
-                onChange={(e) => setFormData({ ...formData, end: new Date(e.target.value).toISOString() })}
-                disabled={!!formData.serviceId && !allowManualEndTime}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>{t('calendar.startTime')} *</Label>
+                  <DateTimePicker
+                    value={formData.start || undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        const service = services.find(s => s.id === formData.serviceId);
+                        if (service && !allowManualEndTime) {
+                          const newEnd = new Date(date);
+                          newEnd.setMinutes(newEnd.getMinutes() + service.duration);
+                          setFormData({
+                            ...formData,
+                            start: date.toISOString(),
+                            end: newEnd.toISOString(),
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            start: date.toISOString(),
+                          });
+                        }
+                      } else {
+                        setFormData({
+                          ...formData,
+                          start: '',
+                        });
+                      }
+                    }}
+                    placeholder={t('calendar.chooseStartDate') || 'Choose start date'}
+                    isRTL={isRTL}
+                  />
+                </div>
+
+                <div>
+                  <Label>{t('calendar.endTime')} *</Label>
+                  <DateTimePicker
+                    value={formData.end || undefined}
+                    onChange={(date) => {
+                      setFormData({
+                        ...formData,
+                        end: date ? date.toISOString() : '',
+                      });
+                    }}
+                    placeholder={t('calendar.chooseEndDate') || 'Choose end date'}
+                    disabled={!!formData.serviceId && !allowManualEndTime}
+                    isRTL={isRTL}
+                  />
+                </div>
+              </div>
               {formData.serviceId && (
                 <div className="mt-2 space-y-2">
                   <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
@@ -1328,10 +1111,7 @@ const Calendar = () => {
                       checked={allowManualEndTime}
                       onCheckedChange={(checked) => {
                         setAllowManualEndTime(!!checked);
-                        if (checked) {
-                          // When enabling manual edit, don't auto-calculate anymore
-                        } else {
-                          // When disabling, recalculate based on service
+                        if (!checked) {
                           const service = services.find(s => s.id === formData.serviceId);
                           if (service && formData.start) {
                             const start = new Date(formData.start);
@@ -1377,12 +1157,15 @@ const Calendar = () => {
             </div>
           </div>
 
-          {/* Sticky Footer */}
           <DialogFooter className="p-4 sm:p-6 pt-4 border-t sticky bottom-0 bg-background z-10 flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="flex-1 sm:flex-initial order-2 sm:order-1">
               {t('workers.cancel')}
             </Button>
-            <Button onClick={handleSave} className="flex-1 sm:flex-initial order-1 sm:order-2">
+            <Button 
+              onClick={handleSave} 
+              className="flex-1 sm:flex-initial order-1 sm:order-2"
+              disabled={!canCreateAppointments}
+            >
               {t('calendar.createBooking')}
             </Button>
           </DialogFooter>
@@ -1392,13 +1175,11 @@ const Calendar = () => {
       {/* Quick Customer Creation Dialog */}
       <Dialog open={isQuickCustomerDialogOpen} onOpenChange={setIsQuickCustomerDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full" dir={isRTL ? 'rtl' : 'ltr'}>
-          {/* Sticky Header */}
           <DialogHeader className="p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10">
             <DialogTitle className="text-lg sm:text-xl break-words">{t('calendar.addNewCustomer')}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">{t('calendar.quickCustomerDescription')}</DialogDescription>
           </DialogHeader>
 
-          {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             <div>
               <Label>{t('customers.name')} *</Label>
@@ -1431,7 +1212,6 @@ const Calendar = () => {
             </div>
           </div>
 
-          {/* Sticky Footer */}
           <DialogFooter className="p-4 sm:p-6 pt-4 border-t sticky bottom-0 bg-background z-10 flex flex-col sm:flex-row gap-3 sm:gap-2 sm:justify-end">
             <Button variant="outline" onClick={() => {
               setIsQuickCustomerDialogOpen(false);
@@ -1445,6 +1225,15 @@ const Calendar = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// Main Calendar component
+const Calendar = () => {
+  return (
+    <div className="w-full h-full">
+      <CalendarContent />
     </div>
   );
 };

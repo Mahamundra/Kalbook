@@ -52,6 +52,7 @@ const Workers = () => {
   const [editingWorkerName, setEditingWorkerName] = useState<string>('');
   const [formData, setFormData] = useState(defaultFormData);
   const [currentUser, setCurrentUser] = useState<{ userId: string; email?: string; phone?: string; role?: 'owner' | 'admin'; isMainAdmin?: boolean } | null>(null);
+  const [canManageWorkers, setCanManageWorkers] = useState(true); // Default to true to avoid blocking
   const formRef = useRef<HTMLFormElement>(null);
   
   useEffect(() => {
@@ -101,6 +102,19 @@ const Workers = () => {
     
     fetchCurrentUser();
     fetchData();
+
+    // Check feature access for managing workers
+    fetch('/api/admin/feature-check?feature=manage_workers')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCanManageWorkers(data.canPerform);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking feature:', error);
+        // Default to true if check fails to avoid blocking unnecessarily
+      });
   }, []);
   
   const { localeReady } = useDirection();
@@ -119,6 +133,11 @@ const Workers = () => {
   }
 
   const handleDelete = async (id: string) => {
+    if (!canManageWorkers) {
+      toast.error('Your plan doesn\'t allow deleting workers. Please upgrade to continue.');
+      return;
+    }
+
     if (confirm(t('workers.confirmDelete'))) {
       try {
         setLoading(true);
@@ -143,6 +162,11 @@ const Workers = () => {
   };
 
   const handleEdit = (worker: Worker) => {
+    if (!canManageWorkers) {
+      toast.error('Your plan doesn\'t allow editing workers. Please upgrade to continue.');
+      return;
+    }
+
     setEditingWorkerId(worker.id);
     setEditingWorkerName(worker.name);
     setFormData({
@@ -166,6 +190,26 @@ const Workers = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check feature access when creating/updating worker
+    if (!canManageWorkers) {
+      toast.error('Your plan doesn\'t allow managing workers. Please upgrade to continue.');
+      return;
+    }
+
+    // Double-check with API before proceeding
+    try {
+      const featureCheck = await fetch('/api/admin/feature-check?feature=manage_workers');
+      const featureData = await featureCheck.json();
+
+      if (!featureData.canPerform) {
+        toast.error('Your plan doesn\'t allow managing workers. Please upgrade to continue.');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking feature:', error);
+      // Continue if check fails (don't block user due to API error)
+    }
     
     if (!formData.name.trim()) {
       toast.error(t('workers.required'));
@@ -199,6 +243,11 @@ const Workers = () => {
   };
 
   const handleToggleActive = async (workerId: string, currentActive: boolean) => {
+    if (!canManageWorkers) {
+      toast.error('Your plan doesn\'t allow managing workers. Please upgrade to continue.');
+      return;
+    }
+
     try {
       await updateWorker(workerId, { active: !currentActive });
       const data = await getWorkers();
@@ -340,6 +389,8 @@ const Workers = () => {
                   e.stopPropagation();
                   handleEdit(worker);
                 }}
+                disabled={!canManageWorkers}
+                title={!canManageWorkers ? 'Your plan doesn\'t allow editing workers. Please upgrade to continue.' : ''}
               >
                 <Pencil className="w-4 h-4" />
               </Button>
@@ -352,6 +403,8 @@ const Workers = () => {
                   e.stopPropagation();
                   handleDelete(worker.id);
                 }}
+                disabled={!canManageWorkers}
+                title={!canManageWorkers ? 'Your plan doesn\'t allow deleting workers. Please upgrade to continue.' : ''}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -360,6 +413,7 @@ const Workers = () => {
               checked={worker.active}
               onCheckedChange={() => handleToggleActive(worker.id, worker.active)}
               onClick={(e) => e.stopPropagation()}
+              disabled={!canManageWorkers}
             />
           </div>
         );
@@ -372,7 +426,11 @@ const Workers = () => {
       <PageHeader
         title={t('workers.title')}
         action={
-          <Button onClick={handleCreate}>
+          <Button 
+            onClick={handleCreate}
+            disabled={!canManageWorkers}
+            title={!canManageWorkers ? 'Your plan doesn\'t allow adding workers. Please upgrade to continue.' : ''}
+          >
             <Plus className="w-4 h-4 me-2" />
             {t('workers.create')}
           </Button>

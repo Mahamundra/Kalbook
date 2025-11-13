@@ -19,6 +19,11 @@ function mapServiceToInterface(service: ServiceRow): Service {
     price: Number(service.price),
     taxRate: Number(service.tax_rate),
     active: service.active,
+    isGroupService: service.is_group_service || false,
+    maxCapacity: service.max_capacity ?? null,
+    minCapacity: service.min_capacity ?? null,
+    allowWaitlist: service.allow_waitlist || false,
+    groupPricingType: service.group_pricing_type || null,
   };
 }
 
@@ -110,6 +115,16 @@ export async function PATCH(
       );
     }
 
+    // Check if business can manage services
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_services');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing services. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createAdminClient();
 
     // Verify service exists and belongs to the business
@@ -184,6 +199,102 @@ export async function PATCH(
       updateData.active = Boolean(body.active);
     }
 
+    // Handle group service fields
+    if (body.isGroupService !== undefined) {
+      updateData.is_group_service = body.isGroupService;
+      
+      // If disabling group service, clear related fields
+      if (!body.isGroupService) {
+        updateData.max_capacity = null;
+        updateData.min_capacity = null;
+        updateData.allow_waitlist = false;
+        updateData.group_pricing_type = null;
+      } else {
+        // Validate group service fields if enabling
+        if (body.maxCapacity !== undefined) {
+          if (!body.maxCapacity || body.maxCapacity < 2) {
+            return NextResponse.json(
+              { error: 'Maximum participants must be at least 2 for group services' },
+              { status: 400 }
+            );
+          }
+          updateData.max_capacity = body.maxCapacity;
+        }
+        
+        if (body.minCapacity !== undefined) {
+          if (body.minCapacity !== null) {
+            const maxCap = body.maxCapacity ?? existingService.max_capacity;
+            if (maxCap && body.minCapacity >= maxCap) {
+              return NextResponse.json(
+                { error: 'Minimum participants must be less than maximum participants' },
+                { status: 400 }
+              );
+            }
+            if (body.minCapacity < 1) {
+              return NextResponse.json(
+                { error: 'Minimum participants must be at least 1' },
+                { status: 400 }
+              );
+            }
+          }
+          updateData.min_capacity = body.minCapacity;
+        }
+        
+        if (body.allowWaitlist !== undefined) {
+          updateData.allow_waitlist = body.allowWaitlist;
+        }
+        
+        if (body.groupPricingType !== undefined) {
+          updateData.group_pricing_type = body.groupPricingType;
+        }
+      }
+    } else if (body.maxCapacity !== undefined || body.minCapacity !== undefined || body.allowWaitlist !== undefined) {
+      // If group service fields are provided but isGroupService is not, validate that service is already a group service
+      if (!existingService.is_group_service) {
+        return NextResponse.json(
+          { error: 'Service must be enabled as group service before setting capacity fields' },
+          { status: 400 }
+        );
+      }
+      
+      if (body.maxCapacity !== undefined) {
+        if (!body.maxCapacity || body.maxCapacity < 2) {
+          return NextResponse.json(
+            { error: 'Maximum participants must be at least 2' },
+            { status: 400 }
+          );
+        }
+        updateData.max_capacity = body.maxCapacity;
+      }
+      
+      if (body.minCapacity !== undefined) {
+        const maxCap = body.maxCapacity ?? existingService.max_capacity;
+        if (body.minCapacity !== null) {
+          if (maxCap && body.minCapacity >= maxCap) {
+            return NextResponse.json(
+              { error: 'Minimum participants must be less than maximum participants' },
+              { status: 400 }
+            );
+          }
+          if (body.minCapacity < 1) {
+            return NextResponse.json(
+              { error: 'Minimum participants must be at least 1' },
+              { status: 400 }
+            );
+          }
+        }
+        updateData.min_capacity = body.minCapacity;
+      }
+      
+      if (body.allowWaitlist !== undefined) {
+        updateData.allow_waitlist = body.allowWaitlist;
+      }
+      
+      if (body.groupPricingType !== undefined) {
+        updateData.group_pricing_type = body.groupPricingType;
+      }
+    }
+
     // If no fields to update
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -242,6 +353,16 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Business context required' },
         { status: 400 }
+      );
+    }
+
+    // Check if business can manage services
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_services');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing services. Please upgrade your plan.' },
+        { status: 403 }
       );
     }
 

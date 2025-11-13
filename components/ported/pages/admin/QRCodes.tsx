@@ -4,16 +4,34 @@ import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { getServices } from '@/components/ported/lib/mockData';
-import { Copy, Download } from 'lucide-react';
+import { Copy, Download, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Service } from '@/types/admin';
+import { UpgradeModal } from '@/components/admin/UpgradeModal';
 
 const QRCodes = () => {
   const { t } = useLocale();
   const [services, setServices] = useState<Service[]>([]);
+  const [hasQRCodesAccess, setHasQRCodesAccess] = useState<boolean | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   useEffect(() => {
     setServices(getServices());
+    
+    // Check if business has QR codes feature
+    fetch('/api/admin/feature-check?feature=qr_codes')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setHasQRCodesAccess(data.canPerform);
+        } else {
+          setHasQRCodesAccess(false);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking QR codes feature:', error);
+        setHasQRCodesAccess(false);
+      });
   }, []);
   const bookingURL = 'https://bookinghub.app/style-studio';
 
@@ -25,6 +43,49 @@ const QRCodes = () => {
   const handleDownload = (name: string) => {
     toast.info(t('qr.downloadingQR').replace('{name}', name));
   };
+
+  // Show upgrade message if QR codes not available
+  if (hasQRCodesAccess === false) {
+    return (
+      <div>
+        <PageHeader title={t('qr.title')} />
+        <Card className="p-8 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {t('qr.upgradeRequired') || 'QR Codes Not Available'}
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {t('qr.upgradeMessage') || 'QR code generation is available in Professional and Business plans. Please upgrade to access this feature.'}
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowUpgradeModal(true)}
+              size="lg"
+            >
+              {t('trial.upgradeNow') || 'Upgrade Now'}
+            </Button>
+          </div>
+        </Card>
+        <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (hasQRCodesAccess === null) {
+    return (
+      <div>
+        <PageHeader title={t('qr.title')} />
+        <Card className="p-8 text-center">
+          <p>{t('common.loading') || 'Loading...'}</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>

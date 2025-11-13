@@ -35,9 +35,9 @@ export async function GET(
       .from('appointments')
       .select(`
         *,
-        services (*),
-        customers (*),
-        workers (*)
+        services (name, max_capacity),
+        customers (name),
+        workers (name)
       `)
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
@@ -98,6 +98,16 @@ export async function PATCH(
       return NextResponse.json(
         { error: 'Business context required' },
         { status: 400 }
+      );
+    }
+
+    // Check if business can create/manage appointments
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canCreate = await canBusinessPerformAction(tenantInfo.businessId, 'create_appointments');
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing appointments. Please upgrade your plan.' },
+        { status: 403 }
       );
     }
 
@@ -318,6 +328,16 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Business context required' },
         { status: 400 }
+      );
+    }
+
+    // Check if business can create/manage appointments
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canCreate = await canBusinessPerformAction(tenantInfo.businessId, 'create_appointments');
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing appointments. Please upgrade your plan.' },
+        { status: 403 }
       );
     }
 

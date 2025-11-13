@@ -4,6 +4,7 @@ import { AdminSidebar } from '@/components/ported/admin/AdminSidebar';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { TrialStatusBanner } from '@/components/admin/TrialStatusBanner';
 
 export default function BusinessAdminLayout({ children }: { children: React.ReactNode }) {
   const { dir, isTransitioning } = useDirection();
@@ -26,6 +27,12 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
               <SidebarTrigger className="md:hidden" />
               <div className="flex-1" />
             </header>
+            
+            <div className="border-b">
+              <div className="px-6 py-2">
+                <TrialStatusBanner />
+              </div>
+            </div>
             
             <AnimatePresence mode="wait">
               {isTransitioning ? (

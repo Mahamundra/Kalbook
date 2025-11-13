@@ -348,8 +348,18 @@ export const getAppointments = async (): Promise<Appointment[]> => {
 };
 
 export const createAppointment = async (
-  data: Omit<Appointment, 'id'>
+  data: Omit<Appointment, 'id'> & { createdBy?: 'customer' | 'admin' }
 ): Promise<Appointment> => {
+  // Determine if this is a customer request based on the calling context
+  // If createdBy is not explicitly set, try to detect from window location
+  let createdBy = data.createdBy;
+  if (!createdBy && typeof window !== 'undefined') {
+    const pathname = window.location.pathname;
+    if (pathname.includes('/booking') || pathname.includes('/b/')) {
+      createdBy = 'customer';
+    }
+  }
+  
   const response = await apiRequest<{ success: boolean; appointment: Appointment }>(
     '/api/appointments',
     {
@@ -361,6 +371,7 @@ export const createAppointment = async (
         start: data.start,
         end: data.end,
         status: data.status || 'pending',
+        createdBy: createdBy || 'customer', // Default to customer for booking page calls
       }),
     }
   );
@@ -386,6 +397,23 @@ export const updateAppointment = async (
         status: data.status,
       }),
     });
+    return response.appointment;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const cancelAppointment = async (id: string): Promise<Appointment | null> => {
+  try {
+    const response = await apiRequest<{ success: boolean; appointment: Appointment }>(
+      `/api/appointments/${id}/cancel`,
+      {
+        method: 'POST',
+      }
+    );
     return response.appointment;
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {

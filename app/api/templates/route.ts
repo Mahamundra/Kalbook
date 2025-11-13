@@ -120,8 +120,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
@@ -130,6 +128,27 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Check if business can manage templates
+    const { canBusinessPerformAction, checkPlanFeature } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_templates');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing templates. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
+    // Check if business can create custom templates
+    const hasCustomTemplates = await checkPlanFeature(tenantInfo.businessId, 'custom_templates');
+    if (!hasCustomTemplates) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow creating custom templates. Please upgrade to Professional or Business plan.' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
 
     // Validate required fields
     if (!body.channel || (body.channel !== 'email' && body.channel !== 'message')) {

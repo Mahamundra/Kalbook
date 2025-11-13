@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface KalBookLogoProps {
+interface KalBokLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'full' | 'icon' | 'text';
   className?: string;
@@ -14,7 +14,7 @@ const sizeMap = {
   xl: { fontSize: 32 },
 };
 
-export const KalBookLogo: React.FC<KalBookLogoProps> = ({
+export const KalBokLogo: React.FC<KalBokLogoProps> = ({
   size = 'md',
   variant = 'text',
   className = '',
@@ -31,10 +31,14 @@ export const KalBookLogo: React.FC<KalBookLogoProps> = ({
         color: logoColor,
         letterSpacing: '0.05em',
         lineHeight: 1.2,
-        fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: 'var(--font-space-grotesk), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       }}
     >
-      KalBook
+      KalBok
+      <span className="animate-io-appear inline-block">.io</span>
     </span>
   );
 };
+
+// Keep the old export for backward compatibility during migration
+export const KalBookLogo = KalBokLogo;

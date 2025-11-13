@@ -113,6 +113,16 @@ export async function PATCH(
       );
     }
 
+    // Check if business can manage customers
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_customers');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing customers. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createAdminClient();
 
     // Verify customer exists and belongs to the business
@@ -302,16 +312,15 @@ export async function DELETE(
       );
     }
 
-    // DEBUG: Log tenant info to see what business_id is being used
-    console.log('[DELETE CUSTOMER] Tenant Info:', {
-      businessId: tenantInfo.businessId,
-      businessSlug: tenantInfo.businessSlug,
-      customerId: customerId,
-      headers: {
-        tenantHeader: request.headers.get('x-tenant-context'),
-        cookie: request.cookies.get('business-slug')?.value,
-      },
-    });
+    // Check if business can manage customers
+    const { canBusinessPerformAction } = await import('@/lib/trial/utils');
+    const canManage = await canBusinessPerformAction(tenantInfo.businessId, 'manage_customers');
+    if (!canManage) {
+      return NextResponse.json(
+        { error: 'Your plan does not allow managing customers. Please upgrade your plan.' },
+        { status: 403 }
+      );
+    }
 
     const supabase = createAdminClient();
 

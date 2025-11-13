@@ -5,6 +5,7 @@
         "services": "שירותים",
         "workers": "עובדים",
         "customers": "לקוחות",
+        "activityLogs": "יומן פעילות",
         "templates": "תבניות",
         "qr": "קודי QR",
         "settings": "הגדרות",
@@ -68,7 +69,29 @@
     "autoCalculatedEndTime": "שעת הסיום מחושבת אוטומטית בהתאם למשך השירות",
     "notWorkingDay": "יום זה אינו יום עבודה",
     "outsideWorkingHours": "שעה זו מחוץ לשעות העבודה",
-    "endTimeOutsideWorkingHours": "שעת הסיום מחוץ לשעות העבודה"
+    "endTimeOutsideWorkingHours": "שעת הסיום מחוץ לשעות העבודה",
+    "groupAppointment": "תור קבוצתי",
+    "participants": "משתתפים",
+    "currentParticipants": "משתתפים נוכחיים",
+    "maxParticipants": "מספר משתתפים מקסימלי",
+    "events": "אירועים",
+    "event": "אירוע",
+    "addEvent": "הוסף אירוע",
+    "viewByDay": "תצוגה יומית",
+    "viewByWeek": "תצוגה שבועית",
+    "viewByMonth": "תצוגה חודשית",
+    "viewByYear": "תצוגה שנתית",
+    "viewByAgenda": "תצוגת יומן",
+    "weeklyViewNotAvailable": "תצוגה שבועית אינה זמינה במכשירים קטנים יותר.",
+    "switchToDailyOrMonthly": "אנא עבור לתצוגה יומית או חודשית.",
+    "allUsers": "כל המשתמשים",
+    "responsible": "אחראי",
+    "startDate": "תאריך התחלה",
+    "endDate": "תאריך סיום",
+    "description": "תיאור",
+    "edit": "ערוך",
+    "chooseStartDate": "בחר תאריך התחלה",
+    "chooseEndDate": "בחר תאריך סיום"
   },
   "services": {
     "title": "שירותים",
@@ -100,7 +123,33 @@
     "serviceUpdated": "השירות עודכן בהצלחה",
     "serviceDeleted": "השירות נמחק בהצלחה",
     "confirmDelete": "האם אתה בטוח שברצונך למחוק שירות זה?",
+    "deleteConfirmTitle": "מחיקת שירות",
+    "deleteConfirmMessage": "האם אתה בטוח שברצונך למחוק את \"{name}\"? פעולה זו לא ניתנת לביטול.",
+    "deleteConfirm": "מחק שירות",
+    "deleteWarning": "אזהרה:",
+    "deleteWarningMessage": "מחיקת שירות זה תסיר אותו מכל התורים העתידיים. תורים קיימים יישארו, אך פרטי השירות יאבדו.",
+    "deleting": "מוחק...",
     "required": "שדה זה נדרש",
+    "groupService": "שירות קבוצתי",
+    "groupServiceDescription": "אפשר ללקוחות מרובים להזמין את אותו חלון זמן (למשל, שיעורים, טיפול קבוצתי)",
+    "maxCapacity": "מספר משתתפים מקסימלי",
+    "maxCapacityRequired": "מספר משתתפים מקסימלי *",
+    "maxCapacityDescription": "מספר הלקוחות המקסימלי שיכולים להצטרף לשירות זה",
+    "minCapacity": "מספר משתתפים מינימלי (אופציונלי)",
+    "minCapacityPlaceholder": "למשל, 3",
+    "minCapacityDescription": "מספר משתתפים מינימלי הנדרש לפני שאירוע מאושר (אופציונלי)",
+    "allowWaitlist": "אפשר רשימת המתנה",
+    "allowWaitlistDescription": "אפשר ללקוחות להצטרף לרשימת המתנה כשהכיתה מלאה",
+    "groupBadge": "קבוצה",
+    "maxParticipants": "מקסימום {count} משתתפים",
+    "joinExistingGroup": "אתה יכול להצטרף לקבוצות קיימות או להתחיל חדשה",
+    "joinGroupSpots": "הצטרף לקבוצה קיימת ({spots} מקומות זמינים)",
+    "groupFull": "הקבוצה מלאה",
+    "spotsLeft": "{count} נותרו",
+    "full": "מלא",
+    "groupClass": "שיעור קבוצתי",
+    "groupParticipants": "קבוצה: {current}{max} משתתפים",
+    "groupServiceFormat": "{service} ({current}/{max})",
     "min": "מינימום {value}",
     "max": "מקסימום {value}"
   },
@@ -219,7 +268,17 @@
     "placeholder": "מציין מקום",
     "bookingUrl": "כתובת הזמנות",
     "urlCopied": "הכתובת הועתקה ללוח",
-    "downloadingQR": "מוריד קוד QR עבור {name}"
+    "downloadingQR": "מוריד קוד QR עבור {name}",
+    "upgradeRequired": "נדרש שדרוג",
+    "upgradeMessage": "יצירת קוד QR זמינה בתוכניות מקצועי וביזנס. אנא שדרג כדי לגשת לתכונה זו."
+  },
+  "limits": {
+    "servicesLimitReached": "התוכנית שלך תומכת ב-{{X}} שירותים",
+    "servicesLimitMessage": "אנא שדרג כדי להוסיף עוד שירותים",
+    "staffLimitReached": "התוכנית שלך תומכת ב-{{X}} עובדים",
+    "staffLimitMessage": "אנא שדרג כדי להוסיף עוד עובדים",
+    "bookingsLimitReached": "התוכנית שלך תומכת ב-{{X}} תורים לחודש",
+    "bookingsLimitMessage": "אנא שדרג כדי להוסיף עוד תורים"
   },
   "settings": {
     "title": "הגדרות",
@@ -252,6 +311,11 @@
     "workingHoursEnd": "שעת סיום עבודה",
     "timeSlotGap": "מרווח זמני תורים",
     "timeSlotGapDescription": "בחר את המרווח בין זמני התורים הזמינים (משפיע על דף ההזמנות והלוח שנה)",
+    "customerReschedule": "הגדרות שינוי תורים ללקוחות",
+    "allowCustomerReschedule": "אפשר ללקוחות לשנות תורים",
+    "allowCustomerRescheduleDescription": "הפעל אפשרות זו כדי לאפשר ללקוחות לשנות את תאריך ושעת התור שלהם",
+    "requireRescheduleApproval": "דרוש אישור לבקשות שינוי תור",
+    "requireRescheduleApprovalDescription": "אם מופעל, בקשות שינוי תור יצריכו אישור מנהל. אם מושבת, השינויים יוחלו מיד.",
     "minute": "דקה",
     "minutes": "דקות",
     "contactMessageEnabled": "הצג הודעת יצירת קשר",
@@ -405,66 +469,139 @@
     "or": "או",
     "justAMoment": "רגע, אנחנו איתך"
   },
+  "trial": {
+    "currentPlan": "תוכנית נוכחית",
+    "plan": "תוכנית",
+    "trialExpired": "תקופת הניסיון פגה",
+    "calendarBlockedMessage": "תקופת הניסיון שלך הסתיימה. אנא צרו קשר כדי לשדרג את התוכנית ולהמשיך להשתמש בלוח השנה.",
+    "contactUs": "צרו קשר:",
+    "phone": "טלפון",
+    "email": "אימייל",
+    "contactToUpgrade": "צרו קשר לשדרוג",
+    "clickHereToUpgrade": "לחץ כאן לשדרוג",
+    "upgradeNow": "שדרג עכשיו",
+    "day": "יום",
+    "days": "ימים",
+    "left": "נותרו",
+    "upgradeModal": {
+      "title": "שדרג את התוכנית שלך",
+      "description": "שלח בקשה לשדרוג התוכנית שלך. ניצור איתך קשר בקרוב כדי להשלים את תהליך השדרוג.",
+      "currentPlan": "תוכנית נוכחית",
+      "desiredPlan": "תוכנית רצויה",
+      "desiredPlanRequired": "אנא בחר תוכנית רצויה",
+      "contactEmail": "אימייל ליצירת קשר",
+      "contactEmailHelper": "נשתמש באימייל הזה כדי ליצור איתך קשר לגבי השדרוג",
+      "message": "הודעה (אופציונלי)",
+      "messagePlaceholder": "ספר לנו על הצרכים שלך או כל שאלה...",
+      "submitRequest": "שלח בקשה",
+      "submitting": "שולח...",
+      "cancel": "בטל",
+      "success": "הבקשה לשדרוג נשלחה בהצלחה!",
+      "error": "שליחת הבקשה לשדרוג נכשלה",
+      "contactInfo": "פרטי יצירת קשר",
+      "phone": "טלפון",
+      "email": "אימייל"
+    }
+  },
   "home": {
-    "title": "BookingHub - המערכת הפשוטה שמביאה לכם עוד הזמנות",
-    "subtitle": "פתרון אחד לניהול עסקי שירות בישראל: קבלת הזמנות אונליין, לוח זמנים חכם, ניהול עובדים ולקוחות, תזכורות והודעות. קל, מהיר, בעברית.",
-    "startNow": "התחילו עכשיו",
-    "seeFeatures": "לראות יכולות",
+    "title": "KalBok",
+    "subtitle": "כל מה שעסק השירות שלכם צריך - במקום אחד.\n\nהזמנות אונליין, לוח זמנים חכם, ניהול עובדים ולקוחות, תזכורות והודעות אוטומטיות.\n\nקל לשימוש, מהיר להקמה, מלא בעברית.\n\nהתחילו עוד היום!",
+    "startNow": "בואו נתחיל",
+    "seeFeatures": "מה יש בפנים?",
     "pricingLabel": "מחירים",
     "freeTrial": "ניסיון חינם",
     "adminDemo": "דמו אדמין",
     "switchingLanguage": "משנה שפה...",
     "features": {
+      "subtitle": "כל מה שאתם צריכים להפעלת עסק השירות שלכם בצורה חלקה",
       "setup3min": {
         "title": "הקמה ב-3 דקות",
-        "desc": "בוחרים סוג עסק, מוסיפים שירותים ועובד ראשון ומתחילים לעבוד."
+        "desc": "בוחרים סוג עסק, מוסיפים שירותים ואת חבר הצוות הראשון. אתם מוכנים להתחיל."
       },
       "easyCalendar": {
-        "title": "לוח זמנים קל",
-        "desc": "תצוגת יום, שבוע, חודש, גרירה לשינוי תור וסינון לפי עובד."
+        "title": "לוח זמנים חכם",
+        "desc": "תצוגה יומית, שבועית או חודשית. גרירה לשינוי תור, סינון לפי עובד."
       },
       "smartCustomers": {
-        "title": "לקוחות חכמים",
-        "desc": "כרטיס לקוח עם היסטוריה, הערות והסכמות שיווק."
+        "title": "לקוחות חכמים יותר",
+        "desc": "פרופילי לקוח מלאים עם היסטוריה, הערות והסכמות שיווק."
       },
       "reminders": {
-        "title": "תזכורות והודעות",
-        "desc": "אישור ותזכורות במייל ובוואטסאפ. חוסך שיחות ו-No show."
+        "title": "תזכורות שעובדות",
+        "desc": "שלחו אישורים ותזכורות במייל ובוואטסאפ. פחות שיחות, פחות אי הגעה."
       },
       "bilingual": {
-        "title": "דו לשוני ו-RTL",
-        "desc": "עברית ואנגלית, התאמה לימין ושמאל לכל דייר."
+        "title": "דו לשוני ומוכן ל-RTL",
+        "desc": "תמיכה בעברית ואנגלית. עובד מימין לשמאל ומשמאל לימין."
       },
       "security": {
-        "title": "אבטחה ופשטות",
-        "desc": "כניסה בקוד למייל ותבניות הודעות מוכנות לשימוש."
+        "title": "פשוט ומאובטח",
+        "desc": "כניסה בקוד למייל, תבניות הודעות מוכנות מראש, ושקט נפשי."
+      },
+      "analytics": {
+        "title": "ניתוחים ותובנות",
+        "desc": "דעו מה עובד. עקבו אחר הכנסות בזמן אמת, ראו מגמות הזמנות והבינו את הלקוחות שלכם טוב יותר."
+      },
+      "qrCodes": {
+        "title": "קודי QR להזמנה קלה",
+        "desc": "מסריקה לתור. צרו קודי QR לעמודי הזמנות או שירותים ספציפיים. שתפו בכל מקום, הזמינו מיד."
+      },
+      "onlineBooking": {
+        "title": "הזמנות אונליין 24/7",
+        "desc": "תמיד פתוח. אפשרו ללקוחות להזמין בכל עת - גם כשאתם לא בעבודה."
+      },
+      "groupServices": {
+        "title": "שירותים קבוצתיים וחבילות",
+        "desc": "ארזו שירותים לחבילות כמו תספורת + זקן למכירות נוספות קלות."
+      },
+      "activityLogs": {
+        "title": "יומן פעילות",
+        "desc": "עקבו אחר כל שינוי ופעולה בעסק שלכם, אוטומטית."
+      },
+      "customBranding": {
+        "title": "מותג מותאם אישית",
+        "desc": "הפכו את עמוד ההזמנות שלכם לשלכם עם הלוגו וצבעי המותג שלכם."
+      },
+      "mobileOptimized": {
+        "title": "הזמנות מותאמות למובייל",
+        "desc": "חוויית הזמנות רספונסיבית לחלוטין שנראית מעולה בכל מכשיר."
+      },
+      "noShowPrevention": {
+        "title": "מניעת אי הגעה",
+        "desc": "תזכורות אוטומטיות עוזרות להפחית תורים מבוטלים ולשמור על הלוח שלכם מלא."
       }
     },
     "pricing": {
       "title": "תמחור פשוט ושקוף",
       "subtitle": "בחרו חבילה מתאימה והתחילו לקבל הזמנות אונליין",
-      "monthlyNote": "המחיר חודשי בשקלים. אין התחייבות. התחלה ללא סיכון.",
+      "monthlyNote": "14 ימי ניסיון חינם. אין צורך בכרטיס אשראי. אפשר לבטל בכל עת.",
       "bestSeller": "הכי נמכר",
       "month": "לחודש",
-      "riskFree": "ניסיון ללא סיכון",
+      "riskFree": "14 ימי ניסיון חינם",
       "plans": {
         "basic": {
           "name": "בסיס",
-          "cta": "לנסות בחינם",
-          "note": "אפשר לשדרג בכל רגע",
-          "highlights": ["עובד אחד", "עד 200 הזמנות בחודש", "דף הזמנות בסיסי", "אישור ותזכורת במייל"]
+          "price": "dynamic",
+          "priceNote": "לחודש אחרי 14 ימי ניסיון חינם",
+          "cta": "התחל ניסיון חינם",
+          "note": "14 ימים חינם, ואז תמחור תחרותי",
+          "highlights": ["14 ימי ניסיון חינם", "עובד אחד", "עד 100 הזמנות בחודש", "דף הזמנות בסיסי", "אישור ותזכורת במייל"]
         },
         "professional": {
           "name": "מקצועי",
+          "price": "dynamic",
+          "priceNote": "לחודש",
           "cta": "להתחיל במקצועי",
           "note": "מומלץ לעסקים פעילים",
-          "highlights": ["עד 5 עובדים", "חבילות ושילובים כמו תספורת+זקן", "תזכורות ואוטומציות חכמות", "שליחת קישור בוואטסאפ ללקוח", "דו לשוני ו-RTL"]
+          "highlights": ["עד 5 עובדים", "הזמנות ללא הגבלה", "חבילות ושילובים כמו תספורת+זקן", "תזכורות ואוטומציות חכמות", "אינטגרציית וואטסאפ", "לוח בקרה ואנליטיקה", "מותג מותאם אישית", "דו לשוני ו-RTL"]
         },
         "business": {
           "name": "ביזנס",
+          "price": "dynamic",
+          "priceNote": "לחודש",
           "cta": "לבחור ביזנס",
           "note": "הטוב ביותר לרשתות קטנות",
-          "highlights": ["עד 15 עובדים", "אחסון תמונות וקבצים בענן", "כמה יומנים וכמה סניפים", "תמיכה מועדפת", "דוחות מתקדמים"]
+          "highlights": ["עד 15 עובדים", "הזמנות ללא הגבלה", "אחסון תמונות וקבצים בענן", "כמה יומנים וכמה סניפים", "תמיכה מועדפת", "דוחות מתקדמים", "גישת API"]
         }
       }
     },
@@ -496,7 +633,22 @@
     "complete": "הושלם",
     "chooseBusinessType": {
       "title": "בחרו את סוג העסק שלכם",
-      "subtitle": "אנו נתאים את ההגדרות שלכם בהתאם לעסק שלכם.",
+      "subtitle": "אנו נתאים את ההגדרות שלכם בהתאם לעסק שלכם. בחרו את הקטגוריה המתאימה לשירותים שלכם, ואנו נגדיר עבורכם את כל מה שצריך כדי להתחיל לקבל הזמנות ולשלוט בזמן שלכם ביעילות רבה יותר.",
+      "filterByCategory": "סנן לפי קטגוריה",
+      "allCategories": "כל הקטגוריות",
+      "microcopy": {
+        "beauty_aesthetics": "מושלם למכוני יופי, ספא ומקצועני יופי. נכין עבורכם שירותים המותאמים לעסק היופי שלכם.",
+        "fitness_wellness": "אידיאלי למאמנים, סטודיו ומרכזי בריאות. התחילו עם שירותים המותאמים לעסקי כושר ובריאות.",
+        "personal_care_coaching": "מצוין למאמנים, מטפלים ויועצים. נגדיר עבורכם שירותים מושלמים לפגישות אישיות וקבוצתיות.",
+        "other": "לא מוצאים את סוג העסק המדויק שלכם? אין בעיה! בחרו 'אחר' ואנו נעזור לכם להתאים הכל לצרכים הייחודיים שלכם.",
+        "default": "בחרו קטגוריה כדי לראות סוגי עסקים התואמים לתחום שלכם. כל אפשרות מגיעה עם שירותים מוגדרים מראש כדי להתחיל במהירות."
+      },
+      "categories": {
+        "beauty_aesthetics": "יופי ואסתטיקה",
+        "fitness_wellness": "כושר ובריאות",
+        "personal_care_coaching": "טיפול אישי ואימון",
+        "other": "אחר"
+      },
       "businessTypes": {
         "barbershop": {
           "title": "מספרה",
@@ -509,6 +661,34 @@
         "gym_trainer": {
           "title": "מאמן אישי",
           "description": "אימונים אישיים ומועדוני כושר"
+        },
+        "beauty_salon": {
+          "title": "מכון יופי",
+          "description": "מכוני יופי (גבות, טיפולי פנים, הסרת שיער וכו')"
+        },
+        "makeup_artist": {
+          "title": "מאפרת / מעצבת שיער",
+          "description": "מאפרות ומעצבות שיער"
+        },
+        "spa": {
+          "title": "ספא / מרכז עיסוי",
+          "description": "מרכזי עיסוי וספא"
+        },
+        "pilates_studio": {
+          "title": "סטודיו פילאטיס / יוגה",
+          "description": "סטודיו פילאטיס ויוגה"
+        },
+        "physiotherapy": {
+          "title": "מרפאה לפיזיותרפיה",
+          "description": "מרפאות עיסוי או פיזיותרפיה"
+        },
+        "life_coach": {
+          "title": "מאמן חיים / מטפל רגשי",
+          "description": "מאמני חיים ומטפלים רגשיים"
+        },
+        "dietitian": {
+          "title": "דיאטנית / תזונאית",
+          "description": "דיאטניות ושירותי תזונה"
         },
         "other": {
           "title": "שירות אחר",
@@ -623,6 +803,125 @@
             "category": "ייעוץ"
           }
         },
+        "beauty_salon": {
+          "eyebrowShaping": {
+            "name": "עיצוב גבות",
+            "description": "עיצוב ועיצוב גבות מקצועי",
+            "category": "גבות"
+          },
+          "facialTreatment": {
+            "name": "טיפול פנים",
+            "description": "טיפול פנים מעמיק ומרענן",
+            "category": "פנים"
+          },
+          "hairRemoval": {
+            "name": "הסרת שיער",
+            "description": "שירות הסרת שיער מקצועי",
+            "category": "הסרת שיער"
+          }
+        },
+        "makeup_artist": {
+          "makeupApplication": {
+            "name": "איפור",
+            "description": "איפור מקצועי",
+            "category": "איפור"
+          },
+          "hairStyling": {
+            "name": "עיצוב שיער",
+            "description": "שירות עיצוב שיער מקצועי",
+            "category": "שיער"
+          },
+          "fullMakeupHair": {
+            "name": "איפור ושיער מלא",
+            "description": "חבילת איפור ועיצוב שיער מלאה",
+            "category": "שירות מלא"
+          }
+        },
+        "spa": {
+          "swedishMassage": {
+            "name": "עיסוי שוודי",
+            "description": "טיפול עיסוי שוודי מרגיע",
+            "category": "עיסוי"
+          },
+          "deepTissueMassage": {
+            "name": "עיסוי רקמות עמוק",
+            "description": "עיסוי רקמות עמוק טיפולי",
+            "category": "עיסוי"
+          },
+          "fullBodyTreatment": {
+            "name": "טיפול גוף מלא",
+            "description": "טיפול ספא גוף מלא",
+            "category": "טיפול מלא"
+          }
+        },
+        "pilates_studio": {
+          "pilatesClass": {
+            "name": "שיעור פילאטיס",
+            "description": "שיעור פילאטיס קבוצתי",
+            "category": "פילאטיס"
+          },
+          "yogaClass": {
+            "name": "שיעור יוגה",
+            "description": "שיעור יוגה קבוצתי",
+            "category": "יוגה"
+          },
+          "privateSession": {
+            "name": "שיעור פרטי",
+            "description": "שיעור אימון פרטי אחד על אחד",
+            "category": "פרטי"
+          }
+        },
+        "physiotherapy": {
+          "initialConsultation": {
+            "name": "ייעוץ ראשוני",
+            "description": "הערכה וייעוץ ראשוני",
+            "category": "ייעוץ"
+          },
+          "treatmentSession": {
+            "name": "טיפול",
+            "description": "טיפול פיזיותרפיה",
+            "category": "טיפול"
+          },
+          "followUpSession": {
+            "name": "מעקב",
+            "description": "טיפול מעקב",
+            "category": "מעקב"
+          }
+        },
+        "life_coach": {
+          "initialConsultation": {
+            "name": "ייעוץ ראשוני",
+            "description": "ייעוץ אימון חיים ראשוני",
+            "category": "ייעוץ"
+          },
+          "coachingSession": {
+            "name": "שיעור אימון",
+            "description": "שיעור אימון חיים",
+            "category": "אימון"
+          },
+          "followUpSession": {
+            "name": "מעקב",
+            "description": "שיעור אימון מעקב",
+            "category": "מעקב"
+          }
+        },
+        "dietitian": {
+          "initialConsultation": {
+            "name": "ייעוץ ראשוני",
+            "description": "ייעוץ תזונה ראשוני",
+            "category": "ייעוץ"
+          },
+          "nutritionPlan": {
+            "name": "תוכנית תזונה",
+            "description": "יצירת תוכנית תזונה מותאמת אישית",
+            "category": "תכנון"
+          },
+          "followUpSession": {
+            "name": "מעקב",
+            "description": "ייעוץ תזונה מעקב",
+            "category": "מעקב"
+          }
+        },
         "other": {
           "service1": {
             "name": "שירות 1",
@@ -713,6 +1012,65 @@
     "addToAppleCalendar": "הוסף ליומן Apple",
     "bookAnotherAppointment": "קבע תור נוסף",
     "followUsOnSocial": "עקבו אחרינו ברשתות החברתיות",
-    "loginOrRegister": "התחברות או הרשמה"
+    "loginOrRegister": "התחברות או הרשמה",
+    "myAppointments": "התורים שלי",
+    "goToMainPage": "עבור לעמוד הראשי",
+    "showAppointments": "הצג תורים",
+    "hideAppointments": "הסתר תורים",
+    "noAppointmentsFound": "לא נמצאו תורים",
+    "cancel": "ביטול",
+    "reschedule": "שינוי תור",
+    "rescheduleAppointment": "שינוי תור",
+    "cancelAppointment": "ביטול תור",
+    "confirmCancel": "האם אתה בטוח שברצונך לבטל את התור הזה? פעולה זו לא ניתנת לביטול.",
+    "appointmentCancelled": "התור בוטל בהצלחה",
+    "cancelError": "נכשל בביטול התור",
+    "appointmentRescheduled": "התור שונה בהצלחה",
+    "rescheduleError": "נכשל בשינוי התור",
+    "rescheduleNotAllowed": "שינוי תורים אינו מותר לעסק זה",
+    "rescheduleRequestSent": "בקשת שינוי תור נשלחה. ממתין לאישור.",
+    "sameDateTimeError": "לא ניתן לשנות תור לאותו תאריך ושעה"
+  },
+  "activityLogs": {
+    "title": "יומן פעילות תורים",
+    "description": "צפה בכל פעילויות התורים של הלקוחות כולל הזמנות, ביטולים ובקשות שינוי תור",
+    "filters": "מסננים",
+    "type": "סוג",
+    "customer": "לקוח",
+    "service": "שירות",
+    "worker": "עובד",
+    "dateTime": "תאריך ושעה",
+    "status": "סטטוס",
+    "actions": "פעולות",
+    "approve": "אשר",
+    "reject": "דחה",
+    "rejectConfirm": "דחיית בקשת שינוי תור",
+    "rejectMessage": "אנו מצטערים אך לא יכולנו לשנות את התאריך. אם אינך יכול להגיע, אנא בטל את התור.",
+    "approved": "אושר",
+    "rejected": "נדחה",
+    "pending": "ממתין",
+    "completed": "הושלם",
+    "appointmentCreated": "תור נוצר",
+    "appointmentCancelled": "תור בוטל",
+    "rescheduleRequested": "בקשת שינוי תור",
+    "rescheduleApproved": "שינוי תור אושר",
+    "rescheduleRejected": "שינוי תור נדחה",
+    "noLogsFound": "לא נמצאו יומני פעילות",
+    "fetchError": "נכשל בטעינת יומני פעילות",
+    "approveError": "נכשל באישור בקשת שינוי תור",
+    "rejectError": "נכשל בדחיית בקשת שינוי תור",
+    "startDate": "תאריך התחלה",
+    "endDate": "תאריך סיום",
+    "all": "הכל",
+    "original": "מקורי",
+    "requested": "מבוקש",
+    "apply": "החל",
+    "logs": "יומני פעילות",
+    "showing": "מציג",
+    "of": "מתוך",
+    "previous": "הקודם",
+    "next": "הבא",
+    "loading": "טוען...",
+    "cancel": "ביטול"
   }
 }

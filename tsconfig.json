@@ -21,21 +21,28 @@
         "./*"
       ],
       "@/components/ui/*": [
+        "./src/components/ui/*",
         "./components/ported/ui/*",
         "./components/ui/*"
       ],
       "@/components/admin/*": [
+        "./components/admin/*",
         "./components/ported/admin/*"
       ],
       "@/hooks/*": [
+        "./src/hooks/*",
         "./components/ported/hooks/*"
       ],
       "@/types/*": [
         "./components/ported/types/*"
       ],
       "@/lib/*": [
+        "./src/lib/*",
         "./lib/*",
         "./components/ported/lib/*"
+      ],
+      "@/calendar/*": [
+        "./src/calendar/*"
       ]
     },
     "incremental": true,

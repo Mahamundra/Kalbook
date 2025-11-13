@@ -255,6 +255,9 @@ const Settings = () => {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<{ logo?: boolean; banner?: boolean; video?: boolean }>({});
+  const [canCustomBranding, setCanCustomBranding] = useState(true); // Default to true to avoid blocking
+  const [canUseWhatsApp, setCanUseWhatsApp] = useState(true); // Default to true to avoid blocking
+  const [canUseMultiLanguage, setCanUseMultiLanguage] = useState(true); // Default to true to avoid blocking
   const [settings, setSettings] = useState(() => {
     // Use default value on server to avoid hydration mismatch
     if (typeof window === 'undefined') {
@@ -477,6 +480,26 @@ const Settings = () => {
       }
     };
     loadSettings();
+
+    // Check feature access for settings sections
+    Promise.all([
+      fetch('/api/admin/feature-check?feature=custom_branding').then(res => res.json()),
+      fetch('/api/admin/feature-check?feature=whatsapp_integration').then(res => res.json()),
+      fetch('/api/admin/feature-check?feature=multi_language').then(res => res.json()),
+    ]).then(([brandingData, whatsappData, languageData]) => {
+      if (brandingData.success) {
+        setCanCustomBranding(brandingData.canPerform);
+      }
+      if (whatsappData.success) {
+        setCanUseWhatsApp(whatsappData.canPerform);
+      }
+      if (languageData.success) {
+        setCanUseMultiLanguage(languageData.canPerform);
+      }
+    }).catch(error => {
+      console.error('Error checking features:', error);
+      // Default to true if check fails to avoid blocking unnecessarily
+    });
   }, []);
 
   const handleSave = async () => {
@@ -569,6 +592,11 @@ const Settings = () => {
   };
 
   const handleRemoveLogo = async () => {
+    if (!canCustomBranding) {
+      toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+      return;
+    }
+
     try {
       // Delete file from Supabase Storage if it exists
       const oldLogoUrl = settings.branding.logoUrl;
@@ -676,12 +704,18 @@ const Settings = () => {
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.whatsapp')}</label>
               <Input
                 value={settings.businessProfile.whatsapp}
-                onChange={(e) =>
+                onChange={(e) => {
+                  if (!canUseWhatsApp) {
+                    toast.error('Your plan doesn\'t allow WhatsApp integration. Please upgrade to continue.');
+                    return;
+                  }
                   setSettings({
                     ...settings,
                     businessProfile: { ...settings.businessProfile, whatsapp: e.target.value } as BusinessProfile,
-                  })
-                }
+                  });
+                }}
+                disabled={!canUseWhatsApp}
+                title={!canUseWhatsApp ? 'Your plan doesn\'t allow WhatsApp integration. Please upgrade to continue.' : ''}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
             </div>
@@ -725,8 +759,13 @@ const Settings = () => {
         </Card>
 
         {/* Branding */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.bookingPageAppearance')}</h3>
+        <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.bookingPageAppearance')}</h3>
+            {!canCustomBranding && (
+              <span className="text-xs text-muted-foreground">(Upgrade required)</span>
+            )}
+          </div>
           <div className="space-y-6">
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.logo')}</label>
@@ -745,6 +784,8 @@ const Settings = () => {
                         type="button"
                         variant="outline"
                         onClick={() => document.getElementById('logo-upload')?.click()}
+                        disabled={!canCustomBranding}
+                        title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
                       >
                         <Upload className="w-4 h-4 me-2" />
                         {t('settings.changeLogo')}
@@ -753,6 +794,8 @@ const Settings = () => {
                         type="button"
                         variant="outline"
                         onClick={handleRemoveLogo}
+                        disabled={!canCustomBranding}
+                        title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
                       >
                         <X className="w-4 h-4 me-2" />
                         {t('settings.removeLogo')}
@@ -768,6 +811,8 @@ const Settings = () => {
                       type="button"
                       variant="outline"
                       onClick={() => document.getElementById('logo-upload')?.click()}
+                      disabled={!canCustomBranding}
+                      title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
                     >
                       <Upload className="w-4 h-4 me-2" />
                       {t('settings.uploadLogo')}
@@ -793,7 +838,12 @@ const Settings = () => {
                   <Input
                     type="text"
                     value={mounted ? settings.branding.themeColor.replace('#', '') : '0EA5E9'}
+                    disabled={!canCustomBranding}
                     onChange={(e) => {
+                      if (!canCustomBranding) {
+                        toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+                        return;
+                      }
                       let value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
                       if (value.length > 6) value = value.substring(0, 6);
                       const newColor = value.length === 6 ? `#${value}` : (value.length > 0 ? `#${value}` : settings.branding.themeColor);
@@ -937,7 +987,11 @@ const Settings = () => {
                     type="button"
                     variant={settings.branding.bannerCover?.type === 'upload' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() =>
+                    onClick={() => {
+                      if (!canCustomBranding) {
+                        toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+                        return;
+                      }
                       setSettings({
                         ...settings,
                         branding: {
@@ -949,8 +1003,10 @@ const Settings = () => {
                             position: settings.branding.bannerCover?.position || { x: 50, y: 50 },
                           },
                         },
-                      })
-                    }
+                      });
+                    }}
+                    disabled={!canCustomBranding}
+                    title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
                   >
                     {t('settings.uploadBanner')}
                   </Button>
@@ -958,15 +1014,21 @@ const Settings = () => {
                     type="button"
                     variant={settings.branding.bannerCover?.type === 'pattern' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() =>
+                    onClick={() => {
+                      if (!canCustomBranding) {
+                        toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+                        return;
+                      }
                       setSettings({
                         ...settings,
                         branding: {
                           ...settings.branding,
                           bannerCover: { type: 'pattern' as const, patternId: settings.branding.bannerCover?.patternId || 'pattern1' },
                         },
-                      })
-                    }
+                      });
+                    }}
+                    disabled={!canCustomBranding}
+                    title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
                   >
                     {t('settings.choosePattern')}
                   </Button>
@@ -1180,16 +1242,22 @@ const Settings = () => {
                             ? 'border-primary ring-2 ring-primary/20'
                             : 'border-border hover:border-primary/50'
                         }`}
-                        onClick={() =>
+                        onClick={() => {
+                          if (!canCustomBranding) {
+                            toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+                            return;
+                          }
                           setSettings({
                             ...settings,
                             branding: {
                               ...settings.branding,
                               bannerCover: { type: 'pattern' as const, patternId: pattern.id },
                             },
-                          })
-                        }
+                          });
+                        }}
                         style={{
+                          cursor: !canCustomBranding ? 'not-allowed' : 'pointer',
+                          opacity: !canCustomBranding ? 0.5 : 1,
                           background: pattern.id === 'pattern1' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
                                      pattern.id === 'pattern2' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
                                      pattern.id === 'pattern3' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' :
@@ -1220,12 +1288,17 @@ const Settings = () => {
                 </label>
                 <Textarea
                   value={settings.branding.guestMessage || ''}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    if (!canCustomBranding) {
+                      toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+                      return;
+                    }
                     setSettings({
                       ...settings,
                       branding: { ...settings.branding, guestMessage: e.target.value },
-                    })
-                  }
+                    });
+                  }}
+                  disabled={!canCustomBranding}
                   placeholder={t('settings.guestMessagePlaceholder')}
                   rows={2}
                   dir={isRTL ? 'rtl' : 'ltr'}
@@ -1243,12 +1316,17 @@ const Settings = () => {
                 </label>
                 <Textarea
                   value={settings.branding.loggedInMessage || ''}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    if (!canCustomBranding) {
+                      toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
+                      return;
+                    }
                     setSettings({
                       ...settings,
                       branding: { ...settings.branding, loggedInMessage: e.target.value },
-                    })
-                  }
+                    });
+                  }}
+                  disabled={!canCustomBranding}
                   placeholder={t('settings.loggedInMessagePlaceholder')}
                   rows={2}
                   dir={isRTL ? 'rtl' : 'ltr'}
@@ -1828,12 +1906,17 @@ const Settings = () => {
         </Card>
 
         {/* Language & Localization */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.languageAndLocalization')}</h3>
+        <Card className={`p-6 shadow-card ${!canUseMultiLanguage ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.languageAndLocalization')}</h3>
+            {!canUseMultiLanguage && (
+              <span className="text-xs text-muted-foreground">(Upgrade required)</span>
+            )}
+          </div>
           <div className="space-y-4">
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.language')}</label>
-              <LanguageSelect />
+              <LanguageSelect disabled={!canUseMultiLanguage} />
             </div>
           </div>
         </Card>
@@ -1995,6 +2078,70 @@ const Settings = () => {
                 {t('settings.timeSlotGapDescription')}
               </p>
             </div>
+
+            {/* Customer Reschedule Settings */}
+            <div className="border-t pt-6 mt-6">
+              <h4 className={`text-base font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.customerReschedule') || 'Customer Reschedule Settings'}
+              </h4>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <label className="text-sm font-medium">
+                      {t('settings.allowCustomerReschedule') || 'Allow customers to reschedule appointments'}
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('settings.allowCustomerRescheduleDescription') || 'Enable this to let customers change their appointment date and time'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.calendar?.reschedule?.allowCustomerReschedule ?? false}
+                    onCheckedChange={(checked) =>
+                      setSettings({
+                        ...settings,
+                        calendar: {
+                          ...settings.calendar,
+                          reschedule: {
+                            ...settings.calendar?.reschedule,
+                            allowCustomerReschedule: checked,
+                            requireApproval: checked ? (settings.calendar?.reschedule?.requireApproval ?? false) : false,
+                          },
+                        },
+                      })
+                    }
+                  />
+                </div>
+
+                {settings.calendar?.reschedule?.allowCustomerReschedule && (
+                  <div className="flex items-center justify-between pl-4 border-l-2 border-primary/20">
+                    <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <label className="text-sm font-medium">
+                        {t('settings.requireRescheduleApproval') || 'Require approval for reschedule requests'}
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t('settings.requireRescheduleApprovalDescription') || 'If enabled, reschedule requests will need admin approval. If disabled, changes will be applied immediately.'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.calendar?.reschedule?.requireApproval ?? false}
+                      onCheckedChange={(checked) =>
+                        setSettings({
+                          ...settings,
+                          calendar: {
+                            ...settings.calendar,
+                            reschedule: {
+                              ...settings.calendar?.reschedule,
+                              requireApproval: checked,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -2067,11 +2214,15 @@ const Settings = () => {
   );
 };
 
-function LanguageSelect() {
+function LanguageSelect({ disabled = false }: { disabled?: boolean }) {
   const { locale, setLocale } = useDirection();
   const [isChanging, setIsChanging] = useState(false);
 
   const handleLanguageChange = async (newLocale: Locale) => {
+    if (disabled) {
+      toast.error('Your plan doesn\'t allow multi-language support. Please upgrade to continue.');
+      return;
+    }
     if (newLocale === locale || isChanging) return;
     
     setIsChanging(true);
@@ -2104,7 +2255,7 @@ function LanguageSelect() {
     <Select
       value={locale}
       onValueChange={(value) => handleLanguageChange(value as Locale)}
-      disabled={isChanging}
+      disabled={isChanging || disabled}
     >
       <SelectTrigger className={`w-full ${langIsRTL ? '!text-left !flex-row' : ''}`} dir={langIsRTL ? 'rtl' : 'ltr'}>
         <div className={`flex items-center gap-2 ${langIsRTL ? '' : ''}`}>

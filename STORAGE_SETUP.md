@@ -1,6 +1,6 @@
 # Supabase Storage Setup Guide
 
-This guide explains how to set up Supabase Storage for file uploads (logos, banners, videos) in your Kalbook application.
+This guide explains how to set up Supabase Storage for file uploads (logos, banners, videos) in your KalBok application.
 
 ## Overview
 
