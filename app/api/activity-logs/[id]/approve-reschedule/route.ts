@@ -117,7 +117,6 @@ export async function POST(
         start: requestedStart.toISOString(),
         end: requestedEnd.toISOString(),
         status: 'confirmed',
-        notes: null, // Clear the reschedule request notes
       })
       .eq('id', appointment.id)
       .eq('business_id', tenantInfo.businessId)

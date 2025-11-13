@@ -69,7 +69,7 @@ export async function POST(
       .update({ status: 'rejected' })
       .eq('id', activityLogId);
 
-    // Restore appointment status to confirmed (remove pending_reschedule)
+    // Restore appointment status to confirmed if it was pending
     if (activityLog.appointment_id) {
       const appointmentResult = await supabase
         .from('appointments')
@@ -77,10 +77,10 @@ export async function POST(
         .eq('id', activityLog.appointment_id)
         .single() as { data: AppointmentRow | null; error: any };
 
-      if (appointmentResult.data && appointmentResult.data.status === 'pending_reschedule') {
+      if (appointmentResult.data && appointmentResult.data.status === 'pending') {
         await supabase
           .from('appointments')
-          .update({ status: 'confirmed', notes: null })
+          .update({ status: 'confirmed' })
           .eq('id', activityLog.appointment_id);
       }
     }
