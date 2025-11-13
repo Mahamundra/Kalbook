@@ -9,6 +9,7 @@ export type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled';
 export type TemplateChannel = 'email' | 'message';
 export type TemplateType = 'booking_confirmation' | 'reminder' | 'cancellation';
 export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'cancelled';
+export type ActivityType = 'appointment_created' | 'appointment_cancelled' | 'reschedule_requested' | 'reschedule_approved' | 'reschedule_rejected';
 
 export interface Database {
   public: {
@@ -537,6 +538,44 @@ export interface Database {
           updated_at?: string;
         };
       };
+      activity_logs: {
+        Row: {
+          id: string;
+          business_id: string;
+          appointment_id: string | null;
+          customer_id: string;
+          activity_type: ActivityType;
+          created_by: 'customer' | 'admin';
+          metadata: Record<string, any>;
+          status: 'pending' | 'approved' | 'rejected' | 'completed' | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          appointment_id?: string | null;
+          customer_id: string;
+          activity_type: ActivityType;
+          created_by: 'customer' | 'admin';
+          metadata?: Record<string, any>;
+          status?: 'pending' | 'approved' | 'rejected' | 'completed' | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          appointment_id?: string | null;
+          customer_id?: string;
+          activity_type?: ActivityType;
+          created_by?: 'customer' | 'admin';
+          metadata?: Record<string, any>;
+          status?: 'pending' | 'approved' | 'rejected' | 'completed' | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
@@ -555,6 +594,7 @@ export type OTPCode = Database['public']['Tables']['otp_codes']['Row'];
 export type Plan = Database['public']['Tables']['plans']['Row'];
 export type PlanFeature = Database['public']['Tables']['plan_features']['Row'];
 export type SuperAdminUser = Database['public']['Tables']['super_admin_users']['Row'];
+export type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
 
 
 
