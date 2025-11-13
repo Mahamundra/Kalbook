@@ -6,6 +6,7 @@ import type { Database } from '@/lib/supabase/database.types';
 
 type ActivityLogRow = Database['public']['Tables']['activity_logs']['Row'];
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
+type AppointmentUpdate = Database['public']['Tables']['appointments']['Update'];
 
 export const dynamic = 'force-dynamic';
 
@@ -111,13 +112,14 @@ export async function POST(
     }
 
     // Update the appointment
+    const updateData: AppointmentUpdate = {
+      start: requestedStart.toISOString(),
+      end: requestedEnd.toISOString(),
+      status: 'confirmed',
+    };
     const updateResult = await supabase
       .from('appointments')
-      .update({
-        start: requestedStart.toISOString(),
-        end: requestedEnd.toISOString(),
-        status: 'confirmed',
-      })
+      .update(updateData)
       .eq('id', appointment.id)
       .eq('business_id', tenantInfo.businessId)
       .select(`

@@ -129,21 +129,12 @@ export async function POST(
 
     const fullAppointment = fullAppointmentResult.data;
 
-    // Store reschedule request in appointment metadata or create a separate table entry
-    // For now, we'll use a status field and store the requested times in notes or metadata
-    // Update appointment with pending reschedule status
+    // Update appointment with pending status
+    // The reschedule request details are stored in activity_logs metadata
     const updateResult = await supabase
       .from('appointments')
       .update({
-        status: 'pending_reschedule',
-        // Store requested times in notes field (we can create a separate table later if needed)
-        notes: JSON.stringify({
-          originalStart: existingAppointment.start,
-          originalEnd: existingAppointment.end,
-          requestedStart: requestedStart,
-          requestedEnd: requestedEnd,
-          rescheduleRequestedAt: new Date().toISOString(),
-        }),
+        status: 'pending',
       })
       .eq('id', appointmentId)
       .eq('business_id', tenantInfo.businessId)
