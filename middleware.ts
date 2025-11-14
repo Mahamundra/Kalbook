@@ -4,10 +4,11 @@ import { getBusinessBySlug } from '@/lib/business';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  const { supabase, response } = createClient(request);
+  try {
+    const { supabase, response } = createClient(request);
 
-  // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser();
+    // Refresh session if expired - required for Server Components
+    await supabase.auth.getUser();
 
   const url = request.nextUrl;
   const pathname = url.pathname;
@@ -311,6 +312,11 @@ export async function middleware(request: NextRequest) {
   }
 
   return response;
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // Return a basic response to prevent 500 errors
+    return NextResponse.next();
+  }
 }
 
 export const config = {
