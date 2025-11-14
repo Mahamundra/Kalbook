@@ -166,7 +166,7 @@ export async function canJoinAppointment(
   
   return {
     canJoin: true,
-    availableSpots: capacity.available,
+    availableSpots: capacity.available ?? undefined,
   };
 }
 
