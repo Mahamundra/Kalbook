@@ -193,21 +193,21 @@ export default function Home() {
   }
 
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white overflow-x-hidden">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-primary" />
+      <header className="bg-white border-b sticky top-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <h1 className="text-xl font-bold">KalBook</h1>
+              <h1 className="text-lg sm:text-xl font-bold truncate">KalBook</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <LanguageToggle />
               <Link href="/onboarding">
-                <Button>{getHome('startNow')}</Button>
+                <Button className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 h-8 sm:h-10">{getHome('startNow')}</Button>
               </Link>
             </div>
           </div>

@@ -173,7 +173,47 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
+  body { 
+    @apply bg-background text-foreground;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Fix mobile viewport height issues */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      min-height: -webkit-fill-available;
+    }
+  }
+  
+  html {
+    height: -webkit-fill-available;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  /* Safe area insets for notched devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Better mobile scrolling */
+  @media (max-width: 768px) {
+    body {
+      position: relative;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
+    /* Prevent horizontal scroll on mobile */
+    * {
+      max-width: 100%;
+    }
+  }
 }
 
 html[dir="rtl"] body { direction: rtl; }
