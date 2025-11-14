@@ -245,21 +245,21 @@ export async function addParticipantToAppointment(
   }
   
   // Create new participant
-  const insertResult = await supabase
-    .from('appointment_participants')
+  const insertResult = await (supabase
+    .from('appointment_participants') as any)
     .insert({
       appointment_id: appointmentId,
       customer_id: customerId,
       status,
       joined_at: new Date().toISOString(),
-    } as any)
+    })
     .select()
     .single() as { data: AppointmentParticipantRow | null; error: any };
   
-  if (insertResult.error) {
+  if (insertResult.error || !insertResult.data) {
     return {
       success: false,
-      error: insertResult.error.message || 'Failed to add participant',
+      error: insertResult.error?.message || 'Failed to add participant',
     };
   }
   
