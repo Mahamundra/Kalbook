@@ -37,7 +37,7 @@ import { appointmentsToBigCalendarEvents, workersToBigCalendarUsers, getAppointm
 import { CalendarContextAdapter } from '@/lib/calendar/calendar-context-adapter';
 import { AppointmentProvider } from '@/lib/calendar/appointment-context';
 import { Columns, List, Grid2x2 } from 'lucide-react';
-import { formatDate, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { he, ar, ru } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
 import { rangeText, navigateDate } from '@/calendar/helpers';
@@ -617,7 +617,7 @@ function CalendarContent() {
                       onClick={() => setCurrentDate(new Date())}
                     >
                       <p className="flex h-6 w-full items-center justify-center bg-primary text-center text-xs font-semibold text-primary-foreground">
-                        {formatDate(today, "MMM", { locale: dateFnsLocale }).toUpperCase()}
+                        {format(today, "MMM", { locale: dateFnsLocale }).toUpperCase()}
                       </p>
                       <p className="flex w-full items-center justify-center text-lg font-bold">{today.getDate()}</p>
                     </button>
@@ -628,24 +628,22 @@ function CalendarContent() {
                 {(() => {
                   const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
                   const dateFnsLocale = localeMap[locale || 'en'];
-                  const month = formatDate(currentDate, "MMMM", { locale: dateFnsLocale });
+                  const month = format(currentDate, "MMMM", { locale: dateFnsLocale });
                   const year = currentDate.getFullYear();
                   
                   // For RTL, swap the navigation logic: left arrow goes forward, right arrow goes backward
                   const handlePrevious = () => {
-                    if (isRTL) {
-                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "next"));
-                    } else {
-                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "previous"));
-                    }
+                    const newDate: Date = isRTL 
+                      ? navigateDate(currentDate, bigCalendarView as TCalendarView, "next")
+                      : navigateDate(currentDate, bigCalendarView as TCalendarView, "previous");
+                    setCurrentDate(newDate);
                   };
                   
                   const handleNext = () => {
-                    if (isRTL) {
-                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "previous"));
-                    } else {
-                      setCurrentDate(navigateDate(currentDate, bigCalendarView, "next"));
-                    }
+                    const newDate: Date = isRTL 
+                      ? navigateDate(currentDate, bigCalendarView as TCalendarView, "previous")
+                      : navigateDate(currentDate, bigCalendarView as TCalendarView, "next");
+                    setCurrentDate(newDate);
                   };
 
                   return (

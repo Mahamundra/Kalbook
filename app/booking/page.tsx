@@ -437,7 +437,7 @@ function BookingPageContent() {
                 .filter((slot: string | null): slot is string => slot !== null);
               
               // Remove duplicates and sort
-              const uniqueSlots = [...new Set(slots)].sort();
+              const uniqueSlots = [...new Set(slots)].sort() as string[];
               setRescheduleAvailableSlots(uniqueSlots);
             } else {
               setRescheduleAvailableSlots([]);
@@ -1939,9 +1939,9 @@ function BookingPageContent() {
                         : null;
                       
                       const canJoinGroup = !!groupAppointment;
-                      const isGroupFull = selectedService?.isGroupService && appointmentInfo && 
-                        appointmentInfo.isGroupAppointment && 
-                        appointmentInfo.currentParticipants >= (appointmentInfo.maxCapacity || 1);
+                      const isGroupFull = !!(selectedService?.isGroupService && appointmentInfo &&
+                        appointmentInfo.isGroupAppointment &&
+                        (appointmentInfo.currentParticipants || 0) >= (appointmentInfo.maxCapacity || 1));
                       
                       return (
                         <motion.button

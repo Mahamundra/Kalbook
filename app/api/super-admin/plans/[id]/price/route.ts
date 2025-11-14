@@ -40,8 +40,8 @@ export async function PATCH(
     const supabase = createAdminClient();
 
     // Update plan price
-    const updateResult = await supabase
-      .from('plans')
+    const updateResult = await (supabase
+      .from('plans') as any)
       .update({ price: priceNumber })
       .eq('id', planId)
       .select()
