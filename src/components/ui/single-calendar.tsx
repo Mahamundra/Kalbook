@@ -51,7 +51,7 @@ function SingleCalendar({ className, classNames, showOutsideDays = true, selecte
       components={{
         IconLeft: ({ className, ...props }) => <ChevronLeft className={cn("h-4 w-4", className)} {...props} />,
         IconRight: ({ className, ...props }) => <ChevronRight className={cn("h-4 w-4", className)} {...props} />,
-      }}
+      } as any}
       {...props}
     />
   );
