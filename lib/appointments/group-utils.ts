@@ -221,12 +221,12 @@ export async function addParticipantToAppointment(
   
   if (existingResult.data) {
     // Update existing participant
-    const updateResult = await supabase
-      .from('appointment_participants')
+    const updateResult = await (supabase
+      .from('appointment_participants') as any)
       .update({
         status,
         joined_at: new Date().toISOString(),
-      } as any)
+      })
       .eq('id', existingResult.data.id)
       .select()
       .single() as { data: AppointmentParticipantRow | null; error: any };
