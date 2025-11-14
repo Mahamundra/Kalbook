@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 import type { DayPickerSingleProps } from "react-day-picker";
 
-function SingleCalendar({ className, classNames, showOutsideDays = true, selected, ...props }: DayPickerSingleProps & { className?: string; classNames?: any }) {
+function SingleCalendar({ className, classNames, showOutsideDays = true, selected, ...props }: DayPickerSingleProps & { className?: string; classNames?: any; showOutsideDays?: boolean }) {
   const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(selected instanceof Date ? selected : undefined);
 
   return (
