@@ -66,7 +66,7 @@ export function appointmentToBigCalendarEvent(
   // Create user object for the event
   const user: IUser = worker ? workerToBigCalendarUser(worker) : {
     id: appointment.workerId || appointment.staffId || 'unknown',
-    name: worker?.name || 'Unknown',
+    name: 'Unknown',
     picturePath: null,
   };
 
