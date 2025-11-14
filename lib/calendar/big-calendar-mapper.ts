@@ -30,7 +30,7 @@ export function workerToBigCalendarUser(worker: Worker): IUser {
   return {
     id: worker.id,
     name: worker.name,
-    picturePath: worker.avatar || null,
+    picturePath: (worker as any).avatar || null,
   };
 }
 
