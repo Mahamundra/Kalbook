@@ -231,10 +231,10 @@ export async function addParticipantToAppointment(
       .select()
       .single() as { data: AppointmentParticipantRow | null; error: any };
     
-    if (updateResult.error) {
+    if (updateResult.error || !updateResult.data) {
       return {
         success: false,
-        error: updateResult.error.message || 'Failed to update participant',
+        error: updateResult.error?.message || 'Failed to update participant',
       };
     }
     
