@@ -40,7 +40,7 @@ import { Columns, List, Grid2x2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { he, ar, ru } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
-import { rangeText, navigateDate } from '@/calendar/helpers';
+import { rangeText, navigateDate as navigateCalendarDate } from '@/calendar/helpers';
 import type { IEvent } from '@/calendar/interfaces';
 import type { TCalendarView } from '@/calendar/types';
 import type { ExtendedSchedulerEvent } from '@/lib/calendar/event-mapper';
@@ -633,16 +633,16 @@ function CalendarContent() {
                   
                   // For RTL, swap the navigation logic: left arrow goes forward, right arrow goes backward
                   const handlePrevious = () => {
-                    const newDate: Date = isRTL 
-                      ? navigateDate(currentDate, bigCalendarView as TCalendarView, "next")
-                      : navigateDate(currentDate, bigCalendarView as TCalendarView, "previous");
+                    const newDate = (isRTL 
+                      ? navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "next")
+                      : navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "previous")) as Date;
                     setCurrentDate(newDate);
                   };
                   
                   const handleNext = () => {
-                    const newDate: Date = isRTL 
-                      ? navigateDate(currentDate, bigCalendarView as TCalendarView, "previous")
-                      : navigateDate(currentDate, bigCalendarView as TCalendarView, "next");
+                    const newDate = (isRTL 
+                      ? navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "previous")
+                      : navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "next")) as Date;
                     setCurrentDate(newDate);
                   };
 

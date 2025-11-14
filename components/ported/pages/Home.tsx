@@ -232,9 +232,9 @@ export default function Home() {
             />
           </h1>
           <div className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto space-y-4">
-            {getHome('subtitle').split('\n\n').map((paragraph, index, array) => (
+            {getHome('subtitle').split('\n\n').map((paragraph: string, index: number, array: string[]) => (
               <p key={index} className={index === array.length - 1 ? 'font-semibold text-lg' : ''}>
-                {paragraph.split('\n').map((line, lineIndex, lines) => (
+                {paragraph.split('\n').map((line: string, lineIndex: number, lines: string[]) => (
                   <span key={lineIndex}>
                     {line}
                     {lineIndex < lines.length - 1 && <br />}

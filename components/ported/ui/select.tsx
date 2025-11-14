@@ -28,7 +28,7 @@ const SelectTrigger = React.forwardRef<
         isRTL ? 'text-right justify-between' : 'text-left justify-between',
         className,
       )}
-      style={{ flexDirection: 'row', direction: triggerDir }}
+      style={{ flexDirection: 'row', direction: triggerDir as 'ltr' | 'rtl' | undefined }}
       {...props}
     >
       {children}

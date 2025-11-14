@@ -666,7 +666,7 @@ const Services = () => {
                         <p className="text-sm text-muted-foreground mt-1">
                           {t('services.groupServiceDescription')}
                         </p>
-                        {hasGroupAppointments === false && (
+                        {hasGroupAppointments !== true && (
                           <p className="text-xs text-yellow-600 mt-1">
                             Upgrade to Professional or Business plan to use group services
                           </p>
@@ -675,9 +675,9 @@ const Services = () => {
                       <Switch
                         id="isGroupService"
                         checked={formData.isGroupService}
-                        disabled={hasGroupAppointments === false}
+                        disabled={hasGroupAppointments !== true}
                         onCheckedChange={(checked) => {
-                          if (hasGroupAppointments === false) {
+                          if (hasGroupAppointments !== true) {
                             toast.error('Group services are available in Professional and Business plans. Please upgrade.');
                             return;
                           }
