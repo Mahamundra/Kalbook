@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
 
     // Create admin user via Supabase Auth
     // Note: We'll create the auth user first, then the user record
-    let authUserId: string;
+    let authUserId: string | undefined;
     let shouldReuseAccount = false;
 
     try {
@@ -390,6 +390,13 @@ export async function POST(request: NextRequest) {
     // If reusing account, generate a new UUID for the user record
     // (since id is primary key, we can't reuse the same auth user ID)
     // The phone number will link all businesses for this owner
+    if (!authUserId) {
+      return NextResponse.json(
+        { error: 'Failed to create or retrieve user ID' },
+        { status: 500 }
+      );
+    }
+    
     const userIdForRecord = shouldReuseAccount 
       ? crypto.randomUUID() // Generate new UUID for new business
       : authUserId; // Use auth user ID for new account

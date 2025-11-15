@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyOTPCode } from '@/lib/auth/otp';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { toE164Format } from '@/lib/customers/utils';
+import type { Database } from '@/lib/supabase/database.types';
+
+type UserRow = Database['public']['Tables']['users']['Row'];
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('phone', normalizedPhone)
       .eq('role', 'owner')
-      .maybeSingle();
+      .maybeSingle() as { data: UserRow | null; error: any };
 
     // If not found, try alternative phone formats
     if (userError || !user) {
@@ -77,15 +80,15 @@ export async function POST(request: NextRequest) {
       for (const phoneFormat of formats) {
         if (phoneFormat === normalizedPhone) continue;
         
-        const { data: userAlt } = await supabase
+        const userAltResult = await supabase
           .from('users')
           .select('*')
           .eq('phone', phoneFormat.trim())
           .eq('role', 'owner')
-          .maybeSingle();
+          .maybeSingle() as { data: UserRow | null; error: any };
         
-        if (userAlt) {
-          user = userAlt;
+        if (userAltResult.data) {
+          user = userAltResult.data;
           userError = null;
           break;
         }
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
       const { data: allUsers } = await supabase
         .from('users')
         .select('*')
-        .eq('role', 'owner');
+        .eq('role', 'owner') as { data: UserRow[] | null; error: any };
 
       const normalizedSearched = normalizedPhone.replace(/\s/g, '').toLowerCase();
       
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
       .from('businesses')
       .select('id, slug, name')
       .eq('id', (user as any).business_id)
-      .single();
+      .single() as { data: { id: string; slug: string; name: string } | null; error: any };
 
     if (businessError || !business) {
       return NextResponse.json(

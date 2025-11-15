@@ -57,16 +57,16 @@ export async function GET(request: NextRequest) {
     // If user is an owner, get ALL businesses where they are owner (by phone number)
     let businesses: Array<{ id: string; slug: string; name: string }> = [];
     
-    if (user.role === 'owner' && user.phone) {
-      // Find all user records with the same phone number and role='owner'
-      const { data: allOwnerUsers, error: allUsersError } = await supabase
-        .from('users')
-        .select('business_id')
-        .eq('phone', user.phone)
-        .eq('role', 'owner');
+        if (user.role === 'owner' && user.phone) {
+          // Find all user records with the same phone number and role='owner'
+          const { data: allOwnerUsers, error: allUsersError } = await supabase
+            .from('users')
+            .select('business_id')
+            .eq('phone', user.phone)
+            .eq('role', 'owner') as { data: Array<{ business_id: string }> | null; error: any };
 
-      if (!allUsersError && allOwnerUsers && allOwnerUsers.length > 0) {
-        const businessIds = allOwnerUsers.map(u => u.business_id);
+          if (!allUsersError && allOwnerUsers && allOwnerUsers.length > 0) {
+            const businessIds = allOwnerUsers.map(u => u.business_id);
         
         // Get all businesses for these business_ids
         const { data: allBusinesses, error: businessesError } = await supabase
@@ -154,8 +154,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update user
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
+    const { data: updatedUser, error: updateError } = await (supabase
+      .from('users') as any)
       .update(updateData as any)
       .eq('id', session.userId)
       .select()

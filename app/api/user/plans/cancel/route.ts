@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Cancel the subscription (keep subscription_ends_at unchanged)
-    const updateResult = await supabase
-      .from('businesses')
+    const updateResult = await (supabase
+      .from('businesses') as any)
       .update({ subscription_status: 'cancelled' })
       .eq('id', businessId)
       .select()

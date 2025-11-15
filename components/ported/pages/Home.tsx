@@ -289,7 +289,7 @@ export default function Home() {
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align={isRTL ? "start" : "end"} dir={dir}>
+                  <DropdownMenuContent align={isRTL ? "start" : "end"}>
                     <div className="px-2 py-1.5">
                       <p className="text-sm font-medium">{user.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>

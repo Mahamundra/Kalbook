@@ -59,7 +59,6 @@ export const LanguageToggle = () => {
       <DropdownMenuContent 
         align={isRTL ? "start" : "end"}
         className="min-w-[160px]"
-        dir={isRTL ? "rtl" : "ltr"}
       >
         <DropdownMenuRadioGroup value={locale} onValueChange={(value) => handleLanguageChange(value as Locale)}>
           {languages.map((lang) => (
