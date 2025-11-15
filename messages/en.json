@@ -543,7 +543,7 @@
     }
   },
   "home": {
-    "title": "KalBok",
+    "title": "KalBook",
     "subtitle": "Everything your service business needs - all in one place.\n\nOnline bookings, smart scheduling, staff and client management, automated reminders and messages.\n\nEasy to use, fast to set up, fully in Hebrew.\n\nGet started today!",
     "startNow": "Let's Start",
     "seeFeatures": "What's Inside?",
@@ -552,6 +552,7 @@
     "adminDemo": "Admin Demo",
     "switchingLanguage": "Switching language...",
     "features": {
+      "title": "Features",
       "subtitle": "Everything you need to run your service business smoothly",
       "setup3min": {
         "title": "Set up in 3 minutes",
@@ -621,26 +622,26 @@
         "basic": {
           "name": "Basic",
           "price": "dynamic",
-          "priceNote": "per month after 14-day free trial",
+          "priceNote": "14 days free trial, then competitive pricing.\nNo credit card required. Cancel anytime.",
           "cta": "Start Free Trial",
-          "note": "14 days free, then competitive pricing",
-          "highlights": ["14 days free trial", "1 staff member", "Up to 100 bookings/month", "Basic booking page", "Email confirmation & reminder"]
+          "note": "",
+          "highlights": ["14 days free trial", "1 staff member", "Up to 100 bookings/month", "Basic booking page", "Email confirmation & reminder", "Bilingual & RTL"]
         },
         "professional": {
           "name": "Professional",
           "price": "dynamic",
           "priceNote": "per month",
           "cta": "Start Pro",
-          "note": "Recommended for active businesses",
-          "highlights": ["Up to 5 staff", "Unlimited bookings", "Packages like Haircut+Beard", "Smart reminders & automation", "WhatsApp integration", "Analytics dashboard", "Custom branding", "Bilingual & RTL"]
+          "note": "Ideal for active businesses managing multiple staff, unlimited bookings, and advanced features",
+          "highlights": ["Everything in Basic", "Up to 5 staff", "Unlimited bookings", "Packages like Haircut+Beard", "Smart reminders & automation", "WhatsApp messages and OTP", "Option for group classes", "Google/Outlook/Apple Calendar integration", "Analytics dashboard", "Custom branding"]
         },
         "business": {
           "name": "Business",
           "price": "dynamic",
           "priceNote": "per month",
           "cta": "Choose Business",
-          "note": "Best for small chains",
-          "highlights": ["Up to 15 staff", "Unlimited bookings", "Cloud image & file storage", "Multiple calendars & branches", "Priority support", "Advanced reports", "API access"]
+          "note": "Perfect for growing businesses with multiple locations, advanced reporting needs, and enterprise-level features",
+          "highlights": ["Everything in Professional", "Unlimited staff", "Unlimited bookings", "Cloud image & file storage", "Multiple calendars & branches", "Priority support", "Advanced reports", "API access"]
         }
       }
     },
@@ -665,6 +666,18 @@
       "rights": "All rights reserved.",
       "terms": "Terms",
       "privacy": "Privacy"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "description": "Get in touch with us. We'd love to hear from you!",
+      "info": "Contact Information",
+      "name": "Name",
+      "email": "Email",
+      "message": "Message",
+      "submit": "Send Message",
+      "submitting": "Sending...",
+      "success": "Thank you! We'll get back to you soon.",
+      "error": "Failed to send message. Please try again."
     }
   },
   "onboarding": {

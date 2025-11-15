@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ported/ui/alert';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { KalBokLogo } from '@/components/ui/KalBookLogo';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,7 +122,7 @@ export default function SuperAdminLoginPage() {
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-lg">
               <Shield className="w-8 h-8 text-primary" />
             </div>
-            <KalBokLogo size="lg" variant="full" />
+            <KalBookLogo size="lg" variant="full" />
           </div>
           
           <CardTitle className="text-2xl font-bold text-center">

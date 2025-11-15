@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from '@/components/ported/ui/button';
-import { KalBokLogo } from '@/components/ui/KalBookLogo';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
@@ -28,7 +28,7 @@ export function PageHeader({
         
         {/* Logo in the middle */}
         <div className="flex-1 flex justify-center">
-          <KalBokLogo size="lg" variant="full" animated={false} />
+          <KalBookLogo size="lg" variant="full" animated={false} />
         </div>
         
         {/* Homepage button on the right */}

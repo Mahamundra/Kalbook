@@ -3,7 +3,7 @@ import React from 'react';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { TypingAnimation } from './TypingAnimation';
 
-interface KalBokLogoProps {
+interface KalBookLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'full' | 'icon' | 'text';
   className?: string;
@@ -18,7 +18,7 @@ const sizeMap = {
   xl: 'text-2xl',
 };
 
-export const KalBokLogo: React.FC<KalBokLogoProps> = ({
+export const KalBookLogo: React.FC<KalBookLogoProps> = ({
   size = 'md',
   variant = 'text',
   className = '',
@@ -31,14 +31,14 @@ export const KalBokLogo: React.FC<KalBokLogoProps> = ({
   if (!animated) {
     return (
       <span className={`${sizeClass} font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent ${className}`}>
-        KalBok.io
+        KalBook.io
       </span>
     );
   }
 
   return (
     <TypingAnimation 
-      text="KalBok" 
+      text="KalBook" 
       suffix=".io" 
       suffixDelay={800} 
       typingSpeed={100} 
@@ -47,6 +47,3 @@ export const KalBokLogo: React.FC<KalBokLogoProps> = ({
     />
   );
 };
-
-// Keep the old export for backward compatibility during migration
-export const KalBookLogo = KalBokLogo;

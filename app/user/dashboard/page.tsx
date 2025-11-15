@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Footer } from '@/components/ui/Footer';
 import { Loader2, LogOut, Settings, Save, ArrowRight, ArrowLeft, AlertTriangle, X, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -762,6 +763,9 @@ export default function UserDashboardPage() {
           </Button>
         </div>
         </div>
+      </div>
+      <div className="mt-16">
+        <Footer />
       </div>
     </div>
   );

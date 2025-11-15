@@ -305,7 +305,7 @@ Each business owner sees only their own data, automatically filtered by their `b
 
 ## 🌍 Internationalization
 
-KalBok supports multiple languages with RTL (right-to-left) support:
+KalBook supports multiple languages with RTL (right-to-left) support:
 
 - **English** (en)
 - **Hebrew** (he) - RTL

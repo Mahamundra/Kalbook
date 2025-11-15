@@ -24,6 +24,7 @@ import en from '@/messages/en.json';
 import he from '@/messages/he.json';
 import ar from '@/messages/ar.json';
 import ru from '@/messages/ru.json';
+import { Footer } from '@/components/ui/Footer';
 
 const translations = { en, he, ar, ru };
 
@@ -197,7 +198,7 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
             >
-              <Card className={`p-8 h-full relative ${isProfessional ? 'border-2 border-primary shadow-lg' : ''}`}>
+              <Card className={`p-8 h-full relative flex flex-col ${isProfessional ? 'border-2 border-primary shadow-lg' : ''}`}>
                 {isProfessional && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
@@ -227,11 +228,15 @@ export default function Home() {
                     )}
                   </div>
                   {getPlan(planKey, 'priceNote') && (
-                    <p className="text-xs text-gray-500 mb-2">{getPlan(planKey, 'priceNote')}</p>
+                    <p className="text-sm text-gray-500 mb-2" style={{ whiteSpace: 'pre-line' }}>
+                      {getPlan(planKey, 'priceNote')}
+                    </p>
                   )}
-                  <p className="text-sm text-gray-500 mb-4">{getPlan(planKey, 'note')}</p>
+                  {getPlan(planKey, 'note') && (
+                    <p className="text-sm text-gray-500 mb-4">{getPlan(planKey, 'note')}</p>
+                  )}
                 </div>
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-8 flex-grow">
                   {highlightsArray.map((highlight: string, i: number) => (
                     <li key={i} className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
@@ -239,7 +244,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/onboarding" className="block">
+                <Link href="/onboarding" className="block mt-auto">
                   <Button
                     className="w-full"
                     variant={isProfessional ? 'default' : 'outline'}
@@ -267,7 +272,7 @@ export default function Home() {
                 <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
               <h1 className="text-lg sm:text-xl font-bold truncate bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                KalBok.io
+                KalBook.io
               </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
@@ -334,7 +339,7 @@ export default function Home() {
         >
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6" style={{ fontFamily: 'var(--font-space-grotesk), system-ui, sans-serif', display: 'flex', alignContent: 'center', justifyContent: 'center', alignItems: 'center' }}>
             <TypingAnimation 
-              text="KalBok" 
+              text="KalBook" 
               suffix=".io" 
               suffixDelay={800} 
               typingSpeed={100} 
@@ -355,21 +360,36 @@ export default function Home() {
             ))}
           </div>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/onboarding">
-              <Button size="lg" className="text-lg px-8">
-                {getHome('startNow')}
-                {isRTL ? (
-                  <ArrowLeft className="mr-2 w-5 h-5" />
-                ) : (
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                )}
-              </Button>
-            </Link>
-            <Link href="#features">
-              <Button size="lg" variant="outline" className="text-lg px-8">
-                {getHome('seeFeatures')}
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="text-lg px-8"
+              onClick={() => {
+                const pricingSection = document.getElementById('pricing');
+                if (pricingSection) {
+                  pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+            >
+              {getHome('startNow')}
+              {isRTL ? (
+                <ArrowLeft className="mr-2 w-5 h-5" />
+              ) : (
+                <ArrowRight className="ml-2 w-5 h-5" />
+              )}
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg px-8"
+              onClick={() => {
+                const featuresSection = document.getElementById('features');
+                if (featuresSection) {
+                  featuresSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+            >
+              {getHome('seeFeatures')}
+            </Button>
           </div>
         </motion.div>
       </section>
@@ -383,7 +403,7 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Features</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{getHome('features.title')}</h2>
           <p className="text-gray-600 text-lg">{getHome('features.subtitle') || 'Everything you need to run your service business smoothly'}</p>
         </motion.div>
 
@@ -427,7 +447,6 @@ export default function Home() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">{getPricing('title')}</h2>
             <p className="text-gray-600 text-lg mb-2">{getPricing('subtitle')}</p>
-            <p className="text-sm text-gray-500">{getPricing('monthlyNote')}</p>
           </motion.div>
 
           <PricingPlansSection locale={locale} getPlan={getPlan} getPricing={getPricing} getPlanHighlights={getPlanHighlights} />
@@ -484,22 +503,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-400">{getFooter('rights')}</p>
-            <div className="flex gap-6">
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                {getFooter('terms')}
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                {getFooter('privacy')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Admin Login Modal */}
       <AdminLoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />

@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Service, Appointment, Worker } from '@/types/admin';
 import Link from 'next/link';
 import { LoginRegisterDialog } from '@/components/ported/components/LoginRegisterDialog';
-import { KalBokLogo } from '@/components/ui/KalBookLogo';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -783,7 +783,7 @@ function BookingPageContent() {
         <div className="text-center space-y-6 px-4">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <KalBokLogo size="lg" variant="full" />
+            <KalBookLogo size="lg" variant="full" />
           </div>
           {/* Modern animated spinner with smooth gradient */}
           <div className="relative mx-auto w-16 h-16">
@@ -2864,7 +2864,7 @@ function BookingPageFallback() {
       <div className="text-center space-y-6 px-4">
         {/* Logo */}
         <div className="flex justify-center mb-4">
-          <KalBokLogo size="lg" variant="full" />
+          <KalBookLogo size="lg" variant="full" />
         </div>
         {/* Modern animated spinner with smooth gradient */}
         <div className="relative mx-auto w-16 h-16">

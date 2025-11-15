@@ -18,7 +18,7 @@ import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { Loader2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
-import { KalBokLogo } from '@/components/ui/KalBookLogo';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import Link from 'next/link';
 
 interface AdminLoginModalProps {
@@ -155,7 +155,7 @@ export function AdminLoginModal({ open, onOpenChange }: AdminLoginModalProps) {
       <DialogContent className="sm:max-w-md" dir={dir}>
         <DialogHeader>
           <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <KalBokLogo size="lg" variant="full" />
+            <KalBookLogo size="lg" variant="full" />
           </div>
           <DialogTitle className={`text-2xl font-bold text-center ${isRTL ? 'text-right' : 'text-left'}`}>
             {step === 'welcome'

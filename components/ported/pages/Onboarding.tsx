@@ -12,6 +12,7 @@ import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLocale } from "@/components/ported/hooks/useLocale";
 import { TypingAnimation } from "@/components/ui/TypingAnimation";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Footer } from "@/components/ui/Footer";
 import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ported/ui/select";
@@ -66,6 +67,7 @@ const Onboarding = () => {
   const dir = typeof document !== "undefined" ? (document.documentElement.dir as "ltr" | "rtl") : "ltr";
   const { locale, t } = useLocale();
   const lastBusinessTypeRef = useRef<BusinessType | null>(null);
+  const continueButtonRef = useRef<HTMLButtonElement>(null);
 
   // Helper function to get nested values from translations
   const getTranslation = (key: string): any => {
@@ -113,6 +115,21 @@ const Onboarding = () => {
     };
     checkLoggedIn();
   }, []);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
+  // Scroll to continue button when business type is selected on step 1
+  useEffect(() => {
+    if (step === 1 && businessType && continueButtonRef.current) {
+      // Small delay to ensure the button is rendered
+      setTimeout(() => {
+        continueButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  }, [businessType, step]);
 
   // Load default services when business type is selected and moving to step 2
   useEffect(() => {
@@ -825,12 +842,15 @@ const Onboarding = () => {
             >
               {t('onboarding.buttons.back')}
             </LoadingButton>
-            <LoadingButton onClick={handleNext} loading={loading}>
+            <LoadingButton ref={continueButtonRef} onClick={handleNext} loading={loading}>
               {step === 4 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
             </LoadingButton>
           </div>
         </Card>
         </div>
+      </div>
+      <div className="mt-16">
+        <Footer />
       </div>
     </div>
   );

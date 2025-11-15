@@ -1,6 +1,6 @@
 # Environment Variables Setup Guide
 
-This guide will help you set up all required environment variables for the KalBok application.
+This guide will help you set up all required environment variables for the KalBook application.
 
 ## Table of Contents
 
