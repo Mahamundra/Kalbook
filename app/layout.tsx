@@ -6,6 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Space_Grotesk } from "next/font/google";
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -26,11 +27,32 @@ export const viewport: Viewport = {
   viewportFit: "cover", // For safe area insets on notched devices
 };
 
+type Locale = 'en' | 'he' | 'ar' | 'ru';
+
+// Server-safe RTL check function
+function isRTL(locale: Locale): boolean {
+  return locale === 'he' || locale === 'ar';
+}
+
+function getInitialLocale(): Locale {
+  const cookieStore = cookies();
+  const localeCookie = cookieStore.get('locale');
+  
+  if (localeCookie?.value && ['en', 'he', 'ar', 'ru'].includes(localeCookie.value)) {
+    return localeCookie.value as Locale;
+  }
+  
+  return 'en';
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const initialLocale = getInitialLocale();
+  const dir = isRTL(initialLocale) ? 'rtl' : 'ltr';
+  
   return (
-    <html className={spaceGrotesk.variable}>
+    <html className={spaceGrotesk.variable} dir={dir} lang={initialLocale}>
       <body className="min-h-dvh bg-background text-foreground overflow-x-hidden touch-pan-y">
-        <DirectionProvider>
+        <DirectionProvider initialLocale={initialLocale}>
           <ThemeProvider>
             <TooltipProvider>
               <Toaster />

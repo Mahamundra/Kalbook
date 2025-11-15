@@ -520,7 +520,7 @@ function CalendarContent() {
                 {t('trial.trialExpired')}
               </h2>
               <p className="text-gray-600 mb-6">
-                {t('trial.calendarBlockedMessage') || 'Your trial period has ended. Please contact us to upgrade your plan and continue using the calendar.'}
+                {t('trial.calendarBlockedMessage') || 'Your trial or subscription has ended. Please renew your plan to continue using the calendar.'}
               </p>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">

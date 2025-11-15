@@ -30,6 +30,9 @@ export interface Database {
           trial_started_at: string | null;
           trial_ends_at: string | null;
           subscription_status: SubscriptionStatus | null;
+          subscription_started_at: string | null;
+          subscription_ends_at: string | null;
+          renewed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -48,6 +51,9 @@ export interface Database {
           trial_started_at?: string | null;
           trial_ends_at?: string | null;
           subscription_status?: SubscriptionStatus | null;
+          subscription_started_at?: string | null;
+          subscription_ends_at?: string | null;
+          renewed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -66,6 +72,9 @@ export interface Database {
           trial_started_at?: string | null;
           trial_ends_at?: string | null;
           subscription_status?: SubscriptionStatus | null;
+          subscription_started_at?: string | null;
+          subscription_ends_at?: string | null;
+          renewed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

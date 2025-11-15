@@ -440,6 +440,10 @@
     "title": "Admin Login",
     "subtitle": "Sign in to manage your business",
     "subtitleWithBusiness": "Sign in to {businessName}",
+    "homepageLogin": "Admin Login",
+    "welcomeBack": "Welcome Back! {name}",
+    "noUserYet": "If you have not user yet",
+    "createNewBusiness": "Create new business",
     "phone": "Phone Number",
     "phonePlaceholder": "+1234567890",
     "phoneRequired": "Phone number is required",
@@ -457,6 +461,44 @@
     "back": "Back",
     "noAccount": "Don't have an account?",
     "contactOwner": "Contact your business owner to create an admin account."
+  },
+  "userDashboard": {
+    "planStartDate": "Start Date",
+    "planRenewalDate": "Renewal Date",
+    "planEndDate": "End Date",
+    "daysRemaining": "days remaining",
+    "planExpiringSoon": "Plan is about to end in {days} days. Click here to renew or choose a new plan.",
+    "renewPlan": "Renew Plan",
+    "cancelPlan": "Cancel Plan",
+    "confirmCancelPlan": "Are you sure you want to cancel this plan? Your plan will remain active until the end date.",
+    "planCancelled": "Plan cancelled. Active until {date}.",
+    "planExpired": "Plan expired. Please renew to continue using the admin panel.",
+    "activeUntil": "Active until",
+    "upgradeRequest": "Upgrade Request",
+    "title": "My Account",
+    "profile": "Profile",
+    "editProfile": "Edit Profile",
+    "currentPlan": "Current Plan",
+    "changePlan": "Change Plan",
+    "goToAdmin": "Go to Admin Panel",
+    "logout": "Logout",
+    "homepage": "Homepage",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "business": "Business",
+    "myBusinesses": "My Businesses",
+    "oneBusiness": "1 business",
+    "businesses": "businesses",
+    "createNewBusiness": "Create a new business",
+    "owner": "Owner",
+    "worker": "Worker",
+    "admin": "Admin",
+    "planChangeOwnerOnly": "Plan changes are only available for business owners",
+    "selectPlan": "Select a plan",
+    "saving": "Saving...",
+    "saved": "Saved successfully"
   },
   "common": {
     "save": "Save",
@@ -693,6 +735,9 @@
         }
       }
     },
+    "ownerName": "Owner Name",
+    "useAnotherAccount": "Use another account for this business",
+    "autoFilledFromAccount": "Auto-filled from your account",
     "businessInfo": {
       "title": "Business Information",
       "subtitle": "Tell us about your business.",
@@ -944,6 +989,7 @@
       "invalidEmail": "Please enter a valid email address.",
       "invalidPhone": "Please enter a valid phone number.",
       "invalidEnglishName": "English name must contain only English letters, numbers, spaces, hyphens, and underscores.",
+      "ownerNameRequired": "Owner name is required",
       "atLeastOneService": "Please add at least one service to continue.",
       "invalidService": "Please ensure all services have a name, valid duration (>0), and valid price (≥0).",
       "setupFailed": "Failed to set up your business. Please try again.",
@@ -955,7 +1001,8 @@
     "buttons": {
       "back": "Back",
       "continue": "Continue",
-      "completeSetup": "Complete Setup"
+      "completeSetup": "Complete Setup",
+      "mainPage": "Main Page"
     }
   },
   "booking": {

@@ -440,6 +440,10 @@
     "title": "כניסת מנהל",
     "subtitle": "התחבר כדי לנהל את העסק שלך",
     "subtitleWithBusiness": "התחבר ל-{businessName}",
+    "homepageLogin": "כניסת מנהל",
+    "welcomeBack": "ברוך שובך! {name}",
+    "noUserYet": "אם עדיין אין לך משתמש",
+    "createNewBusiness": "צור עסק חדש",
     "phone": "מספר טלפון",
     "phonePlaceholder": "+972-50-123-4567",
     "phoneRequired": "מספר טלפון נדרש",
@@ -457,6 +461,44 @@
     "back": "חזור",
     "noAccount": "אין לך חשבון?",
     "contactOwner": "צור קשר עם בעל העסק כדי ליצור חשבון מנהל."
+  },
+  "userDashboard": {
+    "planStartDate": "תאריך התחלה",
+    "planRenewalDate": "תאריך חידוש",
+    "planEndDate": "תאריך סיום",
+    "daysRemaining": "ימים נותרים",
+    "planExpiringSoon": "התוכנית עומדת להסתיים בעוד {days} ימים. לחץ כאן לחידוש או בחר תוכנית חדשה.",
+    "renewPlan": "חדש תוכנית",
+    "cancelPlan": "בטל תוכנית",
+    "confirmCancelPlan": "האם אתה בטוח שברצונך לבטל את התוכנית הזו? התוכנית שלך תישאר פעילה עד תאריך הסיום.",
+    "planCancelled": "תוכנית בוטלה. פעילה עד {date}.",
+    "planExpired": "התוכנית פגה. אנא חדש כדי להמשיך להשתמש בלוח הניהול.",
+    "activeUntil": "פעיל עד",
+    "upgradeRequest": "בקשת שדרוג",
+    "title": "החשבון שלי",
+    "profile": "פרופיל",
+    "editProfile": "ערוך פרופיל",
+    "currentPlan": "תוכנית נוכחית",
+    "changePlan": "שנה תוכנית",
+    "goToAdmin": "עבור לפאנל הניהול",
+    "logout": "התנתק",
+    "homepage": "עמוד ראשי",
+    "name": "שם",
+    "email": "אימייל",
+    "phone": "טלפון",
+    "role": "תפקיד",
+    "business": "עסק",
+    "myBusinesses": "העסקים שלי",
+    "oneBusiness": "עסק אחד",
+    "businesses": "עסקים",
+    "createNewBusiness": "צור עסק חדש",
+    "owner": "בעלים",
+    "worker": "עובד",
+    "admin": "מנהל",
+    "planChangeOwnerOnly": "שינוי תוכנית זמין רק לבעלי עסקים",
+    "selectPlan": "בחר תוכנית",
+    "saving": "שומר...",
+    "saved": "נשמר בהצלחה"
   },
   "common": {
     "save": "שמור",
@@ -696,6 +738,9 @@
         }
       }
     },
+    "ownerName": "שם הבעלים",
+    "useAnotherAccount": "השתמש בחשבון אחר לעסק זה",
+    "autoFilledFromAccount": "מולא אוטומטית מחשבונך",
     "businessInfo": {
       "title": "מידע על העסק",
       "subtitle": "ספרו לנו על העסק שלכם.",
@@ -947,6 +992,7 @@
       "invalidEmail": "אנא הזינו כתובת אימייל תקינה.",
       "invalidPhone": "אנא הזינו מספר טלפון תקין.",
       "invalidEnglishName": "שם באנגלית חייב להכיל רק אותיות אנגליות, מספרים, רווחים, מקפים וקווים תחתונים.",
+      "ownerNameRequired": "שם הבעלים נדרש",
       "atLeastOneService": "אנא הוסיפו לפחות שירות אחד להמשיך.",
       "invalidService": "אנא ודאו שכל השירותים כוללים שם, משך תקין (>0) ומחיר תקין (≥0).",
       "setupFailed": "נכשל בהגדרת העסק שלכם. אנא נסו שוב.",
@@ -958,7 +1004,8 @@
     "buttons": {
       "back": "חזרה",
       "continue": "המשך",
-      "completeSetup": "סיום הגדרה"
+      "completeSetup": "סיום הגדרה",
+      "mainPage": "עמוד ראשי"
     }
   },
   "booking": {

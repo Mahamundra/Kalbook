@@ -2228,23 +2228,16 @@ function LanguageSelect({ disabled = false }: { disabled?: boolean }) {
     setIsChanging(true);
     
     try {
-      // Use DirectionProvider's setLocale which handles cookie and localStorage
+      // Use DirectionProvider's setLocale which handles cookie, localStorage, and document updates
       await setLocale(newLocale);
       
       // Show success toast
       toast.success(`Language changed to ${getLocaleDisplayName(newLocale)}`, {
         duration: 2000,
       });
-      
-      // Fade + scale reload animation
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      // Reload to apply RTL changes
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
     } catch (error) {
       toast.error('Failed to change language');
+    } finally {
       setIsChanging(false);
     }
   };

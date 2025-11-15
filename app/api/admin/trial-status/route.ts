@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // Get business info
     const businessResult = await supabase
       .from('businesses')
-      .select('subscription_status, trial_ends_at, plan_id')
+      .select('subscription_status, trial_ends_at, subscription_ends_at, plan_id')
       .eq('id', tenantInfo.businessId)
       .single() as { data: BusinessRow | null; error: any };
 
@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       planName: plan?.name || 'No plan',
       subscriptionStatus: business.subscription_status,
       trialEndsAt: business.trial_ends_at,
+      subscriptionEndsAt: business.subscription_ends_at,
     });
   } catch (error: any) {
     console.error('Error getting trial status:', error);

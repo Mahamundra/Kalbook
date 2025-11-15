@@ -177,40 +177,48 @@ function BookingPageContent() {
       // If we have a slug, fetch all data from API
       if (slug) {
         try {
-          // Check trial status
-          const trialResponse = await fetch(`/api/trial/status?slug=${slug}`);
-          if (trialResponse.ok) {
-            const trialData = await trialResponse.json();
+          // Fetch all data in parallel for better performance
+          const [trialResponse, settingsResponse, servicesResult, workersResult] = await Promise.allSettled([
+            fetch(`/api/trial/status?slug=${slug}`),
+            fetch(`/api/settings?businessSlug=${slug}`),
+            getServices().catch(err => {
+              console.error('Error fetching services:', err);
+              return [];
+            }),
+            getWorkers().catch(err => {
+              console.error('Error fetching workers:', err);
+              return [];
+            }),
+          ]);
+          
+          // Process trial status
+          if (trialResponse.status === 'fulfilled' && trialResponse.value.ok) {
+            const trialData = await trialResponse.value.json();
             if (trialData.success) {
               setTrialExpired(trialData.trialExpired);
               setTrialDaysRemaining(trialData.daysRemaining);
             }
           }
           
-          // Fetch settings
-          const settingsResponse = await fetch(`/api/settings?businessSlug=${slug}`);
-          if (settingsResponse.ok) {
-            const settingsData = await settingsResponse.json();
+          // Process settings
+          if (settingsResponse.status === 'fulfilled' && settingsResponse.value.ok) {
+            const settingsData = await settingsResponse.value.json();
             if (settingsData.success && settingsData.settings) {
               setSettings(settingsData.settings);
             }
           }
           
-          // Fetch services (only active ones)
-          try {
-            const servicesData = await getServices();
-            setServices(servicesData.filter(s => s.active));
-          } catch (error) {
-            console.error('Error fetching services:', error);
+          // Process services (only active ones)
+          if (servicesResult.status === 'fulfilled') {
+            setServices(servicesResult.value.filter((s: Service) => s.active));
+          } else {
             setServices([]);
           }
           
-          // Fetch workers (only active ones)
-          try {
-            const workersData = await getWorkers();
-            setWorkers(workersData.filter(w => w.active));
-          } catch (error) {
-            console.error('Error fetching workers:', error);
+          // Process workers (only active ones)
+          if (workersResult.status === 'fulfilled') {
+            setWorkers(workersResult.value.filter((w: Worker) => w.active));
+          } else {
             setWorkers([]);
           }
           
@@ -240,23 +248,37 @@ function BookingPageContent() {
     // Listen for settings updates
     const handleSettingsUpdate = async () => {
       if (slug) {
-        // Reload all data from API if we have a slug
+        // Reload all data from API in parallel if we have a slug
         try {
-          const settingsResponse = await fetch(`/api/settings?businessSlug=${slug}`);
-          if (settingsResponse.ok) {
-            const settingsData = await settingsResponse.json();
+          const [settingsResponse, servicesResult, workersResult] = await Promise.allSettled([
+            fetch(`/api/settings?businessSlug=${slug}`),
+            getServices().catch(err => {
+              console.error('Error fetching services:', err);
+              return [];
+            }),
+            getWorkers().catch(err => {
+              console.error('Error fetching workers:', err);
+              return [];
+            }),
+          ]);
+          
+          // Process settings
+          if (settingsResponse.status === 'fulfilled' && settingsResponse.value.ok) {
+            const settingsData = await settingsResponse.value.json();
             if (settingsData.success && settingsData.settings) {
               setSettings(settingsData.settings);
             }
           }
           
-          // Reload services
-          const servicesData = await getServices();
-          setServices(servicesData.filter(s => s.active));
+          // Process services
+          if (servicesResult.status === 'fulfilled') {
+            setServices(servicesResult.value.filter((s: Service) => s.active));
+          }
           
-          // Reload workers
-          const workersData = await getWorkers();
-          setWorkers(workersData.filter(w => w.active));
+          // Process workers
+          if (workersResult.status === 'fulfilled') {
+            setWorkers(workersResult.value.filter((w: Worker) => w.active));
+          }
         } catch (err) {
           console.error('Error reloading data:', err);
         }

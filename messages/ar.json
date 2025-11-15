@@ -440,6 +440,10 @@
     "title": "تسجيل دخول المدير",
     "subtitle": "قم بتسجيل الدخول لإدارة عملك",
     "subtitleWithBusiness": "قم بتسجيل الدخول إلى {businessName}",
+    "homepageLogin": "تسجيل دخول المدير",
+    "welcomeBack": "مرحباً بعودتك! {name}",
+    "noUserYet": "إذا لم يكن لديك مستخدم بعد",
+    "createNewBusiness": "إنشاء عمل جديد",
     "phone": "رقم الهاتف",
     "phonePlaceholder": "+966501234567",
     "phoneRequired": "رقم الهاتف مطلوب",
@@ -457,6 +461,44 @@
     "back": "رجوع",
     "noAccount": "ليس لديك حساب؟",
     "contactOwner": "اتصل بمالك العمل لإنشاء حساب مدير."
+  },
+  "userDashboard": {
+    "planStartDate": "تاريخ البدء",
+    "planRenewalDate": "تاريخ التجديد",
+    "planEndDate": "تاريخ الانتهاء",
+    "daysRemaining": "أيام متبقية",
+    "planExpiringSoon": "الخطة على وشك الانتهاء خلال {days} أيام. انقر هنا للتجديد أو اختر خطة جديدة.",
+    "renewPlan": "تجديد الخطة",
+    "cancelPlan": "إلغاء الخطة",
+    "confirmCancelPlan": "هل أنت متأكد أنك تريد إلغاء هذه الخطة؟ ستظل خطتك نشطة حتى تاريخ الانتهاء.",
+    "planCancelled": "تم إلغاء الخطة. نشطة حتى {date}.",
+    "planExpired": "انتهت صلاحية الخطة. يرجى التجديد للمتابعة في استخدام لوحة الإدارة.",
+    "activeUntil": "نشط حتى",
+    "upgradeRequest": "طلب الترقية",
+    "title": "حسابي",
+    "profile": "الملف الشخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "currentPlan": "الخطة الحالية",
+    "changePlan": "تغيير الخطة",
+    "goToAdmin": "الذهاب إلى لوحة الإدارة",
+    "logout": "تسجيل الخروج",
+    "homepage": "الصفحة الرئيسية",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "role": "الدور",
+    "business": "العمل",
+    "myBusinesses": "أعمالي",
+    "oneBusiness": "عمل واحد",
+    "businesses": "أعمال",
+    "createNewBusiness": "إنشاء عمل جديد",
+    "owner": "المالك",
+    "worker": "العامل",
+    "admin": "المدير",
+    "planChangeOwnerOnly": "تغيير الخطة متاح فقط لأصحاب الأعمال",
+    "selectPlan": "اختر خطة",
+    "saving": "جاري الحفظ...",
+    "saved": "تم الحفظ بنجاح"
   },
   "common": {
     "save": "حفظ",
@@ -696,6 +738,9 @@
         }
       }
     },
+    "ownerName": "اسم المالك",
+    "useAnotherAccount": "استخدم حسابًا آخر لهذا العمل",
+    "autoFilledFromAccount": "تم ملؤه تلقائيًا من حسابك",
     "businessInfo": {
       "title": "معلومات العمل",
       "subtitle": "أخبرنا عن عملك.",
@@ -947,6 +992,7 @@
       "invalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح.",
       "invalidPhone": "يرجى إدخال رقم هاتف صالح.",
       "invalidEnglishName": "يجب أن يحتوي الاسم بالإنجليزية على الأحرف الإنجليزية والأرقام والمسافات والشرطات والشرطات السفلية فقط.",
+      "ownerNameRequired": "اسم المالك مطلوب",
       "atLeastOneService": "يرجى إضافة خدمة واحدة على الأقل للمتابعة.",
       "invalidService": "يرجى التأكد من أن جميع الخدمات تحتوي على اسم ومدة صالحة (>0) وسعر صالح (≥0).",
       "setupFailed": "فشل في إعداد عملك. يرجى المحاولة مرة أخرى.",
@@ -958,7 +1004,8 @@
     "buttons": {
       "back": "رجوع",
       "continue": "متابعة",
-      "completeSetup": "إكمال الإعداد"
+      "completeSetup": "إكمال الإعداد",
+      "mainPage": "الصفحة الرئيسية"
     }
   },
   "booking": {

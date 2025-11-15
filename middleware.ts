@@ -20,6 +20,32 @@ export async function middleware(request: NextRequest) {
   const isOldAdminRoute = pathname.startsWith('/admin') && !pathname.startsWith('/b/');
   const isSlugAdminRoute = pathname.match(/^\/b\/[^/]+\/admin/);
   const isMigrationRoute = pathname.startsWith('/migration');
+  const isUserDashboardRoute = pathname.startsWith('/user/dashboard');
+  
+  // Redirect old login page to homepage
+  if (pathname.match(/^\/b\/[^/]+\/admin\/login$/)) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  
+  // Handle user dashboard route
+  if (isUserDashboardRoute) {
+    // Check for admin_session cookie
+    const adminSessionCookie = request.cookies.get('admin_session')?.value;
+    if (!adminSessionCookie) {
+      // Not authenticated - redirect to homepage
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    
+    try {
+      const adminSession = JSON.parse(adminSessionCookie);
+      // Allow access to user dashboard
+      return response;
+    } catch (error) {
+      console.error('Error parsing admin_session cookie:', error);
+      // Invalid session - redirect to homepage
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
   
   // For API routes, try to get business context from cookie or Referer header
   if (isApiRoute) {

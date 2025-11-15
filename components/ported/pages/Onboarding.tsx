@@ -4,11 +4,14 @@ import { Card } from "@/components/ported/ui/card";
 import { Input } from "@/components/ported/ui/input";
 import { Label } from "@/components/ported/ui/label";
 import { Button } from "@/components/ported/ui/button";
+import { Checkbox } from "@/components/ported/ui/checkbox";
 import { useRouter } from "next/navigation";
 import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home } from "lucide-react";
 import { useToast } from "@/components/ported/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLocale } from "@/components/ported/hooks/useLocale";
+import { TypingAnimation } from "@/components/ui/TypingAnimation";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ported/ui/select";
@@ -39,11 +42,16 @@ const Onboarding = () => {
     phone: "",
     address: "",
   });
+  const [ownerName, setOwnerName] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [useAnotherAccount, setUseAnotherAccount] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<{email: string, phone: string, name: string} | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
     englishName?: string;
     email?: string;
     phone?: string;
+    ownerName?: string;
     services?: string;
   }>({});
   const [touched, setTouched] = useState<{
@@ -51,6 +59,7 @@ const Onboarding = () => {
     englishName?: boolean;
     email?: boolean;
     phone?: boolean;
+    ownerName?: boolean;
   }>({});
   const router = useRouter();
   const { toast } = useToast();
@@ -73,6 +82,37 @@ const Onboarding = () => {
       return null;
     }
   };
+
+  // Check if user is logged in on component mount
+  useEffect(() => {
+    const checkLoggedIn = async () => {
+      try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            setIsLoggedIn(true);
+            setLoggedInUser({
+              email: data.user.email,
+              phone: data.user.phone || '',
+              name: data.user.name,
+            });
+            // Pre-fill email and phone
+            setBusinessInfo(prev => ({
+              ...prev,
+              email: data.user.email,
+              phone: data.user.phone || '',
+            }));
+            setOwnerName(data.user.name);
+          }
+        }
+      } catch (error) {
+        // User is not logged in, continue normally
+        console.log('User not logged in');
+      }
+    };
+    checkLoggedIn();
+  }, []);
 
   // Load default services when business type is selected and moving to step 2
   useEffect(() => {
@@ -211,7 +251,7 @@ const Onboarding = () => {
   };
 
   // Validate a specific field and return error message
-  const getFieldError = (field: 'name' | 'englishName' | 'email' | 'phone', value: string): string | undefined => {
+  const getFieldError = (field: 'name' | 'englishName' | 'email' | 'phone' | 'ownerName', value: string): string | undefined => {
     if (field === 'name') {
       if (!value.trim()) {
         return t('onboarding.errors.fillRequiredFields');
@@ -237,12 +277,16 @@ const Onboarding = () => {
       } else if (!validatePhone(value)) {
         return t('onboarding.errors.invalidPhone');
       }
+    } else if (field === 'ownerName') {
+      if (!value.trim()) {
+        return t('onboarding.errors.ownerNameRequired') || t('onboarding.errors.fillRequiredFields');
+      }
     }
     return undefined;
   };
 
   // Validate a specific field and update errors state
-  const validateField = (field: 'name' | 'englishName' | 'email' | 'phone', value: string) => {
+  const validateField = (field: 'name' | 'englishName' | 'email' | 'phone' | 'ownerName', value: string) => {
     setErrors((prevErrors) => {
       const newErrors = { ...prevErrors };
       const error = getFieldError(field, value);
@@ -256,9 +300,13 @@ const Onboarding = () => {
   };
 
   // Handle field blur
-  const handleBlur = (field: 'name' | 'englishName' | 'email' | 'phone') => {
+  const handleBlur = (field: 'name' | 'englishName' | 'email' | 'phone' | 'ownerName') => {
     setTouched({ ...touched, [field]: true });
-    validateField(field, businessInfo[field]);
+    if (field === 'ownerName') {
+      validateField('ownerName', ownerName);
+    } else {
+      validateField(field, businessInfo[field]);
+    }
   };
 
   // Handle field change
@@ -294,7 +342,7 @@ const Onboarding = () => {
     }
     if (step === 3) {
       // Mark all fields as touched
-      setTouched({ name: true, englishName: true, email: true, phone: true });
+      setTouched({ name: true, englishName: true, email: true, phone: true, ownerName: true });
       
       // Validate all fields
       const newErrors: typeof errors = {};
@@ -302,11 +350,13 @@ const Onboarding = () => {
       const englishNameError = getFieldError('englishName', businessInfo.englishName);
       const emailError = getFieldError('email', businessInfo.email);
       const phoneError = getFieldError('phone', businessInfo.phone);
+      const ownerNameError = getFieldError('ownerName', ownerName);
       
       if (nameError) newErrors.name = nameError;
       if (englishNameError) newErrors.englishName = englishNameError;
       if (emailError) newErrors.email = emailError;
       if (phoneError) newErrors.phone = phoneError;
+      if (ownerNameError) newErrors.ownerName = ownerNameError;
       
       setErrors(newErrors);
       
@@ -331,9 +381,11 @@ const Onboarding = () => {
             businessType,
             businessInfo,
             services: services.map(({ id, ...service }) => service),
+            ownerName,
+            useAnotherAccount,
             adminUser: {
               email: businessInfo.email,
-              name: businessInfo.name,
+              name: ownerName,
               phone: businessInfo.phone,
             },
           }),
@@ -387,32 +439,27 @@ const Onboarding = () => {
 
   return (
     <div dir={dir} className="min-h-screen bg-background flex flex-col p-6">
-      {/* Header with Language Toggle and Home Button */}
-      <div className="w-full max-w-7xl mx-auto mb-6 flex justify-end items-center gap-4">
-        <Button
-          variant="outline"
-          onClick={() => router.push('/')}
-          className="flex items-center gap-2"
-        >
-          <Home className="h-4 w-4" />
-          {t('onboarding.buttons.mainPage') || 'Main Page'}
-        </Button>
-        <LanguageToggle />
-      </div>
-      
       <div className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-4xl">
+        {/* Header with Main Page Button, Progress Bar, and Language Toggle */}
+        <PageHeader 
+          homepageButtonText={t('onboarding.buttons.mainPage') || 'Main Page'}
+          homepageHref="/"
+        />
+        
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium">{t('onboarding.stepOf').replace('{step}', step.toString()).replace('{total}', '4')}</span>
-            <span className="text-sm text-muted-foreground">{Math.round((step / 4) * 100)}% {t('onboarding.complete')}</span>
-          </div>
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${(step / 4) * 100}%` }}
-            />
+          <div>
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium">{t('onboarding.stepOf').replace('{step}', step.toString()).replace('{total}', '4')}</span>
+              <span className="text-sm text-muted-foreground">{Math.round((step / 4) * 100)}% {t('onboarding.complete')}</span>
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${(step / 4) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
 
@@ -471,16 +518,18 @@ const Onboarding = () => {
                   <button
                     key={type.id}
                     onClick={() => setBusinessType(type.id)}
-                    className={`p-6 rounded-lg border-2 ${dir === 'rtl' ? 'text-right' : 'text-left'} transition-all ${
+                    className={`p-6 rounded-lg border-2 transition-all ${
                       businessType === type.id
                         ? "border-primary bg-accent shadow-soft"
                         : "border-border hover:border-primary/50"
                     }`}
                     dir={dir}
                   >
-                    <type.icon className={`w-8 h-8 mb-3 ${businessType === type.id ? "text-accent-foreground" : "text-muted-foreground"}`} />
-                    <h3 className="text-lg font-semibold mb-1">{type.title}</h3>
-                    <p className="text-sm text-muted-foreground">{type.description}</p>
+                    <div className={`flex flex-col ${dir === 'rtl' ? 'items-start text-right' : 'items-start text-left'}`}>
+                      <type.icon className={`w-8 h-8 mb-3 ${businessType === type.id ? "text-accent-foreground" : "text-muted-foreground"}`} />
+                      <h3 className="text-lg font-semibold mb-1">{type.title}</h3>
+                      <p className="text-sm text-muted-foreground">{type.description}</p>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -651,6 +700,48 @@ const Onboarding = () => {
                   )}
                 </div>
                 <div>
+                  <Label htmlFor="ownerName">{t('onboarding.ownerName') || 'Owner Name'}</Label>
+                  <Input
+                    id="ownerName"
+                    placeholder={t('onboarding.ownerName') || 'Owner Name'}
+                    value={ownerName}
+                    onChange={(e) => {
+                      setOwnerName(e.target.value);
+                      if (touched.ownerName) {
+                        validateField('ownerName', e.target.value);
+                      }
+                    }}
+                    onBlur={() => handleBlur('ownerName')}
+                    className={`mt-2 ${errors.ownerName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {errors.ownerName && (
+                    <p className="mt-1 text-sm text-red-500">{errors.ownerName}</p>
+                  )}
+                </div>
+                {isLoggedIn && (
+                  <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg border">
+                    <Checkbox
+                      id="useAnotherAccount"
+                      checked={useAnotherAccount}
+                      onCheckedChange={(checked) => {
+                        setUseAnotherAccount(checked === true);
+                        if (!checked && loggedInUser) {
+                          // Reset to logged-in user's info
+                          setBusinessInfo(prev => ({
+                            ...prev,
+                            email: loggedInUser.email,
+                            phone: loggedInUser.phone,
+                          }));
+                          setOwnerName(loggedInUser.name);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="useAnotherAccount" className="text-sm font-normal cursor-pointer">
+                      {t('onboarding.useAnotherAccount') || 'Use another account for this business'}
+                    </Label>
+                  </div>
+                )}
+                <div>
                   <Label htmlFor="email">{t('onboarding.businessInfo.email')}</Label>
                   <Input
                     id="email"
@@ -659,8 +750,12 @@ const Onboarding = () => {
                     value={businessInfo.email}
                     onChange={(e) => handleFieldChange('email', e.target.value)}
                     onBlur={() => handleBlur('email')}
-                    className={`mt-2 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    disabled={isLoggedIn && !useAnotherAccount}
+                    className={`mt-2 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isLoggedIn && !useAnotherAccount ? 'bg-muted cursor-not-allowed' : ''}`}
                   />
+                  {isLoggedIn && !useAnotherAccount && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
+                  )}
                   {errors.email && (
                     <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                   )}
@@ -674,8 +769,12 @@ const Onboarding = () => {
                     value={businessInfo.phone}
                     onChange={(e) => handleFieldChange('phone', e.target.value)}
                     onBlur={() => handleBlur('phone')}
-                    className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    disabled={isLoggedIn && !useAnotherAccount}
+                    className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isLoggedIn && !useAnotherAccount ? 'bg-muted cursor-not-allowed' : ''}`}
                   />
+                  {isLoggedIn && !useAnotherAccount && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
+                  )}
                   {errors.phone && (
                     <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
                   )}

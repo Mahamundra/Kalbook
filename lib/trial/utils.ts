@@ -10,14 +10,14 @@ type PlanRow = Database['public']['Tables']['plans']['Row'];
 type PlanFeatureRow = Database['public']['Tables']['plan_features']['Row'];
 
 /**
- * Check if a business's trial has expired
+ * Check if a business's trial or subscription has expired
  */
 export async function isTrialExpired(businessId: string): Promise<boolean> {
   const supabase = createAdminClient();
   
   const businessResult = await supabase
     .from('businesses')
-    .select('trial_ends_at, subscription_status')
+    .select('trial_ends_at, subscription_status, subscription_ends_at')
     .eq('id', businessId)
     .single() as { data: BusinessRow | null; error: any };
   
@@ -27,46 +27,83 @@ export async function isTrialExpired(businessId: string): Promise<boolean> {
     return true; // Business not found, consider expired
   }
   
-  // If not in trial, check subscription status
-  if (business.subscription_status !== 'trial') {
-    return business.subscription_status === 'expired' || business.subscription_status === 'cancelled';
+  // Check if subscription status is explicitly expired or cancelled
+  if (business.subscription_status === 'expired') {
+    return true;
   }
   
-  // Check if trial has ended
-  if (!business.trial_ends_at) {
-    return true; // No trial end date, consider expired
+  // If cancelled, check if subscription_ends_at has passed
+  if (business.subscription_status === 'cancelled') {
+    if (business.subscription_ends_at) {
+      const endDate = new Date(business.subscription_ends_at);
+      const now = new Date();
+      return now > endDate;
+    }
+    return true; // Cancelled with no end date, consider expired
   }
   
-  const trialEndDate = new Date(business.trial_ends_at);
-  const now = new Date();
+  // If in trial, check if trial has ended
+  if (business.subscription_status === 'trial') {
+    if (!business.trial_ends_at) {
+      return true; // No trial end date, consider expired
+    }
+    const trialEndDate = new Date(business.trial_ends_at);
+    const now = new Date();
+    return now > trialEndDate;
+  }
   
-  return now > trialEndDate;
+  // If active subscription, check if subscription_ends_at has passed
+  if (business.subscription_status === 'active') {
+    if (business.subscription_ends_at) {
+      const endDate = new Date(business.subscription_ends_at);
+      const now = new Date();
+      return now > endDate;
+    }
+    // Active subscription with no end date - consider valid (shouldn't happen but be safe)
+    return false;
+  }
+  
+  // Unknown status, consider expired for safety
+  return true;
 }
 
 /**
- * Get remaining trial days for a business
+ * Get remaining days for a business (trial or subscription)
  */
 export async function getTrialDaysRemaining(businessId: string): Promise<number | null> {
   const supabase = createAdminClient();
   
   const businessResult = await supabase
     .from('businesses')
-    .select('trial_ends_at, subscription_status')
+    .select('trial_ends_at, subscription_status, subscription_ends_at')
     .eq('id', businessId)
     .single() as { data: BusinessRow | null; error: any };
   
   const business = businessResult.data;
   
-  if (!business || business.subscription_status !== 'trial' || !business.trial_ends_at) {
+  if (!business) {
     return null;
   }
   
-  const trialEndDate = new Date(business.trial_ends_at);
-  const now = new Date();
-  const diffTime = trialEndDate.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // For trial, use trial_ends_at
+  if (business.subscription_status === 'trial' && business.trial_ends_at) {
+    const trialEndDate = new Date(business.trial_ends_at);
+    const now = new Date();
+    const diffTime = trialEndDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  }
   
-  return Math.max(0, diffDays);
+  // For active or cancelled subscription, use subscription_ends_at
+  if ((business.subscription_status === 'active' || business.subscription_status === 'cancelled') && business.subscription_ends_at) {
+    const endDate = new Date(business.subscription_ends_at);
+    const now = new Date();
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  }
+  
+  return null;
 }
 
 /**
@@ -91,17 +128,17 @@ export async function checkPlanFeature(
     return false; // No plan assigned
   }
   
-  // Check if subscription is active (not expired or cancelled)
-  if (business.subscription_status === 'expired' || business.subscription_status === 'cancelled') {
+  // Check if subscription is expired (using the comprehensive expiration check)
+  const expired = await isTrialExpired(businessId);
+  if (expired) {
     return false;
   }
   
-  // If in trial, check if trial is still valid
-  if (business.subscription_status === 'trial') {
-    const expired = await isTrialExpired(businessId);
-    if (expired) {
-      return false;
-    }
+  // If cancelled, check if still within active period (before subscription_ends_at)
+  if (business.subscription_status === 'cancelled') {
+    // isTrialExpired already checks if cancelled subscription has passed end date
+    // If we get here, it means cancelled but still active (before end date)
+    // Allow access until end date
   }
   
   // Get plan feature

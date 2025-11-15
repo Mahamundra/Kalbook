@@ -20,35 +20,29 @@ const LOCALE_STORAGE_KEY = 'bookinghub-locale';
 const LOCALE_COOKIE_KEY = 'locale';
 const FIRST_VISIT_KEY = 'bookinghub-first-visit';
 
-export const DirectionProvider = ({ children }: { children: ReactNode }) => {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window === 'undefined') return 'en';
-    
-    // Check localStorage first
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (stored && ['en', 'he', 'ar', 'ru'].includes(stored)) {
-      return stored as Locale;
-    }
-    
-    // Check cookie
-    const cookieMatch = document.cookie.match(new RegExp(`${LOCALE_COOKIE_KEY}=([^;]+)`));
-    if (cookieMatch && ['en', 'he', 'ar', 'ru'].includes(cookieMatch[1])) {
-      return cookieMatch[1] as Locale;
-    }
-    
-    return 'en';
-  });
+interface DirectionProviderProps {
+  children: ReactNode;
+  initialLocale?: Locale;
+}
+
+export const DirectionProvider = ({ children, initialLocale = 'en' }: DirectionProviderProps) => {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
   
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [localeReady, setLocaleReady] = useState(false);
   const dir = checkRTL(locale) ? 'rtl' : 'ltr';
 
-  // Mark locale as ready after mount
+  // Sync with server-side initial locale on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Sync localStorage with cookie if they differ
+      const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+      if (stored !== initialLocale) {
+        localStorage.setItem(LOCALE_STORAGE_KEY, initialLocale);
+      }
       setLocaleReady(true);
     }
-  }, []);
+  }, [initialLocale]);
 
   // Detect browser language on first visit
   useEffect(() => {
@@ -76,13 +70,17 @@ export const DirectionProvider = ({ children }: { children: ReactNode }) => {
         });
       }
     }
-  }, []);
+  }, [locale]);
 
-  // Apply direction and locale to document
+  // Apply direction and locale to document (only update if changed)
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    document.documentElement.dir = dir;
-    document.documentElement.lang = locale;
+    if (document.documentElement.dir !== dir) {
+      document.documentElement.dir = dir;
+    }
+    if (document.documentElement.lang !== locale) {
+      document.documentElement.lang = locale;
+    }
   }, [dir, locale]);
 
   const setLocale = async (newLocale: Locale) => {
@@ -103,6 +101,11 @@ export const DirectionProvider = ({ children }: { children: ReactNode }) => {
     setLocaleState(newLocale);
     localStorage.setItem(LOCALE_STORAGE_KEY, newLocale);
     document.cookie = `${LOCALE_COOKIE_KEY}=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    
+    // Update document attributes immediately
+    const newDir = checkRTL(newLocale) ? 'rtl' : 'ltr';
+    document.documentElement.dir = newDir;
+    document.documentElement.lang = newLocale;
     
     // End transition
     if (!prefersReducedMotion) {

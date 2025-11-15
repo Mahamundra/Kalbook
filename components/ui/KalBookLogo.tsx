@@ -1,17 +1,21 @@
+"use client";
 import React from 'react';
+import { useDirection } from '@/components/providers/DirectionProvider';
+import { TypingAnimation } from './TypingAnimation';
 
 interface KalBokLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'full' | 'icon' | 'text';
   className?: string;
   color?: string;
+  animated?: boolean;
 }
 
 const sizeMap = {
-  sm: { fontSize: 14 },
-  md: { fontSize: 18 },
-  lg: { fontSize: 24 },
-  xl: { fontSize: 32 },
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-xl',
+  xl: 'text-2xl',
 };
 
 export const KalBokLogo: React.FC<KalBokLogoProps> = ({
@@ -19,24 +23,28 @@ export const KalBokLogo: React.FC<KalBokLogoProps> = ({
   variant = 'text',
   className = '',
   color,
+  animated = true,
 }) => {
-  const dimensions = sizeMap[size];
-  const logoColor = color || 'hsl(var(--primary))';
+  const { locale } = useDirection();
+  const sizeClass = sizeMap[size];
+
+  if (!animated) {
+    return (
+      <span className={`${sizeClass} font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent ${className}`}>
+        KalBok.io
+      </span>
+    );
+  }
 
   return (
-    <span
-      className={`font-bold ${className}`}
-      style={{
-        fontSize: `${dimensions.fontSize}px`,
-        color: logoColor,
-        letterSpacing: '0.05em',
-        lineHeight: 1.2,
-        fontFamily: 'var(--font-space-grotesk), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      }}
-    >
-      KalBok
-      <span className="animate-io-appear inline-block">.io</span>
-    </span>
+    <TypingAnimation 
+      text="KalBok" 
+      suffix=".io" 
+      suffixDelay={800} 
+      typingSpeed={100} 
+      locale={locale}
+      className={`${sizeClass} font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent ${className}`}
+    />
   );
 };
 

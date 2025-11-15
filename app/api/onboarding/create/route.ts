@@ -14,11 +14,32 @@ type WorkerRow = Database['public']['Tables']['workers']['Row'];
  * POST /api/onboarding/create
  * Create a new business with default services, settings, and admin user
  */
+/**
+ * Get admin session from cookie
+ */
+function getAdminSession(request: NextRequest): { userId: string; businessId: string; email: string; phone: string; name: string; role: string } | null {
+  const adminSessionCookie = request.cookies.get('admin_session')?.value;
+  if (!adminSessionCookie) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(adminSessionCookie);
+  } catch (error) {
+    console.error('Error parsing admin_session cookie:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   let body: any = null;
   try {
     body = await request.json();
-    const { businessType, businessInfo, adminUser } = body;
+    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount } = body;
+    
+    // Check if user is logged in
+    const session = getAdminSession(request);
+    const isLoggedIn = !!session;
 
     // Validate required fields
     const validBusinessTypes = ['barbershop', 'nail_salon', 'gym_trainer', 'beauty_salon', 'makeup_artist', 'spa', 'pilates_studio', 'physiotherapy', 'life_coach', 'dietitian', 'other'];
@@ -60,9 +81,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!adminUser?.name || typeof adminUser.name !== 'string') {
+    // Use ownerName if provided, otherwise fall back to adminUser.name
+    const finalOwnerName = (ownerName && typeof ownerName === 'string' && ownerName.trim()) 
+      ? ownerName.trim() 
+      : (adminUser?.name && typeof adminUser.name === 'string' ? adminUser.name.trim() : null);
+    
+    if (!finalOwnerName) {
       return NextResponse.json(
-        { error: 'Admin user name is required' },
+        { error: 'Owner name is required' },
         { status: 400 }
       );
     }
@@ -196,129 +222,147 @@ export async function POST(request: NextRequest) {
     // Create admin user via Supabase Auth
     // Note: We'll create the auth user first, then the user record
     let authUserId: string;
+    let shouldReuseAccount = false;
 
     try {
-      // Check if email already exists in auth
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const emailExists = existingUsers?.users?.some(u => u.email === adminUser.email);
-      
-      if (emailExists) {
-        // Rollback: delete business and services
-        await supabase.from('services').delete().eq('business_id', businessId);
-        await supabase.from('businesses').delete().eq('id', businessId);
-        return NextResponse.json(
-          { error: 'Email address already registered by another user' },
-          { status: 409 }
-        );
-      }
-
-      // Check if phone already exists in users table (if phone is provided)
-      if (e164Phone) {
-        const existingUserByPhoneResult = await supabase
-          .from('users')
-          .select('id, email, phone')
-          .eq('phone', e164Phone)
-          .maybeSingle() as { data: UserRow | null; error: any };
-        const { data: existingUserByPhone } = existingUserByPhoneResult;
-        
-        if (existingUserByPhone) {
-          // Phone already registered - check if it's the same email
-          if (existingUserByPhone.email === adminUser.email) {
-            // Same user trying to register again - allow it but skip phone in auth
-            console.log('Phone already registered to same email, continuing without phone in auth');
-          } else {
-            // Phone belongs to different user - rollback and return error
-            await supabase.from('services').delete().eq('business_id', businessId);
-            await supabase.from('businesses').delete().eq('id', businessId);
-            return NextResponse.json(
-              { error: 'Phone number already registered by another user' },
-              { status: 409 }
-            );
-          }
+      // Check if user is logged in and using same account
+      if (isLoggedIn && session && e164Phone && !useAnotherAccount) {
+        // Check if phone and email match logged-in user's info
+        const sessionPhone = session.phone;
+        const sessionEmail = session.email;
+        if (sessionPhone && toE164Format(sessionPhone) === e164Phone && sessionEmail === adminUser.email) {
+          // Same phone and email as logged-in user - reuse existing auth user
+          // This allows the business to appear in user dashboard
+          shouldReuseAccount = true;
+          authUserId = session.userId;
+          console.log('User is logged in with same phone and email, reusing existing auth user:', authUserId);
         }
       }
 
-      // Check if phone already exists in auth (if phone is provided)
-      // If it exists, we'll create the user without phone in auth, but still store it in users table
-      let phoneForAuth: string | undefined = undefined;
-      if (e164Phone) {
-        const phoneExists = existingUsers?.users?.some(u => u.phone === e164Phone);
-        if (!phoneExists) {
-          phoneForAuth = e164Phone;
-        }
-        // If phone exists, phoneForAuth stays undefined - we'll skip adding it to auth
-      }
-
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: adminUser.email,
-        phone: phoneForAuth, // Only include if phone doesn't already exist
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          name: adminUser.name,
-          business_id: businessId,
-          role: 'owner',
-        },
-        app_metadata: {
-          business_id: businessId,
-          role: 'owner',
-        },
-      });
-
-      if (authError || !authData.user) {
-        // Rollback: delete business and services
-        await supabase.from('services').delete().eq('business_id', businessId);
-        await supabase.from('businesses').delete().eq('id', businessId);
-        console.error('Auth error details:', authError);
-        console.error('Attempted email:', adminUser.email);
-        console.error('Attempted phone:', e164Phone);
+      // Only create new auth user if not reusing existing account
+      if (!shouldReuseAccount) {
+        // Check if email already exists in auth
+        const { data: existingUsers } = await supabase.auth.admin.listUsers();
+        const emailExists = existingUsers?.users?.some(u => u.email === adminUser.email);
         
-        // Handle specific Supabase Auth errors
-        const errorMessage = authError?.message?.toLowerCase() || '';
-        if (errorMessage.includes('email') || (errorMessage.includes('already exists') && errorMessage.includes('email'))) {
+        if (emailExists) {
+          // Rollback: delete business and services
+          await supabase.from('services').delete().eq('business_id', businessId);
+          await supabase.from('businesses').delete().eq('id', businessId);
           return NextResponse.json(
             { error: 'Email address already registered by another user' },
             { status: 409 }
           );
         }
-        
-        if (errorMessage.includes('phone') || (errorMessage.includes('already registered') && errorMessage.includes('phone'))) {
-          // Phone conflict - we already checked, but Supabase Auth might still complain
-          // Try creating without phone
-          const { data: retryAuthData, error: retryAuthError } = await supabase.auth.admin.createUser({
-            email: adminUser.email,
-            // Skip phone
-            email_confirm: true,
-            user_metadata: {
-              name: adminUser.name,
-              business_id: businessId,
-              role: 'owner',
-            },
-            app_metadata: {
-              business_id: businessId,
-              role: 'owner',
-            },
-          });
+      
+        // Check if phone already exists in users table (if phone is provided)
+        if (e164Phone) {
+          const existingUserByPhoneResult = await supabase
+            .from('users')
+            .select('id, email, phone')
+            .eq('phone', e164Phone)
+            .maybeSingle() as { data: UserRow | null; error: any };
+          const { data: existingUserByPhone } = existingUserByPhoneResult;
           
-          if (retryAuthError || !retryAuthData.user) {
-            // Still failed - rollback
-            await supabase.from('services').delete().eq('business_id', businessId);
-            await supabase.from('businesses').delete().eq('id', businessId);
+          if (existingUserByPhone) {
+            // Phone already registered - check if it's the same email
+            if (existingUserByPhone.email === adminUser.email) {
+              // Same user trying to register again - allow it but skip phone in auth
+              console.log('Phone already registered to same email, continuing without phone in auth');
+            } else {
+              // Phone belongs to different user - rollback and return error
+              await supabase.from('services').delete().eq('business_id', businessId);
+              await supabase.from('businesses').delete().eq('id', businessId);
+              return NextResponse.json(
+                { error: 'Phone number already registered by another user' },
+                { status: 409 }
+              );
+            }
+          }
+        }
+
+        // Check if phone already exists in auth (if phone is provided)
+        // If it exists, we'll create the user without phone in auth, but still store it in users table
+        let phoneForAuth: string | undefined = undefined;
+        if (e164Phone) {
+          const phoneExists = existingUsers?.users?.some(u => u.phone === e164Phone);
+          if (!phoneExists) {
+            phoneForAuth = e164Phone;
+          }
+          // If phone exists, phoneForAuth stays undefined - we'll skip adding it to auth
+        }
+
+        // Create user in Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: adminUser.email,
+          phone: phoneForAuth, // Only include if phone doesn't already exist
+          email_confirm: true, // Auto-confirm email
+          user_metadata: {
+            name: finalOwnerName,
+            business_id: businessId,
+            role: 'owner',
+          },
+          app_metadata: {
+            business_id: businessId,
+            role: 'owner',
+          },
+        });
+
+        if (authError || !authData.user) {
+          // Rollback: delete business and services
+          await supabase.from('services').delete().eq('business_id', businessId);
+          await supabase.from('businesses').delete().eq('id', businessId);
+          console.error('Auth error details:', authError);
+          console.error('Attempted email:', adminUser.email);
+          console.error('Attempted phone:', e164Phone);
+          
+          // Handle specific Supabase Auth errors
+          const errorMessage = authError?.message?.toLowerCase() || '';
+          if (errorMessage.includes('email') || (errorMessage.includes('already exists') && errorMessage.includes('email'))) {
             return NextResponse.json(
-              { error: 'Phone number already registered by another user' },
+              { error: 'Email address already registered by another user' },
               { status: 409 }
             );
           }
           
-          authUserId = retryAuthData.user.id;
+          if (errorMessage.includes('phone') || (errorMessage.includes('already registered') && errorMessage.includes('phone'))) {
+            // Phone conflict - we already checked, but Supabase Auth might still complain
+            // Try creating without phone
+            const { data: retryAuthData, error: retryAuthError } = await supabase.auth.admin.createUser({
+              email: adminUser.email,
+              // Skip phone
+              email_confirm: true,
+              user_metadata: {
+                name: finalOwnerName,
+                business_id: businessId,
+                role: 'owner',
+              },
+              app_metadata: {
+                business_id: businessId,
+                role: 'owner',
+              },
+            });
+            
+            if (retryAuthError || !retryAuthData.user) {
+              // Still failed - rollback
+              await supabase.from('services').delete().eq('business_id', businessId);
+              await supabase.from('businesses').delete().eq('id', businessId);
+              return NextResponse.json(
+                { error: 'Phone number already registered by another user' },
+                { status: 409 }
+              );
+            }
+            
+            authUserId = retryAuthData.user.id;
+          } else {
+            return NextResponse.json(
+              { error: authError?.message || 'Failed to create admin user in auth', details: authError },
+              { status: 500 }
+            );
+          }
         } else {
-          return NextResponse.json(
-            { error: authError?.message || 'Failed to create admin user in auth', details: authError },
-            { status: 500 }
-          );
+          authUserId = authData.user.id;
         }
-      } else {
-        authUserId = authData.user.id;
       }
     } catch (authError: any) {
       // Rollback: delete business and services
@@ -343,12 +387,19 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // If reusing account, generate a new UUID for the user record
+    // (since id is primary key, we can't reuse the same auth user ID)
+    // The phone number will link all businesses for this owner
+    const userIdForRecord = shouldReuseAccount 
+      ? crypto.randomUUID() // Generate new UUID for new business
+      : authUserId; // Use auth user ID for new account
+    
     const userData = {
-      id: authUserId,
+      id: userIdForRecord,
       business_id: businessId,
       email: adminUser.email,
       phone: phoneForUser,
-      name: adminUser.name.trim(),
+      name: finalOwnerName,
       role: 'owner' as const,
       is_main_admin: true, // Mark as main admin - cannot be deleted
     };
@@ -375,8 +426,10 @@ export async function POST(request: NextRequest) {
         userData,
         error: userError,
       });
-      // Rollback: delete auth user, services, and business
-      await supabase.auth.admin.deleteUser(authUserId);
+      // Rollback: delete auth user (only if we created it), services, and business
+      if (!shouldReuseAccount) {
+        await supabase.auth.admin.deleteUser(authUserId);
+      }
       await supabase.from('services').delete().eq('business_id', businessId);
       await supabase.from('businesses').delete().eq('id', businessId);
       return NextResponse.json(

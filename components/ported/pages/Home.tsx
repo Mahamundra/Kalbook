@@ -6,10 +6,20 @@ import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { Button } from '@/components/ported/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { Calendar, Clock, Users, MessageSquare, Globe, Shield, Check, ArrowRight, ArrowLeft, ChevronDown, BarChart3, QrCode, Package, FileText, Palette, Smartphone, ShieldCheck } from 'lucide-react';
+import { Calendar, Clock, Users, MessageSquare, Globe, Shield, Check, ArrowRight, ArrowLeft, ChevronDown, BarChart3, QrCode, Package, FileText, Palette, Smartphone, ShieldCheck, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TypingAnimation } from '@/components/ui/TypingAnimation';
+import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
+import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ported/ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
 import en from '@/messages/en.json';
 import he from '@/messages/he.json';
 import ar from '@/messages/ar.json';
@@ -18,9 +28,13 @@ import ru from '@/messages/ru.json';
 const translations = { en, he, ar, ru };
 
 export default function Home() {
+  const router = useRouter();
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string; business: { slug: string } } | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   const getNested = (obj: any, path: string) => {
     return path.split('.').reduce((acc: any, key: string) => (acc ? acc[key] : undefined), obj);
@@ -40,6 +54,56 @@ export default function Home() {
 
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
+  };
+
+  // Check if user is logged in
+  useEffect(() => {
+    async function checkUser() {
+      try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUser({
+              name: data.user.name,
+              email: data.user.email,
+              business: data.business,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
+      } finally {
+        setLoadingUser(false);
+      }
+    }
+    checkUser();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      // Call logout API to properly clear cookie
+      await fetch('/api/user/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      
+      // Clear user state
+      setUser(null);
+      
+      // Reload page to update UI
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: try to clear cookie manually and reload
+      document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      setUser(null);
+      window.location.href = '/';
+    }
+  };
+
+  const handleGoToDashboard = () => {
+    router.push('/user/dashboard');
   };
 
   const featureIcons = {
@@ -202,13 +266,60 @@ export default function Home() {
               <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <h1 className="text-lg sm:text-xl font-bold truncate">KalBook</h1>
+              <h1 className="text-lg sm:text-xl font-bold truncate bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                KalBok.io
+              </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <LanguageToggle />
-              <Link href="/onboarding">
-                <Button className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 h-8 sm:h-10">{getHome('startNow')}</Button>
-              </Link>
+              {!loadingUser && user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 h-8 sm:h-10 flex items-center gap-2"
+                    >
+                      <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
+                          {user.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="hidden sm:inline">
+                        {(t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', user.name)}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align={isRTL ? "start" : "end"} dir={dir}>
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer">
+                      <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t('userDashboard.title') || 'My Account'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                      <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t('userDashboard.logout') || 'Logout'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 h-8 sm:h-10"
+                    onClick={() => setLoginModalOpen(true)}
+                  >
+                    {t('adminLogin.homepageLogin') || 'Admin Login'}
+                  </Button>
+                  <Link href="/onboarding">
+                    <Button className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 h-8 sm:h-10">{getHome('startNow')}</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -389,6 +500,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
     </div>
   );
 }
