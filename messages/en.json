@@ -609,6 +609,10 @@
       "noShowPrevention": {
         "title": "No-Show Prevention",
         "desc": "Automated reminders help reduce missed appointments and keep your schedule full."
+      },
+      "recurringAppointments": {
+        "title": "Recurring Appointments",
+        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment."
       }
     },
     "pricing": {
@@ -683,6 +687,22 @@
   "onboarding": {
     "stepOf": "Step {step} of {total}",
     "complete": "Complete",
+    "selectedPlan": "Selected Plan",
+    "changePlan": "Change Plan",
+    "choosePlan": "Choose Your Plan",
+    "choosePlanDescription": "Select the plan that best fits your business needs. You can change this anytime during setup.",
+    "selectPlan": "Select Plan",
+    "planSelected": "Selected",
+    "planConfirmation": {
+      "title": "Plan Confirmation",
+      "subtitle": "Review your selected plan",
+      "planDetails": "Plan Details",
+      "monthlyCharge": "Monthly Charge",
+      "chargedMonthly": "This amount will be charged monthly",
+      "freeTrial": "14 Days Free Trial",
+      "trialExplanation": "Start with 14 days free, no credit card required",
+      "afterTrial": "After the trial period, you'll be charged {price} per month"
+    },
     "chooseBusinessType": {
       "title": "Choose Your Business Type",
       "subtitle": "We'll tailor your setup to match your business. Choose the category that fits your services, and we'll configure everything you need to start accepting bookings and controlling your time more efficiently.",

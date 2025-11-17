@@ -6,7 +6,7 @@ import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { Button } from '@/components/ported/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { Calendar, Clock, Users, MessageSquare, Globe, Shield, Check, ArrowRight, ArrowLeft, ChevronDown, BarChart3, QrCode, Package, FileText, Palette, Smartphone, ShieldCheck, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Calendar, Clock, Users, MessageSquare, Globe, Shield, Check, ArrowRight, ArrowLeft, ChevronDown, BarChart3, QrCode, Package, FileText, Palette, Smartphone, ShieldCheck, User, LogOut, LayoutDashboard, Repeat } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TypingAnimation } from '@/components/ui/TypingAnimation';
@@ -122,6 +122,7 @@ export default function Home() {
     customBranding: Palette,
     mobileOptimized: Smartphone,
     noShowPrevention: ShieldCheck,
+    recurringAppointments: Repeat,
   };
 
   // Pricing Plans Component
@@ -244,7 +245,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/onboarding" className="block mt-auto">
+                <Link href={`/onboarding?plan=${planKey}`} className="block mt-auto">
                   <Button
                     className="w-full"
                     variant={isProfessional ? 'default' : 'outline'}

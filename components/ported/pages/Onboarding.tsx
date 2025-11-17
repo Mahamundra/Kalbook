@@ -5,8 +5,8 @@ import { Input } from "@/components/ported/ui/input";
 import { Label } from "@/components/ported/ui/label";
 import { Button } from "@/components/ported/ui/button";
 import { Checkbox } from "@/components/ported/ui/checkbox";
-import { useRouter } from "next/navigation";
-import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check } from "lucide-react";
 import { useToast } from "@/components/ported/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLocale } from "@/components/ported/hooks/useLocale";
@@ -16,6 +16,7 @@ import { Footer } from "@/components/ui/Footer";
 import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ported/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ported/ui/dialog";
 import en from "@/messages/en.json";
 import he from "@/messages/he.json";
 import ar from "@/messages/ar.json";
@@ -31,6 +32,7 @@ type Service = {
 };
 
 const Onboarding = () => {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -47,6 +49,11 @@ const Onboarding = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [useAnotherAccount, setUseAnotherAccount] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<{email: string, phone: string, name: string} | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string>('basic');
+  const [planDetails, setPlanDetails] = useState<{name: string, price: number, symbol: string} | null>(null);
+  const [loadingPlanDetails, setLoadingPlanDetails] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [allPlans, setAllPlans] = useState<Array<{name: string, price: number, symbol: string, key: string}>>([]);
   const [errors, setErrors] = useState<{
     name?: string;
     englishName?: string;
@@ -84,6 +91,54 @@ const Onboarding = () => {
       return null;
     }
   };
+
+  // Read plan from URL params on mount
+  useEffect(() => {
+    const planParam = searchParams.get('plan');
+    const validPlans = ['basic', 'professional', 'business'];
+    if (planParam && validPlans.includes(planParam.toLowerCase())) {
+      setSelectedPlan(planParam.toLowerCase());
+    } else {
+      // Default to 'basic' if no plan or invalid plan provided
+      setSelectedPlan('basic');
+    }
+  }, [searchParams]);
+
+  // Fetch plan details and all plans
+  useEffect(() => {
+    const fetchPlanDetails = async () => {
+      setLoadingPlanDetails(true);
+      try {
+        const response = await fetch(`/api/pricing?locale=${locale}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.pricing) {
+            // Set current plan details
+            const currentPlanData = data.pricing[selectedPlan];
+            if (currentPlanData) {
+              setPlanDetails({
+                name: selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1),
+                price: currentPlanData.price,
+                symbol: currentPlanData.symbol,
+              });
+            }
+            // Set all plans for modal
+            const plansArray = [
+              { key: 'basic', ...data.pricing.basic },
+              { key: 'professional', ...data.pricing.professional },
+              { key: 'business', ...data.pricing.business },
+            ];
+            setAllPlans(plansArray);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching plan details:', error);
+      } finally {
+        setLoadingPlanDetails(false);
+      }
+    };
+    fetchPlanDetails();
+  }, [selectedPlan, locale]);
 
   // Check if user is logged in on component mount
   useEffect(() => {
@@ -383,7 +438,15 @@ const Onboarding = () => {
         return;
       }
     }
-    if (step < 4) {
+    if (step === 3) {
+      // Move to step 5 (plan confirmation) for all plans
+      setErrors({});
+      setStep(5);
+    } else if (step === 5) {
+      // Move from plan confirmation to final step (step 6)
+      setErrors({});
+      setStep(6);
+    } else if (step < 6) {
       // Clear errors when moving to next step
       setErrors({});
       setStep(step + 1);
@@ -400,6 +463,7 @@ const Onboarding = () => {
             services: services.map(({ id, ...service }) => service),
             ownerName,
             useAnotherAccount,
+            plan: selectedPlan || 'basic',
             adminUser: {
               email: businessInfo.email,
               name: ownerName,
@@ -450,7 +514,15 @@ const Onboarding = () => {
       // Clear errors when going back
       setErrors({});
       setTouched({});
+      if (step === 6) {
+        // Go back from final step to plan confirmation
+        setStep(5);
+      } else if (step === 5) {
+        // Go back from plan confirmation to business info
+        setStep(3);
+      } else {
       setStep(step - 1);
+      }
     }
   };
 
@@ -464,17 +536,55 @@ const Onboarding = () => {
           homepageHref="/"
         />
         
+        {/* Plan Banner */}
+        {planDetails && (
+          <Card className="mb-6 p-4 border-primary/20">
+            <div className="flex items-center justify-between" dir={dir}>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t('onboarding.selectedPlan') || 'Selected Plan'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold">
+                      {planDetails.name}
+                    </span>
+                    {planDetails.price > 0 && (
+                      <span className="text-muted-foreground">
+                        {planDetails.symbol}{planDetails.price}
+                        {t('home.pricing.month') || '/month'}
+                      </span>
+                    )}
+                    {selectedPlan === 'basic' && (
+                      <span className="text-xs text-primary font-semibold">
+                        {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPlanModal(true)}
+              >
+                {t('onboarding.changePlan') || 'Change Plan'}
+              </Button>
+            </div>
+          </Card>
+        )}
+        
         {/* Progress Bar */}
         <div className="mb-8">
           <div>
             <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">{t('onboarding.stepOf').replace('{step}', step.toString()).replace('{total}', '4')}</span>
-              <span className="text-sm text-muted-foreground">{Math.round((step / 4) * 100)}% {t('onboarding.complete')}</span>
+              <span className="text-sm font-medium">{t('onboarding.stepOf').replace('{step}', step.toString()).replace('{total}', '6')}</span>
+              <span className="text-sm text-muted-foreground">{Math.round((step / 6) * 100)}% {t('onboarding.complete')}</span>
             </div>
             <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${(step / 4) * 100}%` }}
+                style={{ width: `${(step / 6) * 100}%` }}
               />
             </div>
           </div>
@@ -545,7 +655,7 @@ const Onboarding = () => {
                     <div className={`flex flex-col ${dir === 'rtl' ? 'items-start text-right' : 'items-start text-left'}`}>
                       <type.icon className={`w-8 h-8 mb-3 ${businessType === type.id ? "text-accent-foreground" : "text-muted-foreground"}`} />
                       <h3 className="text-lg font-semibold mb-1">{type.title}</h3>
-                      <p className="text-sm text-muted-foreground">{type.description}</p>
+                      <p className={`text-sm ${businessType === type.id ? "text-white" : "text-muted-foreground"}`}>{type.description}</p>
                     </div>
                   </button>
                 ))}
@@ -559,9 +669,19 @@ const Onboarding = () => {
               <p className="text-muted-foreground mb-8">{t('onboarding.services.subtitle')}</p>
               <div className="space-y-4">
                 {services.map((service, index) => (
-                  <Card key={service.id} className="p-4">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card key={service.id} className="p-4 relative">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setServices(services.filter((_, i) => i !== index));
+                      }}
+                      className={`absolute top-1 ${dir === 'rtl' ? 'left-1' : 'right-1'} text-destructive hover:text-white hover:bg-black z-10`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor={`service-name-${index}`}>{t('onboarding.services.name')}</Label>
                           <Input
@@ -639,18 +759,6 @@ const Onboarding = () => {
                             />
                           </div>
                         </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setServices(services.filter((_, i) => i !== index));
-                        }}
-                        className="ml-4 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
                   </Card>
                 ))}
@@ -810,7 +918,232 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
+            <div className="animate-fade-in">
+              <h2 className="text-3xl font-bold mb-2">{t('onboarding.planConfirmation.title') || 'Plan Confirmation'}</h2>
+              <p className="text-muted-foreground mb-8">{t('onboarding.planConfirmation.subtitle') || 'Review your selected plan'}</p>
+              
+              {planDetails && (
+                <div className="space-y-6">
+                  {/* Plan Details Card */}
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-semibold mb-2">{planDetails.name}</h3>
+                        {planDetails.price > 0 && (
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-bold text-primary">
+                              {planDetails.symbol}{planDetails.price}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {t('home.pricing.month') || '/month'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Conditional Content Based on Plan */}
+                    {selectedPlan === 'basic' ? (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            <h4 className="font-semibold text-primary">
+                              {t('onboarding.planConfirmation.freeTrial') || '14 Days Free Trial'}
+                            </h4>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {t('onboarding.planConfirmation.trialExplanation') || 'Start with 14 days free, no credit card required'}
+                          </p>
+                        </div>
+                        {planDetails.price > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            {t('onboarding.planConfirmation.afterTrial')?.replace('{price}', `${planDetails.symbol}${planDetails.price}`) || `After the trial period, you'll be charged ${planDetails.symbol}${planDetails.price} per month`}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-muted/50 rounded-lg border">
+                          <h4 className="font-semibold mb-2">
+                            {t('onboarding.planConfirmation.monthlyCharge') || 'Monthly Charge'}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            {t('onboarding.planConfirmation.chargedMonthly') || 'This amount will be charged monthly'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Plan Features Summary */}
+                    <div className="mt-6 pt-6 border-t">
+                      <h4 className="font-semibold mb-3">
+                        {t('onboarding.planConfirmation.planDetails') || 'Plan Details'}
+                      </h4>
+                      <ul className="space-y-2">
+                        {(() => {
+                          // Get all features, merging lower plans and replacing conflicts
+                          let allFeatures: string[] = [];
+                          
+                          if (selectedPlan === 'business') {
+                            // Business: Start with Basic + Professional, then add/override with Business
+                            const basicFeatures = getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                            const professionalFeatures = getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
+                            const businessFeatures = getTranslation('home.pricing.plans.business.highlights') as string[] || [];
+                            
+                            // Start with Basic features (excluding "Everything in Basic" type items)
+                            allFeatures = basicFeatures.filter(f => 
+                              !f.toLowerCase().includes('everything in') && 
+                              !f.includes('הכל בחבילת') &&
+                              !f.includes('הכל ב')
+                            );
+                            
+                            // Add Professional features, replacing conflicts
+                            professionalFeatures.forEach(profFeature => {
+                              if (profFeature.toLowerCase().includes('everything in') || 
+                                  profFeature.includes('הכל בחבילת') ||
+                                  profFeature.includes('הכל ב')) {
+                                // Skip "Everything in Basic" placeholder
+                                return;
+                              }
+                              // Check for conflicts (staff/workers, bookings, etc.)
+                              // Check in both English and Hebrew
+                              const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
+                                                    profFeature.toLowerCase().includes('employee') ||
+                                                    profFeature.includes('עובד') ||
+                                                    profFeature.includes('עובדים');
+                              const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
+                                                      profFeature.includes('הזמנות');
+                              
+                              if (isStaffFeature) {
+                                // Replace staff/worker feature - remove any feature mentioning workers/staff/employees
+                                allFeatures = allFeatures.filter(f => 
+                                  !(f.toLowerCase().includes('staff') || 
+                                    f.toLowerCase().includes('employee') ||
+                                    f.includes('עובד') ||
+                                    f.includes('עובדים'))
+                                );
+                                allFeatures.push(profFeature);
+                              } else if (isBookingFeature) {
+                                // Replace booking feature
+                                allFeatures = allFeatures.filter(f => 
+                                  !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
+                                );
+                                allFeatures.push(profFeature);
+                              } else {
+                                // Add new feature
+                                allFeatures.push(profFeature);
+                              }
+                            });
+                            
+                            // Add Business features, replacing conflicts
+                            businessFeatures.forEach(bizFeature => {
+                              if (bizFeature.toLowerCase().includes('everything in') || 
+                                  bizFeature.includes('הכל בחבילת') ||
+                                  bizFeature.includes('הכל ב')) {
+                                // Skip "Everything in Professional" placeholder
+                                return;
+                              }
+                              // Check for conflicts
+                              // Check in both English and Hebrew
+                              const isStaffFeature = bizFeature.toLowerCase().includes('staff') || 
+                                                    bizFeature.toLowerCase().includes('employee') ||
+                                                    bizFeature.includes('עובד') ||
+                                                    bizFeature.includes('עובדים');
+                              const isBookingFeature = bizFeature.toLowerCase().includes('booking') ||
+                                                      bizFeature.includes('הזמנות');
+                              
+                              if (isStaffFeature) {
+                                // Replace staff/worker feature - remove any feature mentioning workers/staff/employees
+                                allFeatures = allFeatures.filter(f => 
+                                  !(f.toLowerCase().includes('staff') || 
+                                    f.toLowerCase().includes('employee') ||
+                                    f.includes('עובד') ||
+                                    f.includes('עובדים'))
+                                );
+                                allFeatures.push(bizFeature);
+                              } else if (isBookingFeature) {
+                                // Replace booking feature
+                                allFeatures = allFeatures.filter(f => 
+                                  !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
+                                );
+                                allFeatures.push(bizFeature);
+                              } else {
+                                // Add new feature
+                                allFeatures.push(bizFeature);
+                              }
+                            });
+                          } else if (selectedPlan === 'professional') {
+                            // Professional: Start with Basic, then add/override with Professional
+                            const basicFeatures = getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                            const professionalFeatures = getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
+                            
+                            // Start with Basic features (excluding "Everything in Basic" type items)
+                            allFeatures = basicFeatures.filter(f => 
+                              !f.toLowerCase().includes('everything in') && 
+                              !f.includes('הכל בחבילת') &&
+                              !f.includes('הכל ב')
+                            );
+                            
+                            // Add Professional features, replacing conflicts
+                            professionalFeatures.forEach(profFeature => {
+                              if (profFeature.toLowerCase().includes('everything in') || 
+                                  profFeature.includes('הכל בחבילת') ||
+                                  profFeature.includes('הכל ב')) {
+                                // Skip "Everything in Basic" placeholder
+                                return;
+                              }
+                              // Check for conflicts (staff/workers, bookings, etc.)
+                              // Check in both English and Hebrew
+                              const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
+                                                    profFeature.toLowerCase().includes('employee') ||
+                                                    profFeature.includes('עובד') ||
+                                                    profFeature.includes('עובדים');
+                              const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
+                                                      profFeature.includes('הזמנות');
+                              
+                              if (isStaffFeature) {
+                                // Replace staff/worker feature - remove any feature mentioning workers/staff/employees
+                                allFeatures = allFeatures.filter(f => 
+                                  !(f.toLowerCase().includes('staff') || 
+                                    f.toLowerCase().includes('employee') ||
+                                    f.includes('עובד') ||
+                                    f.includes('עובדים'))
+                                );
+                                allFeatures.push(profFeature);
+                              } else if (isBookingFeature) {
+                                // Replace booking feature
+                                allFeatures = allFeatures.filter(f => 
+                                  !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
+                                );
+                                allFeatures.push(profFeature);
+                              } else {
+                                // Add new feature
+                                allFeatures.push(profFeature);
+                              }
+                            });
+                          } else {
+                            // Basic: Show only Basic features
+                            allFeatures = getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                          }
+                          
+                          return allFeatures.map((highlight: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-muted-foreground">{highlight}</span>
+                            </li>
+                          ));
+                        })()}
+                      </ul>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 6 && (
             <div className="animate-fade-in text-center">
               <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-10 h-10 text-accent-foreground" />
@@ -843,7 +1176,7 @@ const Onboarding = () => {
               {t('onboarding.buttons.back')}
             </LoadingButton>
             <LoadingButton ref={continueButtonRef} onClick={handleNext} loading={loading}>
-              {step === 4 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
+              {step === 6 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
             </LoadingButton>
           </div>
         </Card>
@@ -852,6 +1185,99 @@ const Onboarding = () => {
       <div className="mt-16">
         <Footer />
       </div>
+
+      {/* Plan Selection Modal */}
+      <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
+        <DialogContent className="max-w-4xl" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>{t('onboarding.choosePlan') || 'Choose Your Plan'}</DialogTitle>
+            <DialogDescription>
+              {t('onboarding.choosePlanDescription') || 'Select the plan that best fits your business needs. You can change this anytime during setup.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid md:grid-cols-3 gap-4 mt-4">
+            {allPlans.map((plan) => {
+              const planKey = plan.key;
+              const isSelected = selectedPlan === planKey;
+              const isProfessional = planKey === 'professional';
+              const planName = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+              const planHighlights = getTranslation(`home.pricing.plans.${planKey}.highlights`) as string[] || [];
+              
+              return (
+                <Card
+                  key={planKey}
+                  className={`p-6 h-full flex flex-col relative transition-all ${
+                    isSelected
+                      ? 'border-2 border-primary'
+                      : 'border hover:border-primary/50'
+                  } ${isProfessional && !isSelected ? 'border-primary/30' : ''}`}
+                >
+                  {isProfessional && !isSelected && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
+                        {t('home.pricing.bestSeller') || 'Best Seller'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="text-center mb-4">
+                    <h3 className="text-xl font-bold mb-2">{planName}</h3>
+                    {planKey === 'basic' && (
+                      <p className="text-xs font-semibold text-primary mb-2">
+                        {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
+                      </p>
+                    )}
+                    <div className="mb-2">
+                      <span className="text-3xl font-bold text-primary">
+                        {plan.symbol}{plan.price}
+                      </span>
+                      {plan.price > 0 && (
+                        <span className="text-muted-foreground text-lg ml-1">
+                          {t('home.pricing.month') || '/month'}
+                        </span>
+                      )}
+                    </div>
+                    {getTranslation(`home.pricing.plans.${planKey}.priceNote`) && (
+                      <p className="text-xs text-muted-foreground mb-2" style={{ whiteSpace: 'pre-line' }}>
+                        {getTranslation(`home.pricing.plans.${planKey}.priceNote`)}
+                      </p>
+                    )}
+                  </div>
+                  <ul className="space-y-2 mb-8 flex-grow">
+                    {planHighlights.map((highlight: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-muted-foreground">{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto">
+                    <Button
+                      className="w-full"
+                      variant={isSelected ? 'default' : 'outline'}
+                      size="lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlan(planKey);
+                      setShowPlanModal(false);
+                      // Scroll to bottom where continue button is (only on step 5)
+                      if (step === 5) {
+                        setTimeout(() => {
+                          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                        }, 100);
+                      }
+                    }}
+                    >
+                      {isSelected
+                        ? (t('onboarding.planSelected') || 'Selected')
+                        : (getTranslation(`home.pricing.plans.${planKey}.cta`) || t('onboarding.selectPlan') || 'Select Plan')}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

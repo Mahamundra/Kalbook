@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   let body: any = null;
   try {
     body = await request.json();
-    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount } = body;
+    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount, plan } = body;
     
     // Check if user is logged in
     const session = getAdminSession(request);
@@ -120,21 +120,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get Basic plan for trial (free plan)
+    // Validate and get selected plan (default to 'basic' if not provided or invalid)
+    const validPlans = ['basic', 'professional', 'business'];
+    const selectedPlanName = (plan && typeof plan === 'string' && validPlans.includes(plan.toLowerCase()))
+      ? plan.toLowerCase()
+      : 'basic';
+    
     const planResult = await supabase
       .from('plans')
       .select('id')
-      .eq('name', 'basic')
+      .eq('name', selectedPlanName)
       .eq('active', true)
       .single() as { data: { id: string } | null; error: any };
     
-    const basicPlan = planResult.data;
+    let selectedPlan = planResult.data;
     
-    if (!basicPlan) {
-      return NextResponse.json(
-        { error: 'Basic plan not found. Please contact support.' },
-        { status: 500 }
-      );
+    if (!selectedPlan) {
+      // Fallback to basic plan if selected plan not found
+      const fallbackResult = await supabase
+        .from('plans')
+        .select('id')
+        .eq('name', 'basic')
+        .eq('active', true)
+        .single() as { data: { id: string } | null; error: any };
+      
+      const fallbackPlan = fallbackResult.data;
+      if (!fallbackPlan) {
+        return NextResponse.json(
+          { error: 'Plan not found. Please contact support.' },
+          { status: 500 }
+        );
+      }
+      
+      // Use fallback plan but log warning
+      console.warn(`Selected plan '${selectedPlanName}' not found, using 'basic' plan as fallback`);
+      selectedPlan = fallbackPlan;
     }
 
     // Calculate trial dates (14 days from now)
@@ -153,7 +173,7 @@ export async function POST(request: NextRequest) {
       timezone: businessInfo.timezone || getDefaultTimezone(businessType as BusinessType),
       currency: businessInfo.currency || getDefaultCurrency(businessType as BusinessType),
       business_type: businessType as BusinessType,
-      plan_id: basicPlan.id,
+      plan_id: selectedPlan.id,
       trial_started_at: trialStartedAt.toISOString(),
       trial_ends_at: trialEndsAt.toISOString(),
       subscription_status: 'trial' as const,
