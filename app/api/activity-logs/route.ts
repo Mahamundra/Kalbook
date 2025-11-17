@@ -87,7 +87,6 @@ export async function GET(request: NextRequest) {
     };
 
     if (error) {
-      console.error('Error fetching activity logs:', error);
       return NextResponse.json(
         { error: error.message || 'Failed to fetch activity logs' },
         { status: 500 }
@@ -130,7 +129,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error in activity logs API:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch activity logs' },
       { status: 500 }

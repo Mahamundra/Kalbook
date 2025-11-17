@@ -67,7 +67,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching plan limits:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch plan limits' },
       { status: 500 }

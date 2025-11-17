@@ -26,7 +26,6 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
   try {
     return JSON.parse(adminSessionCookie);
   } catch (error) {
-    console.error('Error parsing admin_session cookie:', error);
     return null;
   }
 }
@@ -112,7 +111,6 @@ export async function POST(request: NextRequest) {
           );
         }
       } catch (error: any) {
-        console.error('Phone format conversion error:', error);
         return NextResponse.json(
           { error: 'Invalid phone number format. Please use E.164 format (e.g., +972542636737)' },
           { status: 400 }
@@ -152,8 +150,6 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Use fallback plan but log warning
-      console.warn(`Selected plan '${selectedPlanName}' not found, using 'basic' plan as fallback`);
       selectedPlan = fallbackPlan;
     }
 
@@ -255,7 +251,6 @@ export async function POST(request: NextRequest) {
           // This allows the business to appear in user dashboard
           shouldReuseAccount = true;
           authUserId = session.userId;
-          console.log('User is logged in with same phone and email, reusing existing auth user:', authUserId);
         }
       }
 
@@ -288,7 +283,6 @@ export async function POST(request: NextRequest) {
             // Phone already registered - check if it's the same email
             if (existingUserByPhone.email === adminUser.email) {
               // Same user trying to register again - allow it but skip phone in auth
-              console.log('Phone already registered to same email, continuing without phone in auth');
             } else {
               // Phone belongs to different user - rollback and return error
               await supabase.from('services').delete().eq('business_id', businessId);
@@ -332,9 +326,6 @@ export async function POST(request: NextRequest) {
           // Rollback: delete business and services
           await supabase.from('services').delete().eq('business_id', businessId);
           await supabase.from('businesses').delete().eq('id', businessId);
-          console.error('Auth error details:', authError);
-          console.error('Attempted email:', adminUser.email);
-          console.error('Attempted phone:', e164Phone);
           
           // Handle specific Supabase Auth errors
           const errorMessage = authError?.message?.toLowerCase() || '';
@@ -402,7 +393,6 @@ export async function POST(request: NextRequest) {
       try {
         phoneForUser = toE164Format(adminUser.phone);
       } catch (error) {
-        console.error('Failed to convert adminUser.phone to E.164:', error);
         // Continue without phone if conversion fails
       }
     }
@@ -431,16 +421,6 @@ export async function POST(request: NextRequest) {
       is_main_admin: true, // Mark as main admin - cannot be deleted
     };
 
-    console.log('Creating user in users table:', {
-      id: userData.id,
-      email: userData.email,
-      phone: userData.phone,
-      business_id: userData.business_id,
-      role: userData.role,
-      e164Phone,
-      adminUserPhone: adminUser.phone,
-    });
-
     const userResult = await supabase
       .from('users')
       .insert(userData as any)
@@ -449,10 +429,6 @@ export async function POST(request: NextRequest) {
     const { data: newUser, error: userError } = userResult;
 
     if (userError) {
-      console.error('Failed to create user in users table:', {
-        userData,
-        error: userError,
-      });
       // Rollback: delete auth user (only if we created it), services, and business
       if (!shouldReuseAccount) {
         await supabase.auth.admin.deleteUser(authUserId);
@@ -465,22 +441,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('User created successfully in users table:', {
-      userId: newUser?.id,
-      email: newUser?.email,
-      phone: newUser?.phone,
-      businessId: newUser?.business_id,
-      role: newUser?.role,
-    });
-
     // Upload default banner image to Supabase Storage
     let bannerCoverUrl: string | null = null;
     const bannerUploadResult = await uploadDefaultBannerImage(businessId, businessType as BusinessType);
     if (bannerUploadResult.url) {
       bannerCoverUrl = bannerUploadResult.url;
-    } else {
-      // Log error but don't fail onboarding if banner upload fails
-      console.error('Failed to upload default banner image:', bannerUploadResult.error);
     }
 
     // Get default theme color for business type
@@ -526,8 +491,7 @@ export async function POST(request: NextRequest) {
       .insert(defaultSettings as any);
 
     if (settingsError) {
-      // Settings creation failure is not critical, but log it
-      console.error('Failed to create default settings:', settingsError);
+      // Settings creation failure is not critical
       // Don't rollback everything for settings failure
     }
 
@@ -549,8 +513,7 @@ export async function POST(request: NextRequest) {
     const { data: newWorker, error: workerError } = workerResult;
 
     if (workerError) {
-      // Worker creation failure is not critical, but log it
-      console.error('Failed to create default worker:', workerError);
+      // Worker creation failure is not critical
       // Don't rollback everything for worker failure
     } else if (newWorker && createdServices && createdServices.length > 0) {
       // Link worker to all services
@@ -564,7 +527,6 @@ export async function POST(request: NextRequest) {
         .insert(workerServiceLinks as any);
 
       if (linkError) {
-        console.error('Failed to link worker to services:', linkError);
         // Not critical, continue
       }
     }
@@ -589,9 +551,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error in onboarding:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Request body:', body ? JSON.stringify({ businessType: body.businessType, businessInfo: body.businessInfo, adminUser: body.adminUser, services: body.services?.length }, null, 2) : 'N/A');
     return NextResponse.json(
       { error: error.message || 'Failed to complete onboarding', details: error.stack },
       { status: 500 }

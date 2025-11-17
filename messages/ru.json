@@ -28,7 +28,8 @@
     "fromLastMonth": "+{value}% с прошлого месяца",
     "improvement": "-{value}% улучшение",
     "noAppointmentsToday": "На сегодня нет записей.",
-    "goToCalendar": "Перейти к календарю"
+    "goToCalendar": "Перейти к календарю",
+    "goToOwnerDashboard": "Перейти к панели владельца"
   },
   "calendar": {
     "title": "Календарь",
@@ -190,7 +191,19 @@
     "admin": "Администратор",
     "worker": "Работник",
     "owner": "Владелец",
-    "role": "Роль"
+    "role": "Роль",
+    "limitReached": "Достигнут лимит работников",
+    "youHaveOnly": "У вас только",
+    "user": "пользователь",
+    "users": "пользователей",
+    "allowed": "разрешено",
+    "ifYouWantToAddMore": "Если вы хотите добавить больше, пожалуйста, обновите план",
+    "upgradeForm": "Обновить",
+    "limitMessage": "Вы на",
+    "plan": "плане",
+    "onlyWorkersAllowed": "Только",
+    "workersAllowed": "работников",
+    "limitReachedDescription": "Вы достигли максимального количества работников для вашего плана."
   },
   "customers": {
     "title": "Клиенты",

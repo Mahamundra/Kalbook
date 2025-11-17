@@ -58,7 +58,6 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error: any) {
-    console.error('Error fetching businesses:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch businesses' },
       { status: 500 }

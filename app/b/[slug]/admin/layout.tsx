@@ -4,7 +4,7 @@ import { AdminSidebar } from '@/components/ported/admin/AdminSidebar';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { TrialStatusBanner } from '@/components/admin/TrialStatusBanner';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 export default function BusinessAdminLayout({ children }: { children: React.ReactNode }) {
   const { dir, isTransitioning } = useDirection();
@@ -23,16 +23,13 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
         <AdminSidebar />
         
         <SidebarInset>
-            <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-6">
+            <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-6 relative">
               <SidebarTrigger className="md:hidden" />
+              <div className="absolute left-1/2 transform -translate-x-1/2">
+                <KalBookLogo size="lg" variant="full" animated={false} />
+              </div>
               <div className="flex-1" />
             </header>
-            
-            <div className="border-b">
-              <div className="px-6 py-2">
-                <TrialStatusBanner />
-              </div>
-            </div>
             
             <AnimatePresence mode="wait">
               {isTransitioning ? (

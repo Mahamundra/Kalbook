@@ -52,10 +52,8 @@ export default function AdminLoginPage() {
           }
         } catch (settingsError) {
           // Settings might not be accessible before login, that's okay
-          console.log('Could not fetch logo:', settingsError);
         }
       } catch (error) {
-        console.error('Error fetching business:', error);
       }
     }
     fetchBusiness();
@@ -92,11 +90,6 @@ export default function AdminLoginPage() {
       setIsLoading(false);
       setStep('verify');
       toast.success(t('adminLogin.codeSent') || 'Code sent successfully');
-      
-      // In development, show the code for testing
-      if (data.code && process.env.NODE_ENV === 'development') {
-        console.log(`[DEV] OTP Code: ${data.code}`);
-      }
     } catch (error: any) {
       setIsLoading(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');

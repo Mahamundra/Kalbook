@@ -28,7 +28,8 @@
     "fromLastMonth": "+{value}% من الشهر الماضي",
     "improvement": "-{value}% تحسن",
     "noAppointmentsToday": "لا توجد مواعيد مجدولة لليوم.",
-    "goToCalendar": "انتقل إلى التقويم"
+    "goToCalendar": "انتقل إلى التقويم",
+    "goToOwnerDashboard": "انتقل إلى لوحة المالك"
   },
   "calendar": {
     "title": "التقويم",
@@ -190,7 +191,19 @@
     "admin": "مدير",
     "worker": "عامل",
     "owner": "المالك",
-    "role": "الدور"
+    "role": "الدور",
+    "limitReached": "تم الوصول إلى حد العمال",
+    "youHaveOnly": "لديك فقط",
+    "user": "مستخدم",
+    "users": "مستخدمين",
+    "allowed": "مسموح",
+    "ifYouWantToAddMore": "إذا كنت تريد إضافة المزيد، يرجى الترقية",
+    "upgradeForm": "ترقية",
+    "limitMessage": "أنت على",
+    "plan": "خطة",
+    "onlyWorkersAllowed": "فقط",
+    "workersAllowed": "عمال",
+    "limitReachedDescription": "لقد وصلت إلى الحد الأقصى لعدد العمال لخطتك."
   },
   "customers": {
     "title": "العملاء",

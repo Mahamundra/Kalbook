@@ -16,7 +16,6 @@ import { useDirection } from '@/components/providers/DirectionProvider';
 import { useState, useEffect } from 'react';
 import { getSettings } from '@/components/ported/lib/mockData';
 import { toast } from 'sonner';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 const menuItemsBase = [
   { icon: LayoutDashboard, labelKey: 'nav.dashboard', slug: 'dashboard' },
@@ -38,6 +37,7 @@ export const AdminSidebar = () => {
   const [mounted, setMounted] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [isOwner, setIsOwner] = useState(false);
 
   // Detect if we're on slug-based admin route (/b/[slug]/admin/*)
   const slugMatch = pathname.match(/^\/b\/([^/]+)\/admin/);
@@ -92,6 +92,21 @@ export const AdminSidebar = () => {
     };
   }, [businessSlug]);
 
+  // Check if user is owner
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.user && data.user.role === 'owner') {
+          setIsOwner(true);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching user profile:', error);
+        // Silently fail - don't show button if we can't verify owner status
+      });
+  }, []);
+
   return (
     <Sidebar side={isRTL ? "right" : "left"}>
       <SidebarHeader className="p-6 border-b">
@@ -106,11 +121,10 @@ export const AdminSidebar = () => {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <KalBookLogo size="lg" variant="full" />
             {mounted && businessName ? (
-              <p className="text-sm text-muted-foreground mt-1 truncate">{businessName}</p>
+              <p className="text-sm text-muted-foreground truncate">{businessName}</p>
             ) : !mounted ? (
-              <div className="h-4 w-24 bg-muted animate-pulse rounded mt-1"></div>
+              <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
             ) : null}
           </div>
         </div>
@@ -141,6 +155,13 @@ export const AdminSidebar = () => {
             {t('nav.viewPublicSite')}
           </Button>
         </Link>
+        {isOwner && (
+          <Link href="/user/dashboard">
+            <Button variant="outline" className="w-full">
+              {t('dashboard.goToOwnerDashboard')}
+            </Button>
+          </Link>
+        )}
         {businessSlug && (
           <Button
             variant="destructive"

@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ported/ui/checkbox';
+import { UpgradeModal } from '@/components/admin/UpgradeModal';
 
 // Helper function to convert hex to rgba with opacity
 const hexToRgba = (hex: string, opacity: number = 0.2): string => {
@@ -42,7 +43,7 @@ const defaultFormData = {
 };
 
 const Workers = () => {
-  const { t } = useLocale();
+  const { t, isRTL } = useLocale();
   const [mounted, setMounted] = useState(false);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -53,6 +54,10 @@ const Workers = () => {
   const [formData, setFormData] = useState(defaultFormData);
   const [currentUser, setCurrentUser] = useState<{ userId: string; email?: string; phone?: string; role?: 'owner' | 'admin'; isMainAdmin?: boolean } | null>(null);
   const [canManageWorkers, setCanManageWorkers] = useState(true); // Default to true to avoid blocking
+  const [workerLimit, setWorkerLimit] = useState<{ limit: number; current: number; canAdd: boolean } | null>(null);
+  const [currentPlanName, setCurrentPlanName] = useState<string>('');
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   
   useEffect(() => {
@@ -92,6 +97,17 @@ const Workers = () => {
         console.log('Workers data:', workersData);
         setWorkers(workersData);
         setServices(servicesData);
+        
+        // Update worker limit after fetching workers
+        try {
+          const limitResponse = await fetch('/api/admin/plan-limits');
+          const limitData = await limitResponse.json();
+          if (limitData.success && limitData.limits?.max_staff) {
+            setWorkerLimit(limitData.limits.max_staff);
+          }
+        } catch (error) {
+          console.error('Error checking plan limits:', error);
+        }
       } catch (error) {
         console.error('Failed to fetch data:', error);
         toast.error('Failed to load data');
@@ -100,21 +116,51 @@ const Workers = () => {
       }
     };
     
-    fetchCurrentUser();
-    fetchData();
-
     // Check feature access for managing workers
-    fetch('/api/admin/feature-check?feature=manage_workers')
-      .then(res => res.json())
-      .then(data => {
+    const checkFeatureAccess = async () => {
+      try {
+        const response = await fetch('/api/admin/feature-check?feature=manage_workers');
+        const data = await response.json();
         if (data.success) {
           setCanManageWorkers(data.canPerform);
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error checking feature:', error);
         // Default to true if check fails to avoid blocking unnecessarily
-      });
+      }
+    };
+
+    // Check plan limits for workers
+    const checkPlanLimits = async () => {
+      try {
+        const response = await fetch('/api/admin/plan-limits');
+        const data = await response.json();
+        if (data.success && data.limits?.max_staff) {
+          setWorkerLimit(data.limits.max_staff);
+        }
+      } catch (error) {
+        console.error('Error checking plan limits:', error);
+      }
+    };
+
+    // Get current plan name
+    const fetchPlanName = async () => {
+      try {
+        const response = await fetch('/api/admin/trial-status');
+        const data = await response.json();
+        if (data.success && data.planName) {
+          setCurrentPlanName(data.planName);
+        }
+      } catch (error) {
+        console.error('Error fetching plan name:', error);
+      }
+    };
+    
+    fetchCurrentUser();
+    fetchData();
+    checkFeatureAccess();
+    checkPlanLimits();
+    fetchPlanName();
   }, []);
   
   const { localeReady } = useDirection();
@@ -155,6 +201,17 @@ const Workers = () => {
   };
 
   const handleCreate = () => {
+    if (!canManageWorkers) {
+      toast.error('Your plan doesn\'t allow adding workers. Please upgrade to continue.');
+      return;
+    }
+
+    // Check if worker limit is reached
+    if (workerLimit && !workerLimit.canAdd) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setEditingWorkerId(null);
     setEditingWorkerName('');
     setFormData(defaultFormData);
@@ -283,7 +340,7 @@ const Workers = () => {
         // Check if this is the owner (main admin)
         if (worker.isMainAdmin) {
           return (
-            <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
+            <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-yellow-100 text-yellow-800 border-yellow-300 w-fit px-2 py-0.5">
               <Shield className="w-3 h-3" />
               {t('workers.owner')}
             </Badge>
@@ -377,8 +434,8 @@ const Workers = () => {
         
         // Allow editing if:
         // 1. Worker is not a main admin (regular worker/admin), OR
-        // 2. Current user is main admin AND this is their own record
-        const canEdit = !worker.isMainAdmin || (currentUserIsMainAdmin && isCurrentUser);
+        // 2. Current user is main admin (owner) - owners can edit everyone including themselves
+        const canEdit = !worker.isMainAdmin || currentUserIsMainAdmin;
         return (
           <div className={`flex items-center gap-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
             {canEdit && (
@@ -428,8 +485,14 @@ const Workers = () => {
         action={
           <Button 
             onClick={handleCreate}
-            disabled={!canManageWorkers}
-            title={!canManageWorkers ? 'Your plan doesn\'t allow adding workers. Please upgrade to continue.' : ''}
+            className={(!canManageWorkers || (workerLimit && !workerLimit.canAdd)) ? 'opacity-50' : ''}
+            title={
+              !canManageWorkers 
+                ? 'Your plan doesn\'t allow adding workers. Please upgrade to continue.'
+                : (workerLimit && !workerLimit.canAdd)
+                ? `You have reached the maximum number of workers (${workerLimit.limit}) for your plan.`
+                : ''
+            }
           >
             <Plus className="w-4 h-4 me-2" />
             {t('workers.create')}
@@ -643,6 +706,68 @@ const Workers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Limit Reached Modal */}
+      <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className={isRTL ? 'text-right' : ''}>{t('workers.limitReached') || 'Worker Limit Reached'}</DialogTitle>
+            <DialogDescription className={isRTL ? 'text-right' : ''}>
+              {workerLimit
+                ? `${t('workers.youHaveOnly') || 'You have only'} ${workerLimit.limit} ${workerLimit.limit === 1 ? (t('workers.user') || 'user') : (t('workers.users') || 'users')} ${t('workers.allowed') || 'allowed'}. ${t('workers.ifYouWantToAddMore') || 'If you want to add more, please upgrade'}.`
+                : t('workers.limitReachedDescription') || 'You have reached the maximum number of workers for your plan.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            {isRTL ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowLimitModal(false)}
+                  className="w-full"
+                >
+                  {t('common.close') || 'Close'}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowLimitModal(false);
+                    setShowUpgradeModal(true);
+                  }}
+                  className="w-full"
+                >
+                  {t('workers.upgradeForm') || 'Upgrade'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  onClick={() => {
+                    setShowLimitModal(false);
+                    setShowUpgradeModal(true);
+                  }}
+                  className="w-full"
+                >
+                  {t('workers.upgradeForm') || 'Upgrade'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowLimitModal(false)}
+                  className="w-full"
+                >
+                  {t('common.close') || 'Close'}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        currentPlanName={currentPlanName}
+      />
     </div>
   );
 };

@@ -78,7 +78,6 @@ export async function GET(request: NextRequest) {
       settings: mappedSettings,
     });
   } catch (error: any) {
-    console.error('Error fetching settings:', error);
     return NextResponse.json(
       { error: 'Failed to fetch settings' },
       { status: 500 }
@@ -273,7 +272,6 @@ export async function PATCH(request: NextRequest) {
       message: 'Settings updated successfully',
     });
   } catch (error: any) {
-    console.error('Error updating settings:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update settings' },
       { status: 500 }

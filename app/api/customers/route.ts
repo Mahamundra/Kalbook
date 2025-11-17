@@ -109,7 +109,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Error fetching customers:', error);
     return NextResponse.json(
       { error: 'Failed to fetch customers' },
       { status: 500 }
@@ -203,8 +202,6 @@ export async function POST(request: NextRequest) {
     const { data: newCustomer, error } = createResult;
 
     if (error || !newCustomer) {
-      console.error('Error creating customer:', error);
-      console.error('Customer data attempted:', { ...customerData, email: finalEmail ? '***' : null });
       return NextResponse.json(
         { 
           error: error?.message || 'Failed to create customer',
@@ -244,7 +241,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error creating customer:', error);
     return NextResponse.json(
       { error: 'Failed to create customer' },
       { status: 500 }

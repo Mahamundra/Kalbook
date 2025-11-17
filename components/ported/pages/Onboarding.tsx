@@ -132,7 +132,6 @@ const Onboarding = () => {
           }
         }
       } catch (error) {
-        console.error('Error fetching plan details:', error);
       } finally {
         setLoadingPlanDetails(false);
       }
@@ -165,7 +164,6 @@ const Onboarding = () => {
         }
       } catch (error) {
         // User is not logged in, continue normally
-        console.log('User not logged in');
       }
     };
     checkLoggedIn();
@@ -475,7 +473,6 @@ const Onboarding = () => {
         if (!response.ok) {
           const errorData = await response.json();
           const errorMessage = errorData.error || errorData.message || 'Failed to create business';
-          console.error('Onboarding API error:', errorData);
           throw new Error(errorMessage);
         }
 
@@ -494,7 +491,6 @@ const Onboarding = () => {
           }, 2000);
         }
       } catch (error: any) {
-        console.error('Onboarding error:', error);
         // Check if error message matches phone number error and use translation
         const errorMessage = error.message || '';
         let displayMessage = errorMessage;

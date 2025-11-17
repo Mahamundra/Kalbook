@@ -65,7 +65,6 @@ export async function PATCH(
         { status: 403 }
       );
     }
-    console.error('Error updating plan price:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update plan price' },
       { status: 500 }

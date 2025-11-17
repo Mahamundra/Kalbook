@@ -86,7 +86,6 @@ export async function GET(
       service: mappedService,
     });
   } catch (error: any) {
-    console.error('Error fetching service:', error);
     return NextResponse.json(
       { error: 'Failed to fetch service' },
       { status: 500 }
@@ -328,7 +327,6 @@ export async function PATCH(
       service: mappedService,
     });
   } catch (error: any) {
-    console.error('Error updating service:', error);
     return NextResponse.json(
       { error: 'Failed to update service' },
       { status: 500 }
@@ -392,7 +390,6 @@ export async function DELETE(
       .limit(1);
 
     if (appointmentsError) {
-      console.error('Error checking appointments:', appointmentsError);
       // Continue with deletion even if check fails
     }
 
@@ -441,7 +438,6 @@ export async function DELETE(
       message: 'Service deleted successfully',
     });
   } catch (error: any) {
-    console.error('Error deleting service:', error);
     return NextResponse.json(
       { error: 'Failed to delete service' },
       { status: 500 }

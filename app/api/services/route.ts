@@ -66,7 +66,6 @@ export async function GET(request: NextRequest) {
       services: mappedServices,
     });
   } catch (error: any) {
-    console.error('Error fetching services:', error);
     return NextResponse.json(
       { error: 'Failed to fetch services' },
       { status: 500 }
@@ -115,14 +114,6 @@ export async function POST(request: NextRequest) {
     // Check max_services limit
     const currentServiceCount = await countBusinessServices(tenantInfo.businessId);
     const limitCheck = await checkPlanLimit(tenantInfo.businessId, 'max_services', currentServiceCount);
-    
-    // Debug logging
-    console.log('[Services API] Limit check:', {
-      current: currentServiceCount,
-      limit: limitCheck.limit,
-      canProceed: limitCheck.canProceed,
-      isLimited: limitCheck.isLimited
-    });
     
     if (!limitCheck.canProceed) {
       return NextResponse.json(
@@ -218,7 +209,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error creating service:', error);
     return NextResponse.json(
       { error: 'Failed to create service' },
       { status: 500 }

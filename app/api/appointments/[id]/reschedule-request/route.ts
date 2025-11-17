@@ -172,11 +172,9 @@ export async function POST(
         .single() as { data: any; error: any };
 
       if (logResult.error) {
-        console.error('Error creating activity log for reschedule request:', logResult.error);
         // Don't fail the request if logging fails
       }
     } catch (logError) {
-      console.error('Error creating activity log for reschedule request:', logError);
       // Don't fail the request if logging fails
     }
 
@@ -186,7 +184,6 @@ export async function POST(
       appointment: updateResult.data,
     });
   } catch (error: any) {
-    console.error('Error creating reschedule request:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to create reschedule request' },
       { status: 500 }

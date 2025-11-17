@@ -15,7 +15,17 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const tenantInfo = await getTenantInfoFromRequest(request);
+    let tenantInfo = await getTenantInfoFromRequest(request);
+    const body = await request.json();
+    const { desiredPlan, message, contactEmail, businessId } = body;
+
+    // If businessId is provided in the body (user dashboard context), use it
+    if (businessId && !tenantInfo?.businessId) {
+      tenantInfo = {
+        businessId,
+        businessSlug: null,
+      };
+    }
 
     if (!tenantInfo?.businessId) {
       return NextResponse.json(
@@ -23,9 +33,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const body = await request.json();
-    const { desiredPlan, message, contactEmail } = body;
 
     if (!desiredPlan) {
       return NextResponse.json(
@@ -67,7 +74,6 @@ export async function POST(request: NextRequest) {
       message: 'Upgrade request submitted successfully. We will contact you soon.',
     });
   } catch (error: any) {
-    console.error('Error submitting upgrade request:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to submit upgrade request' },
       { status: 500 }

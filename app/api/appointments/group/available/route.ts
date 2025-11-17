@@ -148,7 +148,6 @@ export async function GET(request: NextRequest) {
       appointments: availableAppointments,
     });
   } catch (error: any) {
-    console.error('Error fetching available group appointments:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch available group appointments' },
       { status: 500 }

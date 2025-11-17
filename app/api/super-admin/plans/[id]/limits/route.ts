@@ -100,7 +100,6 @@ export async function PATCH(
         { status: 403 }
       );
     }
-    console.error('Error updating plan limits:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update plan limits' },
       { status: 500 }

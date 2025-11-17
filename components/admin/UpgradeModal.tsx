@@ -20,15 +20,19 @@ import { useLocale } from '@/components/ported/hooks/useLocale';
 interface UpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  businessId?: string;
+  currentPlanName?: string;
+  ownerEmail?: string;
 }
 
 interface TrialStatus {
   success: boolean;
   planName: string;
   subscriptionStatus: string;
+  ownerEmail?: string | null;
 }
 
-export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
+export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, ownerEmail }: UpgradeModalProps) {
   const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null);
@@ -40,21 +44,50 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 
   useEffect(() => {
     if (open) {
-      // Fetch current trial status
-      fetch('/api/admin/trial-status')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setTrialStatus(data);
-            setFormData(prev => ({
-              ...prev,
-              contactEmail: '', // Will be pre-filled from business if available
-            }));
-          }
-        })
-        .catch(err => console.error('Error fetching trial status:', err));
+      // If businessId is provided (user dashboard context), use currentPlanName directly
+      if (businessId && currentPlanName) {
+        // If ownerEmail is not provided, fetch it from API
+        if (!ownerEmail) {
+          fetch(`/api/admin/trial-status?businessId=${businessId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success && data.ownerEmail) {
+                setFormData(prev => ({
+                  ...prev,
+                  contactEmail: data.ownerEmail,
+                }));
+              }
+            })
+            .catch(err => console.error('Error fetching owner email:', err));
+        }
+        
+        setTrialStatus({
+          success: true,
+          planName: currentPlanName,
+          subscriptionStatus: 'active',
+          ownerEmail: ownerEmail || null,
+        });
+        setFormData(prev => ({
+          ...prev,
+          contactEmail: ownerEmail || '',
+        }));
+      } else {
+        // Otherwise, fetch current trial status (admin dashboard context)
+        fetch('/api/admin/trial-status')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setTrialStatus(data);
+              setFormData(prev => ({
+                ...prev,
+                contactEmail: data.ownerEmail || '', // Pre-fill with owner's email
+              }));
+            }
+          })
+          .catch(err => console.error('Error fetching trial status:', err));
+      }
     }
-  }, [open]);
+  }, [open, businessId, currentPlanName, ownerEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +102,10 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
       const response = await fetch('/api/admin/upgrade/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          ...(businessId && { businessId }),
+        }),
       });
 
       const data = await response.json();
@@ -124,7 +160,9 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
             <Label htmlFor="currentPlan">{t('trial.upgradeModal.currentPlan')}</Label>
             <Input
               id="currentPlan"
-              value={trialStatus?.planName ? trialStatus.planName.charAt(0).toUpperCase() + trialStatus.planName.slice(1) : t('common.loading')}
+              value={trialStatus?.planName 
+                ? trialStatus.planName.charAt(0).toUpperCase() + trialStatus.planName.slice(1)
+                : t('common.loading')}
               disabled
               className="bg-muted"
             />

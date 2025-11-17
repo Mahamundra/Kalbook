@@ -15,6 +15,7 @@ import { Footer } from '@/components/ui/Footer';
 import { Loader2, LogOut, Settings, Save, ArrowRight, ArrowLeft, AlertTriangle, X, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { UpgradeModal } from '@/components/admin/UpgradeModal';
 
 interface UserProfile {
   id: string;
@@ -58,6 +59,8 @@ export default function UserDashboardPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [savingBusinessId, setSavingBusinessId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [selectedBusinessForUpgrade, setSelectedBusinessForUpgrade] = useState<{ id: string; planName: string; ownerEmail?: string } | null>(null);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -665,18 +668,15 @@ export default function UserDashboardPage() {
                               variant="default"
                               size="sm"
                               onClick={() => {
-                                const subject = encodeURIComponent(`Upgrade Request - ${business.name}`);
-                                const body = encodeURIComponent(
-                                  `Hello,\n\nI would like to request an upgrade for my business:\n\n` +
-                                  `Business Name: ${business.name}\n` +
-                                  `Business Slug: ${business.slug}\n` +
-                                  `Current Plan: ${plans.find(p => p.id === business.currentPlanId)?.name || 'Unknown'}\n` +
-                                  `User Name: ${user.name}\n` +
-                                  `User Email: ${user.email}\n` +
-                                  `User Phone: ${user.phone || 'N/A'}\n\n` +
-                                  `Please contact me to discuss upgrade options.\n\nThank you!`
-                                );
-                                window.location.href = `mailto:plans@kalbook.io?subject=${subject}&body=${body}`;
+                                const currentPlanName = plans.find(p => p.id === business.currentPlanId)?.name || 'Unknown';
+                                // Use user's email if they're an owner, otherwise fetch owner's email
+                                const ownerEmail = user?.role === 'owner' ? user.email : undefined;
+                                setSelectedBusinessForUpgrade({
+                                  id: business.id,
+                                  planName: currentPlanName,
+                                  ownerEmail,
+                                });
+                                setUpgradeModalOpen(true);
                               }}
                               className="flex-1"
                             >
@@ -767,6 +767,22 @@ export default function UserDashboardPage() {
       <div className="mt-16">
         <Footer />
       </div>
+      
+      {/* Upgrade Modal */}
+      {selectedBusinessForUpgrade && (
+        <UpgradeModal
+          open={upgradeModalOpen}
+          onOpenChange={(open) => {
+            setUpgradeModalOpen(open);
+            if (!open) {
+              setSelectedBusinessForUpgrade(null);
+            }
+          }}
+          businessId={selectedBusinessForUpgrade.id}
+          currentPlanName={selectedBusinessForUpgrade.planName}
+          ownerEmail={selectedBusinessForUpgrade.ownerEmail}
+        />
+      )}
     </div>
   );
 }

@@ -14,6 +14,18 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     let tenantInfo = await getTenantInfoFromRequest(request);
+    
+    // Check if businessId is provided as query parameter (user dashboard context)
+    const { searchParams } = new URL(request.url);
+    const businessIdParam = searchParams.get('businessId');
+
+    // If businessId is provided in query params, use it
+    if (businessIdParam && !tenantInfo?.businessId) {
+      tenantInfo = {
+        businessId: businessIdParam,
+        businessSlug: null,
+      };
+    }
 
     // If tenant info not found from headers, try to get from session
     if (!tenantInfo?.businessId) {
@@ -69,6 +81,16 @@ export async function GET(request: NextRequest) {
     const daysRemaining = await getTrialDaysRemaining(tenantInfo.businessId);
     const plan = await getBusinessPlan(tenantInfo.businessId);
 
+    // Get owner's email
+    const ownerResult = await supabase
+      .from('users')
+      .select('email')
+      .eq('business_id', tenantInfo.businessId)
+      .eq('role', 'owner')
+      .maybeSingle() as { data: { email: string } | null; error: any };
+
+    const ownerEmail = ownerResult.data?.email || null;
+
     return NextResponse.json({
       success: true,
       trialExpired,
@@ -77,9 +99,9 @@ export async function GET(request: NextRequest) {
       subscriptionStatus: business.subscription_status,
       trialEndsAt: business.trial_ends_at,
       subscriptionEndsAt: business.subscription_ends_at,
+      ownerEmail,
     });
   } catch (error: any) {
-    console.error('Error getting trial status:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to get trial status' },
       { status: 500 }

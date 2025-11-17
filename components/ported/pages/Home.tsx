@@ -73,7 +73,6 @@ export default function Home() {
           }
         }
       } catch (error) {
-        console.error('Error checking user:', error);
       } finally {
         setLoadingUser(false);
       }
@@ -95,7 +94,6 @@ export default function Home() {
       // Reload page to update UI
       window.location.href = '/';
     } catch (error) {
-      console.error('Logout error:', error);
       // Fallback: try to clear cookie manually and reload
       document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       setUser(null);
@@ -151,11 +149,8 @@ export default function Home() {
           const data = await response.json();
           if (data.success && data.pricing) {
             setPricing(data.pricing);
-          } else {
-            console.error('Failed to fetch pricing:', data.error || 'Unknown error');
           }
         } catch (error) {
-          console.error('Error fetching pricing:', error);
         } finally {
           setLoading(false);
         }

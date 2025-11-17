@@ -181,7 +181,6 @@ export async function POST(
         );
       }
     } catch (emailError) {
-      console.error('Error sending approval email:', emailError);
       // Don't fail the request if email fails
     }
 
@@ -191,7 +190,6 @@ export async function POST(
       appointment: updatedAppointment,
     });
   } catch (error: any) {
-    console.error('Error approving reschedule request:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to approve reschedule request' },
       { status: 500 }

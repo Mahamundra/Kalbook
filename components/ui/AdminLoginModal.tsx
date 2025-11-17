@@ -69,11 +69,6 @@ export function AdminLoginModal({ open, onOpenChange }: AdminLoginModalProps) {
       setIsLoading(false);
       setStep('verify');
       toast.success(t('adminLogin.codeSent') || 'Code sent successfully');
-      
-      // In development, show the code for testing
-      if (data.code && process.env.NODE_ENV === 'development') {
-        console.log(`[DEV] OTP Code: ${data.code}`);
-      }
     } catch (error: any) {
       setIsLoading(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');

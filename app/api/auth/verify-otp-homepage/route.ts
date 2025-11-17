@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     if (isDevelopment && isTestCode) {
       // In development, accept test code 1234
       isValid = true;
-      console.log('[DEV MODE] Test code 1234 accepted');
     } else {
       // Normal OTP verification
       isValid = await verifyOTPCode(e164Phone, code);
@@ -192,7 +191,6 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('Error verifying OTP for homepage:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to verify OTP. Please try again.' },
       { status: 500 }

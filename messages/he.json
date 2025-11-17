@@ -28,7 +28,8 @@
     "fromLastMonth": "+{value}% מהחודש שעבר",
     "improvement": "-{value}% שיפור",
     "noAppointmentsToday": "לא הוזמנו תורים להיום.",
-    "goToCalendar": "עבור ליומן"
+    "goToCalendar": "עבור ליומן",
+    "goToOwnerDashboard": "עבור ללוח המחוונים של הבעלים"
   },
   "calendar": {
     "title": "יומן",
@@ -190,7 +191,19 @@
     "admin": "מנהל",
     "worker": "עובד",
     "owner": "בעלים",
-    "role": "תפקיד"
+    "role": "תפקיד",
+    "limitReached": "הגעת למגבלת העובדים",
+    "youHaveOnly": "יש לך רק",
+    "user": "משתמש",
+    "users": "משתמשים",
+    "allowed": "מותר",
+    "ifYouWantToAddMore": "אם אתה רוצה להוסיף עוד, אנא שדרג",
+    "upgradeForm": "שדרוג",
+    "limitMessage": "אתה על",
+    "plan": "תוכנית",
+    "onlyWorkersAllowed": "רק",
+    "workersAllowed": "עובדים",
+    "limitReachedDescription": "הגעת למספר המקסימלי של עובדים עבור התוכנית שלך."
   },
   "customers": {
     "title": "לקוחות",

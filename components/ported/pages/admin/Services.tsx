@@ -497,7 +497,7 @@ const Services = () => {
       />
 
       {/* Category Filter */}
-      <div className={`mb-4 flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="mb-4 flex items-center gap-4">
         <Label htmlFor="category-filter" className="whitespace-nowrap">
           {t('services.category')}:
         </Label>

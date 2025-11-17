@@ -79,7 +79,6 @@ export async function GET(
       template: mappedTemplate,
     });
   } catch (error: any) {
-    console.error('Error fetching template:', error);
     return NextResponse.json(
       { error: 'Failed to fetch template' },
       { status: 500 }
@@ -268,7 +267,6 @@ export async function PATCH(
       template: mappedTemplate,
     });
   } catch (error: any) {
-    console.error('Error updating template:', error);
     return NextResponse.json(
       { error: 'Failed to update template' },
       { status: 500 }
@@ -343,7 +341,6 @@ export async function DELETE(
       message: 'Template deleted successfully',
     });
   } catch (error: any) {
-    console.error('Error deleting template:', error);
     return NextResponse.json(
       { error: 'Failed to delete template' },
       { status: 500 }

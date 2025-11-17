@@ -21,7 +21,6 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
   try {
     return JSON.parse(adminSessionCookie);
   } catch (error) {
-    console.error('Error parsing admin_session cookie:', error);
     return null;
   }
 }
@@ -121,7 +120,6 @@ export async function GET(request: NextRequest) {
       expiresIn7Days,
     });
   } catch (error: any) {
-    console.error('Error getting plans:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to get plans' },
       { status: 500 }
@@ -258,7 +256,6 @@ export async function PATCH(request: NextRequest) {
       message: 'Plan updated successfully',
     });
   } catch (error: any) {
-    console.error('Error updating plan:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update plan' },
       { status: 500 }

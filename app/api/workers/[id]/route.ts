@@ -125,7 +125,6 @@ export async function GET(
       worker: mappedWorker,
     });
   } catch (error: any) {
-    console.error('Error fetching worker:', error);
     return NextResponse.json(
       { error: 'Failed to fetch worker' },
       { status: 500 }
@@ -279,7 +278,6 @@ export async function PATCH(
         const { data: existingUser, error: userCheckError } = existingUserResult;
 
         if (userCheckError) {
-          console.error('Error checking for existing user:', userCheckError);
           return NextResponse.json(
             { error: 'Failed to check for existing user' },
             { status: 500 }
@@ -302,7 +300,6 @@ export async function PATCH(
           const { error: updateUserError } = updateUserResult;
 
           if (updateUserError) {
-            console.error('Failed to update admin user:', updateUserError);
             return NextResponse.json(
               { error: 'Failed to update admin user: ' + updateUserError.message },
               { status: 500 }
@@ -332,7 +329,6 @@ export async function PATCH(
             } as any);
 
           if (createUserError) {
-            console.error('Failed to create admin user:', createUserError);
             return NextResponse.json(
               { error: 'Failed to create admin user: ' + createUserError.message },
               { status: 500 }
@@ -389,11 +385,8 @@ export async function PATCH(
                 .eq('id', existingUser.id);
               
               if (deleteError) {
-                console.error('Failed to remove admin user:', deleteError);
                 // Don't fail the whole request if we can't delete the user
               }
-            } else {
-              console.log('Cannot delete main admin user:', existingUser.id);
             }
           }
         }
@@ -461,7 +454,6 @@ export async function PATCH(
       worker: mappedWorker,
     });
   } catch (error: any) {
-    console.error('Error updating worker:', error);
     return NextResponse.json(
       { error: 'Failed to update worker' },
       { status: 500 }
@@ -525,7 +517,6 @@ export async function DELETE(
       .limit(1);
 
     if (appointmentsError) {
-      console.error('Error checking appointments:', appointmentsError);
     }
 
     if (appointments && appointments.length > 0) {
@@ -576,7 +567,6 @@ export async function DELETE(
       message: 'Worker deleted successfully',
     });
   } catch (error: any) {
-    console.error('Error deleting worker:', error);
     return NextResponse.json(
       { error: 'Failed to delete worker' },
       { status: 500 }

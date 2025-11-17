@@ -72,7 +72,6 @@ export async function GET(
       serviceIds: services.map((s: any) => s.id),
     });
   } catch (error: any) {
-    console.error('Error fetching worker services:', error);
     return NextResponse.json(
       { error: 'Failed to fetch worker services' },
       { status: 500 }
@@ -227,7 +226,6 @@ export async function POST(
       added: servicesToAdd,
     });
   } catch (error: any) {
-    console.error('Error assigning services to worker:', error);
     return NextResponse.json(
       { error: 'Failed to assign services to worker' },
       { status: 500 }

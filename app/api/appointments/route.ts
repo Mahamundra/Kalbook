@@ -96,7 +96,6 @@ export async function GET(request: NextRequest) {
       count: mappedAppointments.length,
     });
   } catch (error: any) {
-    console.error('Error fetching appointments:', error);
     return NextResponse.json(
       { error: 'Failed to fetch appointments' },
       { status: 500 }
@@ -118,7 +117,6 @@ export async function POST(request: NextRequest) {
     try {
       tenantInfo = await getTenantInfoFromRequest(request);
     } catch (error: any) {
-      console.error('Error getting tenant info:', error);
       return NextResponse.json(
         { error: 'Failed to get business context', details: error.message },
         { status: 500 }
@@ -126,10 +124,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!tenantInfo?.businessId) {
-      console.warn('No tenant info found. Headers:', {
-        referer: request.headers.get('referer'),
-        cookie: request.cookies.get('business-slug')?.value,
-      });
       return NextResponse.json(
         { error: 'Business context required' },
         { status: 400 }
@@ -229,9 +223,6 @@ export async function POST(request: NextRequest) {
       .single() as { data: CustomerRow | null; error: any };
 
     if (customerResult.error || !customerResult.data) {
-      console.error('Customer lookup error:', customerResult.error);
-      console.error('Customer ID:', body.customerId);
-      console.error('Business ID:', tenantInfo.businessId);
       return NextResponse.json(
         { error: 'Customer not found' },
         { status: 404 }
@@ -257,9 +248,6 @@ export async function POST(request: NextRequest) {
       .single() as { data: ServiceRow | null; error: any };
 
     if (serviceResult.error || !serviceResult.data) {
-      console.error('Service lookup error:', serviceResult.error);
-      console.error('Service ID:', body.serviceId);
-      console.error('Business ID:', tenantInfo.businessId);
       return NextResponse.json(
         { error: 'Service not found or inactive' },
         { status: 404 }
@@ -279,9 +267,6 @@ export async function POST(request: NextRequest) {
       .single() as { data: (WorkerRow & { worker_services: any[] }) | null; error: any };
 
     if (workerResult.error || !workerResult.data) {
-      console.error('Worker lookup error:', workerResult.error);
-      console.error('Worker ID:', body.workerId);
-      console.error('Business ID:', tenantInfo.businessId);
       return NextResponse.json(
         { error: 'Worker not found or inactive' },
         { status: 404 }
@@ -435,13 +420,6 @@ export async function POST(request: NextRequest) {
         current_participants: 1,
       };
 
-      console.log('Creating appointment with data:', {
-        ...appointmentData,
-        customer_id: body.customerId,
-        service_id: body.serviceId,
-        worker_id: body.workerId,
-      });
-
       // Insert the appointment
       const createResult = await supabase
         .from('appointments')
@@ -451,11 +429,6 @@ export async function POST(request: NextRequest) {
       const { data: createdAppointment, error: createError } = createResult;
 
       if (createError || !createdAppointment) {
-        console.error('Error creating appointment in database:', createError);
-        console.error('Appointment data attempted:', appointmentData);
-        console.error('Error code:', createError?.code);
-        console.error('Error details:', createError?.details);
-        console.error('Error hint:', createError?.hint);
         return NextResponse.json(
           { 
             error: createError?.message || 'Failed to create appointment',
@@ -505,7 +478,6 @@ export async function POST(request: NextRequest) {
     const { data: appointmentWithRelations, error: fetchError } = fetchResult;
 
     if (fetchError || !appointmentWithRelations) {
-      console.error('Error fetching appointment with relations:', fetchError);
       // Still return the appointment even if relations fetch fails
     }
 
@@ -515,8 +487,6 @@ export async function POST(request: NextRequest) {
       const appointmentToMap = appointmentWithRelations || newAppointment;
       mappedAppointment = mapAppointmentToInterface(appointmentToMap);
     } catch (mappingError: any) {
-      console.error('Error mapping appointment:', mappingError);
-      console.error('Appointment data received:', JSON.stringify(newAppointment, null, 2));
       return NextResponse.json(
         { 
           error: 'Failed to process appointment data',
@@ -547,7 +517,6 @@ export async function POST(request: NextRequest) {
             status: 'completed',
           } as any);
       } catch (logError) {
-        console.error('Error creating activity log for appointment creation:', logError);
         // Don't fail the request if logging fails
       }
     }
@@ -560,9 +529,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error creating appointment:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Request body:', requestBody);
     return NextResponse.json(
       { 
         error: error.message || 'Failed to create appointment',

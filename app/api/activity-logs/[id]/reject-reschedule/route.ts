@@ -122,7 +122,6 @@ export async function POST(
         );
       }
     } catch (emailError) {
-      console.error('Error sending rejection email:', emailError);
       // Don't fail the request if email fails
     }
 
@@ -131,7 +130,6 @@ export async function POST(
       message: 'Reschedule request rejected successfully',
     });
   } catch (error: any) {
-    console.error('Error rejecting reschedule request:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to reject reschedule request' },
       { status: 500 }

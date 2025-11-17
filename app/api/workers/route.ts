@@ -131,7 +131,6 @@ export async function GET(request: NextRequest) {
       workers: mappedWorkers,
     });
   } catch (error: any) {
-    console.error('Error fetching workers:', error);
     return NextResponse.json(
       { error: 'Failed to fetch workers' },
       { status: 500 }
@@ -255,7 +254,6 @@ export async function POST(request: NextRequest) {
       const { data: existingUser, error: userCheckError } = existingUserResult;
 
       if (userCheckError) {
-        console.error('Error checking for existing user:', userCheckError);
         return NextResponse.json(
           { error: 'Failed to check for existing user' },
           { status: 500 }
@@ -278,7 +276,6 @@ export async function POST(request: NextRequest) {
         const { error: updateUserError } = updateUserResult;
 
         if (updateUserError) {
-          console.error('Failed to update admin user:', updateUserError);
           return NextResponse.json(
             { error: 'Failed to update admin user: ' + updateUserError.message },
             { status: 500 }
@@ -310,7 +307,6 @@ export async function POST(request: NextRequest) {
           } as any);
 
         if (userError) {
-          console.error('Failed to create admin user:', userError);
           return NextResponse.json(
             { error: 'Failed to create admin user: ' + userError.message },
             { status: 500 }
@@ -347,8 +343,6 @@ export async function POST(request: NextRequest) {
           
           if (!userDetails?.is_main_admin) {
             await supabase.from('users').delete().eq('id', existingUser.id);
-          } else {
-            console.log('Cannot delete main admin user:', existingUser.id);
           }
         }
       }
@@ -426,7 +420,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error creating worker:', error);
     return NextResponse.json(
       { error: 'Failed to create worker' },
       { status: 500 }

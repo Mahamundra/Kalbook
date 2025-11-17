@@ -41,7 +41,6 @@ export async function middleware(request: NextRequest) {
       // Allow access to user dashboard
       return response;
     } catch (error) {
-      console.error('Error parsing admin_session cookie:', error);
       // Invalid session - redirect to homepage
       return NextResponse.redirect(new URL('/', request.url));
     }
@@ -63,7 +62,6 @@ export async function middleware(request: NextRequest) {
           return response;
         }
       } catch (error) {
-        console.error('Error getting business from cookie for API route:', error);
       }
     }
     
@@ -92,7 +90,6 @@ export async function middleware(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.error('Error extracting business from referer:', error);
       }
     }
   }
@@ -108,7 +105,6 @@ export async function middleware(request: NextRequest) {
         const business = await getBusinessBySlug(businessSlug);
 
         if (!business) {
-          console.error(`Business with slug "${businessSlug}" not found`);
           return NextResponse.redirect(new URL('/404', request.url));
         }
 
@@ -129,7 +125,6 @@ export async function middleware(request: NextRequest) {
                 adminSessionUser = null; // Business mismatch, invalidate session
               }
             } catch (error) {
-              console.error('Error parsing admin_session cookie:', error);
               adminSessionUser = null;
             }
           }
@@ -174,7 +169,6 @@ export async function middleware(request: NextRequest) {
             // In development, allow access even if user record doesn't exist
             const isDevelopment = process.env.NODE_ENV === 'development';
             if (isDevelopment) {
-              console.warn('User record not found, but allowing access in development mode');
               // Attach business context anyway
               response.headers.set(TENANT_CONTEXT_HEADER, JSON.stringify({
                 businessId: business.id,
@@ -199,7 +193,6 @@ export async function middleware(request: NextRequest) {
             // In development, allow access even if business doesn't match
             const isDevelopment = process.env.NODE_ENV === 'development';
             if (isDevelopment) {
-              console.warn(`User business (${userBusinessId}) doesn't match slug business (${business.id}), but allowing access in development mode`);
               // Attach business context from slug (not user's business)
               response.headers.set(TENANT_CONTEXT_HEADER, JSON.stringify({
                 businessId: business.id,
@@ -234,7 +227,6 @@ export async function middleware(request: NextRequest) {
 
         return response;
       } catch (error) {
-        console.error('Error validating slug admin route:', error);
         return NextResponse.redirect(new URL('/404', request.url));
       }
     }
@@ -273,7 +265,6 @@ export async function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL(`/b/${businessSlug}`, request.url));
         }
       } catch (error) {
-        console.error('Error validating business:', error);
         return NextResponse.redirect(new URL('/404', request.url));
       }
     } else if (pathname === '/booking') {
@@ -339,7 +330,6 @@ export async function middleware(request: NextRequest) {
 
   return response;
   } catch (error) {
-    console.error('Middleware error:', error);
     // Return a basic response to prevent 500 errors
     return NextResponse.next();
   }

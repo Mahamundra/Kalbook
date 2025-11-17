@@ -66,7 +66,6 @@ export async function GET(request: NextRequest) {
       locale,
     });
   } catch (error: any) {
-    console.error('Error fetching pricing:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch pricing' },
       { status: 500 }

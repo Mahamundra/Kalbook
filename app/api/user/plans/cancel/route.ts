@@ -18,7 +18,6 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
   try {
     return JSON.parse(adminSessionCookie);
   } catch (error) {
-    console.error('Error parsing admin_session cookie:', error);
     return null;
   }
 }
@@ -117,7 +116,6 @@ export async function POST(request: NextRequest) {
       message: 'Plan cancelled successfully. Active until end date.',
     });
   } catch (error: any) {
-    console.error('Error cancelling plan:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to cancel plan' },
       { status: 500 }

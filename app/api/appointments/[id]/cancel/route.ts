@@ -123,7 +123,6 @@ export async function POST(
           status: 'completed',
         } as any);
     } catch (logError) {
-      console.error('Error creating activity log for cancellation:', logError);
       // Don't fail the request if logging fails
     }
 
@@ -136,7 +135,6 @@ export async function POST(
       message: 'Appointment cancelled successfully',
     });
   } catch (error: any) {
-    console.error('Error cancelling appointment:', error);
     return NextResponse.json(
       { error: 'Failed to cancel appointment' },
       { status: 500 }

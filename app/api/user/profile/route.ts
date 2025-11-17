@@ -18,7 +18,6 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
   try {
     return JSON.parse(adminSessionCookie);
   } catch (error) {
-    console.error('Error parsing admin_session cookie:', error);
     return null;
   }
 }
@@ -112,7 +111,6 @@ export async function GET(request: NextRequest) {
       business: businesses[0],
     });
   } catch (error: any) {
-    console.error('Error getting user profile:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to get user profile' },
       { status: 500 }
@@ -198,7 +196,6 @@ export async function PATCH(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('Error updating user profile:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update user profile' },
       { status: 500 }

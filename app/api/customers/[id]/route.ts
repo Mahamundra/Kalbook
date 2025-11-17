@@ -84,7 +84,6 @@ export async function GET(
       customer: mappedCustomer,
     });
   } catch (error: any) {
-    console.error('Error fetching customer:', error);
     return NextResponse.json(
       { error: 'Failed to fetch customer' },
       { status: 500 }
@@ -284,7 +283,6 @@ export async function PATCH(
       customer: mappedCustomer,
     });
   } catch (error: any) {
-    console.error('Error updating customer:', error);
     return NextResponse.json(
       { error: 'Failed to update customer' },
       { status: 500 }
@@ -338,12 +336,6 @@ export async function DELETE(
         .from('customers')
         .select('id, business_id, name')
         .eq('id', customerId);
-      
-      console.log('[DELETE CUSTOMER] Customer not found with business_id:', {
-        requestedBusinessId: tenantInfo.businessId,
-        customerId: customerId,
-        allCustomersWithThisId: allCustomersWithThisId,
-      });
 
       return NextResponse.json(
         { error: 'Customer not found' },
@@ -352,14 +344,6 @@ export async function DELETE(
     }
 
     const existingCustomer = checkResult.data;
-    // DEBUG: Log customer being deleted
-    console.log('[DELETE CUSTOMER] Customer found:', {
-      customerId: existingCustomer.id,
-      customerName: existingCustomer.name,
-      customerBusinessId: existingCustomer.business_id,
-      requestedBusinessId: tenantInfo.businessId,
-      match: existingCustomer.business_id === tenantInfo.businessId,
-    });
 
     // Check if customer has appointments (must filter by business_id!)
     const { data: appointments, error: appointmentsError } = await supabase
@@ -370,7 +354,6 @@ export async function DELETE(
       .limit(1);
 
     if (appointmentsError) {
-      console.error('Error checking appointments:', appointmentsError);
     }
 
     if (appointments && appointments.length > 0) {
@@ -417,7 +400,6 @@ export async function DELETE(
       message: 'Customer deleted successfully',
     });
   } catch (error: any) {
-    console.error('Error deleting customer:', error);
     return NextResponse.json(
       { error: 'Failed to delete customer' },
       { status: 500 }

@@ -28,7 +28,8 @@
     "fromLastMonth": "+{value}% from last month",
     "improvement": "-{value}% improvement",
     "noAppointmentsToday": "No appointments scheduled for today.",
-    "goToCalendar": "Go to Calendar"
+    "goToCalendar": "Go to Calendar",
+    "goToOwnerDashboard": "Go to Owner Dashboard"
   },
   "calendar": {
     "title": "Calendar",
@@ -190,7 +191,19 @@
     "admin": "Admin",
     "worker": "Worker",
     "owner": "Owner",
-    "role": "Role"
+    "role": "Role",
+    "limitReached": "Worker Limit Reached",
+    "youHaveOnly": "You have only",
+    "user": "user",
+    "users": "users",
+    "allowed": "allowed",
+    "ifYouWantToAddMore": "If you want to add more, please upgrade",
+    "upgradeForm": "Upgrade",
+    "limitMessage": "You are on",
+    "plan": "Plan",
+    "onlyWorkersAllowed": "Only",
+    "workersAllowed": "workers",
+    "limitReachedDescription": "You have reached the maximum number of workers for your plan."
   },
   "customers": {
     "title": "Customers",
