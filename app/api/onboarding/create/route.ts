@@ -6,6 +6,8 @@ import { toE164Format } from '@/lib/customers/utils';
 import type { BusinessType } from '@/lib/supabase/database.types';
 import type { Database } from '@/lib/supabase/database.types';
 
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 type UserRow = Database['public']['Tables']['users']['Row'];
 type WorkerRow = Database['public']['Tables']['workers']['Row'];
@@ -531,8 +533,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Return created data
-    return NextResponse.json(
+    // Create response with created data
+    const response = NextResponse.json(
       {
         success: true,
         business: newBusiness,
@@ -550,6 +552,28 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+
+    // Set admin session cookie for middleware to check
+    // This allows the user to access /user/dashboard after onboarding
+    const sessionData = JSON.stringify({
+      type: 'business_owner',
+      userId: (newUser as any).id,
+      businessId: businessId,
+      email: (newUser as any).email,
+      phone: (newUser as any).phone || null,
+      name: (newUser as any).name,
+      role: (newUser as any).role || 'owner',
+    });
+
+    response.cookies.set('admin_session', sessionData, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    return response;
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to complete onboarding', details: error.stack },

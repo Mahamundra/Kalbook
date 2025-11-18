@@ -161,3 +161,4 @@ SET current_participants = (
     AND ap.status = 'confirmed'
 );
 
+

@@ -171,6 +171,101 @@ This will:
 
 ---
 
+## Google Calendar Sync (Optional)
+
+### Required Variables
+
+```bash
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=https://yourdomain.com/api/calendar/google/oauth/callback
+```
+
+### How to Set Up Google Calendar OAuth
+
+1. **Create Google Cloud Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+
+2. **Enable Google Calendar API**
+   - Navigate to **APIs & Services** → **Library**
+   - Search for "Google Calendar API"
+   - Click **Enable**
+
+3. **Create OAuth 2.0 Credentials**
+   - Go to **APIs & Services** → **Credentials**
+   - Click **Create Credentials** → **OAuth client ID**
+   - Choose **Web application**
+   - Add authorized redirect URI:
+     - Development: `http://localhost:3000/api/calendar/google/oauth/callback`
+     - Production: `https://yourdomain.com/api/calendar/google/oauth/callback`
+   - Copy the **Client ID** and **Client Secret**
+
+4. **Configure OAuth Consent Screen**
+   - Go to **APIs & Services** → **OAuth consent screen**
+   - Fill in app information
+   - Add scopes:
+     - `https://www.googleapis.com/auth/calendar`
+     - `https://www.googleapis.com/auth/calendar.events`
+   - Add test users (for development)
+   - Submit for verification (for production)
+
+5. **Set Environment Variables**
+
+   ```bash
+   GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your_client_secret
+   GOOGLE_REDIRECT_URI=https://yourdomain.com/api/calendar/google/oauth/callback
+   ```
+
+### Features
+
+- **Bidirectional Sync**: Appointments sync to Google Calendar and updates sync back
+- **Automatic Sync**: Appointments automatically sync when created/updated/cancelled
+- **Plan-Based**: Available in Professional and Business plans
+
+---
+
+## Cron Job Configuration
+
+### Required Variables
+
+```bash
+CRON_SECRET=your_random_secret_string
+```
+
+### How to Set Up
+
+1. **Generate a Secret**
+   - Use a random string generator
+   - Or run: `openssl rand -hex 32`
+   - Keep it secure and don't commit to version control
+
+2. **Set Environment Variable**
+
+   ```bash
+   CRON_SECRET=your_random_secret_string_here
+   ```
+
+3. **Vercel Cron (Recommended)**
+   - The `vercel.json` file is already configured
+   - Cron job runs every 15 minutes to process reminders
+   - No additional setup needed on Vercel
+
+4. **External Cron Service (Alternative)**
+   - Use services like [cron-job.org](https://cron-job.org/) or [EasyCron](https://www.easycron.com/)
+   - Set up a job to call: `GET https://yourdomain.com/api/cron/process-reminders`
+   - Add header: `Authorization: Bearer YOUR_CRON_SECRET`
+   - Schedule: Every 15 minutes (`*/15 * * * *`)
+
+### What It Does
+
+- Processes pending appointment reminders
+- Sends SMS/WhatsApp reminders based on schedule
+- Updates reminder status in database
+
+---
+
 ## Next.js Configuration
 
 ### Required Variables
@@ -392,6 +487,14 @@ TWILIO_ACCOUNT_SID=your_account_sid
 TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_PHONE_NUMBER=+1234567890
 TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890
+
+# Google Calendar OAuth (Optional)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=https://yourdomain.com/api/calendar/google/oauth/callback
+
+# Cron Job Secret
+CRON_SECRET=your_random_secret_string
 
 # App
 NEXT_PUBLIC_APP_URL=https://yourdomain.com

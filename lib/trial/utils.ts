@@ -280,6 +280,34 @@ export async function canUpdateSettingsPath(
 }
 
 /**
+ * Check if business can use automated reminders
+ */
+export async function canUseAutomatedReminders(businessId: string): Promise<boolean> {
+  return await canBusinessPerformAction(businessId, 'automated_reminders');
+}
+
+/**
+ * Check if business can use SMS reminders
+ */
+export async function canUseSMSReminders(businessId: string): Promise<boolean> {
+  return await canBusinessPerformAction(businessId, 'sms_reminders');
+}
+
+/**
+ * Check if business can use WhatsApp reminders
+ */
+export async function canUseWhatsAppReminders(businessId: string): Promise<boolean> {
+  return await canBusinessPerformAction(businessId, 'whatsapp_reminders');
+}
+
+/**
+ * Check if business can use Google Calendar sync
+ */
+export async function canUseGoogleCalendarSync(businessId: string): Promise<boolean> {
+  return await canBusinessPerformAction(businessId, 'google_calendar_sync');
+}
+
+/**
  * Get a plan limit value for a business
  * Returns the limit value or -1 if unlimited/not set
  */

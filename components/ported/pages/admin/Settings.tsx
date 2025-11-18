@@ -293,7 +293,15 @@ const Settings = () => {
         notifications: { 
           senderName: '', 
           senderEmail: '',
-          reminderMessage: 'A reminder that you have an appointment for {{service}} on {{date}}, see you soon!'
+          reminderMessage: 'A reminder that you have an appointment for {{service}} on {{date}}, see you soon!',
+          reminders: {
+            enabled: true,
+            smsEnabled: true,
+            whatsappEnabled: false,
+            daysBefore: [1],
+            defaultTime: '09:00',
+            personalAddition: '',
+          }
         },
         calendar: {
           weekStartDay: 0,
@@ -415,6 +423,24 @@ const Settings = () => {
             senderName: '',
             senderEmail: '',
             reminderMessage: 'A reminder that you have an appointment for {{service}} on {{date}}, see you soon!',
+            reminders: {
+              enabled: true,
+              smsEnabled: true,
+              whatsappEnabled: false,
+              daysBefore: [1],
+              defaultTime: '09:00',
+              personalAddition: '',
+            },
+          };
+        } else if (!loadedSettings.notifications.reminders) {
+          // Ensure reminders object exists
+          loadedSettings.notifications.reminders = {
+            enabled: true,
+            smsEnabled: true,
+            whatsappEnabled: false,
+            daysBefore: [1],
+            defaultTime: '09:00',
+            personalAddition: '',
           };
         }
         
@@ -2198,8 +2224,241 @@ const Settings = () => {
               className="font-mono text-sm"
             />
             <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('settings.reminderMessageHint') || 'Use {{service}} and {{date}} as placeholders'}
+              {t('settings.reminderMessageHint') || 'Use {{service}}, {{date}}, {{time}}, {{worker}}, and {{business}} as placeholders'}
             </p>
+          </div>
+        </Card>
+
+        {/* Reminder Settings */}
+        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t('settings.reminderSettings') || 'Reminder Settings'}
+          </h3>
+          <div className="space-y-4">
+            {/* Enable Reminders */}
+            <div className="flex items-center justify-between">
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <label className="text-sm font-medium">
+                  {t('settings.enableReminders') || 'Enable Automated Reminders'}
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {t('settings.enableRemindersDescription') || 'Automatically send reminders to customers before appointments'}
+                </p>
+              </div>
+              <Switch
+                checked={settings.notifications?.reminders?.enabled !== false}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    notifications: {
+                      ...settings.notifications,
+                      reminders: {
+                        ...(settings.notifications?.reminders || {}),
+                        enabled: checked,
+                      },
+                    },
+                  })
+                }
+              />
+            </div>
+
+            {settings.notifications?.reminders?.enabled !== false && (
+              <>
+                {/* SMS Reminders */}
+                <div className="flex items-center justify-between">
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <label className="text-sm font-medium">
+                      {t('settings.smsReminders') || 'SMS Reminders'}
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.smsRemindersDescription') || 'Send reminders via SMS'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications?.reminders?.smsEnabled !== false}
+                    onCheckedChange={(checked) =>
+                      setSettings({
+                        ...settings,
+                        notifications: {
+                          ...settings.notifications,
+                          reminders: {
+                            ...(settings.notifications?.reminders || {}),
+                            smsEnabled: checked,
+                          },
+                        },
+                      })
+                    }
+                  />
+                </div>
+
+                {/* WhatsApp Reminders */}
+                <div className="flex items-center justify-between">
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <label className="text-sm font-medium">
+                      {t('settings.whatsappReminders') || 'WhatsApp Reminders'}
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.whatsappRemindersDescription') || 'Send reminders via WhatsApp (Premium plan)'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications?.reminders?.whatsappEnabled === true}
+                    onCheckedChange={(checked) =>
+                      setSettings({
+                        ...settings,
+                        notifications: {
+                          ...settings.notifications,
+                          reminders: {
+                            ...(settings.notifications?.reminders || {}),
+                            whatsappEnabled: checked,
+                          },
+                        },
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Days Before */}
+                <div>
+                  <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.reminderDaysBefore') || 'Send Reminders (Days Before)'}
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.notifications?.reminders?.daysBefore?.includes(1) || false}
+                        onChange={(e) => {
+                          const current = settings.notifications?.reminders?.daysBefore || [];
+                          const updated = e.target.checked
+                            ? [...current.filter(d => d !== 1), 1]
+                            : current.filter(d => d !== 1);
+                          setSettings({
+                            ...settings,
+                            notifications: {
+                              ...settings.notifications,
+                              reminders: {
+                                ...(settings.notifications?.reminders || {}),
+                                daysBefore: updated.length > 0 ? updated : [1],
+                              },
+                            },
+                          });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">1 day before</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.notifications?.reminders?.daysBefore?.includes(2) || false}
+                        onChange={(e) => {
+                          const current = settings.notifications?.reminders?.daysBefore || [];
+                          const updated = e.target.checked
+                            ? [...current.filter(d => d !== 2), 2]
+                            : current.filter(d => d !== 2);
+                          setSettings({
+                            ...settings,
+                            notifications: {
+                              ...settings.notifications,
+                              reminders: {
+                                ...(settings.notifications?.reminders || {}),
+                                daysBefore: updated.length > 0 ? updated : [1],
+                              },
+                            },
+                          });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">2 days before</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Default Time */}
+                <div>
+                  <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.reminderDefaultTime') || 'Default Reminder Time'}
+                  </label>
+                  <Input
+                    type="time"
+                    value={settings.notifications?.reminders?.defaultTime || '09:00'}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        notifications: {
+                          ...settings.notifications,
+                          reminders: {
+                            ...(settings.notifications?.reminders || {}),
+                            defaultTime: e.target.value,
+                          },
+                        },
+                      })
+                    }
+                    className="w-32"
+                  />
+                </div>
+
+                {/* Personal Addition */}
+                <div>
+                  <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.reminderPersonalAddition') || 'Personal Message Addition (Optional)'}
+                  </label>
+                  <Textarea
+                    value={settings.notifications?.reminders?.personalAddition || ''}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        notifications: {
+                          ...settings.notifications,
+                          reminders: {
+                            ...(settings.notifications?.reminders || {}),
+                            personalAddition: e.target.value,
+                          },
+                        },
+                      })
+                    }
+                    placeholder={t('settings.reminderPersonalAdditionPlaceholder') || 'Add a personal message to append to reminders...'}
+                    rows={3}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  />
+                  <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.reminderPersonalAdditionHint') || 'This message will be added to all reminder messages'}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+
+        {/* Google Calendar Sync */}
+        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t('settings.googleCalendar') || 'Google Calendar Sync'}
+          </h3>
+          <div className="space-y-4">
+            <p className={`text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('settings.googleCalendarDescription') || 'Sync your appointments with Google Calendar. Available in Professional and Business plans.'}
+            </p>
+            <Button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/calendar/google/oauth?action=initiate');
+                  const data = await response.json();
+                  if (data.authUrl) {
+                    window.location.href = data.authUrl;
+                  } else {
+                    alert('Failed to initiate Google Calendar connection');
+                  }
+                } catch (error) {
+                  console.error('Error connecting Google Calendar:', error);
+                  alert('Failed to connect Google Calendar');
+                }
+              }}
+              variant="outline"
+            >
+              {t('settings.connectGoogleCalendar') || 'Connect Google Calendar'}
+            </Button>
           </div>
         </Card>
 

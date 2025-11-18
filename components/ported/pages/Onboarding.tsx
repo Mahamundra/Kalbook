@@ -478,18 +478,11 @@ const Onboarding = () => {
 
         const result = await response.json();
         toast.success(t('onboarding.success.businessSetup'));
-        // Redirect to slug-based admin dashboard
-        const slug = result.slug || result.business?.slug;
-        if (slug) {
-          setTimeout(() => {
-            router.push(`/b/${slug}/admin/dashboard`);
-          }, 2000);
-        } else {
-          // If no slug, redirect to onboarding to create business
-          setTimeout(() => {
-            router.push("/onboarding");
-          }, 2000);
-        }
+        // Redirect to user dashboard
+        // Use window.location for full page reload to ensure cookie is picked up
+        setTimeout(() => {
+          window.location.href = '/user/dashboard';
+        }, 2000);
       } catch (error: any) {
         // Check if error message matches phone number error and use translation
         const errorMessage = error.message || '';
@@ -533,7 +526,7 @@ const Onboarding = () => {
         />
         
         {/* Plan Banner */}
-        {planDetails && (
+        {planDetails && step < 5 && (
           <Card className="mb-6 p-4 border-primary/20">
             <div className="flex items-center justify-between" dir={dir}>
               <div className="flex items-center gap-4">
@@ -1134,6 +1127,17 @@ const Onboarding = () => {
                       </ul>
                     </div>
                   </Card>
+                  {planDetails && (
+                    <div className="mt-6 flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowPlanModal(true)}
+                      >
+                        {t('onboarding.changePlan') || 'Change Plan'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

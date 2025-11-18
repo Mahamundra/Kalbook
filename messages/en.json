@@ -676,6 +676,54 @@
         {
           "q": "Can I send via WhatsApp?",
           "a": "Yes. You can share a booking link and receive custom reminders."
+        },
+        {
+          "q": "Do you support multiple languages?",
+          "a": "Yes. KalBook supports Hebrew, English, Arabic, and Russian with full right-to-left (RTL) and left-to-right (LTR) layout support. Your booking page can be displayed in any of these languages."
+        },
+        {
+          "q": "How secure is my data?",
+          "a": "Your data security is our priority. We use secure authentication methods, encrypted data storage, and follow industry best practices to protect your business and customer information."
+        },
+        {
+          "q": "Can I use QR codes for booking?",
+          "a": "Yes. You can generate QR codes for your booking page or specific services. Customers can scan the QR code and instantly access the booking interface. Perfect for in-store displays, business cards, or marketing materials."
+        },
+        {
+          "q": "Does it work on mobile phones?",
+          "a": "Absolutely. KalBook is fully mobile-optimized with a responsive design that works seamlessly on smartphones and tablets. Your customers can book appointments from any device, and you have full access to all features on mobile."
+        },
+        {
+          "q": "Can I customize my booking page?",
+          "a": "Yes. With custom branding features, you can add your logo, choose your brand colors, and personalize your booking page to match your business identity. Available in any plan."
+        },
+        {
+          "q": "Can I set up recurring appointments?",
+          "a": "Yes. You can create recurring appointments for regular clients with weekly, monthly, or custom schedules. This saves time and ensures you never miss a regular appointment."
+        },
+        {
+          "q": "Can I create service packages?",
+          "a": "Yes. You can bundle multiple services into packages (like Haircut + Beard) for easy upsells and promotions. This feature helps increase revenue and simplifies booking for customers who want multiple services."
+        },
+        {
+          "q": "Is there a free trial?",
+          "a": "Yes. We offer a 14-day free trial with no credit card required. You can explore all features and see how KalBook works for your business before committing to a plan."
+        },
+        {
+          "q": "Can I cancel anytime?",
+          "a": "Yes. You can cancel your subscription at any time with no long-term contracts or cancellation fees. Your plan will remain active until the end of your current billing period."
+        },
+        {
+          "q": "What's the difference between plans?",
+          "a": "Basic plan includes 1 staff member and up to 100 bookings per month. Professional plan offers up to 5 staff, unlimited bookings, advanced features like calendar integrations and analytics. Business plan includes unlimited staff, multiple locations, priority support, and API access."
+        },
+        {
+          "q": "Can I integrate with Google Calendar?",
+          "a": "Yes. Professional and Business plans include integration with Google Calendar, Outlook, and Apple Calendar. Sync your appointments automatically and manage your schedule across all your devices."
+        },
+        {
+          "q": "What happens if I need help?",
+          "a": "We offer support through email and our help center. Business plan customers receive priority support with faster response times. We're here to help you succeed with KalBook."
         }
       ]
     },

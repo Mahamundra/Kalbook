@@ -420,7 +420,7 @@ export default function UserDashboardPage() {
                       disabled={saving}
                       className="flex-1"
                     >
-                      Cancel
+                      {t('common.cancel') || 'Cancel'}
                     </Button>
                     <Button
                       onClick={handleSaveProfile}
@@ -435,7 +435,7 @@ export default function UserDashboardPage() {
                       ) : (
                         <>
                           <Save className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                          Save
+                          {t('common.save') || 'Save'}
                         </>
                       )}
                     </Button>
@@ -702,14 +702,14 @@ export default function UserDashboardPage() {
                                     {t('userDashboard.cancelPlan') || 'Cancel Plan'}
                                   </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>{t('userDashboard.cancelPlan') || 'Cancel Plan'}</AlertDialogTitle>
-                                    <AlertDialogDescription>
+                                <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+                                  <AlertDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+                                    <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('userDashboard.cancelPlan') || 'Cancel Plan'}</AlertDialogTitle>
+                                    <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
                                       {t('userDashboard.confirmCancelPlan') || 'Are you sure you want to cancel this plan? Your plan will remain active until the end date.'}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
-                                  <AlertDialogFooter>
+                                  <AlertDialogFooter className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                     <AlertDialogCancel>{t('common.cancel') || 'Cancel'}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => handleCancelPlan(business.id)}

@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { Calendar, Clock, Users, MessageSquare, Globe, Shield, Check, ArrowRight, ArrowLeft, ChevronDown, BarChart3, QrCode, Package, FileText, Palette, Smartphone, ShieldCheck, User, LogOut, LayoutDashboard, Repeat } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TypingAnimation } from '@/components/ui/TypingAnimation';
 import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
 import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
@@ -473,26 +473,41 @@ export default function Home() {
               <Card className="overflow-hidden">
                 <button
                   onClick={() => toggleFaq(index)}
-                  className="w-full p-6 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+                  className={`w-full p-6 flex items-center justify-between text-left transition-all duration-300 ease-in-out ${
+                    expandedFaq === index 
+                      ? 'bg-primary/5 text-primary' 
+                      : 'hover:bg-gray-50'
+                  }`}
                 >
-                  <span className="font-semibold text-lg pr-4">{getFaq(index, 'q')}</span>
+                  <span className={`font-semibold text-lg pr-4 transition-colors duration-300 ${
+                    expandedFaq === index ? 'text-primary' : ''
+                  }`}>{getFaq(index, 'q')}</span>
                   <ChevronDown
-                    className={`w-5 h-5 text-gray-500 transition-transform flex-shrink-0 ${
-                      expandedFaq === index ? 'transform rotate-180' : ''
+                    className={`w-5 h-5 transition-all duration-300 ease-in-out flex-shrink-0 ${
+                      expandedFaq === index 
+                        ? 'transform rotate-180 text-primary' 
+                        : 'text-gray-500'
                     }`}
                   />
                 </button>
-                {expandedFaq === index && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="px-6 pb-6"
-                  >
-                    <p className="text-gray-600">{getFaq(index, 'a')}</p>
-                  </motion.div>
-                )}
+                <AnimatePresence initial={false}>
+                  {expandedFaq === index && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ 
+                        duration: 0.4,
+                        ease: [0.4, 0, 0.2, 1]
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pt-4 pb-6">
+                        <p className="text-gray-600">{getFaq(index, 'a')}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Card>
             </motion.div>
           ))}

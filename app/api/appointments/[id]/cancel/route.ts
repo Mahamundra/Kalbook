@@ -126,6 +126,24 @@ export async function POST(
       // Don't fail the request if logging fails
     }
 
+    // Cancel reminders when appointment is cancelled
+    try {
+      const { cancelReminders } = await import('@/lib/reminders/queue');
+      await cancelReminders(appointmentId);
+    } catch (error) {
+      console.error('Failed to cancel reminders:', error);
+      // Don't fail the cancellation if reminder cancellation fails
+    }
+
+    // Delete from Google Calendar
+    try {
+      const { deleteAppointmentFromGoogle } = await import('@/lib/calendar/google-sync');
+      await deleteAppointmentFromGoogle(appointmentId, tenantInfo.businessId);
+    } catch (error) {
+      console.error('Failed to delete from Google Calendar:', error);
+      // Don't fail the cancellation if Google Calendar deletion fails
+    }
+
     // Map to Appointment interface
     const mappedAppointment = mapAppointmentToInterface(updatedAppointment);
 

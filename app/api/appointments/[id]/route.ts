@@ -295,6 +295,45 @@ export async function PATCH(
       );
     }
 
+    // Reschedule reminders if appointment time changed or status changed
+    if (body.start !== undefined || body.end !== undefined || body.status !== undefined) {
+      try {
+        const { cancelReminders, scheduleReminders } = await import('@/lib/reminders/queue');
+        await cancelReminders(appointmentId);
+        
+        // Only reschedule if appointment is confirmed
+        if (updatedAppointment.status === 'confirmed') {
+          await scheduleReminders(
+            appointmentId,
+            new Date(updatedAppointment.start),
+            tenantInfo.businessId,
+            updatedAppointment.customer_id
+          );
+        }
+      } catch (error) {
+        console.error('Failed to reschedule reminders:', error);
+        // Don't fail the update if reminder rescheduling fails
+      }
+
+      // Update Google Calendar event
+      if (updatedAppointment.status === 'confirmed') {
+        try {
+          const { syncAppointmentToGoogle } = await import('@/lib/calendar/google-sync');
+          await syncAppointmentToGoogle(appointmentId, tenantInfo.businessId);
+        } catch (error) {
+          console.error('Failed to sync update to Google Calendar:', error);
+        }
+      } else if (updatedAppointment.status === 'cancelled') {
+        // Delete from Google Calendar
+        try {
+          const { deleteAppointmentFromGoogle } = await import('@/lib/calendar/google-sync');
+          await deleteAppointmentFromGoogle(appointmentId, tenantInfo.businessId);
+        } catch (error) {
+          console.error('Failed to delete from Google Calendar:', error);
+        }
+      }
+    }
+
     // Map to Appointment interface
     const mappedAppointment = mapAppointmentToInterface(updatedAppointment);
 

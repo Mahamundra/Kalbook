@@ -24,3 +24,4 @@ CHECK (business_type IN (
   'dietitian'
 ));
 
+

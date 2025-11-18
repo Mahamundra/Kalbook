@@ -521,6 +521,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Schedule reminders for the new appointment
+    if (newAppointment && status === 'confirmed') {
+      try {
+        const { scheduleReminders } = await import('@/lib/reminders/queue');
+        await scheduleReminders(
+          newAppointment.id,
+          new Date(newAppointment.start),
+          tenantInfo.businessId,
+          body.customerId
+        );
+      } catch (error) {
+        // Log error but don't fail appointment creation
+        console.error('Failed to schedule reminders:', error);
+      }
+
+      // Sync to Google Calendar if enabled
+      try {
+        const { syncAppointmentToGoogle } = await import('@/lib/calendar/google-sync');
+        await syncAppointmentToGoogle(newAppointment.id, tenantInfo.businessId);
+      } catch (error) {
+        console.error('Failed to sync to Google Calendar:', error);
+        // Don't fail appointment creation if sync fails
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

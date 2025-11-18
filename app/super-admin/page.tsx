@@ -4,3 +4,4 @@ export default function SuperAdminPage() {
   redirect('/super-admin/businesses');
 }
 
+
