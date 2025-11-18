@@ -126,6 +126,14 @@ export interface NotificationSettings {
   senderName: string;
   senderEmail: string;
   reminderMessage?: string;
+  reminders?: {
+    enabled: boolean;
+    smsEnabled: boolean;
+    whatsappEnabled: boolean;
+    daysBefore: number[];
+    defaultTime: string;
+    personalAddition: string;
+  };
 }
 
 export interface CalendarSettings {
