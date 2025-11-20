@@ -115,8 +115,8 @@ export async function refreshGoogleToken(businessId: string): Promise<boolean> {
   try {
     const supabase = createAdminClient();
     
-    const tokenResult = await supabase
-      .from('google_calendar_tokens')
+    const tokenResult = await (supabase
+      .from('google_calendar_tokens') as any)
       .select('*')
       .eq('business_id', businessId)
       .single() as { data: GoogleCalendarTokenRow | null; error: any };
@@ -154,8 +154,8 @@ export async function refreshGoogleToken(businessId: string): Promise<boolean> {
       ? new Date(credentials.expiry_date)
       : new Date(Date.now() + 3600 * 1000);
 
-    await supabase
-      .from('google_calendar_tokens')
+    await (supabase
+      .from('google_calendar_tokens') as any)
       .update({
         access_token: credentials.access_token,
         token_expires_at: newExpiresAt.toISOString(),
@@ -181,8 +181,8 @@ async function getCalendarClient(businessId: string) {
   await refreshGoogleToken(businessId);
 
   // Get tokens
-  const tokenResult = await supabase
-    .from('google_calendar_tokens')
+  const tokenResult = await (supabase
+    .from('google_calendar_tokens') as any)
     .select('*')
     .eq('business_id', businessId)
     .eq('sync_enabled', true)
@@ -301,8 +301,8 @@ export async function syncAppointmentToGoogle(
       googleEventId = response.data.id!;
 
       // Store sync record
-      await supabase
-        .from('google_calendar_sync')
+      await (supabase
+        .from('google_calendar_sync') as any)
         .insert({
           appointment_id: appointmentId,
           business_id: businessId,
@@ -312,13 +312,13 @@ export async function syncAppointmentToGoogle(
     }
 
     // Update last synced time
-    await supabase
-      .from('google_calendar_sync')
+    await (supabase
+      .from('google_calendar_sync') as any)
       .update({ last_synced_at: new Date().toISOString() })
       .eq('appointment_id', appointmentId);
 
-    await supabase
-      .from('google_calendar_tokens')
+    await (supabase
+      .from('google_calendar_tokens') as any)
       .update({ last_sync_at: new Date().toISOString() })
       .eq('business_id', businessId);
 
@@ -341,8 +341,8 @@ export async function deleteAppointmentFromGoogle(
     const calendar = await getCalendarClient(businessId);
 
     // Get sync record
-    const syncResult = await supabase
-      .from('google_calendar_sync')
+    const syncResult = await (supabase
+      .from('google_calendar_sync') as any)
       .select('google_event_id')
       .eq('appointment_id', appointmentId)
       .single() as { data: { google_event_id: string } | null; error: any };
@@ -355,8 +355,8 @@ export async function deleteAppointmentFromGoogle(
     const googleEventId = syncResult.data.google_event_id;
 
     // Get calendar ID
-    const tokenResult = await supabase
-      .from('google_calendar_tokens')
+    const tokenResult = await (supabase
+      .from('google_calendar_tokens') as any)
       .select('calendar_id')
       .eq('business_id', businessId)
       .single() as { data: { calendar_id: string } | null; error: any };
@@ -370,8 +370,8 @@ export async function deleteAppointmentFromGoogle(
     });
 
     // Delete sync record
-    await supabase
-      .from('google_calendar_sync')
+    await (supabase
+      .from('google_calendar_sync') as any)
       .delete()
       .eq('appointment_id', appointmentId);
 
@@ -382,8 +382,8 @@ export async function deleteAppointmentFromGoogle(
     if (error.code === 404) {
       // Delete sync record anyway
       const supabase = createAdminClient();
-      await supabase
-        .from('google_calendar_sync')
+      await (supabase
+        .from('google_calendar_sync') as any)
         .delete()
         .eq('appointment_id', appointmentId);
       return { success: true };
@@ -405,8 +405,8 @@ export async function syncAppointmentFromGoogle(
     const calendar = await getCalendarClient(businessId);
 
     // Get sync record
-    const syncResult = await supabase
-      .from('google_calendar_sync')
+    const syncResult = await (supabase
+      .from('google_calendar_sync') as any)
       .select('appointment_id')
       .eq('google_event_id', googleEventId)
       .eq('business_id', businessId)
@@ -419,8 +419,8 @@ export async function syncAppointmentFromGoogle(
     const appointmentId = syncResult.data.appointment_id;
 
     // Get calendar ID
-    const tokenResult = await supabase
-      .from('google_calendar_tokens')
+    const tokenResult = await (supabase
+      .from('google_calendar_tokens') as any)
       .select('calendar_id')
       .eq('business_id', businessId)
       .single() as { data: { calendar_id: string } | null; error: any };
@@ -448,8 +448,8 @@ export async function syncAppointmentFromGoogle(
       .eq('id', appointmentId);
 
     // Update sync record
-    await supabase
-      .from('google_calendar_sync')
+    await (supabase
+      .from('google_calendar_sync') as any)
       .update({ last_synced_at: new Date().toISOString() })
       .eq('appointment_id', appointmentId);
 
