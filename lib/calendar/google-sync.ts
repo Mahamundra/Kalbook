@@ -90,8 +90,8 @@ export async function handleGoogleOAuthCallback(
       last_sync_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from('google_calendar_tokens')
+    const { error } = await (supabase
+      .from('google_calendar_tokens') as any)
       .upsert(tokenData, {
         onConflict: 'business_id',
       });
