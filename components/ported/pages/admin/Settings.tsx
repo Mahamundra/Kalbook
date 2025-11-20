@@ -2331,8 +2331,8 @@ const Settings = () => {
                         onChange={(e) => {
                           const current = settings.notifications?.reminders?.daysBefore || [];
                           const updated = e.target.checked
-                            ? [...current.filter(d => d !== 1), 1]
-                            : current.filter(d => d !== 1);
+                            ? [...current.filter((d: number) => d !== 1), 1]
+                            : current.filter((d: number) => d !== 1);
                           setSettings({
                             ...settings,
                             notifications: {
@@ -2355,8 +2355,8 @@ const Settings = () => {
                         onChange={(e) => {
                           const current = settings.notifications?.reminders?.daysBefore || [];
                           const updated = e.target.checked
-                            ? [...current.filter(d => d !== 2), 2]
-                            : current.filter(d => d !== 2);
+                            ? [...current.filter((d: number) => d !== 2), 2]
+                            : current.filter((d: number) => d !== 2);
                           setSettings({
                             ...settings,
                             notifications: {
