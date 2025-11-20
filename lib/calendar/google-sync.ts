@@ -438,8 +438,8 @@ export async function syncAppointmentFromGoogle(
     }
 
     // Update appointment
-    await supabase
-      .from('appointments')
+    await (supabase
+      .from('appointments') as any)
       .update({
         start: new Date(event.data.start.dateTime).toISOString(),
         end: new Date(event.data.end.dateTime).toISOString(),
