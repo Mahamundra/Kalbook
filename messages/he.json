@@ -757,6 +757,40 @@
     "choosePlanDescription": "בחרו את התוכנית שמתאימה ביותר לצרכי העסק שלכם. תוכלו לשנות זאת בכל עת במהלך ההגדרה.",
     "selectPlan": "בחר תוכנית",
     "planSelected": "נבחר",
+    "auth": {
+      "title": "התחלה",
+      "subtitle": "התחברו כדי להמשיך בהגדרת העסק שלכם",
+      "welcome": "ברוכים הבאים, בואו נתחיל",
+      "login": "התחברות",
+      "additionalOptions": "אפשרויות התחברות נוספות",
+      "phoneNumber": "מספר טלפון",
+      "phonePlaceholder": "050-000-0000",
+      "sendOtp": "שלח קוד OTP",
+      "changeNumber": "שנה",
+      "enterOtp": "הזן קוד OTP",
+      "otpPlaceholder": "123456",
+      "verify": "אמת",
+      "or": "או",
+      "signInWithGoogle": "התחבר עם Google",
+      "signInWithApple": "התחבר עם Apple",
+      "phoneRequired": "מספר טלפון נדרש",
+      "invalidPhone": "אנא הזינו מספר טלפון תקין",
+      "otpRequired": "קוד OTP נדרש",
+      "otpSent": "קוד OTP נשלח בהצלחה",
+      "verified": "מספר הטלפון אומת",
+      "authenticated": "אומת!",
+      "phoneVerified": "מספר טלפון {phone} אומת",
+      "emailVerified": "אימייל {email} אומת",
+      "readyToContinue": "אתם מוכנים להמשיך",
+      "pleaseAuthenticate": "אנא אמתו כדי להמשיך",
+      "oauthError": "האימות נכשל. אנא נסו שוב.",
+      "otpSentTo": "שלחנו קוד אימות ל-{phone}",
+      "otpCode": "קוד OTP",
+      "didntReceiveCode": "לא קיבלתם קוד?",
+      "sendAgain": "שלח שוב",
+      "sendAgainIn": "שלח שוב בעוד {seconds} שניות",
+      "enterOtherNumber": "הזן מספר אחר"
+    },
     "planConfirmation": {
       "title": "אישור תוכנית",
       "subtitle": "סקור את התוכנית שבחרת",
@@ -840,6 +874,8 @@
       "subtitle": "ספרו לנו על העסק שלכם.",
       "name": "שם העסק *",
       "namePlaceholder": "לדוגמה: סטודיו סטייל",
+      "ownerName": "שם בעל העסק *",
+      "ownerNamePlaceholder": "הזינו את שם בעל העסק",
       "englishName": "שם באנגלית לכתובת URL *",
       "englishNamePlaceholder": "לדוגמה: Style Studio",
       "englishNameHint": "זה ישמש ליצירת כתובת ה-URL הייחודית שלכם (למשל, yourbusiness.com/b/style-studio). השתמשו רק באותיות אנגליות, מספרים ומקפים.",
@@ -847,8 +883,17 @@
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "מספר טלפון *",
       "phonePlaceholder": "+972-50-123-4567",
-      "address": "כתובת (אופציונלי)",
-      "addressPlaceholder": "רחוב ראשי 123, עיר, מדינה"
+      "address": "כתובת *",
+      "addressPlaceholder": "רחוב ראשי 123, עיר, מדינה",
+      "previousCalendar": "איזה יומן השתמשתם עד כה?",
+      "previousCalendarPlaceholder": "בחרו אפשרות (אופציונלי)",
+      "previousCalendarHint": "זה עוזר לנו להבין את הצרכים שלכם טוב יותר (אופציונלי)",
+      "calendarOptions": {
+        "appointmentSchedulingApp": "אפליקציה להזמנת תורים",
+        "paperCalendar": "יומן נייר",
+        "googlePhoneCalendar": "יומן Google/טלפון",
+        "notUsingCalendar": "לא משתמשים ביומן"
+      }
     },
     "almostThere": {
       "title": "כמעט סיימנו!",
@@ -1099,7 +1144,12 @@
       "back": "חזרה",
       "continue": "המשך",
       "completeSetup": "סיום הגדרה",
-      "mainPage": "עמוד ראשי"
+      "mainPage": "עמוד ראשי",
+      "startOver": "התחל מחדש"
+    },
+    "startOver": {
+      "success": "מתחילים מחדש... אנא התחברו שוב.",
+      "error": "נכשל בהתחלה מחדש. אנא רעננו את הדף."
     }
   },
   "booking": {

@@ -757,6 +757,40 @@
     "choosePlanDescription": "Выберите план, который лучше всего подходит для вашего бизнеса. Вы можете изменить это в любое время во время настройки.",
     "selectPlan": "Выбрать план",
     "planSelected": "Выбрано",
+    "auth": {
+      "title": "Начать",
+      "subtitle": "Войдите, чтобы продолжить настройку вашего бизнеса",
+      "welcome": "Добро пожаловать, давайте начнем",
+      "login": "Войти",
+      "additionalOptions": "Дополнительные варианты входа",
+      "phoneNumber": "Номер телефона",
+      "phonePlaceholder": "050-000-0000",
+      "sendOtp": "Отправить OTP",
+      "changeNumber": "Изменить",
+      "enterOtp": "Введите код OTP",
+      "otpPlaceholder": "123456",
+      "verify": "Проверить",
+      "or": "Или",
+      "signInWithGoogle": "Войти через Google",
+      "signInWithApple": "Войти через Apple",
+      "phoneRequired": "Номер телефона обязателен",
+      "invalidPhone": "Пожалуйста, введите действительный номер телефона",
+      "otpRequired": "Код OTP обязателен",
+      "otpSent": "Код OTP успешно отправлен",
+      "verified": "Номер телефона подтвержден",
+      "authenticated": "Подтверждено!",
+      "phoneVerified": "Телефон {phone} подтвержден",
+      "emailVerified": "Email {email} подтвержден",
+      "readyToContinue": "Вы готовы продолжить",
+      "pleaseAuthenticate": "Пожалуйста, подтвердите для продолжения",
+      "oauthError": "Ошибка аутентификации. Пожалуйста, попробуйте снова.",
+      "otpSentTo": "Мы отправили код подтверждения на {phone}",
+      "otpCode": "Код OTP",
+      "didntReceiveCode": "Не получили код?",
+      "sendAgain": "Отправить снова",
+      "sendAgainIn": "Отправить снова через {seconds}с",
+      "enterOtherNumber": "Ввести другой номер"
+    },
     "planConfirmation": {
       "title": "Подтверждение плана",
       "subtitle": "Проверьте выбранный план",
@@ -840,6 +874,8 @@
       "subtitle": "Расскажите нам о вашем бизнесе.",
       "name": "Название бизнеса *",
       "namePlaceholder": "например, Style Studio",
+      "ownerName": "Имя владельца бизнеса *",
+      "ownerNamePlaceholder": "Введите имя владельца",
       "englishName": "Английское название для URL *",
       "englishNamePlaceholder": "например, Style Studio",
       "englishNameHint": "Это будет использоваться для создания вашего уникального URL (например, yourbusiness.com/b/style-studio). Используйте только английские буквы, цифры и дефисы.",
@@ -847,8 +883,17 @@
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "Номер телефона *",
       "phonePlaceholder": "+1 (555) 123-4567",
-      "address": "Адрес (необязательно)",
-      "addressPlaceholder": "123 Main Street, Город, Область"
+      "address": "Адрес *",
+      "addressPlaceholder": "123 Main Street, Город, Область",
+      "previousCalendar": "Какой календарь вы использовали до сих пор?",
+      "previousCalendarPlaceholder": "Выберите вариант (необязательно)",
+      "previousCalendarHint": "Это помогает нам лучше понять ваши потребности (необязательно)",
+      "calendarOptions": {
+        "appointmentSchedulingApp": "Приложение для записи на прием",
+        "paperCalendar": "Бумажный календарь",
+        "googlePhoneCalendar": "Календарь Google/Телефон",
+        "notUsingCalendar": "Не использую календарь"
+      }
     },
     "almostThere": {
       "title": "Почти готово!",
@@ -1099,7 +1144,12 @@
       "back": "Назад",
       "continue": "Продолжить",
       "completeSetup": "Завершить настройку",
-      "mainPage": "Главная страница"
+      "mainPage": "Главная страница",
+      "startOver": "Начать заново"
+    },
+    "startOver": {
+      "success": "Начинаем заново... Пожалуйста, войдите снова.",
+      "error": "Не удалось начать заново. Пожалуйста, обновите страницу."
     }
   },
   "booking": {

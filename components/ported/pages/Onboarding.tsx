@@ -17,6 +17,7 @@ import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ported/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ported/ui/dialog";
+import { supabase } from "@/lib/supabase/client";
 import en from "@/messages/en.json";
 import he from "@/messages/he.json";
 import ar from "@/messages/ar.json";
@@ -44,11 +45,25 @@ const Onboarding = () => {
     email: "",
     phone: "",
     address: "",
+    previousCalendarType: "" as 'appointment_scheduling_app' | 'paper_calendar' | 'google_phone_calendar' | 'not_using_calendar' | '',
   });
   const [ownerName, setOwnerName] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [useAnotherAccount, setUseAnotherAccount] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<{email: string, phone: string, name: string} | null>(null);
+  // Authentication state
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<{phone?: string, email?: string, name?: string} | null>(null);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('basic');
   const [planDetails, setPlanDetails] = useState<{name: string, price: number, symbol: string} | null>(null);
   const [loadingPlanDetails, setLoadingPlanDetails] = useState(false);
@@ -89,6 +104,289 @@ const Onboarding = () => {
       return value !== undefined ? value : null;
     } catch {
       return null;
+    }
+  };
+
+  // Format phone number with dashes (050-000-0000)
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    
+    // Format as XXX-XXX-XXXX
+    if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
+
+  // Convert E.164 format (+972540000000) to display format (050-000-0000)
+  const formatPhoneForDisplay = (phone: string): string => {
+    if (!phone) return '';
+    
+    // Remove all non-digit characters
+    let digits = phone.replace(/\D/g, '');
+    
+    // If it starts with country code (972 for Israel), remove it
+    if (digits.startsWith('972') && digits.length > 10) {
+      digits = '0' + digits.substring(3);
+    }
+    
+    // Limit to 10 digits and format
+    const limited = digits.slice(-10); // Take last 10 digits
+    
+    // Format as XXX-XXX-XXXX
+    if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
+
+  // Handle OTP send
+  const handleSendOtp = async () => {
+    if (!phoneNumber.trim()) {
+      toast.error(t('onboarding.auth.phoneRequired') || 'Phone number is required');
+      return;
+    }
+
+    // Remove dashes for API call
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      toast.error(t('onboarding.auth.invalidPhone') || 'Please enter a valid phone number');
+      return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          userType: 'homepage_admin',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      setOtpSent(true);
+      setShowOtpModal(true);
+      setOtpCountdown(30);
+      setOtpCode('');
+      setOtpDigits(['', '', '', '', '', '']);
+      toast.success(t('onboarding.auth.otpSent') || 'OTP code sent successfully');
+      // Focus first OTP input after modal opens
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // Handle resend OTP
+  const handleResendOtp = async () => {
+    if (otpCountdown > 0) return;
+    
+    await handleSendOtp();
+  };
+
+  // Handle enter other number
+  const handleEnterOtherNumber = () => {
+    setShowOtpModal(false);
+    setOtpSent(false);
+    setOtpCode('');
+    setOtpDigits(['', '', '', '', '', '']);
+    setOtpCountdown(0);
+    // Focus on phone input
+    setTimeout(() => {
+      phoneInputRef.current?.focus();
+    }, 100);
+  };
+
+  // Handle OTP digit change
+  const handleOtpDigitChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d$/.test(value)) return;
+
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+
+    // Update otpCode for API
+    const code = newDigits.join('');
+    setOtpCode(code);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all 6 digits are entered
+    if (code.length === 6) {
+      handleVerifyOtp(code);
+    }
+  };
+
+  // Handle OTP key down (backspace)
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle OTP paste
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pastedData[i] || '';
+    }
+    setOtpDigits(newDigits);
+    setOtpCode(pastedData);
+    if (pastedData.length === 6) {
+      handleVerifyOtp(pastedData);
+    } else {
+      otpInputRefs.current[Math.min(pastedData.length, 5)]?.focus();
+    }
+  };
+
+  // Handle OTP verify
+  const handleVerifyOtp = async (codeToVerify?: string) => {
+    const code = codeToVerify || otpCode;
+    if (!code || code.length !== 6) {
+      if (!codeToVerify) {
+        toast.error(t('onboarding.auth.otpRequired') || 'OTP code is required');
+      }
+      return;
+    }
+
+    // Remove dashes for API call
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+
+    setVerifyingOtp(true);
+    try {
+      const response = await fetch('/api/auth/verify-otp-homepage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          code: code,
+          userType: 'homepage_admin',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid OTP code');
+      }
+
+      setOtpVerified(true);
+      // Handle both existing user and new user cases
+      if (data.isNewUser) {
+        // New user - just set phone, they'll register during onboarding
+        setAuthenticatedUser({ phone: phoneNumber });
+        setBusinessInfo(prev => ({ ...prev, phone: phoneNumber }));
+      } else {
+        // Existing user - set all user data
+        const userPhone = data.user?.phone || phoneNumber;
+        setAuthenticatedUser({ 
+          phone: userPhone,
+          email: data.user?.email,
+          name: data.user?.name,
+        });
+        // Format phone for display (remove country code, add dashes)
+        const displayPhone = formatPhoneForDisplay(userPhone);
+        setBusinessInfo(prev => ({ 
+          ...prev, 
+          phone: displayPhone,
+          email: data.user?.email || prev.email,
+        }));
+        if (data.user?.name) {
+          setOwnerName(data.user.name);
+        }
+      }
+      setShowOtpModal(false);
+      toast.success(t('onboarding.auth.verified') || 'Phone number verified');
+      // Automatically move to step 2 after successful authentication
+      setTimeout(() => {
+        setStep(2);
+      }, 500);
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid OTP code');
+      // Clear OTP on error
+      setOtpDigits(['', '', '', '', '', '']);
+      setOtpCode('');
+      otpInputRefs.current[0]?.focus();
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => {
+        setOtpCountdown(otpCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
+
+  // Focus first OTP input when modal opens
+  useEffect(() => {
+    if (showOtpModal && otpInputRefs.current[0]) {
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [showOtpModal]);
+
+  // Handle Google OAuth
+  const handleGoogleLogin = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to initiate Google login');
+    }
+  };
+
+  // Handle Apple OAuth
+  const handleAppleLogin = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to initiate Apple login');
     }
   };
 
@@ -139,10 +437,51 @@ const Onboarding = () => {
     fetchPlanDetails();
   }, [selectedPlan, locale]);
 
-  // Check if user is logged in on component mount
+  // Check if user is authenticated via OAuth or existing session
   useEffect(() => {
-    const checkLoggedIn = async () => {
+    const checkAuth = async () => {
       try {
+        // Check for OAuth callback
+        const errorParam = searchParams.get('error');
+        if (errorParam === 'oauth_error') {
+          toast.error(t('onboarding.auth.oauthError') || 'Authentication failed. Please try again.');
+        }
+
+        // Check Supabase session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session?.user && !otpVerified) {
+          // User authenticated via OAuth
+          const userEmail = session.user.email || '';
+          const userPhone = session.user.phone || '';
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+          
+          setAuthenticatedUser({
+            email: userEmail,
+            phone: userPhone,
+            name: userName,
+          });
+          
+          if (userPhone) {
+            // Format phone for display (remove country code, add dashes)
+            const displayPhone = formatPhoneForDisplay(userPhone);
+            setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+          }
+          if (userEmail) {
+            setBusinessInfo(prev => ({ ...prev, email: userEmail }));
+          }
+          if (userName) {
+            setOwnerName(userName);
+          }
+          setOtpVerified(true);
+          // Automatically move to step 2 after OAuth authentication
+          if (step === 1) {
+            setTimeout(() => {
+              setStep(2);
+            }, 500);
+          }
+        }
+
+        // Also check existing user profile API
         const response = await fetch('/api/user/profile');
         if (response.ok) {
           const data = await response.json();
@@ -153,30 +492,37 @@ const Onboarding = () => {
               phone: data.user.phone || '',
               name: data.user.name,
             });
-            // Pre-fill email and phone
-            setBusinessInfo(prev => ({
-              ...prev,
-              email: data.user.email,
-              phone: data.user.phone || '',
-            }));
-            setOwnerName(data.user.name);
+            if (!authenticatedUser) {
+              setAuthenticatedUser({
+                email: data.user.email,
+                phone: data.user.phone || '',
+                name: data.user.name,
+              });
+              setBusinessInfo(prev => ({
+                ...prev,
+                email: data.user.email,
+                phone: data.user.phone || '',
+              }));
+              setOwnerName(data.user.name);
+              setOtpVerified(true);
+            }
           }
         }
       } catch (error) {
         // User is not logged in, continue normally
       }
     };
-    checkLoggedIn();
-  }, []);
+    checkAuth();
+  }, [searchParams, otpVerified]);
 
   // Scroll to top when step changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
-  // Scroll to continue button when business type is selected on step 1
+  // Scroll to continue button when business type is selected on step 3
   useEffect(() => {
-    if (step === 1 && businessType && continueButtonRef.current) {
+    if (step === 3 && businessType && continueButtonRef.current) {
       // Small delay to ensure the button is rendered
       setTimeout(() => {
         continueButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -184,9 +530,9 @@ const Onboarding = () => {
     }
   }, [businessType, step]);
 
-  // Load default services when business type is selected and moving to step 2
+  // Load default services when business type is selected and moving to step 4
   useEffect(() => {
-    if (businessType && step === 2) {
+    if (businessType && step === 4) {
       // Always reload services when business type changes or when locale changes
       // Get translations for default services
       const servicesTranslations = getTranslation(`onboarding.services.defaultServices.${businessType}`);
@@ -194,9 +540,9 @@ const Onboarding = () => {
         [businessType]: servicesTranslations
       } : undefined);
       
-      // Only update if business type changed or services are empty
-      // This prevents overwriting user edits when only locale changes
+      // Update if business type changed, services are empty, or locale changed
       if (lastBusinessTypeRef.current !== businessType || services.length === 0) {
+        // Initial load - set all default services
         setServices(
           defaultServices.map((service, index) => ({
             id: `default-${index}`,
@@ -204,6 +550,34 @@ const Onboarding = () => {
           }))
         );
         lastBusinessTypeRef.current = businessType;
+      } else if (lastBusinessTypeRef.current === businessType && services.length > 0) {
+        // Locale changed - update services that match default structure with new translations
+        // Preserve user edits by checking if service still matches default structure
+        const updatedServices = services.map((existingService, index) => {
+          const defaultService = defaultServices[index];
+          if (!defaultService) return existingService;
+          
+          // Check if service matches default structure (user hasn't edited it)
+          // Compare by checking if it's still one of the default services
+          const matchesDefault = services.length === defaultServices.length && 
+            existingService.duration === defaultService.duration &&
+            existingService.price === defaultService.price;
+          
+          if (matchesDefault) {
+            // Service matches default - update with new translation
+            return {
+              ...existingService,
+              name: defaultService.name,
+              description: defaultService.description,
+              category: defaultService.category,
+            };
+          }
+          
+          // Service has been edited - keep user's version
+          return existingService;
+        });
+        
+        setServices(updatedServices);
       }
     }
   }, [businessType, step, locale]);
@@ -389,18 +763,43 @@ const Onboarding = () => {
   };
 
   const handleNext = async () => {
-    if (step === 1 && !businessType) {
+    // Step 1: Authentication - check if user is authenticated
+    if (step === 1) {
+      if (!otpVerified && !authenticatedUser) {
+        toast.error(t('onboarding.auth.pleaseAuthenticate') || 'Please authenticate to continue');
+        return;
+      }
+    }
+    // Step 2: Business info - validate required fields
+    if (step === 2) {
+      setTouched({ name: true, phone: true });
+      
+      const newErrors: typeof errors = {};
+      const nameError = getFieldError('name', businessInfo.name);
+      const phoneError = getFieldError('phone', businessInfo.phone);
+      
+      if (nameError) newErrors.name = nameError;
+      if (phoneError) newErrors.phone = phoneError;
+      
+      setErrors(newErrors);
+      
+      if (Object.keys(newErrors).length > 0) {
+        toast.error(t('onboarding.errors.fillRequiredFields'));
+        return;
+      }
+    }
+    // Step 3: Business type - check if selected
+    if (step === 3 && !businessType) {
       toast.error(t('onboarding.errors.selectBusinessType'));
       return;
     }
-    if (step === 2) {
-      // Validate services - at least one required
+    // Step 4: Services - validate services
+    if (step === 4) {
       if (services.length === 0) {
         setErrors({ services: t('onboarding.errors.atLeastOneService') });
         toast.error(t('onboarding.errors.atLeastOneService'));
         return;
       }
-      // Validate each service has required fields
       const invalidServices = services.filter(
         (s) => !s.name.trim() || s.duration <= 0 || s.price < 0
       );
@@ -410,38 +809,8 @@ const Onboarding = () => {
         return;
       }
     }
-    if (step === 3) {
-      // Mark all fields as touched
-      setTouched({ name: true, englishName: true, email: true, phone: true, ownerName: true });
-      
-      // Validate all fields
-      const newErrors: typeof errors = {};
-      const nameError = getFieldError('name', businessInfo.name);
-      const englishNameError = getFieldError('englishName', businessInfo.englishName);
-      const emailError = getFieldError('email', businessInfo.email);
-      const phoneError = getFieldError('phone', businessInfo.phone);
-      const ownerNameError = getFieldError('ownerName', ownerName);
-      
-      if (nameError) newErrors.name = nameError;
-      if (englishNameError) newErrors.englishName = englishNameError;
-      if (emailError) newErrors.email = emailError;
-      if (phoneError) newErrors.phone = phoneError;
-      if (ownerNameError) newErrors.ownerName = ownerNameError;
-      
-      setErrors(newErrors);
-      
-      // If there are errors, don't proceed
-      if (Object.keys(newErrors).length > 0) {
-        toast.error(t('onboarding.errors.fillRequiredFields'));
-        return;
-      }
-    }
-    if (step === 3) {
-      // Move to step 5 (plan confirmation) for all plans
-      setErrors({});
-      setStep(5);
-    } else if (step === 5) {
-      // Move from plan confirmation to final step (step 6)
+    // Step 5: Plan confirmation - move to final step
+    if (step === 5) {
       setErrors({});
       setStep(6);
     } else if (step < 6) {
@@ -452,20 +821,43 @@ const Onboarding = () => {
       // Complete onboarding - submit to API
       setLoading(true);
       try {
+        // Convert phone to E.164 format for API (remove dashes, add country code if needed)
+        let phoneForApi = businessInfo.phone || authenticatedUser?.phone || '';
+        if (phoneForApi) {
+          // Remove dashes and spaces
+          const digits = phoneForApi.replace(/\D/g, '');
+          // If it's 9 digits (Israeli number without leading 0), add 0
+          // If it's 10 digits starting with 0, convert to E.164 (+972)
+          if (digits.length === 9) {
+            phoneForApi = '+972' + digits;
+          } else if (digits.length === 10 && digits.startsWith('0')) {
+            phoneForApi = '+972' + digits.substring(1);
+          } else if (digits.length === 10 && !digits.startsWith('0')) {
+            // Already 10 digits without 0, assume it's Israeli and add +972
+            phoneForApi = '+972' + digits;
+          } else if (!phoneForApi.startsWith('+')) {
+            // If it doesn't start with +, try to add country code
+            phoneForApi = '+972' + digits;
+          }
+        }
+        
         const response = await fetch('/api/onboarding/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             businessType,
-            businessInfo,
+            businessInfo: {
+              ...businessInfo,
+              phone: phoneForApi, // Send E.164 format to API
+            },
             services: services.map(({ id, ...service }) => service),
             ownerName,
             useAnotherAccount,
             plan: selectedPlan || 'basic',
             adminUser: {
-              email: businessInfo.email,
-              name: ownerName,
-              phone: businessInfo.phone,
+              email: businessInfo.email || authenticatedUser?.email || '',
+              name: ownerName || authenticatedUser?.name || '',
+              phone: phoneForApi, // Send E.164 format to API
             },
           }),
         });
@@ -503,15 +895,90 @@ const Onboarding = () => {
       // Clear errors when going back
       setErrors({});
       setTouched({});
-      if (step === 6) {
-        // Go back from final step to plan confirmation
-        setStep(5);
-      } else if (step === 5) {
-        // Go back from plan confirmation to business info
-        setStep(3);
-      } else {
       setStep(step - 1);
+    }
+  };
+
+  // Handle start over - clear all session data and reset to step 1
+  const handleStartOver = async () => {
+    try {
+      // Save current locale before clearing cookies
+      const currentLocale = locale;
+      const localeStorageKey = 'bookinghub-locale';
+      const localeCookieKey = 'locale';
+      
+      // Preserve locale in localStorage (it should already be there, but ensure it)
+      if (currentLocale) {
+        localStorage.setItem(localeStorageKey, currentLocale);
       }
+      
+      // Clear Supabase session
+      await supabase.auth.signOut();
+      
+      // Clear specific cookies (admin_session and any auth cookies, but NOT locale)
+      const cookiesToClear = ['admin_session', 'sb-access-token', 'sb-refresh-token'];
+      cookiesToClear.forEach(cookieName => {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      });
+      
+      // Clear all cookies except locale
+      document.cookie.split(";").forEach((c) => {
+        const cookieName = c.split("=")[0].trim();
+        // Skip locale cookie
+        if (cookieName !== localeCookieKey) {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        }
+      });
+      
+      // Restore locale cookie after clearing others
+      if (currentLocale) {
+        document.cookie = `${localeCookieKey}=${currentLocale}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+      
+      // Clear all state
+      setStep(1);
+      setBusinessType(null);
+      setBusinessInfo({
+        name: "",
+        englishName: "",
+        email: "",
+        phone: "",
+        address: "",
+        previousCalendarType: "",
+      });
+      setOwnerName("");
+      setServices([]);
+      setPhoneNumber("");
+      setOtpCode("");
+      setOtpDigits(['', '', '', '', '', '']);
+      setOtpSent(false);
+      setOtpVerified(false);
+      setAuthenticatedUser(null);
+      setShowOtpModal(false);
+      setOtpCountdown(0);
+      setErrors({});
+      setTouched({});
+      setSelectedPlan('basic');
+      setIsLoggedIn(false);
+      setUseAnotherAccount(false);
+      setLoggedInUser(null);
+      
+      // Clear URL params and reload to ensure clean state
+      router.replace('/onboarding');
+      
+      // Small delay to ensure state is cleared before showing message
+      setTimeout(() => {
+        toast.success(t('onboarding.startOver.success') || 'Starting over... Please login again.');
+        // Reload page to ensure all state is cleared
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Error starting over:', error);
+      toast.error(t('onboarding.startOver.error') || 'Failed to start over. Please refresh the page.');
+      // Force reload even on error
+      window.location.reload();
     }
   };
 
@@ -526,7 +993,7 @@ const Onboarding = () => {
         />
         
         {/* Plan Banner */}
-        {planDetails && step < 5 && (
+        {planDetails && step < 5 && step > 1 && (
           <Card className="mb-6 p-4 border-primary/20">
             <div className="flex items-center justify-between" dir={dir}>
               <div className="flex items-center gap-4">
@@ -582,6 +1049,233 @@ const Onboarding = () => {
         {/* Step Content */}
         <Card className="p-8 shadow-card">
           {step === 1 && (
+            <div className="animate-fade-in">
+              {/* Welcome Message */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold mb-2">{t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}</h2>
+              </div>
+              
+              {!otpVerified && !authenticatedUser ? (
+                <div className="space-y-6 max-w-md mx-auto">
+                  {/* Phone Input Section */}
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <Input
+                        ref={phoneInputRef}
+                        id="phone-number"
+                        type="tel"
+                        placeholder={t('onboarding.auth.phonePlaceholder') || t('onboarding.auth.phoneNumber') || 'Phone Number'}
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && phoneNumber.replace(/\D/g, '').length >= 10 && !sendingOtp) {
+                            handleSendOtp();
+                          }
+                        }}
+                        disabled={otpSent}
+                        className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base`}
+                        dir={dir}
+                      />
+                    </div>
+
+                    <LoadingButton
+                      onClick={handleSendOtp}
+                      loading={sendingOtp}
+                      disabled={!phoneNumber.trim() || phoneNumber.replace(/\D/g, '').length < 10}
+                      className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                    >
+                      {t('onboarding.auth.login') || t('onboarding.auth.sendOtp') || 'Login'}
+                    </LoadingButton>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative py-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-background px-4 text-sm text-muted-foreground">
+                        {t('onboarding.auth.additionalOptions') || t('onboarding.auth.or') || 'Additional login options'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* OAuth Buttons */}
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-12 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 font-medium"
+                      onClick={handleGoogleLogin}
+                    >
+                      <svg className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`} viewBox="0 0 24 24">
+                        <path
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          fill="#34A853"
+                        />
+                        <path
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                          fill="#EA4335"
+                        />
+                      </svg>
+                      {t('onboarding.auth.signInWithGoogle') || 'Sign in with Google'}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-full h-12 bg-black hover:bg-gray-900 text-white font-medium"
+                      onClick={handleAppleLogin}
+                    >
+                      <svg 
+                        aria-hidden="true" 
+                        focusable="false" 
+                        data-prefix="fab" 
+                        data-icon="apple" 
+                        className={`svg-inline--fa fa-apple text-white text-xl ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}
+                        role="img" 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        viewBox="0 0 384 512"
+                      >
+                        <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"></path>
+                      </svg>
+                      {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {t('onboarding.auth.authenticated') || 'Authenticated!'}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {authenticatedUser?.phone && t('onboarding.auth.phoneVerified')?.replace('{phone}', authenticatedUser.phone) || 
+                     authenticatedUser?.email && t('onboarding.auth.emailVerified')?.replace('{email}', authenticatedUser.email) ||
+                     t('onboarding.auth.readyToContinue') || 'You\'re ready to continue'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="animate-fade-in">
+              <h2 className="text-3xl font-bold mb-2">{t('onboarding.businessInfo.title')}</h2>
+              <p className="text-muted-foreground mb-8">{t('onboarding.businessInfo.subtitle')}</p>
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="name">{t('onboarding.businessInfo.name')}</Label>
+                  <Input
+                    id="name"
+                    placeholder={t('onboarding.businessInfo.namePlaceholder')}
+                    value={businessInfo.name}
+                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                    onBlur={() => handleBlur('name')}
+                    className={`mt-2 ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="ownerName">{t('onboarding.businessInfo.ownerName') || 'Business Owner Name'}</Label>
+                  <Input
+                    id="ownerName"
+                    placeholder={t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter owner name'}
+                    value={ownerName}
+                    onChange={(e) => {
+                      setOwnerName(e.target.value);
+                      if (touched.ownerName) {
+                        validateField('ownerName', e.target.value);
+                      }
+                    }}
+                    onBlur={() => handleBlur('ownerName')}
+                    className={`mt-2 ${errors.ownerName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {errors.ownerName && (
+                    <p className="mt-1 text-sm text-red-500">{errors.ownerName}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="address">{t('onboarding.businessInfo.address')}</Label>
+                  <Input
+                    id="address"
+                    placeholder={t('onboarding.businessInfo.addressPlaceholder')}
+                    value={businessInfo.address}
+                    onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">{t('onboarding.businessInfo.phone')}</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder={t('onboarding.businessInfo.phonePlaceholder')}
+                    value={businessInfo.phone}
+                    onChange={(e) => {
+                      // Format as user types (only if not disabled)
+                      if (!authenticatedUser?.phone) {
+                        const formatted = formatPhoneNumber(e.target.value);
+                        handleFieldChange('phone', formatted);
+                      }
+                    }}
+                    onBlur={() => handleBlur('phone')}
+                    disabled={!!authenticatedUser?.phone}
+                    className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} ${authenticatedUser?.phone ? 'bg-muted cursor-not-allowed' : ''}`}
+                  />
+                  {authenticatedUser?.phone && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
+                  )}
+                  {errors.phone && (
+                    <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="previousCalendar">{t('onboarding.businessInfo.previousCalendar') || 'Which calendar did you use until now?'}</Label>
+                  <Select
+                    value={businessInfo.previousCalendarType}
+                    onValueChange={(value) => setBusinessInfo({ ...businessInfo, previousCalendarType: value as typeof businessInfo.previousCalendarType })}
+                  >
+                    <SelectTrigger id="previousCalendar" className="mt-2">
+                      <SelectValue placeholder={t('onboarding.businessInfo.previousCalendarPlaceholder') || 'Select an option (optional)'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="appointment_scheduling_app">
+                        {t('onboarding.businessInfo.calendarOptions.appointmentSchedulingApp') || 'Appointment scheduling application'}
+                      </SelectItem>
+                      <SelectItem value="paper_calendar">
+                        {t('onboarding.businessInfo.calendarOptions.paperCalendar') || 'Paper calendar'}
+                      </SelectItem>
+                      <SelectItem value="google_phone_calendar">
+                        {t('onboarding.businessInfo.calendarOptions.googlePhoneCalendar') || 'Google/Phone calendar'}
+                      </SelectItem>
+                      <SelectItem value="not_using_calendar">
+                        {t('onboarding.businessInfo.calendarOptions.notUsingCalendar') || 'Not using a calendar'}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.businessInfo.previousCalendarHint') || 'This helps us understand your needs better (optional)'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
             <div className="animate-fade-in">
               <h2 className="text-3xl font-bold mb-2">{t('onboarding.chooseBusinessType.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.chooseBusinessType.subtitle')}</p>
@@ -652,7 +1346,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 4 && (
             <div className="animate-fade-in">
               <h2 className="text-3xl font-bold mb-2">{t('onboarding.services.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.services.subtitle')}</p>
@@ -775,134 +1469,6 @@ const Onboarding = () => {
                 {errors.services && (
                   <p className="text-sm text-red-500 mt-2">{errors.services}</p>
                 )}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="animate-fade-in">
-              <h2 className="text-3xl font-bold mb-2">{t('onboarding.businessInfo.title')}</h2>
-              <p className="text-muted-foreground mb-8">{t('onboarding.businessInfo.subtitle')}</p>
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="name">{t('onboarding.businessInfo.name')}</Label>
-                  <Input
-                    id="name"
-                    placeholder={t('onboarding.businessInfo.namePlaceholder')}
-                    value={businessInfo.name}
-                    onChange={(e) => handleFieldChange('name', e.target.value)}
-                    onBlur={() => handleBlur('name')}
-                    className={`mt-2 ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="englishName">{t('onboarding.businessInfo.englishName')}</Label>
-                  <Input
-                    id="englishName"
-                    placeholder={t('onboarding.businessInfo.englishNamePlaceholder')}
-                    value={businessInfo.englishName}
-                    onChange={(e) => handleFieldChange('englishName', e.target.value)}
-                    onBlur={() => handleBlur('englishName')}
-                    className={`mt-2 ${errors.englishName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.businessInfo.englishNameHint')}</p>
-                  {errors.englishName && (
-                    <p className="mt-1 text-sm text-red-500">{errors.englishName}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="ownerName">{t('onboarding.ownerName') || 'Owner Name'}</Label>
-                  <Input
-                    id="ownerName"
-                    placeholder={t('onboarding.ownerName') || 'Owner Name'}
-                    value={ownerName}
-                    onChange={(e) => {
-                      setOwnerName(e.target.value);
-                      if (touched.ownerName) {
-                        validateField('ownerName', e.target.value);
-                      }
-                    }}
-                    onBlur={() => handleBlur('ownerName')}
-                    className={`mt-2 ${errors.ownerName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                  />
-                  {errors.ownerName && (
-                    <p className="mt-1 text-sm text-red-500">{errors.ownerName}</p>
-                  )}
-                </div>
-                {isLoggedIn && (
-                  <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg border">
-                    <Checkbox
-                      id="useAnotherAccount"
-                      checked={useAnotherAccount}
-                      onCheckedChange={(checked) => {
-                        setUseAnotherAccount(checked === true);
-                        if (!checked && loggedInUser) {
-                          // Reset to logged-in user's info
-                          setBusinessInfo(prev => ({
-                            ...prev,
-                            email: loggedInUser.email,
-                            phone: loggedInUser.phone,
-                          }));
-                          setOwnerName(loggedInUser.name);
-                        }
-                      }}
-                    />
-                    <Label htmlFor="useAnotherAccount" className="text-sm font-normal cursor-pointer">
-                      {t('onboarding.useAnotherAccount') || 'Use another account for this business'}
-                    </Label>
-                  </div>
-                )}
-                <div>
-                  <Label htmlFor="email">{t('onboarding.businessInfo.email')}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder={t('onboarding.businessInfo.emailPlaceholder')}
-                    value={businessInfo.email}
-                    onChange={(e) => handleFieldChange('email', e.target.value)}
-                    onBlur={() => handleBlur('email')}
-                    disabled={isLoggedIn && !useAnotherAccount}
-                    className={`mt-2 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isLoggedIn && !useAnotherAccount ? 'bg-muted cursor-not-allowed' : ''}`}
-                  />
-                  {isLoggedIn && !useAnotherAccount && (
-                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
-                  )}
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="phone">{t('onboarding.businessInfo.phone')}</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder={t('onboarding.businessInfo.phonePlaceholder')}
-                    value={businessInfo.phone}
-                    onChange={(e) => handleFieldChange('phone', e.target.value)}
-                    onBlur={() => handleBlur('phone')}
-                    disabled={isLoggedIn && !useAnotherAccount}
-                    className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} ${isLoggedIn && !useAnotherAccount ? 'bg-muted cursor-not-allowed' : ''}`}
-                  />
-                  {isLoggedIn && !useAnotherAccount && (
-                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
-                  )}
-                  {errors.phone && (
-                    <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="address">{t('onboarding.businessInfo.address')}</Label>
-                  <Input
-                    id="address"
-                    placeholder={t('onboarding.businessInfo.addressPlaceholder')}
-                    value={businessInfo.address}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
-                    className="mt-2"
-                  />
-                </div>
               </div>
             </div>
           )}
@@ -1167,24 +1733,104 @@ const Onboarding = () => {
           )}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-8 pt-6 border-t">
-            <LoadingButton
-              variant="outline"
-              onClick={handleBack}
-              disabled={step === 1 || loading}
-            >
-              {t('onboarding.buttons.back')}
-            </LoadingButton>
-            <LoadingButton ref={continueButtonRef} onClick={handleNext} loading={loading}>
-              {step === 6 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
-            </LoadingButton>
-          </div>
+          {step > 1 && (
+            <div className="flex justify-between mt-8 pt-6 border-t">
+              {step === 2 ? (
+                <LoadingButton
+                  variant="outline"
+                  onClick={handleStartOver}
+                  disabled={loading}
+                >
+                  {t('onboarding.buttons.startOver') || 'Start Over'}
+                </LoadingButton>
+              ) : (
+                <LoadingButton
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={loading}
+                >
+                  {t('onboarding.buttons.back')}
+                </LoadingButton>
+              )}
+              <LoadingButton ref={continueButtonRef} onClick={handleNext} loading={loading}>
+                {step === 6 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
+              </LoadingButton>
+            </div>
+          )}
         </Card>
         </div>
       </div>
       <div className="mt-16">
         <Footer />
       </div>
+
+      {/* OTP Verification Modal */}
+      <Dialog open={showOtpModal} onOpenChange={setShowOtpModal}>
+        <DialogContent className="sm:max-w-md" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>{t('onboarding.auth.enterOtp') || 'Enter OTP Code'}</DialogTitle>
+            <DialogDescription>
+              {t('onboarding.auth.otpSentTo')?.replace('{phone}', phoneNumber) || `We sent a verification code to ${phoneNumber}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="otp-code-modal" className="block mb-3 text-center">
+                {t('onboarding.auth.otpCode') || 'OTP Code'}
+              </Label>
+              <div className="flex gap-2 justify-center" dir="ltr">
+                {otpDigits.map((digit, index) => (
+                  <Input
+                    key={index}
+                    ref={(el) => (otpInputRefs.current[index] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={index === 0 ? handleOtpPaste : undefined}
+                    className="h-14 w-14 text-center text-2xl font-semibold"
+                    autoFocus={index === 0}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <LoadingButton
+                onClick={() => handleVerifyOtp()}
+                loading={verifyingOtp}
+                disabled={otpCode.length !== 6}
+                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              >
+                {t('onboarding.auth.verify') || 'Verify'}
+              </LoadingButton>
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <span className="text-muted-foreground">
+                  {t('onboarding.auth.didntReceiveCode') || "Didn't receive code?"}
+                </span>
+                <Button
+                  variant="link"
+                  onClick={handleResendOtp}
+                  disabled={otpCountdown > 0 || sendingOtp}
+                  className="h-auto p-0 text-primary"
+                >
+                  {otpCountdown > 0 
+                    ? t('onboarding.auth.sendAgainIn')?.replace('{seconds}', otpCountdown.toString()) || `Send again in ${otpCountdown}s`
+                    : t('onboarding.auth.sendAgain') || 'Send again'}
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleEnterOtherNumber}
+                className="w-full h-12 text-base"
+              >
+                {t('onboarding.auth.enterOtherNumber') || 'Enter other number'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Plan Selection Modal */}
       <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>

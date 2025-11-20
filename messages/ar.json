@@ -757,6 +757,40 @@
     "choosePlanDescription": "اختر الخطة التي تناسب احتياجات عملك بشكل أفضل. يمكنك تغيير هذا في أي وقت أثناء الإعداد.",
     "selectPlan": "اختر الخطة",
     "planSelected": "محدد",
+    "auth": {
+      "title": "ابدأ",
+      "subtitle": "قم بتسجيل الدخول للمتابعة مع إعداد عملك",
+      "welcome": "مرحباً، لنبدأ",
+      "login": "تسجيل الدخول",
+      "additionalOptions": "خيارات تسجيل الدخول الإضافية",
+      "phoneNumber": "رقم الهاتف",
+      "phonePlaceholder": "050-000-0000",
+      "sendOtp": "إرسال رمز OTP",
+      "changeNumber": "تغيير",
+      "enterOtp": "أدخل رمز OTP",
+      "otpPlaceholder": "123456",
+      "verify": "تحقق",
+      "or": "أو",
+      "signInWithGoogle": "تسجيل الدخول باستخدام Google",
+      "signInWithApple": "تسجيل الدخول باستخدام Apple",
+      "phoneRequired": "رقم الهاتف مطلوب",
+      "invalidPhone": "يرجى إدخال رقم هاتف صحيح",
+      "otpRequired": "رمز OTP مطلوب",
+      "otpSent": "تم إرسال رمز OTP بنجاح",
+      "verified": "تم التحقق من رقم الهاتف",
+      "authenticated": "تم التحقق!",
+      "phoneVerified": "تم التحقق من رقم الهاتف {phone}",
+      "emailVerified": "تم التحقق من البريد الإلكتروني {email}",
+      "readyToContinue": "أنت جاهز للمتابعة",
+      "pleaseAuthenticate": "يرجى التحقق للمتابعة",
+      "oauthError": "فشل التحقق. يرجى المحاولة مرة أخرى.",
+      "otpSentTo": "أرسلنا رمز التحقق إلى {phone}",
+      "otpCode": "رمز OTP",
+      "didntReceiveCode": "لم تستلم الرمز؟",
+      "sendAgain": "إرسال مرة أخرى",
+      "sendAgainIn": "إرسال مرة أخرى خلال {seconds} ثانية",
+      "enterOtherNumber": "أدخل رقم آخر"
+    },
     "planConfirmation": {
       "title": "تأكيد الخطة",
       "subtitle": "راجع خطتك المحددة",
@@ -840,6 +874,8 @@
       "subtitle": "أخبرنا عن عملك.",
       "name": "اسم العمل *",
       "namePlaceholder": "مثال: ستوديو ستايل",
+      "ownerName": "اسم صاحب العمل *",
+      "ownerNamePlaceholder": "أدخل اسم صاحب العمل",
       "englishName": "الاسم بالإنجليزية للرابط *",
       "englishNamePlaceholder": "مثال: Style Studio",
       "englishNameHint": "سيتم استخدامه لإنشاء رابطك الفريد (مثل: yourbusiness.com/b/style-studio). استخدم فقط الأحرف الإنجليزية والأرقام والشرطات.",
@@ -847,8 +883,17 @@
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "رقم الهاتف *",
       "phonePlaceholder": "+1 (555) 123-4567",
-      "address": "العنوان (اختياري)",
-      "addressPlaceholder": "123 الشارع الرئيسي، المدينة، الولاية"
+      "address": "العنوان *",
+      "addressPlaceholder": "123 الشارع الرئيسي، المدينة، الولاية",
+      "previousCalendar": "ما التقويم الذي استخدمته حتى الآن؟",
+      "previousCalendarPlaceholder": "اختر خيارًا (اختياري)",
+      "previousCalendarHint": "هذا يساعدنا على فهم احتياجاتك بشكل أفضل (اختياري)",
+      "calendarOptions": {
+        "appointmentSchedulingApp": "تطبيق جدولة المواعيد",
+        "paperCalendar": "تقويم ورقي",
+        "googlePhoneCalendar": "تقويم Google/الهاتف",
+        "notUsingCalendar": "لا أستخدم تقويمًا"
+      }
     },
     "almostThere": {
       "title": "اقتربنا من النهاية!",
@@ -1099,7 +1144,12 @@
       "back": "رجوع",
       "continue": "متابعة",
       "completeSetup": "إكمال الإعداد",
-      "mainPage": "الصفحة الرئيسية"
+      "mainPage": "الصفحة الرئيسية",
+      "startOver": "ابدأ من جديد"
+    },
+    "startOver": {
+      "success": "البدء من جديد... يرجى تسجيل الدخول مرة أخرى.",
+      "error": "فشل في البدء من جديد. يرجى تحديث الصفحة."
     }
   },
   "booking": {

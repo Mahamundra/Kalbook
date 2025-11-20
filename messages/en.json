@@ -754,6 +754,40 @@
     "choosePlanDescription": "Select the plan that best fits your business needs. You can change this anytime during setup.",
     "selectPlan": "Select Plan",
     "planSelected": "Selected",
+    "auth": {
+      "title": "Get Started",
+      "subtitle": "Sign in to continue with your business setup",
+      "welcome": "Welcome, Let's Begin",
+      "login": "Login",
+      "additionalOptions": "Additional login options",
+      "phoneNumber": "Phone Number",
+      "phonePlaceholder": "050-000-0000",
+      "sendOtp": "Send OTP",
+      "changeNumber": "Change",
+      "enterOtp": "Enter OTP Code",
+      "otpPlaceholder": "123456",
+      "verify": "Verify",
+      "or": "Or",
+      "signInWithGoogle": "Sign in with Google",
+      "signInWithApple": "Sign in with Apple",
+      "phoneRequired": "Phone number is required",
+      "invalidPhone": "Please enter a valid phone number",
+      "otpRequired": "OTP code is required",
+      "otpSent": "OTP code sent successfully",
+      "verified": "Phone number verified",
+      "authenticated": "Authenticated!",
+      "phoneVerified": "Phone {phone} verified",
+      "emailVerified": "Email {email} verified",
+      "readyToContinue": "You're ready to continue",
+      "pleaseAuthenticate": "Please authenticate to continue",
+      "oauthError": "Authentication failed. Please try again.",
+      "otpSentTo": "We sent a verification code to {phone}",
+      "otpCode": "OTP Code",
+      "didntReceiveCode": "Didn't receive code?",
+      "sendAgain": "Send again",
+      "sendAgainIn": "Send again in {seconds}s",
+      "enterOtherNumber": "Enter other number"
+    },
     "planConfirmation": {
       "title": "Plan Confirmation",
       "subtitle": "Review your selected plan",
@@ -837,6 +871,8 @@
       "subtitle": "Tell us about your business.",
       "name": "Business Name *",
       "namePlaceholder": "e.g., סטודיו סטייל",
+      "ownerName": "Business Owner Name *",
+      "ownerNamePlaceholder": "Enter owner name",
       "englishName": "English Name for URL *",
       "englishNamePlaceholder": "e.g., Style Studio",
       "englishNameHint": "This will be used to create your unique URL (e.g., yourbusiness.com/b/style-studio). Use only English letters, numbers, and hyphens.",
@@ -844,8 +880,17 @@
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "Phone Number *",
       "phonePlaceholder": "+1 (555) 123-4567",
-      "address": "Address (Optional)",
-      "addressPlaceholder": "123 Main Street, City, State"
+      "address": "Address *",
+      "addressPlaceholder": "123 Main Street, City, State",
+      "previousCalendar": "Which calendar did you use until now?",
+      "previousCalendarPlaceholder": "Select an option (optional)",
+      "previousCalendarHint": "This helps us understand your needs better (optional)",
+      "calendarOptions": {
+        "appointmentSchedulingApp": "Appointment scheduling application",
+        "paperCalendar": "Paper calendar",
+        "googlePhoneCalendar": "Google/Phone calendar",
+        "notUsingCalendar": "Not using a calendar"
+      }
     },
     "almostThere": {
       "title": "Almost There!",
@@ -1096,7 +1141,12 @@
       "back": "Back",
       "continue": "Continue",
       "completeSetup": "Complete Setup",
-      "mainPage": "Main Page"
+      "mainPage": "Main Page",
+      "startOver": "Start Over"
+    },
+    "startOver": {
+      "success": "Starting over... Please login again.",
+      "error": "Failed to start over. Please refresh the page."
     }
   },
   "booking": {

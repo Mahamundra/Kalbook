@@ -273,7 +273,10 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <LanguageToggle />
-              {!loadingUser && user ? (
+              {loadingUser ? (
+                // Show nothing or a loading placeholder while checking user
+                <div className="h-8 sm:h-10 w-20 sm:w-24" /> // Placeholder to prevent layout shift
+              ) : user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 

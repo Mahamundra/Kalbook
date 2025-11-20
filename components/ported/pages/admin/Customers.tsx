@@ -345,19 +345,7 @@ const Customers = () => {
   
   const { localeReady } = useDirection();
   
-  // Don't render until mounted and locale is ready to avoid hydration mismatch
-  if (!mounted || !localeReady) {
-    return (
-      <div className="border rounded-lg p-12 flex flex-col items-center justify-center space-y-4">
-        <div className="relative mx-auto w-12 h-12">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
-        </div>
-        <p className="text-sm text-muted-foreground">{localeReady ? (t('common.loading') || 'Loading...') : 'Loading...'}</p>
-      </div>
-    );
-  }
-
+  // Load appointments when selectedCustomer changes - must be before early return
   useEffect(() => {
     if (selectedCustomer) {
       const loadAppointments = async () => {
@@ -371,6 +359,24 @@ const Customers = () => {
       loadAppointments();
     }
   }, [selectedCustomer]);
+
+  // Handle consent change - must be before early return
+  const handleConsentChange = useCallback((checked: boolean) => {
+    setFormData((prev) => ({ ...prev, consentMarketing: checked }));
+  }, []);
+  
+  // Don't render until mounted and locale is ready to avoid hydration mismatch
+  if (!mounted || !localeReady) {
+    return (
+      <div className="border rounded-lg p-12 flex flex-col items-center justify-center space-y-4">
+        <div className="relative mx-auto w-12 h-12">
+          <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
+        </div>
+        <p className="text-sm text-muted-foreground">{localeReady ? (t('common.loading') || 'Loading...') : 'Loading...'}</p>
+      </div>
+    );
+  }
 
   // Get all existing tags from all customers
   const getAllExistingTags = (): string[] => {
@@ -659,10 +665,6 @@ const Customers = () => {
     });
     setAllowManualEndTime(false);
   };
-
-  const handleConsentChange = useCallback((checked: boolean) => {
-    setFormData((prev) => ({ ...prev, consentMarketing: checked }));
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

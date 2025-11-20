@@ -49,6 +49,35 @@ export async function generateUniqueSlug(baseName: string): Promise<string> {
 }
 
 /**
+ * Generate a random 6-digit number
+ */
+function generateRandom6Digits(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/**
+ * Generate unique slug from random 6 digits
+ */
+export async function generateUniqueSlugFromBusinessType(businessType: BusinessType): Promise<string> {
+  const supabase = createAdminClient();
+  
+  // Try up to 100 times to find a unique slug
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const randomDigits = generateRandom6Digits();
+    const slug = randomDigits;
+    
+    const exists = await checkSlugExists(slug);
+    if (!exists) {
+      return slug;
+    }
+  }
+  
+  // Fallback: use timestamp if all random attempts fail (extremely unlikely)
+  const timestamp = Date.now().toString().slice(-6);
+  return timestamp;
+}
+
+/**
  * Check if slug exists in database
  */
 async function checkSlugExists(slug: string): Promise<boolean> {

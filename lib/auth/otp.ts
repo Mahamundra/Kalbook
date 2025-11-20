@@ -107,18 +107,18 @@ export async function cleanupExpiredOTPs(): Promise<number> {
 }
 
 /**
- * Check if phone has recent OTP request (rate limiting)
+ * Check if phone has recent OTP request (rate limiting - 30 seconds)
  */
 export async function hasRecentOTPRequest(phone: string): Promise<boolean> {
   const supabase = createAdminClient();
 
-  const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+  const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
 
   const recentOtpResult = await supabase
     .from('otp_codes')
     .select('id')
     .eq('phone', phone)
-    .gte('created_at', oneMinuteAgo.toISOString())
+    .gte('created_at', thirtySecondsAgo.toISOString())
     .limit(1) as { data: Array<{ id: string }> | null; error: any };
   const { data, error } = recentOtpResult;
 

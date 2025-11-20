@@ -35,15 +35,15 @@ export async function POST(request: NextRequest) {
     // Convert to E.164 format for consistency
     const e164Phone = toE164Format(phone);
 
-    // Development mode: accept "1234" as valid code for testing
-    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.USE_MOCK_SMS === 'true';
-    const isTestCode = code === '1234';
+    // Test code "123456" - always accept for testing (login if exists, register if not)
+    const isTestCode = code === '123456';
     
     let isValid = false;
     
-    if (isDevelopment && isTestCode) {
-      // In development, accept test code 1234
+    if (isTestCode) {
+      // Always accept test code 123456 for testing
       isValid = true;
+      console.log('[TEST MODE] Test code 123456 accepted');
     } else {
       // Normal OTP verification
       isValid = await verifyOTPCode(e164Phone, code);
@@ -120,13 +120,43 @@ export async function POST(request: NextRequest) {
       // Only owners can login, so skip workers check
     }
 
-    if (userError || !user) {
+    // If user not found and using test code, allow them to proceed (they'll register during onboarding)
+    if ((userError || !user) && !isTestCode) {
       return NextResponse.json(
         { 
           error: 'No business owner account found with this phone number. Only business owners can login from the homepage. If you have not user yet, please create a new business.',
         },
         { status: 404 }
       );
+    }
+
+    // If using test code and user doesn't exist, create a temporary session to allow onboarding
+    if (isTestCode && (!user || userError)) {
+      // Return success with phone number only - user will register during onboarding
+      const response = NextResponse.json({
+        success: true,
+        user: {
+          phone: e164Phone,
+        },
+        isNewUser: true,
+      });
+
+      // Set a temporary session cookie
+      const sessionData = JSON.stringify({
+        type: 'homepage_temp',
+        phone: e164Phone,
+        testMode: true,
+      });
+
+      response.cookies.set('admin_session', sessionData, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: SESSION_MAX_AGE,
+        path: '/',
+      });
+
+      return response;
     }
 
     // Get business info

@@ -33,16 +33,16 @@ export async function POST(request: NextRequest) {
     // Convert to E.164 format for consistency
     const e164Phone = toE164Format(phone);
 
-    // Development mode: accept "1234" as valid code for testing
+    // Development mode: accept "123456" as valid code for testing
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.USE_MOCK_SMS === 'true';
-    const isTestCode = code === '1234';
+    const isTestCode = code === '123456';
     
     let isValid = false;
     
     if (isDevelopment && isTestCode) {
-      // In development, accept test code 1234
+      // In development, accept test code 123456
       isValid = true;
-      console.log('[DEV MODE] Test code 1234 accepted');
+      console.log('[DEV MODE] Test code 123456 accepted');
     } else {
       // Normal OTP verification
       isValid = await verifyOTPCode(e164Phone, code);
