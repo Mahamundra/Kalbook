@@ -159,6 +159,14 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
+    // At this point, user must exist (early returns handled null cases)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     // Get business info
     const { data: business, error: businessError } = await supabase
       .from('businesses')
