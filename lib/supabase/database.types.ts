@@ -588,6 +588,73 @@ export interface Database {
           updated_at?: string;
         };
       };
+      google_calendar_tokens: {
+        Row: {
+          id: string;
+          business_id: string;
+          access_token: string;
+          refresh_token: string | null;
+          token_expires_at: string | null;
+          calendar_id: string;
+          sync_enabled: boolean;
+          last_sync_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          access_token: string;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          calendar_id?: string;
+          sync_enabled?: boolean;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          access_token?: string;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          calendar_id?: string;
+          sync_enabled?: boolean;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      google_calendar_sync: {
+        Row: {
+          id: string;
+          appointment_id: string;
+          business_id: string;
+          google_event_id: string;
+          sync_direction: 'to_google' | 'from_google' | 'bidirectional';
+          last_synced_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          appointment_id: string;
+          business_id: string;
+          google_event_id: string;
+          sync_direction?: 'to_google' | 'from_google' | 'bidirectional';
+          last_synced_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          appointment_id?: string;
+          business_id?: string;
+          google_event_id?: string;
+          sync_direction?: 'to_google' | 'from_google' | 'bidirectional';
+          last_synced_at?: string;
+          created_at?: string;
+        };
+      };
     };
   };
 }
