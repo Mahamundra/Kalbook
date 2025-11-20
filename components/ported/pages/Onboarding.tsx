@@ -1782,7 +1782,7 @@ const Onboarding = () => {
                 {otpDigits.map((digit, index) => (
                   <Input
                     key={index}
-                    ref={(el) => (otpInputRefs.current[index] = el)}
+                    ref={(el) => { otpInputRefs.current[index] = el; }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
