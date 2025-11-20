@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type GoogleCalendarTokenRow = Database['public']['Tables']['google_calendar_tokens']['Row'];
+type GoogleCalendarTokenInsert = Database['public']['Tables']['google_calendar_tokens']['Insert'];
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
 
 let googleapis: any = null;
@@ -79,7 +80,7 @@ export async function handleGoogleOAuthCallback(
       : new Date(Date.now() + 3600 * 1000); // Default 1 hour
 
     // Store or update tokens
-    const tokenData = {
+    const tokenData: GoogleCalendarTokenInsert = {
       business_id: businessId,
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token || null,
