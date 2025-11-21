@@ -4,6 +4,7 @@
  */
 
 import { sendOTPSMS, sendOTPWhatsApp } from '@/lib/auth/twilio';
+import type { Database } from '@/lib/supabase/database.types';
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
@@ -237,12 +238,13 @@ export async function sendAppointmentReminder(
     }
 
     // Update reminder status in appointment
+    const updateData: Database['public']['Tables']['appointments']['Update'] = {
+      reminder_sent_at: new Date().toISOString(),
+      reminder_status: 'sent',
+    };
     await supabase
       .from('appointments')
-      .update({
-        reminder_sent_at: new Date().toISOString(),
-        reminder_status: 'sent',
-      })
+      .update(updateData)
       .eq('id', appointmentId);
 
     return { success: true };
