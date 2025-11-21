@@ -156,7 +156,7 @@ export async function scheduleReminders(
 
     const { error } = await supabase
       .from('reminder_queue')
-      .insert(queueItems);
+      .insert(queueItems as never);
 
     if (error) {
       console.error('[Reminders] Failed to schedule reminders:', error);
@@ -209,7 +209,7 @@ export async function processReminderQueue(): Promise<void> {
         // Appointment deleted, cancel reminder
         await supabase
           .from('reminder_queue')
-          .update({ status: 'cancelled' })
+          .update({ status: 'cancelled' } as never)
           .eq('id', reminder.id);
         continue;
       }
@@ -218,7 +218,7 @@ export async function processReminderQueue(): Promise<void> {
         // Appointment cancelled or changed, cancel reminder
         await supabase
           .from('reminder_queue')
-          .update({ status: 'cancelled' })
+          .update({ status: 'cancelled' } as never)
           .eq('id', reminder.id);
         continue;
       }
@@ -237,7 +237,7 @@ export async function processReminderQueue(): Promise<void> {
           .update({
             status: 'sent',
             sent_at: new Date().toISOString(),
-          })
+          } as never)
           .eq('id', reminder.id);
         
         console.log(`[Reminders] Sent ${reminder.reminder_type} reminder for appointment ${reminder.appointment_id}`);
@@ -247,7 +247,7 @@ export async function processReminderQueue(): Promise<void> {
           .update({
             status: 'failed',
             error_message: result.error || 'Unknown error',
-          })
+          } as never)
           .eq('id', reminder.id);
         
         console.error(`[Reminders] Failed to send reminder ${reminder.id}:`, result.error);
@@ -261,7 +261,7 @@ export async function processReminderQueue(): Promise<void> {
         .update({
           status: 'failed',
           error_message: error.message || 'Unknown error',
-        })
+        } as never)
         .eq('id', reminder.id);
     }
   }
@@ -275,7 +275,7 @@ export async function cancelReminders(appointmentId: string): Promise<void> {
 
   const { error } = await supabase
     .from('reminder_queue')
-    .update({ status: 'cancelled' })
+    .update({ status: 'cancelled' } as never)
     .eq('appointment_id', appointmentId)
     .eq('status', 'pending');
 

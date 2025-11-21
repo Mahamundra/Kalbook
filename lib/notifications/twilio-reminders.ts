@@ -238,13 +238,12 @@ export async function sendAppointmentReminder(
     }
 
     // Update reminder status in appointment
-    const updateData: Database['public']['Tables']['appointments']['Update'] = {
-      reminder_sent_at: new Date().toISOString(),
-      reminder_status: 'sent',
-    };
     await supabase
       .from('appointments')
-      .update(updateData)
+      .update({
+        reminder_sent_at: new Date().toISOString(),
+        reminder_status: 'sent',
+      } as never)
       .eq('id', appointmentId);
 
     return { success: true };

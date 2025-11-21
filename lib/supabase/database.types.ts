@@ -385,6 +385,50 @@ export interface Database {
           created_at?: string;
         };
       };
+      reminder_queue: {
+        Row: {
+          id: string;
+          appointment_id: string;
+          business_id: string;
+          customer_id: string;
+          scheduled_for: string;
+          reminder_type: 'sms' | 'whatsapp' | 'email';
+          days_before: number;
+          status: 'pending' | 'sent' | 'failed' | 'cancelled';
+          sent_at: string | null;
+          error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          appointment_id: string;
+          business_id: string;
+          customer_id: string;
+          scheduled_for: string;
+          reminder_type: 'sms' | 'whatsapp' | 'email';
+          days_before: number;
+          status?: 'pending' | 'sent' | 'failed' | 'cancelled';
+          sent_at?: string | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          appointment_id?: string;
+          business_id?: string;
+          customer_id?: string;
+          scheduled_for?: string;
+          reminder_type?: 'sms' | 'whatsapp' | 'email';
+          days_before?: number;
+          status?: 'pending' | 'sent' | 'failed' | 'cancelled';
+          sent_at?: string | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       settings: {
         Row: {
           id: string;
