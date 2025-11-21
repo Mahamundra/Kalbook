@@ -30,12 +30,21 @@ export async function POST(request: NextRequest) {
     const adminSupabase = createAdminClient();
     
     // Find user by email in users table (owners only for homepage login)
-    let { data: dbUser, error: userError } = await adminSupabase
-      .from('users')
-      .select('*')
-      .eq('email', user.email)
-      .eq('role', 'owner')
-      .maybeSingle() as { data: UserRow | null; error: any };
+    let dbUser: UserRow | null = null;
+    let userError: any = null;
+
+    // If user.email exists, try exact match first
+    if (user.email) {
+      const exactMatch = await adminSupabase
+        .from('users')
+        .select('*')
+        .eq('email', user.email)
+        .eq('role', 'owner')
+        .maybeSingle() as { data: UserRow | null; error: any };
+      
+      dbUser = exactMatch.data;
+      userError = exactMatch.error;
+    }
 
     // If not found, try case-insensitive search
     if (userError || !dbUser) {
