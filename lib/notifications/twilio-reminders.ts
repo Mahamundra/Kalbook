@@ -237,12 +237,13 @@ export async function sendAppointmentReminder(
     }
 
     // Update reminder status in appointment
+    // @ts-expect-error - reminder_sent_at and reminder_status exist in DB but not in types yet
     await supabase
       .from('appointments')
       .update({
         reminder_sent_at: new Date().toISOString(),
         reminder_status: 'sent',
-      } as any)
+      })
       .eq('id', appointmentId);
 
     return { success: true };
