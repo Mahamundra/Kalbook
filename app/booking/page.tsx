@@ -783,7 +783,7 @@ function BookingPageContent() {
         <div className="text-center space-y-6 px-4">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <KalBookLogo size="lg" variant="full" />
+            <KalBookLogo size="lg" variant="full" animated={false} />
           </div>
           {/* Modern animated spinner with smooth gradient */}
           <div className="relative mx-auto w-16 h-16">

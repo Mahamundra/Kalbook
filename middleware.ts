@@ -5,13 +5,19 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   try {
+    const url = request.nextUrl;
+    const pathname = url.pathname;
+    
+    // Early return for Next.js internal routes - should be excluded by matcher but adding safety check
+    if (pathname.startsWith('/_next/') || pathname.startsWith('/_next-static/')) {
+      return NextResponse.next();
+    }
+    
     const { supabase, response } = createClient(request);
 
     // Refresh session if expired - required for Server Components
     await supabase.auth.getUser();
 
-  const url = request.nextUrl;
-  const pathname = url.pathname;
   const hostname = request.headers.get('host') || '';
 
   // Skip tenant resolution for API routes that don't need it
@@ -21,6 +27,8 @@ export async function middleware(request: NextRequest) {
   const isSlugAdminRoute = pathname.match(/^\/b\/[^/]+\/admin/);
   const isMigrationRoute = pathname.startsWith('/migration');
   const isUserDashboardRoute = pathname.startsWith('/user/dashboard');
+  const isSuperAdminRoute = pathname.startsWith('/super-admin');
+  const isDebugRoute = pathname.startsWith('/debug');
   
   // Redirect old login page to homepage
   if (pathname.match(/^\/b\/[^/]+\/admin\/login$/)) {
@@ -233,7 +241,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // For booking routes (not admin), extract and validate business
-  if (!isOldAdminRoute && !isApiRoute && !isOnboardingRoute && !isMigrationRoute && !isSlugAdminRoute) {
+  // Skip root path and other special routes
+  const isRootPath = pathname === '/';
+  const is404Route = pathname === '/404';
+  const isUnauthorizedRoute = pathname === '/unauthorized';
+  
+  if (!isOldAdminRoute && !isApiRoute && !isOnboardingRoute && !isMigrationRoute && !isSlugAdminRoute && !isRootPath && !is404Route && !isUnauthorizedRoute && !isSuperAdminRoute && !isDebugRoute) {
     const businessSlug = extractBusinessSlug(url, hostname);
 
     if (businessSlug) {

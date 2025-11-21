@@ -86,8 +86,7 @@ const Onboarding = () => {
   }>({});
   const router = useRouter();
   const { toast } = useToast();
-  const dir = typeof document !== "undefined" ? (document.documentElement.dir as "ltr" | "rtl") : "ltr";
-  const { locale, t } = useLocale();
+  const { locale, t, dir, isRTL } = useLocale();
   const lastBusinessTypeRef = useRef<BusinessType | null>(null);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -115,8 +114,10 @@ const Onboarding = () => {
     // Limit to 10 digits
     const limited = digits.slice(0, 10);
     
-    // Format as XXX-XXX-XXXX
-    if (limited.length <= 3) {
+    // Format as XXX-XXX-XXXX (always maintain dashes)
+    if (limited.length === 0) {
+      return '';
+    } else if (limited.length <= 3) {
       return limited;
     } else if (limited.length <= 6) {
       return `${limited.slice(0, 3)}-${limited.slice(3)}`;
@@ -358,19 +359,110 @@ const Onboarding = () => {
     }
   }, [showOtpModal]);
 
-  // Handle Google OAuth
+  // Handle Google OAuth with popup
   const handleGoogleLogin = async () => {
     try {
+      setLoading(true);
+      
+      // Get the OAuth URL
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&popup=true`,
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) throw error;
+      if (!data?.url) throw new Error('Failed to get OAuth URL');
+
+      // Open popup window
+      const width = 500;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      const popup = window.open(
+        data.url,
+        'google-auth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+
+      if (!popup) {
+        throw new Error('Popup blocked. Please allow popups for this site.');
+      }
+
+      // Listen for message from popup
+      let checkClosedInterval: NodeJS.Timeout | null = null;
+      const messageListener = async (event: MessageEvent) => {
+        // Verify origin for security
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data.type === 'OAUTH_SUCCESS') {
+          window.removeEventListener('message', messageListener);
+          if (checkClosedInterval) clearInterval(checkClosedInterval);
+          popup.close();
+          setLoading(false);
+
+          // Get the session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError || !session?.user) {
+            toast.error('Failed to get session after authentication');
+            return;
+          }
+
+          // Set authenticated user data
+          const userEmail = session.user.email || '';
+          const userPhone = session.user.phone || '';
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+          
+          setAuthenticatedUser({
+            email: userEmail,
+            phone: userPhone,
+            name: userName,
+          });
+          
+          if (userPhone) {
+            const displayPhone = formatPhoneForDisplay(userPhone);
+            setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+          }
+          if (userEmail) {
+            setBusinessInfo(prev => ({ ...prev, email: userEmail }));
+          }
+          if (userName) {
+            setOwnerName(userName);
+          }
+          setOtpVerified(true);
+          toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
+          
+          // Continue to step 2
+          setTimeout(() => {
+            setStep(2);
+          }, 500);
+        } else if (event.data.type === 'OAUTH_ERROR') {
+          window.removeEventListener('message', messageListener);
+          if (checkClosedInterval) clearInterval(checkClosedInterval);
+          popup.close();
+          setLoading(false);
+          toast.error(event.data.error || 'Authentication failed');
+        }
+      };
+
+      window.addEventListener('message', messageListener);
+
+      // Check if popup is closed manually
+      checkClosedInterval = setInterval(() => {
+        if (popup.closed) {
+          if (checkClosedInterval) clearInterval(checkClosedInterval);
+          window.removeEventListener('message', messageListener);
+          setLoading(false);
+        }
+      }, 1000);
+
     } catch (error: any) {
       toast.error(error.message || 'Failed to initiate Google login');
+      setLoading(false);
     }
   };
 
@@ -441,6 +533,25 @@ const Onboarding = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Check for verified phone from homepage login (notRegistered flow)
+        // Stored in sessionStorage to avoid URL params
+        const verifiedPhone = sessionStorage.getItem('homepage_verified_phone');
+        if (verifiedPhone && step === 1 && !otpVerified) {
+          // User came from homepage login - phone already verified
+          const displayPhone = formatPhoneForDisplay(verifiedPhone);
+          setPhoneNumber(displayPhone);
+          setAuthenticatedUser({ phone: verifiedPhone });
+          setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+          setOtpVerified(true);
+          // Clear the sessionStorage after using it
+          sessionStorage.removeItem('homepage_verified_phone');
+          // Automatically move to step 2
+          setTimeout(() => {
+            setStep(2);
+          }, 500);
+          return;
+        }
+
         // Check for OAuth callback
         const errorParam = searchParams.get('error');
         if (errorParam === 'oauth_error') {
@@ -1077,6 +1188,7 @@ const Onboarding = () => {
                             handleSendOtp();
                           }
                         }}
+                        maxLength={12}
                         disabled={otpSent}
                         className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base`}
                         dir={dir}
@@ -1185,6 +1297,7 @@ const Onboarding = () => {
                     value={businessInfo.name}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
                     onBlur={() => handleBlur('name')}
+                    dir={dir}
                     className={`mt-2 ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                   {errors.name && (
@@ -1204,6 +1317,7 @@ const Onboarding = () => {
                       }
                     }}
                     onBlur={() => handleBlur('ownerName')}
+                    dir={dir}
                     className={`mt-2 ${errors.ownerName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
                   {errors.ownerName && (
@@ -1217,8 +1331,34 @@ const Onboarding = () => {
                     placeholder={t('onboarding.businessInfo.addressPlaceholder')}
                     value={businessInfo.address}
                     onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
+                    dir={dir}
                     className="mt-2"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="email">{t('onboarding.businessInfo.email')}</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder={t('onboarding.businessInfo.emailPlaceholder') || 'Enter email address'}
+                    value={businessInfo.email}
+                    onChange={(e) => {
+                      // Only allow changes if not authenticated via OAuth
+                      if (!authenticatedUser?.email) {
+                        handleFieldChange('email', e.target.value);
+                      }
+                    }}
+                    onBlur={() => handleBlur('email')}
+                    disabled={!!authenticatedUser?.email}
+                    dir="ltr"
+                    className={`mt-2 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''} ${authenticatedUser?.email ? 'bg-muted cursor-not-allowed' : ''}`}
+                  />
+                  {authenticatedUser?.email && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
+                  )}
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="phone">{t('onboarding.businessInfo.phone')}</Label>
@@ -1236,6 +1376,7 @@ const Onboarding = () => {
                     }}
                     onBlur={() => handleBlur('phone')}
                     disabled={!!authenticatedUser?.phone}
+                    dir="ltr"
                     className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} ${authenticatedUser?.phone ? 'bg-muted cursor-not-allowed' : ''}`}
                   />
                   {authenticatedUser?.phone && (
@@ -1251,10 +1392,10 @@ const Onboarding = () => {
                     value={businessInfo.previousCalendarType}
                     onValueChange={(value) => setBusinessInfo({ ...businessInfo, previousCalendarType: value as typeof businessInfo.previousCalendarType })}
                   >
-                    <SelectTrigger id="previousCalendar" className="mt-2">
+                    <SelectTrigger id="previousCalendar" className="mt-2" dir={dir}>
                       <SelectValue placeholder={t('onboarding.businessInfo.previousCalendarPlaceholder') || 'Select an option (optional)'} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir={dir}>
                       <SelectItem value="appointment_scheduling_app">
                         {t('onboarding.businessInfo.calendarOptions.appointmentSchedulingApp') || 'Appointment scheduling application'}
                       </SelectItem>
@@ -1328,17 +1469,29 @@ const Onboarding = () => {
                   <button
                     key={type.id}
                     onClick={() => setBusinessType(type.id)}
-                    className={`p-6 rounded-lg border-2 transition-all ${
+                    className={`group p-6 rounded-lg border-2 transition-all ${
                       businessType === type.id
-                        ? "border-primary bg-accent shadow-soft"
-                        : "border-border hover:border-primary/50"
+                        ? "border-[#ff421c] bg-[#ff421c] text-white shadow-soft"
+                        : "border-border hover:bg-[#030408] hover:text-white hover:border-[#030408]"
                     }`}
                     dir={dir}
                   >
                     <div className={`flex flex-col ${dir === 'rtl' ? 'items-start text-right' : 'items-start text-left'}`}>
-                      <type.icon className={`w-8 h-8 mb-3 ${businessType === type.id ? "text-accent-foreground" : "text-muted-foreground"}`} />
-                      <h3 className="text-lg font-semibold mb-1">{type.title}</h3>
-                      <p className={`text-sm ${businessType === type.id ? "text-white" : "text-muted-foreground"}`}>{type.description}</p>
+                      <type.icon className={`w-8 h-8 mb-3 transition-colors ${
+                        businessType === type.id 
+                          ? "text-white" 
+                          : "text-muted-foreground group-hover:text-white"
+                      }`} />
+                      <h3 className={`text-lg font-semibold mb-1 transition-colors ${
+                        businessType === type.id 
+                          ? "text-white" 
+                          : "text-foreground group-hover:text-white"
+                      }`}>{type.title}</h3>
+                      <p className={`text-sm transition-colors ${
+                        businessType === type.id 
+                          ? "text-white" 
+                          : "text-muted-foreground group-hover:text-white"
+                      }`}>{type.description}</p>
                     </div>
                   </button>
                 ))}
@@ -1711,8 +1864,8 @@ const Onboarding = () => {
 
           {step === 6 && (
             <div className="animate-fade-in text-center">
-              <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-10 h-10 text-accent-foreground" />
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: '#ff421c' }}>
+                <Sparkles className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-3xl font-bold mb-2">{t('onboarding.almostThere.title')}</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">

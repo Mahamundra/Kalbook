@@ -165,7 +165,7 @@ export default function AdminLoginPage() {
                 className="h-12 w-auto object-contain"
               />
             )}
-            <KalBookLogo size="lg" variant="full" />
+            <KalBookLogo size="lg" variant="full" animated={false} />
           </div>
           
           <CardTitle className={`text-2xl font-bold text-center ${isRTL ? 'text-right' : 'text-left'}`}>

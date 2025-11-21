@@ -1,6 +1,7 @@
 "use client";
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { getLocaleDisplayName } from '@/components/ported/lib/i18n';
+import { useLocale } from '@/components/ported/hooks/useLocale';
 import { Languages } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -25,6 +26,7 @@ const localeNames: Record<Locale, string> = {
 
 export const LanguageToggle = () => {
   const { locale, setLocale, isRTL } = useDirection();
+  const { t } = useLocale();
 
   const handleLanguageChange = async (newLocale: Locale) => {
     if (newLocale === locale) return;
@@ -47,13 +49,16 @@ export const LanguageToggle = () => {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            "group flex items-center gap-1.5 h-8 sm:h-10 rounded-md border border-input bg-background px-3 sm:px-4 py-1.5 sm:py-2 text-sm transition-all hover:bg-accent hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
             isRTL && "flex-row-reverse"
           )}
           aria-label="Select language"
         >
-          <Languages className="w-4 h-4" />
-          <span>{getLocaleDisplayName(locale)}</span>
+          <Languages className="w-3.5 h-3.5 text-muted-foreground group-hover:text-white" />
+          <div className={cn("flex flex-col leading-none", isRTL ? "items-end" : "items-start")}>
+            <span className="text-[10px] text-muted-foreground leading-tight group-hover:text-white">{t('common.chooseLanguage')}</span>
+            <span className="text-xs font-medium leading-tight group-hover:text-white">{getLocaleDisplayName(locale)}</span>
+          </div>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
@@ -65,14 +70,14 @@ export const LanguageToggle = () => {
             <DropdownMenuRadioItem
               key={lang}
               value={lang}
-              className="cursor-pointer"
+              className="group cursor-pointer data-[state=checked]:bg-[#ff421c] data-[state=checked]:text-white hover:bg-black hover:text-white focus:bg-[#ff421c] focus:text-white"
             >
               <div className={cn(
                 "flex items-center justify-between w-full",
                 isRTL && "flex-row-reverse"
               )}>
-                <span>{getLocaleDisplayName(lang)}</span>
-                <span className="text-muted-foreground text-xs">
+                <span className="group-data-[state=checked]:text-white group-hover:text-white">{getLocaleDisplayName(lang)}</span>
+                <span className="text-muted-foreground text-xs group-data-[state=checked]:text-white group-hover:text-white">
                   {localeNames[lang]}
                 </span>
               </div>

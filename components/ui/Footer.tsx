@@ -90,10 +90,10 @@ export function Footer() {
               >
                 {getHome('contact.title') || 'Contact Us'}
               </button>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {getFooter('terms')}
               </Link>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {getFooter('privacy')}
               </Link>
             </div>

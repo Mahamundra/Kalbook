@@ -15,10 +15,17 @@ interface KalBookLogoProps {
 }
 
 const sizeMap = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-xl',
-  xl: 'text-2xl',
+  sm: 'h-6',
+  md: 'h-8',
+  lg: 'h-12',
+  xl: 'h-16',
+};
+
+const iconSizeMap = {
+  sm: 20,
+  md: 24,
+  lg: 32,
+  xl: 40,
 };
 
 export const KalBookLogo: React.FC<KalBookLogoProps> = ({
@@ -32,10 +39,31 @@ export const KalBookLogo: React.FC<KalBookLogoProps> = ({
 }) => {
   const { locale } = useDirection();
   const sizeClass = sizeMap[size];
-  const baseClassName = `${sizeClass} font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent ${className}`;
+  const iconSize = iconSizeMap[size];
+  const baseClassName = `font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent ${className}`;
   const clickableClassName = href || onClick ? `${baseClassName} cursor-pointer` : baseClassName;
 
-  const logoContent = !animated ? (
+  const iconElement = (
+    <img
+      src="/kalbook-icon.svg"
+      alt="KalBook"
+      width={iconSize}
+      height={iconSize}
+      className={`${sizeClass} w-auto`}
+      style={color ? { color: color } : undefined}
+    />
+  );
+
+  const fullLogoElement = (
+    <img
+      src="/kalbook-logo.svg"
+      alt="KalBook"
+      className={`${sizeClass} w-auto`}
+      style={color ? { color: color } : undefined}
+    />
+  );
+
+  const textContent = !animated ? (
     <span className={clickableClassName} onClick={onClick}>
       KalBook.io
     </span>
@@ -51,6 +79,24 @@ export const KalBookLogo: React.FC<KalBookLogoProps> = ({
       />
     </span>
   );
+
+  let logoContent: React.ReactNode;
+
+  if (variant === 'icon') {
+    logoContent = (
+      <span onClick={onClick} className={href || onClick ? 'cursor-pointer inline-flex items-center' : 'inline-flex items-center'}>
+        {iconElement}
+      </span>
+    );
+  } else if (variant === 'full') {
+    logoContent = (
+      <span onClick={onClick} className={href || onClick ? 'cursor-pointer inline-flex items-center' : 'inline-flex items-center'}>
+        {fullLogoElement}
+      </span>
+    );
+  } else {
+    logoContent = textContent;
+  }
 
   if (href) {
     return (

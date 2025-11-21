@@ -122,7 +122,7 @@ export default function SuperAdminLoginPage() {
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-lg">
               <Shield className="w-8 h-8 text-primary" />
             </div>
-            <KalBookLogo size="lg" variant="full" />
+            <KalBookLogo size="lg" variant="full" animated={false} />
           </div>
           
           <CardTitle className="text-2xl font-bold text-center">

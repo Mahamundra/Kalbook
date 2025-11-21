@@ -26,7 +26,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
             <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-6 relative">
               <SidebarTrigger className="md:hidden" />
               <div className="absolute left-1/2 transform -translate-x-1/2">
-                <KalBookLogo size="lg" variant="full" animated={false} />
+                <KalBookLogo size="lg" variant="text" animated={false} />
               </div>
               <div className="flex-1" />
             </header>

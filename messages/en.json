@@ -455,10 +455,11 @@
     "subtitleWithBusiness": "Sign in to {businessName}",
     "homepageLogin": "Admin Login",
     "welcomeBack": "Welcome Back! {name}",
+    "login": "Login",
     "noUserYet": "If you have not user yet",
     "createNewBusiness": "Create new business",
     "phone": "Phone Number",
-    "phonePlaceholder": "+1234567890",
+    "phonePlaceholder": "Enter phone number",
     "phoneRequired": "Phone number is required",
     "sendCode": "Send Code",
     "sending": "Sending...",
@@ -470,6 +471,14 @@
     "verify": "Verify",
     "verifying": "Verifying...",
     "invalidCode": "Invalid code",
+    "notRegistered": {
+      "title": "Not Registered",
+      "message": "It seems that you are not registered as a business owner.",
+      "createBusiness": "Want to create a new business?",
+      "createBusinessButton": "Create New Business",
+      "needAccess": "Need access to an existing business?",
+      "contactOwner": "Please ask the business owner to add you as a user."
+    },
     "loginSuccess": "Logged in successfully",
     "back": "Back",
     "noAccount": "Don't have an account?",
@@ -522,7 +531,8 @@
     "loading": "Loading...",
     "search": "Search...",
     "or": "or",
-    "justAMoment": "Just a moment, we are with you"
+    "justAMoment": "Just a moment, we are with you",
+    "chooseLanguage": "Choose Language"
   },
   "trial": {
     "currentPlan": "Current Plan",
@@ -569,23 +579,28 @@
       "subtitle": "Everything you need to run your service business smoothly",
       "setup3min": {
         "title": "Set up in 3 minutes",
-        "desc": "Pick your business type, add services and your first team member. You're good to go."
+        "desc": "Pick your business type, add services and your first team member. You're good to go.",
+        "details": "Get started in just 3 minutes! Our intuitive onboarding process guides you through selecting your business category, adding your services with pricing, and setting up your first team member. No technical knowledge required - just follow the simple steps and you'll be ready to accept bookings in no time. Perfect for busy professionals who want to get up and running quickly."
       },
       "easyCalendar": {
         "title": "Smart calendar",
-        "desc": "Daily, weekly, or monthly view. Drag to reschedule, filter by staff."
+        "desc": "Daily, weekly, or monthly view. Drag to reschedule, filter by staff.",
+        "details": "Experience the power of a truly smart calendar system. Switch seamlessly between daily, weekly, and monthly views to see your schedule exactly how you need it. Drag and drop appointments to reschedule instantly. Filter by staff members, services, or appointment status. Color-code your appointments for quick visual identification. Sync with Google Calendar to keep everything in one place. The calendar adapts to your workflow, making scheduling effortless and intuitive."
       },
       "smartCustomers": {
         "title": "Smarter clients",
-        "desc": "Full client profiles with history, notes, and marketing consents."
+        "desc": "Full client profiles with history, notes, and marketing consents.",
+        "details": "Build lasting relationships with comprehensive client management. Each customer profile includes their complete booking history, personal preferences, special notes, and contact information. Track their favorite services, preferred staff members, and appointment patterns. Manage marketing consents and communication preferences. Add custom notes for special requests or important information. Access client data instantly to provide personalized service and build customer loyalty."
       },
       "reminders": {
         "title": "Reminders that work",
-        "desc": "Send confirmations and reminders via email and WhatsApp. Fewer calls, fewer no-shows."
+        "desc": "Send confirmations and reminders via email and WhatsApp. Fewer calls, fewer no-shows.",
+        "details": "Automate your communication and reduce no-shows with intelligent reminder system. Send automatic appointment confirmations when bookings are made. Schedule reminders via email and WhatsApp before appointments. Customize reminder timing (24 hours, 2 hours, etc.) to fit your business needs. Pre-built message templates save you time while maintaining a professional tone. Track delivery status and see which reminders are most effective. Spend less time on the phone and more time serving customers."
       },
       "bilingual": {
         "title": "Bilingual & RTL ready",
-        "desc": "Hebrew and English support. Works right-to-left and left-to-right."
+        "desc": "Hebrew and English support. Works right-to-left and left-to-right.",
+        "details": "Serve customers in their preferred language with full bilingual support. Switch seamlessly between Hebrew and English throughout the platform. Complete RTL (right-to-left) support for Hebrew text ensures natural reading experience. All interface elements, forms, and content automatically adapt to the selected language direction. Perfect for businesses serving diverse communities or operating in multilingual markets. Your booking pages, emails, and notifications all support multiple languages."
       },
       "security": {
         "title": "Simple and secure",
@@ -593,11 +608,13 @@
       },
       "analytics": {
         "title": "Analytics & Insights",
-        "desc": "Know what's working. Track revenue in real time, see booking trends, and understand your customers better."
+        "desc": "Know what's working. Track revenue in real time, see booking trends, and understand your customers better.",
+        "details": "Make data-driven decisions with comprehensive analytics and insights. Track revenue in real-time with detailed financial reports. Identify your most popular services and peak booking times. Understand customer behavior patterns and booking trends. See which staff members are busiest and optimize scheduling. Monitor no-show rates and cancellation patterns. Export reports for accounting or business planning. Visualize your business performance with easy-to-read charts and graphs."
       },
       "qrCodes": {
         "title": "QR Codes for Easy Booking",
-        "desc": "From scan to scheduled. Create QR codes for booking pages or specific services. Share anywhere, book instantly."
+        "desc": "From scan to scheduled. Create QR codes for booking pages or specific services. Share anywhere, book instantly.",
+        "details": "Make booking effortless with QR code technology. Generate unique QR codes for your entire booking page or specific services. Print and display QR codes in your business, on business cards, or marketing materials. Customers simply scan with their phone camera and are instantly taken to your booking page. No app downloads required. Track which QR codes generate the most bookings. Perfect for walk-in customers, events, or promotional campaigns. From scan to scheduled appointment in seconds."
       },
       "onlineBooking": {
         "title": "24/7 Online Booking",
@@ -605,7 +622,8 @@
       },
       "groupServices": {
         "title": "Group Services & Packages",
-        "desc": "Bundle services into packages like Haircut + Beard for easy upsells."
+        "desc": "Bundle services into packages like Haircut + Beard for easy upsells.",
+        "details": "Increase revenue with service packages and bundles. Create attractive packages that combine multiple services at a discounted rate. Examples include 'Haircut + Beard Trim', 'Full Service Package', or seasonal promotions. Customers can book entire packages in one click, saving time and increasing your average transaction value. Set package pricing to encourage upsells. Display packages prominently on your booking page. Track which packages are most popular and adjust your offerings accordingly."
       },
       "activityLogs": {
         "title": "Activity Logs",
@@ -613,19 +631,23 @@
       },
       "customBranding": {
         "title": "Custom Branding",
-        "desc": "Make your booking page yours with your logo and brand colors."
+        "desc": "Make your booking page yours with your logo and brand colors.",
+        "details": "Create a booking experience that reflects your brand identity. Upload your logo to display prominently on your booking page. Customize colors to match your brand palette. Choose fonts and styling that align with your business aesthetic. Add custom images and banners to showcase your services. Your booking page becomes an extension of your brand, building trust and recognition. All emails and notifications can also be branded with your colors and logo. Stand out from competitors with a professional, cohesive brand experience."
       },
       "mobileOptimized": {
         "title": "Mobile-Optimized Booking",
-        "desc": "Fully responsive booking experience that looks great on any device."
+        "desc": "Fully responsive booking experience that looks great on any device.",
+        "details": "Ensure every customer can book easily, regardless of their device. Our booking pages are fully responsive and optimized for mobile phones, tablets, and desktops. Touch-friendly interface makes booking on mobile devices effortless. Fast loading times keep customers engaged. The booking experience adapts perfectly to any screen size. Most customers book on mobile - make sure your booking process is smooth and intuitive on all devices. No pinching, zooming, or scrolling required."
       },
       "noShowPrevention": {
         "title": "No-Show Prevention",
-        "desc": "Automated reminders help reduce missed appointments and keep your schedule full."
+        "desc": "Automated reminders help reduce missed appointments and keep your schedule full.",
+        "details": "Minimize lost revenue from no-shows with our comprehensive prevention system. Automated email and WhatsApp reminders sent before appointments significantly reduce no-show rates. Confirmation requests ensure customers are committed to their bookings. Track no-show history to identify patterns and problematic clients. Set up automatic waitlists to fill cancelled appointments quickly. Some plans include deposit requirements to secure bookings. Keep your schedule full and your revenue consistent with proactive no-show prevention."
       },
       "recurringAppointments": {
         "title": "Recurring Appointments",
-        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment."
+        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment.",
+        "details": "Streamline scheduling for your regular customers with recurring appointments. Set up automatic repeat bookings on weekly, bi-weekly, monthly, or custom schedules. Perfect for clients who visit regularly - haircuts, therapy sessions, training, or maintenance appointments. Customers can book once and have appointments automatically scheduled going forward. Save time by eliminating the need to manually book each appointment. Never miss a regular client's appointment. Customers receive reminders for each recurring appointment. Easily modify or cancel recurring schedules as needed."
       }
     },
     "pricing": {
@@ -761,7 +783,7 @@
       "login": "Login",
       "additionalOptions": "Additional login options",
       "phoneNumber": "Phone Number",
-      "phonePlaceholder": "050-000-0000",
+      "phonePlaceholder": "enter phone number",
       "sendOtp": "Send OTP",
       "changeNumber": "Change",
       "enterOtp": "Enter OTP Code",
@@ -879,7 +901,7 @@
       "email": "Email *",
       "emailPlaceholder": "contact@yourbusiness.com",
       "phone": "Phone Number *",
-      "phonePlaceholder": "+1 (555) 123-4567",
+      "phonePlaceholder": "Enter Phone Number",
       "address": "Address *",
       "addressPlaceholder": "123 Main Street, City, State",
       "previousCalendar": "Which calendar did you use until now?",
@@ -1260,5 +1282,271 @@
     "next": "Next",
     "loading": "Loading...",
     "cancel": "Cancel"
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "lastUpdated": "Last Updated: 12/01/25",
+    "intro": "The KalBook.io application and system, as well as all associated digital interfaces (hereinafter together: \"the System\" or \"the Services\") are operated and managed by Sel-Phone Ltd. ID 317492429 (hereinafter: \"the Company\", \"KalBook\", \"we\").",
+    "genderNote": "These terms are formulated in masculine form for convenience only, but apply equally to all genders, individuals and corporations.",
+    "section1": {
+      "title": "Nature of the Service",
+      "p1": "KalBook is a SaaS system for managing businesses and appointment-based services, including, among others: appointment calendar, customer management, employee management, sending reminders, generating reports, and additional operations for businesses.",
+      "p2": "The system enables business owners to open a business profile, define services, availability and schedules, and allow end customers to book appointments and receive messages and reminders.",
+      "p3": "The Company is not a party to agreements, payments, appointment scheduling or the actual provision of services to end businesses, and is not responsible for the quality, availability, suitability or performance of services provided by business owners to their customers.",
+      "p4": "All transactions between a business owner and a customer (including appointment scheduling, cancellations, payments, refunds, professional liability, etc.) are made directly between the parties and are their sole responsibility."
+    },
+    "section2": {
+      "title": "Acceptance of Terms and System Changes",
+      "p1": "Any use of the system, including browsing, registration, data entry, appointment scheduling or use of various features, constitutes a declaration that you have read, understood and agreed to these terms of use.",
+      "p2": "The Company may update these terms of use at any time, at its sole discretion. An updated version will be published in the system and will take effect upon publication. Continued use of the system after publication of an update constitutes agreement to the updated terms.",
+      "p3": "The Company may at any time change the structure of the services, the design, the scope of functionality, add or remove features, discontinue services, or restrict access - all without prior notice and therefore the user shall have no claim and/or demand."
+    },
+    "section3": {
+      "title": "Types of Users",
+      "businessOwner": "\"Business Owner\"",
+      "businessOwnerDesc": "– a user who has created a business account in the system for the purpose of managing their business and receiving appointments from customers.",
+      "endCustomer": "\"End Customer\"",
+      "endCustomerDesc": "– a user who books appointments or performs actions with a business owner through the system.",
+      "user": "\"User\"",
+      "userDesc": "– any person or entity using the system, as part of any of the above user types."
+    },
+    "section4": {
+      "title": "Registration and User Account",
+      "p1": "For full use of the system, registration and account opening may be required, including providing details such as: full name, phone, email address, business name and additional details.",
+      "p2": "The user undertakes to provide correct, complete and accurate details and to update their details in case of change.",
+      "p3": "The responsibility for maintaining the confidentiality of login details (password, access code, etc.) rests solely with the user. Any action performed on the user's account will be considered as performed by them.",
+      "p4": "The Company may refuse to open an account, suspend or cancel an existing account, if there is suspicion of unauthorized use, violation of terms of use or use that harms the system or third parties."
+    },
+    "section5": {
+      "title": "Packages, Payments and Subscriptions to KalBook",
+      "p1": "Use of the system for business owners is done on a monthly and/or annual subscription basis, according to plans that will be published from time to time on the KalBook website and in the management interface.",
+      "p2": "The subscription fee amount, features included in each plan, and service prices may be updated and changed at the Company's discretion. Such updates will apply from the next billing date, after publication of the update.",
+      "p3": "Billing for the subscription is done through an external payment provider approved by law. The Company itself is not a payment provider and does not hold financial licenses as a bank or credit entity.",
+      "cancellation": "Subscription Cancellation:",
+      "cancellationMonthly": "Monthly subscription – can be cancelled at any time, subject to notice before the next billing date. Cancellation will take effect from the following month.",
+      "cancellationYearly": "Annual subscription – unless otherwise explicitly stated in specific commercial terms, an annual subscription cannot be cancelled mid-period and no proportional refund will be given for unused months, except if explicitly required by mandatory law.",
+      "cancellationMethod": "Cancellation requests should be made via customer service email / \"Contact Us\" form in the system / WhatsApp service",
+      "p4": "The Company is not responsible for malfunctions, disruptions, delays or errors caused by the external payment provider, internet provider, credit card companies or any other third party involved in the collection process.",
+      "p5": "The Company reserves the right to discontinue service to a user who has not met payments or has recurring collection problems."
+    },
+    "section6": {
+      "title": "Payments Between Business Owners and Their Customers",
+      "p1": "The Company is not a party to the payment arrangement between the business owner and the end customer, whether the payment is made independently by the parties or through third parties (payment providers, digital wallets, payment applications, etc.).",
+      "p2": "Any request for refund, transaction cancellation, date change or any other financial dispute will be discussed directly between the business owner and the customer. The Company will not serve as an arbitrator and will not bear any responsibility for such disputes.",
+      "p3": "It is clarified that the Company does not operate a personal online store for business owners and does not sell products or services to end customers on their behalf."
+    },
+    "section7": {
+      "title": "System Use License and Usage Limitations",
+      "p1": "Subject to compliance with these terms of use and payment of subscription fees (as required), the Company grants the user a personal, limited, non-exclusive, non-transferable and non-sublicensable license to use the system, according to its business purpose.",
+      "userObligations": "The user undertakes not to:",
+      "obligation1": "Use the system for any illegal purpose or contrary to law.",
+      "obligation2": "Reproduce, copy, sell, rent, sublicense, distribute or commercially exploit the system or any part thereof, without prior written approval from the Company.",
+      "obligation3": "Perform reverse engineering, decompilation, disassembly or attempt to expose source code.",
+      "obligation4": "Bypass security mechanisms, access restrictions or technological protection mechanisms.",
+      "obligation5": "Introduce into the system viruses, malicious code, trojans or any other harmful component.",
+      "obligation6": "Collect information about other users manually or automatically without explicit authorization.",
+      "p2": "The Company may terminate or restrict the system use license at any time, in case of violation of these terms or at its discretion."
+    },
+    "section8": {
+      "title": "User Content and Business Content",
+      "p1": "Business owners can enter various content into the system, including: business name, logo, service descriptions, prices, images, contact details, marketing texts, and more.",
+      "p2": "The sole responsibility for all content entered by the business owner rests with that business owner. The Company does not undertake to check, verify or pre-filter such content.",
+      "p3": "The business owner undertakes that the entered content does not violate copyright, trademarks, privacy, a person's good name, legal provisions, regulatory provisions or agreements with third parties.",
+      "p4": "The Company may remove or edit content at its discretion, if it finds offensive, illegal, misleading, racist, pornographic, inciting materials or those that harm the good name of the Company or a third party.",
+      "p5": "By entering content into the system, the user grants the Company a worldwide, non-exclusive, royalty-free license to use such content for the purpose of operating the system, improving it, displaying it to other users and other reasonable operational uses."
+    },
+    "section9": {
+      "title": "Third Party Services",
+      "p1": "The system may use third party services, such as: SMS providers, email providers, WhatsApp Business, Google, Meta, payment systems and the like.",
+      "p2": "Use of third party services is subject to the terms of use and privacy policy of those third parties, and the Company is not responsible for their activity, proper functioning or any damage caused by their use.",
+      "p3": "The Company may at any time replace or change third party providers, discontinue connection with a particular provider, or add new connections."
+    },
+    "section10": {
+      "title": "Privacy and Information Security",
+      "p1": "The Company collects and uses personal data in accordance with a separate privacy policy, which is an integral part of these terms of use. In short - the privacy policy",
+      "p2": "The Company takes reasonable and accepted security measures to protect information in the system, but cannot guarantee absolute immunity from intrusions, breaches, failures or security incidents.",
+      "p3": "In case of a material information security incident, the Company will act in accordance with legal provisions and take reasonable steps to minimize the damage.",
+      "p4": "The user declares that they are aware that use of the Internet involves risks, and they will not raise any claim against the Company for damage caused by a security incident that was not reasonably within the Company's control."
+    },
+    "section11": {
+      "title": "Accessibility",
+      "p1": "The Company strives to make the system accessible to all users, including users with disabilities, according to technological capabilities and available resources.",
+      "p2": "Some functions or screens may still not be fully accessible. The Company will continue to work on improving accessibility from time to time.",
+      "p3": "A user who encounters an accessibility-related problem is invited to contact the Company using the contact details below, and describe the malfunction, device type and browser. The Company will try to handle inquiries as soon as possible."
+    },
+    "section12": {
+      "title": "Limitation of Liability",
+      "p1": "The services are provided \"As Is\", without any commitment or representation regarding availability, accuracy, completeness, suitability for a specific purpose or any business result.",
+      "p2": "The Company does not commit that the system will operate without interruptions, without malfunctions, without technical disruptions, delays, data loss, or communication failures.",
+      "p3": "The Company will not bear responsibility for any direct, indirect, consequential, special, loss of profits, loss of revenue, data loss, reputation damage or any other damage caused by use or inability to use the system.",
+      "p4": "The Company is not responsible for the quality, availability, safety or suitability of services actually provided by business owners to their customers, and is not responsible for their marketing content, prices, service terms, cancellation policy or any other business parameter.",
+      "p5": "Full responsibility for business management, compliance with legal provisions, obtaining required licenses, insurance, tax payments and compliance with all regulatory obligations – rests solely with the business owner.",
+      "p6": "In any case where the Company is held liable, its maximum liability will not exceed the amount actually paid by the user to the Company for the services in the three-month period preceding the event subject to the claim."
+    },
+    "section13": {
+      "title": "Indemnification",
+      "p1": "The user undertakes to compensate and indemnify the Company, its officers, employees, agents and representatives for any damage, loss, payment, expense (including attorney fees and legal expenses) caused to them due to:",
+      "reason1": "Violation of these terms of use by them.",
+      "reason2": "Illegal or unauthorized use of the system.",
+      "reason3": "Violation of any third party rights."
+    },
+    "section14": {
+      "title": "Termination of Agreement and Discontinuation of Use",
+      "p1": "The Company may, at any time and at its sole discretion, discontinue the services, all or part thereof, suspend a user or close an account, without prior notice, due to violation of terms of use, use that harms the system or third parties, or any other reasonable reason.",
+      "p2": "The user may discontinue use of the system at any time and request closure of their account, subject to settlement of all payments due to the Company until the termination date.",
+      "p3": "Termination of the agreement does not release the user from financial obligations or obligations accumulated towards the Company until the termination date."
+    },
+    "section15": {
+      "title": "Law and Jurisdiction",
+      "p1": "These terms of use shall be governed solely by the laws of the State of Israel.",
+      "p2": "The exclusive jurisdiction over any dispute relating to these terms of use and/or use of the system shall be vested in the competent court in Tel Aviv-Jaffa."
+    },
+    "section16": {
+      "title": "Contact",
+      "p1": "For questions, inquiries, cancellation requests, reporting a malfunction or accessibility issue, you can contact us at the following addresses:",
+      "businessName": "Business Name:",
+      "businessNameValue": "Kal-Book Solutions",
+      "email": "Customer Service Email:",
+      "emailValue": "service@kalbook.io",
+      "phone": "Phone / WhatsApp:",
+      "phoneValue": "054-2636737",
+      "address": "Physical Address:",
+      "addressValue": "Beit El 47 - Tel Aviv"
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated: 12/01/2025",
+    "intro": "This privacy policy describes how Sel-Phone Ltd. ID 317492429, owner of the brands \"KalBook\" and \"Kal-Book Solutions\" (hereinafter: \"the Company\", \"KalBook\", \"we\"), collects, uses, stores and shares personal information collected in connection with the use of the KalBook.io website and application and all associated digital interfaces (hereinafter together: \"the Application\" or \"the System\").",
+    "intro2": "This privacy policy is an integral part of the terms of use of the KalBook application. Use of the application indicates that you have read, understood and agreed to this privacy policy. If you do not agree to this policy, you must refrain from using the application.",
+    "genderNote": "This policy is formulated in masculine form for convenience only, but applies equally to all genders, individuals and corporations.",
+    "section1": {
+      "title": "Types of Information We Collect",
+      "subtitle1": "Information Provided Voluntarily by the User",
+      "p1": "When using the application, you may be required to provide personal information, such as:",
+      "item1": "First and last name",
+      "item2": "Business name and position",
+      "item3": "Mobile phone number",
+      "item4": "Email address",
+      "item5": "Physical address or city",
+      "item6": "Basic payment details, if purchasing a subscription through the application (credit card details are processed by an external payment provider and are not fully stored with us)",
+      "subtitle2": "Information About Business Owners' End Customers",
+      "p2": "Business owners using KalBook may enter information about their customers into the system, such as:",
+      "customerItem1": "Customer name",
+      "customerItem2": "Phone number",
+      "customerItem3": "Email address",
+      "customerItem4": "Appointment history, services consumed, notes, etc.",
+      "p3": "With respect to this information, the business owner is the entity that determines the purposes of use of the information vis-à-vis their customers, and KalBook acts as a management and appointment system for them. The business owner is responsible for compliance with legal provisions towards their customers.",
+      "subtitle3": "Technical and Analytical Information About Application Use",
+      "p4": "When using the application, we may collect certain technical information, such as:",
+      "techItem1": "IP address",
+      "techItem2": "Browser type and operating system",
+      "techItem3": "Application pages visited, duration of stay and access times",
+      "techItem4": "Device identifiers, session identifier, and additional statistical usage data",
+      "subtitle4": "Cookie Files and Similar Technologies",
+      "p5": "The application may use cookies and similar technologies for proper operation, security, saving user preferences, and improving the user experience. Further details are provided in the \"Cookies\" section below."
+    },
+    "section2": {
+      "title": "Purposes of Information Use",
+      "subtitle1": "Operating the Application and Providing Services, including:",
+      "item1": "Creating and managing a user account for a business owner",
+      "item2": "Managing appointment calendar, customers, employees and services",
+      "item3": "Sending appointment reminders, system messages and service notifications",
+      "p1": "Providing service and support to users, including responding to inquiries, handling malfunctions and improving service.",
+      "p2": "Personalizing the application user experience, displaying relevant content and suggestions related to your use of the system.",
+      "p3": "Billing, collection, subscription management and making payment-related adjustments.",
+      "p4": "Improving, developing and maintaining the application, including analyzing usage data to improve performance, features and interface.",
+      "p5": "Sending service information, updates on changes to the system or policy, and marketing content with your consent, as required by law.",
+      "p6": "Compliance with legal provisions, risk management, protecting the Company's rights, preventing fraud and maintaining system security.",
+      "p7": ""
+    },
+    "section3": {
+      "title": "Legal Framework for Information Use",
+      "p1": "The use of personal information is made, among other things, based on one or more of the following bases:",
+      "item1": "Your consent to use the information for certain services.",
+      "item2": "The need to maintain the relationship between you and the Company (for example, activating a subscription and managing an account).",
+      "item3": "Legitimate interest of the Company, such as improving service, protecting the KalBook system and proper business management.",
+      "item4": "Compliance with legal obligations applicable to the Company."
+    },
+    "section4": {
+      "title": "Disclosure of Information to Third Parties",
+      "subtitle1": "Technology Service Providers",
+      "p1": "We may disclose information to external service providers who assist us in operating the application, such as:",
+      "item1": "Cloud storage and server providers",
+      "item2": "Email and SMS messaging providers",
+      "item3": "Analytics providers",
+      "item4": "Payment processing providers",
+      "p2": "These providers receive access to information only as necessary to provide the service, and they must comply with confidentiality and information security obligations.",
+      "subtitle2": "Business Owners and Their Customers",
+      "p3": "When you are a business owner using KalBook, the information you enter about your customers is stored in the system and displayed to you and authorized parties on your behalf according to your account settings.",
+      "p4": "When you are an end customer booking an appointment with a business using KalBook, some of the information you provide is disclosed to the business owner for managing the appointment and service.",
+      "subtitle3": "Law Enforcement and Authorities",
+      "p5": "We may disclose personal information if required by law, court order, request from a competent authority, or to protect our rights, users or third parties.",
+      "subtitle4": "Transfer in the Context of Structural Change",
+      "p6": "In case of merger, acquisition, sale of operations or transfer of assets of KalBook, we may transfer the information to the acquiring entity, subject to their commitment to maintain the information in accordance with this policy or a similar level privacy policy.",
+      "p7": "We do not sell personal information to third parties for independent commercial use of the information."
+    },
+    "section5": {
+      "title": "Storage and Transfer of Information Outside Israel",
+      "p1": "Information may be stored on servers and cloud infrastructures of external providers, some of which may be located outside Israel.",
+      "p2": "In any case of transferring information outside Israel, the Company will act in accordance with applicable legal provisions regarding the transfer of personal information to other countries, and will ensure that appropriate protection levels apply to information recipients."
+    },
+    "section6": {
+      "title": "Information Security",
+      "p1": "The Company implements reasonable and accepted information security measures, designed to reduce the risks of unauthorized intrusion, unauthorized use or exposure of personal information.",
+      "p2": "Our security measures include, among other things, use of identification means, access control, certain encryption of communication and internal access procedures.",
+      "p3": "However, there is no perfect security system. Absolute immunity from intrusion, breach, failures or unauthorized access cannot be guaranteed, and the user agrees that the Company will not be liable for damages caused by such events, provided the Company has taken reasonable protective measures."
+    },
+    "section7": {
+      "title": "Information Retention",
+      "p1": "We will retain your personal information for the period necessary to fulfill the purposes for which it was collected, and in accordance with legal provisions and our contractual obligations.",
+      "p2": "The Company may retain certain information even after account closure or discontinuation of application use, for compliance with legal obligations, managing legal proceedings, collection, managing business records and for backup and security purposes.",
+      "p3": "Statistical and anonymous information, which does not allow personal identification, may be retained indefinitely."
+    },
+    "section8": {
+      "title": "User Rights Regarding Information",
+      "p1": "Subject to applicable law, you may have some of the following rights:",
+      "subtitle1": "Right of Access",
+      "p2": "The right to contact us and request to know if personal information is held about you, and to review it as required by law.",
+      "subtitle2": "Right of Correction and Deletion",
+      "p3": "If you find that information about you is incorrect, incomplete or outdated, you can request its correction or deletion, subject to legal requirements and our obligations to retain information.",
+      "subtitle3": "Right to Object to Direct Marketing Use",
+      "p4": "You can request at any time to stop receiving marketing messages from us. This can be done through the unsubscribe link in email messages, WhatsApp message or by direct contact with us at the contact details below. We may continue to send non-marketing service and operational messages.",
+      "subtitle4": "Submitting an Inquiry",
+      "p5": "To exercise your rights, you can contact us using the contact details at the end of the policy. We will examine your request and act in accordance with legal provisions."
+    },
+    "section9": {
+      "title": "Cookies and Tracking Technologies",
+      "p1": "The application uses cookies and similar technologies for:",
+      "item1": "Proper system operation",
+      "item2": "Saving user preferences and settings",
+      "item3": "Improving user experience and performing statistical usage analysis",
+      "item4": "Security and identification of unusual activity",
+      "p2": "You can change your browser settings to block some or all cookies, however, complete blocking of cookies may impair some application functions.",
+      "p3": "We may also use external analytics services (such as Google Analytics or others) to collect aggregate usage data, subject to the terms of use and privacy of those third parties."
+    },
+    "section10": {
+      "title": "Minors",
+      "p1": "The application is intended for use by adult users only, and in accordance with the age of consent according to law.",
+      "p2": "If we become aware that personal information about a minor has been collected in violation of this policy or in violation of law, we will act to delete the information reasonably and promptly, after receiving appropriate notice."
+    },
+    "section11": {
+      "title": "Privacy Policy Updates",
+      "p1": "The Company may update the privacy policy from time to time, at its discretion. An updated version will be published in the application and will bear an update date.",
+      "p2": "Continued use of the application after a privacy policy update constitutes agreement to the updated policy. If you do not agree to the update, you must discontinue use of the application."
+    },
+    "section12": {
+      "title": "Contact Regarding Privacy",
+      "p1": "For questions, requests or inquiries regarding this privacy policy and exercising your rights, you can contact us:",
+      "businessName": "Business Name:",
+      "businessNameValue": "Kal-Book Solutions",
+      "email": "Customer Service Email:",
+      "emailValue": "service@kalbook.io",
+      "phone": "Phone / WhatsApp:",
+      "phoneValue": "054-2636737",
+      "address": "Physical Address:",
+      "addressValue": "Beit El 47, Tel Aviv",
+      "p2": "We will try to handle appropriate inquiries as soon as possible and in accordance with legal provisions."
+    }
   }
 }
