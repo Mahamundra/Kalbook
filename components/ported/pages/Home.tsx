@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowLeft, ChevronDown, BarChart3, QrCode, Package, Palette, Smartphone, ShieldCheck, User, LogOut, LayoutDashboard, Repeat } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TypingAnimation } from '@/components/ui/TypingAnimation';
 import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
 import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
 import {
@@ -365,12 +364,12 @@ export default function Home() {
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer">
+                      <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-[#ff3e1b] hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.logout') || 'Logout'}
                       </DropdownMenuItem>
@@ -391,23 +390,11 @@ export default function Home() {
           transition={{ duration: 0.6 }}
         >
           <div className={`flex items-center justify-center mb-6 ${isRTL ? 'flex-row-reverse' : ''}`} style={isRTL ? { flexDirection: 'row-reverse' } : {}}>
-            <div className="relative flex items-center" style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: '0' }}>
-              <img 
-                src="/kalbook-logo.svg" 
-                alt="KalBook" 
-                className="h-12 md:h-16 lg:h-20 w-auto flex-shrink-0"
-              />
-              <span className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent -ml-6 md:-ml-8 lg:-ml-10" style={{ fontFamily: 'var(--font-space-grotesk), system-ui, sans-serif' }}>
-                <TypingAnimation 
-                  text="" 
-                  suffix=".io" 
-                  suffixDelay={800} 
-                  typingSpeed={100} 
-                  locale={locale}
-                  className="inline-block"
-                />
-              </span>
-            </div>
+            <img 
+              src="/kalbook-logo.svg" 
+              alt="KalBook.io" 
+              className="h-12 md:h-16 lg:h-20 w-auto flex-shrink-0"
+            />
           </div>
           <div className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto space-y-4">
             {getHome('subtitle').split('\n\n').map((paragraph: string, index: number, array: string[]) => (

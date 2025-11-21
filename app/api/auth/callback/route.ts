@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       
       if (isPopup) {
         // Return HTML page that sends error message to parent
+        // Cookies are automatically included by Next.js cookies() API
         return new NextResponse(
           `<!DOCTYPE html>
 <html>
@@ -54,6 +55,8 @@ export async function GET(request: NextRequest) {
 
   if (isPopup) {
     // Return HTML page that sends success message to parent
+    // Cookies set by exchangeCodeForSession are automatically included by Next.js
+    // Add a small delay in the script to ensure cookies are set before closing
     return new NextResponse(
       `<!DOCTYPE html>
 <html>
@@ -62,15 +65,18 @@ export async function GET(request: NextRequest) {
 </head>
 <body>
   <script>
-    if (window.opener) {
-      window.opener.postMessage({
-        type: 'OAUTH_SUCCESS'
-      }, '${requestUrl.origin}');
-      window.close();
-    } else {
-      // Fallback: redirect if not in popup
-      window.location.href = '${next}';
-    }
+    // Small delay to ensure cookies are set before sending message
+    setTimeout(function() {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'OAUTH_SUCCESS'
+        }, '${requestUrl.origin}');
+        window.close();
+      } else {
+        // Fallback: redirect if not in popup
+        window.location.href = '${next}';
+      }
+    }, 100);
   </script>
 </body>
 </html>`,

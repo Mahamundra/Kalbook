@@ -5,13 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BackToTop } from "@/components/ui/BackToTop";
-import { Space_Grotesk } from "next/font/google";
+import { Work_Sans } from "next/font/google";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 
-const spaceGrotesk = Space_Grotesk({
+const workSans = Work_Sans({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-work-sans",
   display: "swap",
 });
 
@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const dir = isRTL(initialLocale) ? 'rtl' : 'ltr';
   
   return (
-    <html className={spaceGrotesk.variable} dir={dir} lang={initialLocale}>
+    <html className={workSans.variable} dir={dir} lang={initialLocale}>
       <body className="min-h-dvh bg-background text-foreground overflow-x-hidden touch-pan-y">
         <DirectionProvider initialLocale={initialLocale}>
           <ThemeProvider>

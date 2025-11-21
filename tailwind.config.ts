@@ -16,7 +16,7 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
+        sans: ["var(--font-work-sans)", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

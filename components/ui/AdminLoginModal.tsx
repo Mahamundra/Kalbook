@@ -208,31 +208,69 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
           popup.close();
           setIsLoading(false);
 
-          // Get the session
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError || !session?.user) {
-            toast.error('Failed to get session after authentication');
-            return;
-          }
+          // Wait a bit for cookies to sync between popup and parent window
+          await new Promise(resolve => setTimeout(resolve, 500));
 
-          // Set user name
-          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-          setUserName(userName);
-          
-          toast.success(t('adminLogin.welcomeBack')?.replace('{name}', userName) || `Welcome Back! ${userName}`);
-          
-          // Small delay to show welcome message
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Close modal
-          onOpenChange(false);
-          
-          // Call onLoginSuccess callback if provided, otherwise reload page
-          if (onLoginSuccess) {
-            onLoginSuccess();
-          } else {
-            window.location.href = '/';
+          // Create admin_session cookie by calling our API
+          try {
+            const response = await fetch('/api/auth/oauth-session', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              // Check if user is not registered (404 status)
+              if (response.status === 404) {
+                setIsLoading(false);
+                setStep('notRegistered');
+                return;
+              }
+              throw new Error(data.error || 'Failed to create session');
+            }
+
+            // Verify response indicates success
+            if (!data.success) {
+              throw new Error(data.error || 'Authentication failed');
+            }
+
+            // Check if user exists
+            if (!data.user || !data.user.id) {
+              setIsLoading(false);
+              setStep('notRegistered');
+              return;
+            }
+
+            setIsLoading(false);
+            setUserName(data.user?.name || '');
+            setStep('welcome');
+
+            // Show welcome message
+            toast.success(
+              (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
+            );
+            
+            // Small delay to show welcome message
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Close modal
+            onOpenChange(false);
+            
+            // Call onLoginSuccess callback if provided, otherwise reload page
+            if (onLoginSuccess) {
+              onLoginSuccess();
+            } else {
+              // Reload to ensure all components see the new session
+              window.location.reload();
+            }
+          } catch (error: any) {
+            setIsLoading(false);
+            setError(error.message || 'Failed to complete login');
+            toast.error(error.message || 'Failed to complete login');
           }
         } else if (event.data.type === 'OAUTH_ERROR') {
           window.removeEventListener('message', messageListener);
@@ -395,28 +433,45 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md" dir={dir}>
-        <DialogHeader>
-          <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <KalBookLogo size="lg" variant="full" animated={false} />
-          </div>
-          <DialogTitle className="text-2xl font-bold text-center">
-            {step === 'welcome'
-              ? (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', userName)
-              : step === 'notRegistered'
-              ? (t('adminLogin.notRegistered.title') || 'Not Registered')
-              : (t('adminLogin.homepageLogin') || t('adminLogin.title') || 'Admin Login')
-            }
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            {step === 'welcome'
-              ? (t('adminLogin.loginSuccess') || 'Redirecting to your dashboard...')
-              : step === 'notRegistered'
-              ? (t('adminLogin.notRegistered.message') || 'It seems that you are not registered as a business owner.')
-              : (t('adminLogin.subtitle') || 'Sign in to manage your business')
-            }
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-md mx-4 sm:mx-auto" dir={dir}>
+        {step === 'notRegistered' ? (
+          <>
+            <DialogHeader>
+              <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <KalBookLogo size="lg" variant="full" animated={false} />
+              </div>
+              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <DialogTitle className="text-2xl font-bold text-center">
+                {t('adminLogin.notRegistered.title') || 'Not Registered'}
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                {t('adminLogin.notRegistered.message') || 'It seems that you are not registered in the system.'}
+              </DialogDescription>
+            </DialogHeader>
+          </>
+        ) : (
+          <DialogHeader>
+            <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <KalBookLogo size="lg" variant="full" animated={false} />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-center">
+              {step === 'welcome'
+                ? (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', userName)
+                : (t('adminLogin.homepageLogin') || t('adminLogin.title') || 'Admin Login')
+              }
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {step === 'welcome'
+                ? (t('adminLogin.loginSuccess') || 'Redirecting to your dashboard...')
+                : (t('adminLogin.subtitle') || 'Sign in to manage your business')
+              }
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         {step === 'welcome' ? (
           <div className="flex items-center justify-center py-8">
@@ -424,14 +479,9 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
           </div>
         ) : step === 'notRegistered' ? (
           <div className="space-y-6 text-center">
-            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
             <div className="space-y-4 pt-4 border-t">
               <div className="space-y-3">
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium pb-4">
                   {t('adminLogin.notRegistered.createBusiness') || 'Want to create a new business?'}
                 </p>
                 <Link href="/onboarding">
@@ -573,11 +623,36 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               </Button>
             </div>
 
-            <div className="mt-6 pt-4 border-t text-center text-sm text-muted-foreground">
-              <p>{t('adminLogin.noUserYet') || 'If you have not user yet'}</p>
-              <Link href="/onboarding" className="text-primary hover:underline mt-1 block">
-                {t('adminLogin.createNewBusiness') || 'Create new business'}
-              </Link>
+            {/* Terms and Privacy Agreement */}
+            <div className="mt-4 pt-4 border-t text-center">
+              <p className="text-xs text-muted-foreground">
+                {(() => {
+                  const agreementText = t('adminLogin.termsAgreement') || 'By logging in you agree to {terms} and {privacy}';
+                  const termsText = t('adminLogin.termsOfUse') || 'terms of use';
+                  const privacyText = t('adminLogin.privacyPolicy') || 'privacy policy';
+                  
+                  // Split by placeholders and insert links
+                  const regex = /(\{terms\}|\{privacy\})/g;
+                  const parts = agreementText.split(regex);
+                  
+                  return parts.map((part, index) => {
+                    if (part === '{terms}') {
+                      return (
+                        <Link key={`terms-${index}`} href="/terms" target="_blank" rel="noopener noreferrer" className="text-muted-foreground underline">
+                          {termsText}
+                        </Link>
+                      );
+                    } else if (part === '{privacy}') {
+                      return (
+                        <Link key={`privacy-${index}`} href="/privacy" target="_blank" rel="noopener noreferrer" className="text-muted-foreground underline">
+                          {privacyText}
+                        </Link>
+                      );
+                    }
+                    return part;
+                  });
+                })()}
+              </p>
             </div>
           </div>
         ) : (
@@ -592,7 +667,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               <Label className="block mb-3 text-center">
                 {t('adminLogin.enterCode') || 'Enter verification code'}
               </Label>
-              <div className="flex gap-2 justify-center" dir="ltr">
+              <div className="flex gap-1 sm:gap-2 justify-center px-2" dir="ltr">
                 {otpDigits.map((digit, index) => (
                   <Input
                     key={index}
@@ -605,7 +680,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     onPaste={index === 0 ? handleOtpPaste : undefined}
                     disabled={isLoading}
-                    className="h-14 w-14 text-center text-2xl font-semibold"
+                    className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
                     autoFocus={index === 0}
                   />
                 ))}

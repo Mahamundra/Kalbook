@@ -482,6 +482,9 @@
     "loginSuccess": "تم تسجيل الدخول بنجاح",
     "back": "رجوع",
     "noAccount": "ليس لديك حساب؟",
+    "termsAgreement": "بتسجيل الدخول، أنت توافق على {terms} و{privacy}",
+    "termsOfUse": "شروط الاستخدام",
+    "privacyPolicy": "سياسة الخصوصية",
     "contactOwner": "اتصل بمالك العمل لإنشاء حساب مدير."
   },
   "userDashboard": {

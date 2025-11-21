@@ -451,7 +451,7 @@
   },
   "adminLogin": {
     "title": "כניסת מנהל",
-    "subtitle": "התחבר כדי לנהל את העסק שלך",
+    "subtitle": "התחבר לחשבון שלך",
     "subtitleWithBusiness": "התחבר ל-{businessName}",
     "homepageLogin": "כניסת מנהל",
     "welcomeBack": "ברוך שובך! {name}",
@@ -473,7 +473,7 @@
     "invalidCode": "קוד לא תקין",
     "notRegistered": {
       "title": "לא רשום",
-      "message": "נראה שאינך רשום כבעל עסק.",
+      "message": "נראה שאינך רשום במערכת.",
       "createBusiness": "רוצה ליצור עסק חדש?",
       "createBusinessButton": "צור עסק חדש",
       "needAccess": "צריך גישה לעסק קיים?",
@@ -482,6 +482,9 @@
     "loginSuccess": "התחברת בהצלחה",
     "back": "חזור",
     "noAccount": "אין לך חשבון?",
+    "termsAgreement": "ע\"י התחברות אתם מסכימים ל{terms} ו{privacy}",
+    "termsOfUse": "תנאי השימוש",
+    "privacyPolicy": "מדיניות פרטיות",
     "contactOwner": "צור קשר עם בעל העסק כדי ליצור חשבון מנהל."
   },
   "userDashboard": {

@@ -70,7 +70,7 @@ export const LanguageToggle = () => {
             <DropdownMenuRadioItem
               key={lang}
               value={lang}
-              className="group cursor-pointer data-[state=checked]:bg-[#ff421c] data-[state=checked]:text-white hover:bg-black hover:text-white focus:bg-[#ff421c] focus:text-white"
+              className="group cursor-pointer my-1 data-[state=checked]:bg-[#ff3e1b] data-[state=checked]:text-white hover:bg-black hover:text-white focus:bg-[#ff3e1b] focus:text-white"
             >
               <div className={cn(
                 "flex items-center justify-between w-full",

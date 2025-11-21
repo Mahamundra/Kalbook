@@ -482,6 +482,9 @@
     "loginSuccess": "Logged in successfully",
     "back": "Back",
     "noAccount": "Don't have an account?",
+    "termsAgreement": "By logging in you agree to {terms} and {privacy}",
+    "termsOfUse": "terms of use",
+    "privacyPolicy": "privacy policy",
     "contactOwner": "Contact your business owner to create an admin account."
   },
   "userDashboard": {

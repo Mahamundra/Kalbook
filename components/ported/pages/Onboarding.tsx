@@ -6,6 +6,7 @@ import { Label } from "@/components/ported/ui/label";
 import { Button } from "@/components/ported/ui/button";
 import { Checkbox } from "@/components/ported/ui/checkbox";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check } from "lucide-react";
 import { useToast } from "@/components/ported/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -302,8 +303,10 @@ const Onboarding = () => {
       // Handle both existing user and new user cases
       if (data.isNewUser) {
         // New user - just set phone, they'll register during onboarding
+        // Format phone for display (remove country code, add dashes)
+        const displayPhone = formatPhoneForDisplay(phoneNumber);
         setAuthenticatedUser({ phone: phoneNumber });
-        setBusinessInfo(prev => ({ ...prev, phone: phoneNumber }));
+        setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
       } else {
         // Existing user - set all user data
         const userPhone = data.user?.phone || phoneNumber;
@@ -404,42 +407,81 @@ const Onboarding = () => {
           popup.close();
           setLoading(false);
 
-          // Get the session
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError || !session?.user) {
-            toast.error('Failed to get session after authentication');
-            return;
-          }
+          // Wait a bit for cookies to sync between popup and parent window
+          await new Promise(resolve => setTimeout(resolve, 500));
 
-          // Set authenticated user data
-          const userEmail = session.user.email || '';
-          const userPhone = session.user.phone || '';
-          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-          
-          setAuthenticatedUser({
-            email: userEmail,
-            phone: userPhone,
-            name: userName,
-          });
-          
-          if (userPhone) {
-            const displayPhone = formatPhoneForDisplay(userPhone);
-            setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+          // Get Supabase Auth session to extract user info
+          try {
+            // Retry getting session with exponential backoff
+            let session = null;
+            let sessionError = null;
+            const maxRetries = 5;
+            
+            for (let i = 0; i < maxRetries; i++) {
+              const { data, error } = await supabase.auth.getSession();
+              session = data?.session;
+              sessionError = error;
+              
+              if (session?.user) {
+                break;
+              }
+              
+              // If not found, try getUser() which might force a refresh
+              if (i === 2) {
+                const { data: userData } = await supabase.auth.getUser();
+                if (userData?.user) {
+                  // If getUser works but getSession doesn't, refresh the session
+                  const { data: refreshedSession } = await supabase.auth.getSession();
+                  session = refreshedSession?.session;
+                  if (session?.user) break;
+                }
+              }
+              
+              // Wait before retrying (exponential backoff)
+              if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
+              }
+            }
+            
+            if (sessionError || !session?.user) {
+              // If we still don't have a session, reload the page to ensure cookies are read
+              toast.info('Completing login...');
+              window.location.reload();
+              return;
+            }
+
+            // Set authenticated user data from Supabase Auth session
+            const userEmail = session.user.email || '';
+            const userPhone = session.user.phone || '';
+            const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+            
+            setAuthenticatedUser({
+              email: userEmail,
+              phone: userPhone,
+              name: userName,
+            });
+            
+            if (userPhone) {
+              const displayPhone = formatPhoneForDisplay(userPhone);
+              setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+            }
+            if (userEmail) {
+              setBusinessInfo(prev => ({ ...prev, email: userEmail }));
+            }
+            if (userName) {
+              setOwnerName(userName);
+            }
+            setOtpVerified(true);
+            toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
+            
+            // Continue to step 2
+            setTimeout(() => {
+              setStep(2);
+            }, 500);
+          } catch (error: any) {
+            setLoading(false);
+            toast.error(error.message || 'Failed to get user information');
           }
-          if (userEmail) {
-            setBusinessInfo(prev => ({ ...prev, email: userEmail }));
-          }
-          if (userName) {
-            setOwnerName(userName);
-          }
-          setOtpVerified(true);
-          toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
-          
-          // Continue to step 2
-          setTimeout(() => {
-            setStep(2);
-          }, 500);
         } else if (event.data.type === 'OAUTH_ERROR') {
           window.removeEventListener('message', messageListener);
           if (checkClosedInterval) clearInterval(checkClosedInterval);
@@ -604,18 +646,26 @@ const Onboarding = () => {
               name: data.user.name,
             });
             if (!authenticatedUser) {
+              const userPhone = data.user.phone || '';
+              const displayPhone = userPhone ? formatPhoneForDisplay(userPhone) : '';
               setAuthenticatedUser({
                 email: data.user.email,
-                phone: data.user.phone || '',
+                phone: userPhone,
                 name: data.user.name,
               });
               setBusinessInfo(prev => ({
                 ...prev,
                 email: data.user.email,
-                phone: data.user.phone || '',
+                phone: displayPhone,
               }));
               setOwnerName(data.user.name);
               setOtpVerified(true);
+              // Automatically move to step 2 after authentication
+              if (step === 1) {
+                setTimeout(() => {
+                  setStep(2);
+                }, 500);
+              }
             }
           }
         }
@@ -624,12 +674,32 @@ const Onboarding = () => {
       }
     };
     checkAuth();
-  }, [searchParams, otpVerified]);
+  }, [searchParams, otpVerified, step]);
 
   // Scroll to top when step changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
+
+  // Ensure phone is always formatted when on step 2
+  useEffect(() => {
+    if (step === 2 && businessInfo.phone && !authenticatedUser?.phone) {
+      // Format phone if it's not already formatted (no dashes or has country code)
+      const digits = businessInfo.phone.replace(/\D/g, '');
+      if (digits.length > 10 || !businessInfo.phone.includes('-')) {
+        const formatted = formatPhoneForDisplay(businessInfo.phone);
+        if (formatted !== businessInfo.phone) {
+          setBusinessInfo(prev => ({ ...prev, phone: formatted }));
+        }
+      } else {
+        // Ensure it's formatted with dashes
+        const formatted = formatPhoneNumber(businessInfo.phone);
+        if (formatted !== businessInfo.phone) {
+          setBusinessInfo(prev => ({ ...prev, phone: formatted }));
+        }
+      }
+    }
+  }, [step, businessInfo.phone, authenticatedUser?.phone]);
 
   // Scroll to continue button when business type is selected on step 3
   useEffect(() => {
@@ -1265,6 +1335,38 @@ const Onboarding = () => {
                       {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
                     </Button>
                   </div>
+
+                  {/* Terms and Privacy Agreement */}
+                  <div className="mt-4 pt-4 border-t text-center">
+                    <p className="text-xs text-muted-foreground">
+                      {(() => {
+                        const agreementText = t('adminLogin.termsAgreement') || 'By logging in you agree to {terms} and {privacy}';
+                        const termsText = t('adminLogin.termsOfUse') || 'terms of use';
+                        const privacyText = t('adminLogin.privacyPolicy') || 'privacy policy';
+                        
+                        // Split by placeholders and insert links
+                        const regex = /(\{terms\}|\{privacy\})/g;
+                        const parts = agreementText.split(regex);
+                        
+                        return parts.map((part, index) => {
+                          if (part === '{terms}') {
+                            return (
+                              <Link key={`terms-${index}`} href="/terms" target="_blank" rel="noopener noreferrer" className="text-muted-foreground underline">
+                                {termsText}
+                              </Link>
+                            );
+                          } else if (part === '{privacy}') {
+                            return (
+                              <Link key={`privacy-${index}`} href="/privacy" target="_blank" rel="noopener noreferrer" className="text-muted-foreground underline">
+                                {privacyText}
+                              </Link>
+                            );
+                          }
+                          return part;
+                        });
+                      })()}
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -1274,11 +1376,17 @@ const Onboarding = () => {
                   <h3 className="text-xl font-semibold mb-2">
                     {t('onboarding.auth.authenticated') || 'Authenticated!'}
                   </h3>
-                  <p className="text-muted-foreground">
-                    {authenticatedUser?.phone && t('onboarding.auth.phoneVerified')?.replace('{phone}', authenticatedUser.phone) || 
+                  <p className="text-muted-foreground mb-6">
+                    {authenticatedUser?.phone && (() => {
+                      const formattedPhone = formatPhoneForDisplay(authenticatedUser.phone);
+                      return t('onboarding.auth.phoneVerified')?.replace('{phone}', formattedPhone) || `Phone ${formattedPhone} verified`;
+                    })() || 
                      authenticatedUser?.email && t('onboarding.auth.emailVerified')?.replace('{email}', authenticatedUser.email) ||
                      t('onboarding.auth.readyToContinue') || 'You\'re ready to continue'}
                   </p>
+                  <LoadingButton onClick={handleNext} loading={loading} className="w-full max-w-md">
+                    {t('onboarding.buttons.continue') || 'Continue'}
+                  </LoadingButton>
                 </div>
               )}
             </div>
@@ -1365,8 +1473,8 @@ const Onboarding = () => {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder={t('onboarding.businessInfo.phonePlaceholder')}
-                    value={businessInfo.phone}
+                    placeholder={t('onboarding.businessInfo.phonePlaceholder') || '050-000-0000'}
+                    value={businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : ''}
                     onChange={(e) => {
                       // Format as user types (only if not disabled)
                       if (!authenticatedUser?.phone) {
@@ -1377,6 +1485,7 @@ const Onboarding = () => {
                     onBlur={() => handleBlur('phone')}
                     disabled={!!authenticatedUser?.phone}
                     dir="ltr"
+                    maxLength={12}
                     className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} ${authenticatedUser?.phone ? 'bg-muted cursor-not-allowed' : ''}`}
                   />
                   {authenticatedUser?.phone && (
@@ -1471,7 +1580,7 @@ const Onboarding = () => {
                     onClick={() => setBusinessType(type.id)}
                     className={`group p-6 rounded-lg border-2 transition-all ${
                       businessType === type.id
-                        ? "border-[#ff421c] bg-[#ff421c] text-white shadow-soft"
+                        ? "border-[#ff3e1b] bg-[#ff3e1b] text-white shadow-soft"
                         : "border-border hover:bg-[#030408] hover:text-white hover:border-[#030408]"
                     }`}
                     dir={dir}
@@ -1864,7 +1973,7 @@ const Onboarding = () => {
 
           {step === 6 && (
             <div className="animate-fade-in text-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: '#ff421c' }}>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: '#ff3e1b' }}>
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-3xl font-bold mb-2">{t('onboarding.almostThere.title')}</h2>
@@ -1931,7 +2040,7 @@ const Onboarding = () => {
               <Label htmlFor="otp-code-modal" className="block mb-3 text-center">
                 {t('onboarding.auth.otpCode') || 'OTP Code'}
               </Label>
-              <div className="flex gap-2 justify-center" dir="ltr">
+              <div className="flex gap-1 sm:gap-2 justify-center px-2" dir="ltr">
                 {otpDigits.map((digit, index) => (
                   <Input
                     key={index}
@@ -1943,7 +2052,7 @@ const Onboarding = () => {
                     onChange={(e) => handleOtpDigitChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     onPaste={index === 0 ? handleOtpPaste : undefined}
-                    className="h-14 w-14 text-center text-2xl font-semibold"
+                    className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
                     autoFocus={index === 0}
                   />
                 ))}
