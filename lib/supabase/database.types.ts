@@ -321,6 +321,8 @@ export interface Database {
           status: AppointmentStatus;
           is_group_appointment: boolean;
           current_participants: number;
+          reminder_sent_at: string | null;
+          reminder_status: 'pending' | 'sent' | 'failed' | 'skipped' | null;
           created_at: string;
           updated_at: string;
         };
@@ -335,6 +337,8 @@ export interface Database {
           status?: AppointmentStatus;
           is_group_appointment?: boolean;
           current_participants?: number;
+          reminder_sent_at?: string | null;
+          reminder_status?: 'pending' | 'sent' | 'failed' | 'skipped' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -349,6 +353,8 @@ export interface Database {
           status?: AppointmentStatus;
           is_group_appointment?: boolean;
           current_participants?: number;
+          reminder_sent_at?: string | null;
+          reminder_status?: 'pending' | 'sent' | 'failed' | 'skipped' | null;
           created_at?: string;
           updated_at?: string;
         };
