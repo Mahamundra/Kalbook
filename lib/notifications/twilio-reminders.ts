@@ -242,7 +242,7 @@ export async function sendAppointmentReminder(
       .update({
         reminder_sent_at: new Date().toISOString(),
         reminder_status: 'sent',
-      })
+      } as any)
       .eq('id', appointmentId);
 
     return { success: true };
