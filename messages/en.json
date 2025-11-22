@@ -9,7 +9,8 @@
         "templates": "Templates",
         "qr": "QR Codes",
         "settings": "Settings",
-        "viewPublicSite": "View Public Site"
+        "viewPublicSite": "View Public Site",
+        "more": "More"
     },
   "dashboard": {
     "title": "Dashboard",
@@ -29,7 +30,12 @@
     "improvement": "-{value}% improvement",
     "noAppointmentsToday": "No appointments scheduled for today.",
     "goToCalendar": "Go to Calendar",
-    "goToOwnerDashboard": "Go to Owner Dashboard"
+    "goToOwnerDashboard": "Go to Owner Dashboard",
+    "analytics": "Analytics",
+    "overview": "Overview",
+    "todaysScheduleDesc": "Your appointments for today",
+    "analyticsNotAvailable": "Analytics are not available on your current plan.",
+    "upgradeForAnalytics": "Upgrade to Professional or Business plan to view analytics and insights."
   },
   "calendar": {
     "title": "Calendar",
@@ -523,7 +529,17 @@
     "planChangeOwnerOnly": "Plan changes are only available for business owners",
     "selectPlan": "Select a plan",
     "saving": "Saving...",
-    "saved": "Saved successfully"
+    "saved": "Saved successfully",
+    "overview": "Overview",
+    "quickActions": "Quick Actions",
+    "quickActionsDesc": "Common tasks and shortcuts",
+    "totalBusinesses": "Total Businesses",
+    "activePlans": "Active Plans",
+    "welcome": "Welcome back",
+    "noBusinesses": "No Businesses",
+    "noBusinessesDesc": "You don't have any businesses yet.",
+    "createNewBusinessDesc": "Set up a new business account",
+    "profileDesc": "Manage your account information"
   },
   "common": {
     "save": "Save",
@@ -825,7 +841,7 @@
     },
     "chooseBusinessType": {
       "title": "Choose Your Business Type",
-      "subtitle": "We'll tailor your setup to match your business. Choose the category that fits your services, and we'll configure everything you need to start accepting bookings and controlling your time more efficiently.",
+      "subtitle": "Choose the service area that fits your business, and we'll take care of setting up everything you need – so you can start managing appointments, receive customers, and focus on what really matters",
       "filterByCategory": "Filter by Category",
       "allCategories": "All Categories",
       "microcopy": {

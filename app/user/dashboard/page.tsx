@@ -8,11 +8,38 @@ import { Label } from '@/components/ported/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ported/ui/card';
 import { Alert, AlertDescription } from '@/components/ported/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ported/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ported/ui/tabs';
+import { Badge } from '@/components/ported/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import { Separator } from '@/components/ported/ui/separator';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Footer } from '@/components/ui/Footer';
-import { Loader2, LogOut, Settings, Save, ArrowRight, ArrowLeft, AlertTriangle, X, Calendar, Clock } from 'lucide-react';
+import { 
+  Loader2, 
+  LogOut, 
+  Settings, 
+  Save, 
+  ArrowRight, 
+  ArrowLeft, 
+  AlertTriangle, 
+  X, 
+  Calendar, 
+  Clock,
+  User,
+  Building2,
+  ExternalLink,
+  Plus,
+  Edit,
+  CheckCircle2,
+  XCircle,
+  Clock3,
+  CreditCard,
+  Mail,
+  Phone,
+  Home
+} from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { UpgradeModal } from '@/components/admin/UpgradeModal';
@@ -61,21 +88,22 @@ export default function UserDashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [selectedBusinessForUpgrade, setSelectedBusinessForUpgrade] = useState<{ id: string; planName: string; ownerEmail?: string } | null>(null);
+  const [activeTab, setActiveTab] = useState('businesses');
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
 
   // Update current time every minute for countdown
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPhone, setEditPhone] = useState('');
 
   useEffect(() => {
     loadData();
@@ -86,11 +114,9 @@ export default function UserDashboardPage() {
       setLoading(true);
       setError(null);
 
-      // Load user profile
       const profileResponse = await fetch('/api/user/profile');
       if (!profileResponse.ok) {
         if (profileResponse.status === 401) {
-          // Not authenticated, redirect to homepage
           window.location.href = '/';
           return;
         }
@@ -105,9 +131,7 @@ export default function UserDashboardPage() {
         
         const initialBusinesses = profileData.businesses || [profileData.business].filter(Boolean);
         
-        // Load plans for each business (only if owner)
         if (profileData.user?.role === 'owner') {
-          // First, get all available plans (same for all businesses)
           const plansResponse = await fetch('/api/user/plans');
           if (plansResponse.ok) {
             const plansData = await plansResponse.json();
@@ -116,7 +140,6 @@ export default function UserDashboardPage() {
             }
           }
 
-          // Then, load plan info for each business
           const businessesWithPlans = await Promise.all(
             initialBusinesses.map(async (business: Business) => {
               const businessPlansResponse = await fetch(`/api/user/plans?businessId=${business.id}`);
@@ -148,7 +171,6 @@ export default function UserDashboardPage() {
           );
           setBusinesses(businessesWithPlans);
         } else {
-          // For non-owners, just set businesses without plans
           setBusinesses(initialBusinesses);
         }
       }
@@ -226,7 +248,6 @@ export default function UserDashboardPage() {
       }
 
       if (data.success) {
-        // Update the business in the businesses array
         setBusinesses(prev => prev.map(b => 
           b.id === businessId 
             ? { ...b, currentPlanId: planId, subscriptionStatus: 'active' }
@@ -267,7 +288,6 @@ export default function UserDashboardPage() {
       }
 
       if (data.success) {
-        // Update the business in the businesses array
         setBusinesses(prev => prev.map(b => 
           b.id === businessId 
             ? { ...b, subscriptionStatus: 'cancelled' }
@@ -294,20 +314,46 @@ export default function UserDashboardPage() {
 
   const handleLogout = async () => {
     try {
-      // Call logout API to properly clear cookie
       await fetch('/api/user/logout', {
         method: 'POST',
         credentials: 'same-origin',
       });
-      
-      // Redirect to homepage
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
-      // Fallback: try to clear cookie manually and redirect
       document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       window.location.href = '/';
     }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getPlanStatus = (business: Business) => {
+    const endDate = business.subscriptionEndsAt || business.trialEndsAt;
+    let daysRemaining: number | null = null;
+    if (endDate) {
+      const end = new Date(endDate);
+      const diffTime = end.getTime() - currentTime.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysRemaining = Math.max(0, diffDays);
+    }
+    
+    const isExpired = daysRemaining !== null && daysRemaining === 0;
+    const isCancelled = business.subscriptionStatus === 'cancelled';
+    const isExpiringSoon = daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0 && !isCancelled;
+    
+    if (isExpired) return { status: 'expired', label: 'Expired', variant: 'destructive' as const };
+    if (isCancelled) return { status: 'cancelled', label: 'Cancelled', variant: 'secondary' as const };
+    if (isExpiringSoon) return { status: 'expiring', label: `Expires in ${daysRemaining} days`, variant: 'outline' as const };
+    if (business.subscriptionStatus === 'active') return { status: 'active', label: 'Active', variant: 'default' as const };
+    return { status: 'trial', label: 'Trial', variant: 'secondary' as const };
   };
 
   if (loading) {
@@ -315,7 +361,7 @@ export default function UserDashboardPage() {
       <div dir={dir} className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-600">{t('common.loading') || 'Loading...'}</p>
+          <p className="text-gray-600 dark:text-gray-300">{t('common.loading') || 'Loading...'}</p>
         </div>
       </div>
     );
@@ -331,7 +377,8 @@ export default function UserDashboardPage() {
           </CardHeader>
           <CardContent>
             <Button onClick={() => window.location.href = '/'} className="w-full">
-              Go to Homepage
+              <Home className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+              {t('userDashboard.homepage') || 'Go to Homepage'}
             </Button>
           </CardContent>
         </Card>
@@ -340,144 +387,79 @@ export default function UserDashboardPage() {
   }
 
   return (
-    <div dir={dir} className="min-h-screen bg-background flex flex-col p-6">
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-4xl">
-          {/* Header */}
-          <PageHeader />
-          {/* Page Title */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">{t('userDashboard.title') || 'My Account'}</h1>
-          </div>
+    <div dir={dir} className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <PageHeader />
+        
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-6">
-          {/* Profile Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>{t('userDashboard.profile') || 'Profile'}</CardTitle>
-                  <CardDescription>
-                    {t('userDashboard.role') || 'Role'}: {user.role === 'owner' 
-                      ? (t('userDashboard.owner') || 'Owner')
-                      : (t('userDashboard.worker') || 'Worker')}
-                  </CardDescription>
-                </div>
-                {!isEditing && (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                )}
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Avatar className="h-16 w-16 border-2 border-primary">
+                <AvatarFallback className="text-lg font-semibold bg-primary text-primary-foreground">
+                  {getInitials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <h1 className="text-3xl font-bold">{t('userDashboard.title') || 'My Account'}</h1>
+                <p className="text-muted-foreground mt-1">
+                  {t('userDashboard.welcome') || `Welcome back, ${user.name}`}
+                </p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isEditing ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">{t('userDashboard.name') || 'Name'}</Label>
-                    <Input
-                      id="name"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t('userDashboard.email') || 'Email'}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{t('userDashboard.phone') || 'Phone'}</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditName(user.name);
-                        setEditEmail(user.email);
-                        setEditPhone(user.phone || '');
-                      }}
-                      disabled={saving}
-                      className="flex-1"
-                    >
-                      {t('common.cancel') || 'Cancel'}
-                    </Button>
-                    <Button
-                      onClick={handleSaveProfile}
-                      disabled={saving}
-                      className="flex-1"
-                    >
-                      {saving ? (
-                        <>
-                          <Loader2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'} animate-spin`} />
-                          {t('userDashboard.saving') || 'Saving...'}
-                        </>
-                      ) : (
-                        <>
-                          <Save className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                          {t('common.save') || 'Save'}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <Label className="text-muted-foreground">{t('userDashboard.name') || 'Name'}</Label>
-                    <p className="text-lg font-medium">{user.name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">{t('userDashboard.email') || 'Email'}</Label>
-                    <p className="text-lg font-medium">{user.email}</p>
-                  </div>
-                  {user.phone && (
-                    <div>
-                      <Label className="text-muted-foreground">{t('userDashboard.phone') || 'Phone'}</Label>
-                      <p className="text-lg font-medium">{user.phone}</p>
-                    </div>
+            </div>
+            <Button variant="outline" onClick={handleLogout} className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <LogOut className="w-4 h-4" />
+              {t('userDashboard.logout') || 'Logout'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Content with Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="businesses" className="gap-2">
+              <Building2 className="w-4 h-4" />
+              {t('userDashboard.myBusinesses') || 'My Businesses'}
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2">
+              <User className="w-4 h-4" />
+              {t('userDashboard.profile') || 'Profile'}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Businesses Tab */}
+          <TabsContent value="businesses" className="space-y-6">
+            {businesses.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    {t('userDashboard.noBusinesses') || 'No Businesses'}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {t('userDashboard.noBusinessesDesc') || 'You don\'t have any businesses yet.'}
+                  </p>
+                  {user.role === 'owner' && (
+                    <Link href="/onboarding">
+                      <Button>
+                        <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                        {t('userDashboard.createNewBusiness') || 'Create New Business'}
+                      </Button>
+                    </Link>
                   )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-
-          {/* Businesses List Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('userDashboard.myBusinesses') || 'My Businesses'}</CardTitle>
-              <CardDescription>
-                {businesses.length === 1 
-                  ? t('userDashboard.oneBusiness') || '1 business'
-                  : `${businesses.length} ${t('userDashboard.businesses') || 'businesses'}`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* List of businesses */}
+                </CardContent>
+              </Card>
+            ) : (
               <div className="space-y-4">
                 {businesses.map((business) => {
-                  // Calculate days remaining in real-time
+                  const planStatus = getPlanStatus(business);
                   const endDate = business.subscriptionEndsAt || business.trialEndsAt;
                   let daysRemaining: number | null = null;
                   if (endDate) {
@@ -486,284 +468,356 @@ export default function UserDashboardPage() {
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                     daysRemaining = Math.max(0, diffDays);
                   }
-                  
-                  const isExpired = daysRemaining !== null && daysRemaining === 0;
-                  const isCancelled = business.subscriptionStatus === 'cancelled';
-                  const showWarning = daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0 && !isCancelled;
+                  const currentPlan = plans.find(p => p.id === business.currentPlanId);
                   const startDate = business.subscriptionStartedAt || business.trialStartedAt;
 
                   return (
-                    <div key={business.id} className="p-4 border rounded-lg space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold">{business.name}</h3>
-                          <p className="text-sm text-muted-foreground">{business.slug}</p>
-                          {business.currentPlanId && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {t('userDashboard.currentPlan') || 'Current Plan'}: {plans.find(p => p.id === business.currentPlanId)?.name || 'Unknown'}
-                              {plans.find(p => p.id === business.currentPlanId) && (
-                                <span> - ₪{plans.find(p => p.id === business.currentPlanId)?.price}/month</span>
-                              )}
-                            </p>
-                          )}
-                        </div>
-                        <Link href={`/b/${business.slug}/admin/dashboard`}>
-                          <Button variant="outline" size="sm">
-                            {t('userDashboard.goToAdmin') || 'Go to Admin Panel'}
-                            {isRTL ? (
-                              <ArrowLeft className="w-4 h-4 ml-2" />
-                            ) : (
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            )}
-                          </Button>
-                        </Link>
-                      </div>
-
-                      {/* Plan Dates Section - Always show for owners */}
-                      {user.role === 'owner' && (
-                        <div className="pt-3 border-t space-y-2">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            {startDate ? (
-                              <div>
-                                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>{t('userDashboard.planStartDate') || 'Start Date'}</span>
-                                </div>
-                                <p className="font-medium">{formatDate(startDate)}</p>
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>{t('userDashboard.planStartDate') || 'Start Date'}</span>
-                                </div>
-                                <p className="font-medium text-muted-foreground">-</p>
-                              </div>
-                            )}
-                            {business.renewedAt ? (
-                              <div>
-                                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span>{t('userDashboard.planRenewalDate') || 'Renewal Date'}</span>
-                                </div>
-                                <p className="font-medium">{formatDate(business.renewedAt)}</p>
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span>{t('userDashboard.planRenewalDate') || 'Renewal Date'}</span>
-                                </div>
-                                <p className="font-medium text-muted-foreground">-</p>
-                              </div>
-                            )}
-                            {endDate ? (
-                              <div>
-                                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>{t('userDashboard.planEndDate') || 'End Date'}</span>
-                                </div>
-                                <p className="font-medium">{formatDate(endDate)}</p>
-                                {daysRemaining !== null && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {daysRemaining === 0 
-                                      ? t('userDashboard.planExpired') || 'Expired'
-                                      : `${daysRemaining} ${t('userDashboard.daysRemaining') || 'days remaining'}`
-                                    }
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>{t('userDashboard.planEndDate') || 'End Date'}</span>
-                                </div>
-                                <p className="font-medium text-muted-foreground">-</p>
+                    <Card key={business.id} className="overflow-hidden">
+                      <CardHeader className="pb-4">
+                        <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                          <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <Building2 className="w-5 h-5 text-primary" />
+                              <CardTitle className="text-xl">{business.name}</CardTitle>
+                              <Badge variant={planStatus.variant}>{planStatus.label}</Badge>
+                            </div>
+                            <CardDescription className={`text-sm ${isRTL ? 'text-right' : 'text-left'}`}>/{business.slug}</CardDescription>
+                            {currentPlan && (
+                              <div className={`mt-2 flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">
+                                  {currentPlan.name} - ₪{currentPlan.price}/month
+                                </span>
                               </div>
                             )}
                           </div>
-                        </div>
-                      )}
-
-                      {/* 7-Day Warning */}
-                      {showWarning && user.role === 'owner' && (
-                        <Alert variant="default" className="bg-orange-50 border-orange-200">
-                          <AlertTriangle className="h-4 w-4 text-orange-600" />
-                          <AlertDescription className="text-orange-800">
-                            <div className="space-y-3">
-                              <p className="font-medium">
-                                {t('userDashboard.planExpiringSoon')?.replace('{days}', daysRemaining?.toString() || '0') || 
-                                 `Plan is about to end in ${daysRemaining} days. Please contact us to renew your plan.`}
-                              </p>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const subject = encodeURIComponent(`Plan Renewal Request - ${business.name}`);
-                                  const body = encodeURIComponent(
-                                    `Hello,\n\nI would like to renew my plan for my business:\n\n` +
-                                    `Business Name: ${business.name}\n` +
-                                    `Business Slug: ${business.slug}\n` +
-                                    `Current Plan: ${plans.find(p => p.id === business.currentPlanId)?.name || 'Unknown'}\n` +
-                                    `Days Remaining: ${daysRemaining}\n` +
-                                    `User Name: ${user.name}\n` +
-                                    `User Email: ${user.email}\n` +
-                                    `User Phone: ${user.phone || 'N/A'}\n\n` +
-                                    `Please contact me to renew my plan.\n\nThank you!`
-                                  );
-                                  window.location.href = `mailto:plans@kalbook.io?subject=${subject}&body=${body}`;
-                                }}
-                                className="border-orange-300 text-orange-700 hover:bg-orange-100"
-                              >
-                                {t('userDashboard.upgradeRequest') || 'Contact to Renew'}
-                                {isRTL ? (
-                                  <ArrowLeft className="w-4 h-4 ml-2" />
-                                ) : (
-                                  <ArrowRight className="w-4 h-4 ml-2" />
-                                )}
-                              </Button>
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {/* Expired Plan Alert */}
-                      {isExpired && user.role === 'owner' && (
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
-                            {t('userDashboard.planExpired') || 'Plan expired. Please renew to continue using the admin panel.'}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {/* Cancelled Plan Status */}
-                      {isCancelled && endDate && user.role === 'owner' && (
-                        <Alert variant="default" className="bg-yellow-50 border-yellow-200">
-                          <AlertDescription className="text-yellow-800">
-                            {t('userDashboard.planCancelled')?.replace('{date}', formatDate(endDate)) || 
-                             `Plan cancelled. Active until ${formatDate(endDate)}.`}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    
-                      {/* Plan Management for this business (Owner Only) */}
-                      {user.role === 'owner' && (
-                        <div className="space-y-3 pt-3 border-t">
-                          {/* Current Plan Display (Read-only) */}
-                          {business.currentPlanId && (
-                            <div>
-                              <Label className="text-sm text-muted-foreground">{t('userDashboard.currentPlan') || 'Current Plan'}</Label>
-                              <p className="font-medium mt-1">
-                                {plans.find(p => p.id === business.currentPlanId)?.name || 'Unknown'} - ₪{plans.find(p => p.id === business.currentPlanId)?.price || 0}/month
-                              </p>
-                            </div>
-                          )}
-                          
-                          {/* Action Buttons */}
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            {/* Upgrade Request Button */}
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => {
-                                const currentPlanName = plans.find(p => p.id === business.currentPlanId)?.name || 'Unknown';
-                                // Use user's email if they're an owner, otherwise fetch owner's email
-                                const ownerEmail = user?.role === 'owner' ? user.email : undefined;
-                                setSelectedBusinessForUpgrade({
-                                  id: business.id,
-                                  planName: currentPlanName,
-                                  ownerEmail,
-                                });
-                                setUpgradeModalOpen(true);
-                              }}
-                              className="flex-1"
-                            >
-                              {t('userDashboard.upgradeRequest') || 'Upgrade Request'}
-                              {isRTL ? (
-                                <ArrowLeft className="w-4 h-4 ml-2" />
-                              ) : (
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              )}
+                          <Link href={`/b/${business.slug}/admin/dashboard`}>
+                            <Button className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              {t('userDashboard.goToAdmin') || 'Go to Admin Panel'}
+                              <ExternalLink className="w-4 h-4" />
                             </Button>
-                            
-                            {/* Cancel Plan Button - Show for all active subscriptions */}
-                            {business.subscriptionStatus === 'active' && !isExpired && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    disabled={savingBusinessId === business.id}
-                                    className="text-destructive hover:text-destructive flex-1"
-                                  >
-                                    <X className="w-4 h-4 mr-1" />
-                                    {t('userDashboard.cancelPlan') || 'Cancel Plan'}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
-                                  <AlertDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-                                    <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('userDashboard.cancelPlan') || 'Cancel Plan'}</AlertDialogTitle>
-                                    <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
-                                      {t('userDashboard.confirmCancelPlan') || 'Are you sure you want to cancel this plan? Your plan will remain active until the end date.'}
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                    <AlertDialogCancel>{t('common.cancel') || 'Cancel'}</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleCancelPlan(business.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          </Link>
+                        </div>
+                      </CardHeader>
+                      
+                      <Separator />
+                      
+                      <CardContent className="pt-6">
+                        {/* Plan Information */}
+                        {user.role === 'owner' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {startDate && (
+                                <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                                    <Calendar className="w-4 h-4" />
+                                    <span>{t('userDashboard.planStartDate') || 'Start Date'}</span>
+                                  </div>
+                                  <p className="font-medium">{formatDate(startDate)}</p>
+                                </div>
+                              )}
+                              {business.renewedAt && (
+                                <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                                    <Clock className="w-4 h-4" />
+                                    <span>{t('userDashboard.planRenewalDate') || 'Renewal Date'}</span>
+                                  </div>
+                                  <p className="font-medium">{formatDate(business.renewedAt)}</p>
+                                </div>
+                              )}
+                              {endDate && (
+                                <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                                    <Clock3 className="w-4 h-4" />
+                                    <span>{t('userDashboard.planEndDate') || 'End Date'}</span>
+                                  </div>
+                                  <p className="font-medium">{formatDate(endDate)}</p>
+                                  {daysRemaining !== null && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {daysRemaining === 0 
+                                        ? t('userDashboard.planExpired') || 'Expired'
+                                        : `${daysRemaining} ${t('userDashboard.daysRemaining') || 'days remaining'}`
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Warnings and Alerts */}
+                            {planStatus.status === 'expiring' && (
+                              <Alert className={`bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                <AlertDescription className={`text-orange-800 dark:text-orange-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  <div className="space-y-3">
+                                    <p className="font-medium">
+                                      {t('userDashboard.planExpiringSoon')?.replace('{days}', daysRemaining?.toString() || '0') || 
+                                       `Plan is about to end in ${daysRemaining} days. Please contact us to renew your plan.`}
+                                    </p>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        const subject = encodeURIComponent(`Plan Renewal Request - ${business.name}`);
+                                        const body = encodeURIComponent(
+                                          `Hello,\n\nI would like to renew my plan for my business:\n\n` +
+                                          `Business Name: ${business.name}\n` +
+                                          `Business Slug: ${business.slug}\n` +
+                                          `Current Plan: ${currentPlan?.name || 'Unknown'}\n` +
+                                          `Days Remaining: ${daysRemaining}\n` +
+                                          `User Name: ${user.name}\n` +
+                                          `User Email: ${user.email}\n` +
+                                          `User Phone: ${user.phone || 'N/A'}\n\n` +
+                                          `Please contact me to renew my plan.\n\nThank you!`
+                                        );
+                                        window.location.href = `mailto:plans@kalbook.io?subject=${subject}&body=${body}`;
+                                      }}
+                                      className={`border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900 ${isRTL ? 'flex-row-reverse' : ''}`}
                                     >
+                                      {t('userDashboard.upgradeRequest') || 'Contact to Renew'}
+                                      <ArrowRight className={`w-4 h-4 ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
+                                    </Button>
+                                  </div>
+                                </AlertDescription>
+                              </Alert>
+                            )}
+
+                            {planStatus.status === 'expired' && (
+                              <Alert variant="destructive" className={isRTL ? 'flex-row-reverse' : ''}>
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription className={isRTL ? 'text-right' : 'text-left'}>
+                                  {t('userDashboard.planExpired') || 'Plan expired. Please renew to continue using the admin panel.'}
+                                </AlertDescription>
+                              </Alert>
+                            )}
+
+                            {planStatus.status === 'cancelled' && endDate && (
+                              <Alert className={`bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <AlertDescription className={`text-yellow-800 dark:text-yellow-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                  {t('userDashboard.planCancelled')?.replace('{date}', formatDate(endDate)) || 
+                                   `Plan cancelled. Active until ${formatDate(endDate)}.`}
+                                </AlertDescription>
+                              </Alert>
+                            )}
+
+                            {/* Plan Actions */}
+                            <div className={`flex flex-col sm:flex-row gap-2 pt-2 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                              <Button
+                                variant="default"
+                                size="default"
+                                onClick={() => {
+                                  const currentPlanName = currentPlan?.name || 'Unknown';
+                                  const ownerEmail = user?.role === 'owner' ? user.email : undefined;
+                                  setSelectedBusinessForUpgrade({
+                                    id: business.id,
+                                    planName: currentPlanName,
+                                    ownerEmail,
+                                  });
+                                  setUpgradeModalOpen(true);
+                                }}
+                                className={`flex-1 gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                              >
+                                <CreditCard className="w-4 h-4" />
+                                {t('userDashboard.upgradeRequest') || 'Upgrade Request'}
+                              </Button>
+                              
+                              {business.subscriptionStatus === 'active' && planStatus.status !== 'expired' && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      disabled={savingBusinessId === business.id}
+                                      className={`text-destructive hover:text-destructive flex-1 gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                    >
+                                      <X className="w-4 h-4" />
                                       {t('userDashboard.cancelPlan') || 'Cancel Plan'}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+                                    <AlertDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+                                      <AlertDialogTitle>{t('userDashboard.cancelPlan') || 'Cancel Plan'}</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        {t('userDashboard.confirmCancelPlan') || 'Are you sure you want to cancel this plan? Your plan will remain active until the end date.'}
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                      <AlertDialogCancel>{t('common.cancel') || 'Cancel'}</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleCancelPlan(business.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        {t('userDashboard.cancelPlan') || 'Cancel Plan'}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                            
+                            {savingBusinessId === business.id && (
+                              <p className={`text-xs text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                {t('userDashboard.saving') || 'Saving...'}
+                              </p>
                             )}
                           </div>
-                          
-                          {savingBusinessId === business.id && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-2">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              {t('userDashboard.saving') || 'Saving...'}
-                            </p>
-                          )}
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+
+                {/* Create New Business Button */}
+                {user.role === 'owner' && (
+                  <Card className="border-dashed">
+                    <CardContent className="py-8 text-center">
+                      <Link href="/onboarding">
+                        <Button variant="outline" size="lg" className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <Plus className="w-5 h-5" />
+                          {t('userDashboard.createNewBusiness') || 'Create a new business'}
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <CardTitle>{t('userDashboard.profile') || 'Profile'}</CardTitle>
+                    <CardDescription>
+                      {t('userDashboard.profileDesc') || 'Manage your account information'}
+                    </CardDescription>
+                  </div>
+                  {!isEditing && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Edit className="w-4 h-4" />
+                      {t('userDashboard.editProfile') || 'Edit Profile'}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isEditing ? (
+                  <>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">{t('userDashboard.name') || 'Name'}</Label>
+                        <Input
+                          id="name"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          disabled={saving}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">{t('userDashboard.email') || 'Email'}</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          disabled={saving}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">{t('userDashboard.phone') || 'Phone'}</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          disabled={saving}
+                        />
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditName(user.name);
+                          setEditEmail(user.email);
+                          setEditPhone(user.phone || '');
+                        }}
+                        disabled={saving}
+                        className="flex-1"
+                      >
+                        {t('common.cancel') || 'Cancel'}
+                      </Button>
+                      <Button
+                        onClick={handleSaveProfile}
+                        disabled={saving}
+                        className={`flex-1 gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'} animate-spin`} />
+                            {t('userDashboard.saving') || 'Saving...'}
+                          </>
+                        ) : (
+                          <>
+                            <Save className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                            {t('common.save') || 'Save'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Avatar className="h-20 w-20 border-2 border-primary">
+                        <AvatarFallback className="text-2xl font-semibold bg-primary text-primary-foreground">
+                          {getInitials(user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={isRTL ? 'text-right' : 'text-left'}>
+                        <h3 className="text-2xl font-semibold">{user.name}</h3>
+                        <Badge variant="secondary" className="mt-1 capitalize">
+                          {user.role === 'owner' 
+                            ? (t('userDashboard.owner') || 'Owner')
+                            : (t('userDashboard.worker') || 'Worker')}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                          <Mail className="w-4 h-4" />
+                          {t('userDashboard.email') || 'Email'}
+                        </Label>
+                        <p className="text-lg font-medium">{user.email}</p>
+                      </div>
+                      {user.phone && (
+                        <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                            <Phone className="w-4 h-4" />
+                            {t('userDashboard.phone') || 'Phone'}
+                          </Label>
+                          <p className="text-lg font-medium">{user.phone}</p>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Create New Business Button */}
-              {user.role === 'owner' && (
-                <div className="pt-4 border-t">
-                  <Link href="/onboarding">
-                    <Button className="w-full" variant="default">
-                      {t('userDashboard.createNewBusiness') || 'Create a new business'}
-                      {isRTL ? (
-                        <ArrowLeft className="w-4 h-4 ml-2" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      )}
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Logout Button at Bottom */}
-        <div className="mt-8 pt-6 border-t flex justify-center">
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-            {t('userDashboard.logout') || 'Logout'}
-          </Button>
-        </div>
-        </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
+      
       <div className="mt-16">
         <Footer />
       </div>
@@ -786,4 +840,3 @@ export default function UserDashboardPage() {
     </div>
   );
 }
-

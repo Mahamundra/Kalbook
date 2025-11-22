@@ -9,7 +9,8 @@
         "templates": "القوالب",
         "qr": "رموز QR",
         "settings": "الإعدادات",
-        "viewPublicSite": "عرض الموقع العام"
+        "viewPublicSite": "عرض الموقع العام",
+        "more": "المزيد"
     },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -29,7 +30,12 @@
     "improvement": "-{value}% تحسن",
     "noAppointmentsToday": "لا توجد مواعيد مجدولة لليوم.",
     "goToCalendar": "انتقل إلى التقويم",
-    "goToOwnerDashboard": "انتقل إلى لوحة المالك"
+    "goToOwnerDashboard": "انتقل إلى لوحة المالك",
+    "analytics": "التحليلات",
+    "overview": "نظرة عامة",
+    "todaysScheduleDesc": "مواعيدك لليوم",
+    "analyticsNotAvailable": "التحليلات غير متاحة في خطتك الحالية.",
+    "upgradeForAnalytics": "قم بالترقية إلى خطة Professional أو Business لعرض التحليلات والرؤى."
   },
   "calendar": {
     "title": "التقويم",
@@ -523,7 +529,17 @@
     "planChangeOwnerOnly": "تغيير الخطة متاح فقط لأصحاب الأعمال",
     "selectPlan": "اختر خطة",
     "saving": "جاري الحفظ...",
-    "saved": "تم الحفظ بنجاح"
+    "saved": "تم الحفظ بنجاح",
+    "overview": "نظرة عامة",
+    "quickActions": "إجراءات سريعة",
+    "quickActionsDesc": "المهام والاختصارات الشائعة",
+    "totalBusinesses": "إجمالي الأعمال",
+    "activePlans": "الخطط النشطة",
+    "welcome": "مرحباً بعودتك",
+    "noBusinesses": "لا توجد أعمال",
+    "noBusinessesDesc": "ليس لديك أي أعمال بعد.",
+    "createNewBusinessDesc": "إعداد حساب عمل جديد",
+    "profileDesc": "إدارة معلومات حسابك"
   },
   "common": {
     "save": "حفظ",
@@ -816,7 +832,7 @@
     },
     "chooseBusinessType": {
       "title": "اختر نوع عملك",
-      "subtitle": "سنخصص الإعداد الخاص بك ليناسب عملك. اختر الفئة التي تناسب خدماتك، وسنقوم بتكوين كل ما تحتاجه لبدء قبول الحجوزات والتحكم في وقتك بكفاءة أكبر.",
+      "subtitle": "اختر مجال الخدمة الذي يناسب عملك، وسنهتم بإعداد كل ما تحتاجه – حتى تتمكن من البدء في إدارة المواعيد، واستقبال العملاء، والتركيز على ما يهم حقاً",
       "filterByCategory": "تصفية حسب الفئة",
       "allCategories": "جميع الفئات",
       "microcopy": {

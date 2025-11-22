@@ -9,7 +9,8 @@
         "templates": "תבניות",
         "qr": "קודי QR",
         "settings": "הגדרות",
-        "viewPublicSite": "צפה באתר הציבורי"
+        "viewPublicSite": "צפה באתר הציבורי",
+        "more": "עוד"
     },
   "dashboard": {
     "title": "לוח בקרה",
@@ -29,7 +30,12 @@
     "improvement": "-{value}% שיפור",
     "noAppointmentsToday": "לא הוזמנו תורים להיום.",
     "goToCalendar": "עבור ליומן",
-    "goToOwnerDashboard": "עבור ללוח המחוונים של הבעלים"
+    "goToOwnerDashboard": "עבור ללוח המחוונים של הבעלים",
+    "analytics": "אנליטיקה",
+    "overview": "סקירה כללית",
+    "todaysScheduleDesc": "התורים שלך להיום",
+    "analyticsNotAvailable": "אנליטיקה אינה זמינה בתוכנית הנוכחית שלך.",
+    "upgradeForAnalytics": "שדרג לתוכנית Professional או Business כדי לצפות באנליטיקה ותובנות."
   },
   "calendar": {
     "title": "יומן",
@@ -523,7 +529,17 @@
     "planChangeOwnerOnly": "שינוי תוכנית זמין רק לבעלי עסקים",
     "selectPlan": "בחר תוכנית",
     "saving": "שומר...",
-    "saved": "נשמר בהצלחה"
+    "saved": "נשמר בהצלחה",
+    "overview": "סקירה כללית",
+    "quickActions": "פעולות מהירות",
+    "quickActionsDesc": "משימות וקיצורי דרך נפוצים",
+    "totalBusinesses": "סה\"כ עסקים",
+    "activePlans": "תוכניות פעילות",
+    "welcome": "ברוך שובך",
+    "noBusinesses": "אין עסקים",
+    "noBusinessesDesc": "אין לך עסקים עדיין.",
+    "createNewBusinessDesc": "הגדר חשבון עסק חדש",
+    "profileDesc": "נהל את פרטי החשבון שלך"
   },
   "common": {
     "save": "שמור",
@@ -816,7 +832,7 @@
     },
     "chooseBusinessType": {
       "title": "בחרו את סוג העסק שלכם",
-      "subtitle": "אנו נתאים את ההגדרות שלכם בהתאם לעסק שלכם. בחרו את הקטגוריה המתאימה לשירותים שלכם, ואנו נגדיר עבורכם את כל מה שצריך כדי להתחיל לקבל הזמנות ולשלוט בזמן שלכם ביעילות רבה יותר.",
+      "subtitle": "בחרו את תחום השירות שמתאים לעסק שלכם, ואנחנו נדאג להגדיר עבורכם את כל מה שצריך – כך שתוכלו להתחיל לנהל תורים, לקבל לקוחות ולהתמקד במה שחשוב באמת",
       "filterByCategory": "סנן לפי קטגוריה",
       "allCategories": "כל הקטגוריות",
       "microcopy": {

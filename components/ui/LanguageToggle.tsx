@@ -49,7 +49,7 @@ export const LanguageToggle = () => {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-1.5 h-8 sm:h-10 rounded-md border border-input bg-background px-3 sm:px-4 py-1.5 sm:py-2 text-sm transition-all hover:bg-accent hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+            "group flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 sm:px-4 py-1.5 sm:py-2 text-sm transition-all hover:bg-accent hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
             isRTL && "flex-row-reverse"
           )}
           aria-label="Select language"

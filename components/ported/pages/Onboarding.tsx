@@ -1177,27 +1177,25 @@ const Onboarding = () => {
         {planDetails && step < 5 && step > 1 && (
           <Card className="mb-6 p-4 border-primary/20">
             <div className="flex items-center justify-between" dir={dir}>
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {t('onboarding.selectedPlan') || 'Selected Plan'}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold">
-                      {planDetails.name}
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {t('onboarding.selectedPlan') || 'Selected Plan'}
+                </p>
+                <div className="flex flex-col gap-1">
+                  <span className="text-lg font-semibold">
+                    {planDetails.name}
+                  </span>
+                  {planDetails.price > 0 && (
+                    <span className="text-muted-foreground">
+                      {planDetails.symbol}{planDetails.price}
+                      {t('home.pricing.month') || '/month'}
                     </span>
-                    {planDetails.price > 0 && (
-                      <span className="text-muted-foreground">
-                        {planDetails.symbol}{planDetails.price}
-                        {t('home.pricing.month') || '/month'}
-                      </span>
-                    )}
-                    {selectedPlan === 'basic' && (
-                      <span className="text-xs text-primary font-semibold">
-                        {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  {selectedPlan === 'basic' && (
+                    <span className="text-xs text-primary font-semibold">
+                      {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
+                    </span>
+                  )}
                 </div>
               </div>
               <Button
@@ -1233,7 +1231,7 @@ const Onboarding = () => {
             <div className="animate-fade-in">
               {/* Welcome Message */}
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold mb-2">{t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}</h2>
+                <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}</h2>
               </div>
               
               {!otpVerified && !authenticatedUser ? (
@@ -1394,7 +1392,7 @@ const Onboarding = () => {
 
           {step === 2 && (
             <div className="animate-fade-in">
-              <h2 className="text-3xl font-bold mb-2">{t('onboarding.businessInfo.title')}</h2>
+              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.businessInfo.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.businessInfo.subtitle')}</p>
               <div className="space-y-6">
                 <div>
@@ -1527,7 +1525,7 @@ const Onboarding = () => {
 
           {step === 3 && (
             <div className="animate-fade-in">
-              <h2 className="text-3xl font-bold mb-2">{t('onboarding.chooseBusinessType.title')}</h2>
+              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.chooseBusinessType.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.chooseBusinessType.subtitle')}</p>
               
               {/* Category Filter */}
@@ -1610,7 +1608,7 @@ const Onboarding = () => {
 
           {step === 4 && (
             <div className="animate-fade-in">
-              <h2 className="text-3xl font-bold mb-2">{t('onboarding.services.title')}</h2>
+              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.services.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.services.subtitle')}</p>
               <div className="space-y-4">
                 {services.map((service, index) => (
@@ -1737,7 +1735,7 @@ const Onboarding = () => {
 
           {step === 5 && (
             <div className="animate-fade-in">
-              <h2 className="text-3xl font-bold mb-2">{t('onboarding.planConfirmation.title') || 'Plan Confirmation'}</h2>
+              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.planConfirmation.title') || 'Plan Confirmation'}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.planConfirmation.subtitle') || 'Review your selected plan'}</p>
               
               {planDetails && (
@@ -1976,7 +1974,7 @@ const Onboarding = () => {
               <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: '#ff3e1b' }}>
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-3xl font-bold mb-2">{t('onboarding.almostThere.title')}</h2>
+              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.almostThere.title')}</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 {t('onboarding.almostThere.subtitle').replace('{businessType}', businessTypes.find(t => t.id === businessType)?.title || businessType?.replace('_', ' ') || '')}
               </p>
@@ -2096,14 +2094,15 @@ const Onboarding = () => {
 
       {/* Plan Selection Modal */}
       <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
-        <DialogContent className="max-w-4xl" dir={dir}>
-          <DialogHeader>
-            <DialogTitle>{t('onboarding.choosePlan') || 'Choose Your Plan'}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[90vw] sm:w-full max-w-sm sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] !flex !flex-col overflow-hidden p-0 !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2" dir={dir}>
+          <DialogHeader className="flex-shrink-0 p-4 sm:p-6 pb-3 sm:pb-4">
+            <DialogTitle className="text-sm sm:text-xl">{t('onboarding.choosePlan') || 'Choose Your Plan'}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {t('onboarding.choosePlanDescription') || 'Select the plan that best fits your business needs. You can change this anytime during setup.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid md:grid-cols-3 gap-4 mt-4">
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 sm:pb-6 scrollbar-thin">
+            <div className="grid md:grid-cols-3 gap-3 sm:gap-4">
             {allPlans.map((plan) => {
               const planKey = plan.key;
               const isSelected = selectedPlan === planKey;
@@ -2114,32 +2113,32 @@ const Onboarding = () => {
               return (
                 <Card
                   key={planKey}
-                  className={`p-6 h-full flex flex-col relative transition-all ${
+                  className={`p-4 sm:p-6 h-full flex flex-col relative transition-all ${
                     isSelected
                       ? 'border-2 border-primary'
                       : 'border hover:border-primary/50'
                   } ${isProfessional && !isSelected ? 'border-primary/30' : ''}`}
                 >
                   {isProfessional && !isSelected && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold">
+                    <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-primary text-primary-foreground px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold">
                         {t('home.pricing.bestSeller') || 'Best Seller'}
                       </span>
                     </div>
                   )}
-                  <div className="text-center mb-4">
-                    <h3 className="text-xl font-bold mb-2">{planName}</h3>
+                  <div className="text-center mb-3 sm:mb-4">
+                    <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2">{planName}</h3>
                     {planKey === 'basic' && (
-                      <p className="text-xs font-semibold text-primary mb-2">
+                      <p className="text-xs font-semibold text-primary mb-1 sm:mb-2">
                         {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
                       </p>
                     )}
-                    <div className="mb-2">
-                      <span className="text-3xl font-bold text-primary">
+                    <div className="mb-1 sm:mb-2">
+                      <span className="text-2xl sm:text-3xl font-bold text-primary">
                         {plan.symbol}{plan.price}
                       </span>
                       {plan.price > 0 && (
-                        <span className="text-muted-foreground text-lg ml-1">
+                        <span className="text-muted-foreground text-sm sm:text-lg ml-1">
                           {t('home.pricing.month') || '/month'}
                         </span>
                       )}
@@ -2150,19 +2149,18 @@ const Onboarding = () => {
                       </p>
                     )}
                   </div>
-                  <ul className="space-y-2 mb-8 flex-grow">
+                  <ul className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-8 flex-grow">
                     {planHighlights.map((highlight: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      <li key={i} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary mt-0.5 flex-shrink-0" />
                         <span className="text-muted-foreground">{highlight}</span>
                       </li>
                     ))}
                   </ul>
                   <div className="mt-auto">
                     <Button
-                      className="w-full"
+                      className="w-full text-xs sm:text-base h-9 sm:h-11"
                       variant={isSelected ? 'default' : 'outline'}
-                      size="lg"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedPlan(planKey);
@@ -2183,6 +2181,7 @@ const Onboarding = () => {
                 </Card>
               );
             })}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

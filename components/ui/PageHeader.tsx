@@ -23,24 +23,33 @@ export function PageHeader({
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-6">
-        {/* Language Toggle on the left */}
-        <LanguageToggle />
-        
-        {/* Logo in the middle */}
-        <div className="flex-1 flex justify-center">
-          <KalBookLogo size="lg" variant="full" animated={false} />
+        {/* Language Toggle - on left for desktop only */}
+        <div className="hidden md:block">
+          <LanguageToggle />
         </div>
         
-        {/* Homepage button on the right */}
-        {showHomepageButton && (
-          <Link href={homepageHref}>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Home className="h-4 w-4" />
-              {homepageButtonText || t('userDashboard.homepage') || 'Homepage'}
-            </Button>
-          </Link>
-        )}
-        {!showHomepageButton && <div />}
+        {/* Logo - on left for mobile, centered for desktop */}
+        <div className="flex-1 flex justify-start md:justify-center">
+          <KalBookLogo size="md" variant="full" animated={false} />
+        </div>
+        
+        {/* Right side buttons - Language (mobile) + Homepage */}
+        <div className="flex items-center gap-2">
+          {/* Language Toggle - visible on mobile, hidden on desktop */}
+          <div className="md:hidden">
+            <LanguageToggle />
+          </div>
+          
+          {/* Homepage button */}
+          {showHomepageButton && (
+            <Link href={homepageHref}>
+              <Button variant="outline" size="icon" className="h-10 w-10">
+                <Home className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
+          {!showHomepageButton && <div />}
+        </div>
       </div>
     </div>
   );

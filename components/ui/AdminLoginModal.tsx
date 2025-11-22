@@ -433,7 +433,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md mx-4 sm:mx-auto" dir={dir}>
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md" dir={dir}>
         {step === 'notRegistered' ? (
           <>
             <DialogHeader>
