@@ -130,28 +130,57 @@ export async function POST(request: NextRequest) {
       selectedPlan = fallbackPlan;
     }
 
-    // Calculate trial dates (14 days from now)
-    const trialStartedAt = new Date();
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+    // Only basic plan gets 14-day trial period
+    // Professional and business plans start as active subscriptions
+    const isBasicPlan = selectedPlanName === 'basic';
+    
+    let trialStartedAt: Date | null = null;
+    let trialEndsAt: Date | null = null;
+    let subscriptionStatus: 'trial' | 'active' = 'active';
+    let subscriptionStartedAt: Date | null = null;
+    let subscriptionEndsAt: Date | null = null;
+
+    if (isBasicPlan) {
+      // Basic plan: 14-day trial
+      trialStartedAt = new Date();
+      trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+      subscriptionStatus = 'trial';
+    } else {
+      // Professional/Business plans: Start as active subscription (30 days)
+      subscriptionStartedAt = new Date();
+      subscriptionEndsAt = new Date();
+      subscriptionEndsAt.setDate(subscriptionEndsAt.getDate() + 30);
+      subscriptionStatus = 'active';
+    }
 
     // Create business
-    const businessData = {
+    const businessData: any = {
       slug,
       name: businessInfo.name.trim(),
       email: businessInfo.email || null,
       phone: e164Phone,
       whatsapp: e164Phone,
       address: businessInfo.address || null,
-      timezone: businessInfo.timezone || getDefaultTimezone(businessType as BusinessType),
-      currency: businessInfo.currency || getDefaultCurrency(businessType as BusinessType),
+      timezone: 'Asia/Jerusalem', // Always set timezone to Asia/Jerusalem regardless of language or provided value
+      currency: 'ILS', // Always set currency to ILS regardless of language or provided value
       business_type: businessType as BusinessType,
       plan_id: selectedPlan.id,
-      trial_started_at: trialStartedAt.toISOString(),
-      trial_ends_at: trialEndsAt.toISOString(),
-      subscription_status: 'trial' as const,
+      subscription_status: subscriptionStatus,
       previous_calendar_type: businessInfo.previousCalendarType || null,
     };
+
+    // Only set trial dates for basic plan
+    if (isBasicPlan && trialStartedAt && trialEndsAt) {
+      businessData.trial_started_at = trialStartedAt.toISOString();
+      businessData.trial_ends_at = trialEndsAt.toISOString();
+    }
+
+    // Set subscription dates for professional/business plans
+    if (!isBasicPlan && subscriptionStartedAt && subscriptionEndsAt) {
+      businessData.subscription_started_at = subscriptionStartedAt.toISOString();
+      businessData.subscription_ends_at = subscriptionEndsAt.toISOString();
+    }
 
     const businessResult = await supabase
       .from('businesses')

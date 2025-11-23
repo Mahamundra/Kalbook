@@ -109,11 +109,11 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
       <SidebarProvider defaultOpen={true}>
         <AdminSidebar />
         
-        <SidebarInset>
-            <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6 relative">
-              {/* Logo - centered on mobile, left on desktop */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 md:relative md:left-0 md:transform-none">
-                <KalBookLogo size="lg" variant="text" animated={false} />
+        <SidebarInset className="overflow-y-auto">
+            <header className="flex min-h-[69px] items-center gap-4 border-b bg-background px-4 md:px-6 relative py-6 w-full">
+              {/* Logo - centered */}
+              <div className="absolute left-1/2 transform -translate-x-1/2">
+                <KalBookLogo size="lg" variant="full" animated={false} />
               </div>
               
               {/* Right side - User menu (mobile only) */}

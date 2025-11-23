@@ -14,7 +14,8 @@ import {
   FileText,
   Mail,
   QrCode,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
@@ -215,6 +216,20 @@ export const MobileBottomNav = () => {
                     </Link>
                   );
                 })}
+                {/* View My Booking Page Button */}
+                {businessSlug && (
+                  <Link
+                    href={`/b/${businessSlug}`}
+                    onClick={() => setSheetOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                      "hover:bg-muted/50 active:bg-muted border-t mt-2 pt-4"
+                    )}
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    <span>{t('nav.viewMyBookingPage')}</span>
+                  </Link>
+                )}
               </div>
             </SheetContent>
           </Sheet>

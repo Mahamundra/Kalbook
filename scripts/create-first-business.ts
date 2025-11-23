@@ -47,8 +47,8 @@ async function createFirstBusiness() {
     phone: '+1234567890',
     whatsapp: '+1234567890',
     address: '123 Main St, City, Country',
-    timezone: 'America/New_York',
-    currency: 'USD',
+    timezone: 'Asia/Jerusalem', // Always set timezone to Asia/Jerusalem
+    currency: 'ILS', // Always set currency to ILS
     business_type: 'barbershop' as const,
   };
 

@@ -10,6 +10,7 @@ import { getServices } from '@/lib/api/services';
 import { Pencil, Trash2, Plus, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Worker, Service } from '@/types/admin';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -408,7 +409,6 @@ const Workers = () => {
       key: 'actions',
       label: t('workers.actions'),
       render: (worker: Worker) => {
-        const { isRTL } = useLocale();
         // Hide delete button for main admin users (owners)
         const canDelete = !worker.isMainAdmin;
         
@@ -437,7 +437,7 @@ const Workers = () => {
         // 2. Current user is main admin (owner) - owners can edit everyone including themselves
         const canEdit = !worker.isMainAdmin || currentUserIsMainAdmin;
         return (
-          <div className={`flex items-center gap-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+          <div className="flex items-center gap-2 justify-end">
             {canEdit && (
               <Button
                 variant="ghost"
@@ -485,7 +485,10 @@ const Workers = () => {
         action={
           <Button 
             onClick={handleCreate}
-            className={(!canManageWorkers || (workerLimit && !workerLimit.canAdd)) ? 'opacity-50' : ''}
+            className={cn(
+              "w-full sm:w-auto",
+              (!canManageWorkers || (workerLimit && !workerLimit.canAdd)) ? 'opacity-50' : ''
+            )}
             title={
               !canManageWorkers 
                 ? 'Your plan doesn\'t allow adding workers. Please upgrade to continue.'

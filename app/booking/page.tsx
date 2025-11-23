@@ -1164,7 +1164,7 @@ function BookingPageContent() {
   };
 
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white" data-booking-page="true">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -2860,7 +2860,7 @@ function BookingPageFallback() {
   const { t } = useLocale();
   
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in" data-booking-page="true">
       <div className="text-center space-y-6 px-4">
         {/* Logo */}
         <div className="flex justify-center mb-4">

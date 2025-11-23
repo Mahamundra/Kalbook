@@ -454,16 +454,16 @@ export function getDefaultServices(
  * Get default timezone based on business type (optional enhancement)
  */
 export function getDefaultTimezone(businessType: BusinessType): string {
-  // Default to UTC, can be enhanced based on business type or location
-  return 'UTC';
+  // Always use Asia/Jerusalem for all businesses
+  return 'Asia/Jerusalem';
 }
 
 /**
  * Get default currency based on business type (optional enhancement)
  */
 export function getDefaultCurrency(businessType: BusinessType): string {
-  // Default to USD, can be enhanced
-  return 'USD';
+  // Always use ILS for all businesses
+  return 'ILS';
 }
 
 /**

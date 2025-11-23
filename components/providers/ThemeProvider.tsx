@@ -43,37 +43,50 @@ function hexToHsl(hex: string): string {
 }
 
 /**
- * Apply theme color to CSS variables
+ * Apply theme color to CSS variables - ONLY for booking pages
+ * Uses booking-page-specific CSS variables to avoid affecting admin panel
  */
 function applyThemeColor(themeColor: string) {
   const hsl = hexToHsl(themeColor);
   const root = document.documentElement;
   
-  // Update --primary CSS variable
-  root.style.setProperty('--primary', hsl);
-  
-  // Also update related primary variables for consistency
+  // Only apply to booking page - use booking-specific CSS variables
+  // These variables are scoped to the booking page element
   const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
-  root.style.setProperty('--primary-foreground', '0 0% 100%');
-  root.style.setProperty('--primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
-  root.style.setProperty('--ring', hsl);
   
-  // Update sidebar primary color
-  root.style.setProperty('--sidebar-primary', hsl);
-  root.style.setProperty('--sidebar-ring', hsl);
-  root.style.setProperty('--sidebar-accent-foreground', hsl);
+  // Set booking-page-specific CSS variables (not global --primary)
+  root.style.setProperty('--booking-primary', hsl);
+  root.style.setProperty('--booking-primary-foreground', '0 0% 100%');
+  root.style.setProperty('--booking-primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
+  root.style.setProperty('--booking-ring', hsl);
 }
 
 /**
- * ThemeProvider - Applies theme color from settings globally
+ * ThemeProvider - Applies theme color from settings ONLY to booking pages
+ * Admin panel and other pages keep the default homepage primary color
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Function to load and apply theme color
     const loadAndApplyTheme = async () => {
       try {
-        // Try to get settings from current URL slug
         const pathname = window.location.pathname;
+        
+        // ONLY apply theme color on booking pages (/b/[slug] or /booking)
+        const isBookingPage = pathname.match(/^\/b\/[^/]+/) || pathname === '/booking';
+        
+        if (!isBookingPage) {
+          // Not a booking page - don't apply theme color
+          // Remove any booking theme variables if they exist
+          const root = document.documentElement;
+          root.style.removeProperty('--booking-primary');
+          root.style.removeProperty('--booking-primary-foreground');
+          root.style.removeProperty('--booking-primary-glow');
+          root.style.removeProperty('--booking-ring');
+          return;
+        }
+        
+        // Try to get settings from current URL slug
         const slugMatch = pathname.match(/\/b\/([^/]+)/);
         const slug = slugMatch ? slugMatch[1] : null;
         
@@ -89,9 +102,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // Fallback: Try to get from admin settings (if on admin page)
-        if (pathname.includes('/admin/')) {
-          const response = await fetch('/api/settings');
+        // Fallback: Try to get from query params or cookie (for /booking route)
+        const urlParams = new URLSearchParams(window.location.search);
+        const businessSlug = urlParams.get('slug') || urlParams.get('ui');
+        if (businessSlug) {
+          const response = await fetch(`/api/settings?businessSlug=${businessSlug}`);
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.settings?.branding?.themeColor) {

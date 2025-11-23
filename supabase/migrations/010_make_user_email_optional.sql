@@ -7,3 +7,4 @@ ALTER COLUMN email DROP NOT NULL;
 -- Note: The UNIQUE constraint on (business_id, email) will still work
 -- PostgreSQL allows multiple NULL values in a UNIQUE constraint
 
+

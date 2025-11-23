@@ -7,6 +7,7 @@ import { useDirection } from '@/components/providers/DirectionProvider';
 import { Checkbox } from '@/components/ported/ui/checkbox';
 import { useIsMobile } from '@/components/ported/hooks/use-mobile';
 import { useLocale } from '@/components/ported/hooks/useLocale';
+import { cn } from '@/lib/utils';
 
 interface Column<T> {
   key: string;
@@ -187,7 +188,17 @@ export function DataTable<T extends { id: string }>({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHead key={column.key}>{column.label}</TableHead>
+                <TableHead 
+                  key={column.key}
+                  className={cn(
+                    column.key === 'actions' 
+                      ? (isRTL ? 'text-left' : 'text-right')
+                      : (isRTL ? 'text-right' : 'text-left'),
+                    column.key === 'actions' ? (isRTL ? 'pl-4 pr-0' : 'pr-4 pl-0') : ''
+                  )}
+                >
+                  {column.label}
+                </TableHead>
               ))}
               {selectable && (
                 <TableHead className="w-12">
@@ -232,7 +243,10 @@ export function DataTable<T extends { id: string }>({
                     <TableCell 
                       key={column.key}
                       onClick={() => selectable && onRowClick?.(item)}
-                      className={selectable && onRowClick ? 'cursor-pointer' : ''}
+                      className={cn(
+                        selectable && onRowClick ? 'cursor-pointer' : '',
+                        column.key === 'actions' ? (isRTL ? 'pl-4 pr-0' : 'pr-4 pl-0') : ''
+                      )}
                     >
                       {column.render ? column.render(item) : String((item as any)[column.key])}
                     </TableCell>

@@ -65,86 +65,43 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ported/ui/dropdown-menu';
-import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video } from 'lucide-react';
+import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ported/ui/tabs';
+import { Separator } from '@/components/ported/ui/separator';
+import { BookingPagePreview } from './BookingPagePreview';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ported/ui/dialog';
 import type { BusinessProfile } from '@/types/admin';
 
 // Banner Image Preview Component with Video Support
 function BannerImagePreview({ 
   uploadUrl, 
   videoUrl,
-  position,
   onRemove,
-  onVideoChange,
-  onPositionChange
+  onVideoChange
 }: { 
   uploadUrl: string; 
   videoUrl?: string;
-  position?: { x: number; y: number };
   onRemove: () => void;
   onVideoChange: (videoUrl: string) => void;
-  onPositionChange?: (position: { x: number; y: number }) => void;
 }) {
   const { t } = useLocale();
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState<{ x: number; y: number }>(
-    position || { x: 50, y: 50 }
-  );
-
-  // Update position when prop changes
-  useEffect(() => {
-    if (position) {
-      setCurrentPosition(position);
-    }
-  }, [position]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!onPositionChange || !containerRef.current) return;
-    e.preventDefault();
-    setIsDragging(true);
-    
-    const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
-    
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
-      const y = ((moveEvent.clientY - rect.top) / rect.height) * 100;
-      
-      const newPosition = {
-        x: Math.max(0, Math.min(100, x)),
-        y: Math.max(0, Math.min(100, y)),
-      };
-      
-      setCurrentPosition(newPosition);
-      onPositionChange(newPosition);
-    };
-    
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const objectPosition = `${currentPosition.x}% ${currentPosition.y}%`;
   
   return (
     <div 
-      ref={containerRef}
-      className="relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-none sm:rounded-lg border-2 border-dashed bg-muted cursor-move"
-      onMouseDown={handleMouseDown}
+      className="relative w-full h-64 overflow-hidden rounded-lg border-2 border-dashed bg-muted"
     >
       {videoUrl ? (
         <video
           src={videoUrl}
           className="w-full h-full object-cover"
-          style={{ objectPosition }}
           autoPlay
           loop
           muted
@@ -155,7 +112,6 @@ function BannerImagePreview({
           src={uploadUrl}
           alt="Banner"
           className="w-full h-full object-cover"
-          style={{ objectPosition }}
           draggable={false}
         />
       )}
@@ -207,11 +163,6 @@ function BannerImagePreview({
           {t('settings.removeVideo')}
         </Button>
       )}
-      {onPositionChange && (
-        <div className="absolute bottom-2 right-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded pointer-events-none">
-          {t('settings.dragToReposition')}
-        </div>
-      )}
       <input
         ref={videoInputRef}
         type="file"
@@ -254,7 +205,11 @@ const Settings = () => {
   const { isRTL } = useDirection();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('business');
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [uploading, setUploading] = useState<{ logo?: boolean; banner?: boolean; video?: boolean }>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [canCustomBranding, setCanCustomBranding] = useState(true); // Default to true to avoid blocking
   const [canUseWhatsApp, setCanUseWhatsApp] = useState(true); // Default to true to avoid blocking
   const [canUseMultiLanguage, setCanUseMultiLanguage] = useState(true); // Default to true to avoid blocking
@@ -286,8 +241,8 @@ const Settings = () => {
             type: 'pattern',
             patternId: 'pattern1',
           },
-          guestMessage: '',
-          loggedInMessage: '',
+          guestMessage: 'שלום אורח, ברוך הבא!',
+          loggedInMessage: 'שלום {name}, ברוך הבא!',
         },
         locale: { language: 'en' as const, rtl: false },
         notifications: { 
@@ -317,27 +272,28 @@ const Settings = () => {
     return null as any; // Will be loaded from API
   });
 
-  // Update CSS variable when theme color changes
-  useEffect(() => {
-    if (!mounted || !settings?.branding?.themeColor) return;
+  // Format phone number with dashes (050-000-0000)
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
     
-    const hsl = hexToHsl(settings.branding.themeColor);
-    const root = document.documentElement;
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
     
-    // Update --primary CSS variable
-    root.style.setProperty('--primary', hsl);
-    
-    // Also update related primary variables for consistency
-    const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
-    root.style.setProperty('--primary-foreground', '0 0% 100%');
-    root.style.setProperty('--primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
-    root.style.setProperty('--ring', hsl);
-    
-    // Update sidebar primary color
-    root.style.setProperty('--sidebar-primary', hsl);
-    root.style.setProperty('--sidebar-ring', hsl);
-    root.style.setProperty('--sidebar-accent-foreground', hsl);
-  }, [settings?.branding?.themeColor, mounted]);
+    // Format as XXX-XXX-XXXX (always maintain dashes)
+    if (limited.length === 0) {
+      return '';
+    } else if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
+
+  // Note: Theme color is only applied to booking pages via ThemeProvider
+  // Admin panel keeps the default homepage primary color
 
   // Load settings from API after mount
   useEffect(() => {
@@ -370,6 +326,14 @@ const Settings = () => {
           // Always set timezone and currency to Israel/ILS
           loadedSettings.businessProfile.timezone = 'Asia/Jerusalem';
           loadedSettings.businessProfile.currency = 'ILS';
+          
+          // Format phone numbers to XXX-XXX-XXXX format (10 digits with dashes)
+          if (loadedSettings.businessProfile.phone) {
+            loadedSettings.businessProfile.phone = formatPhoneNumber(loadedSettings.businessProfile.phone);
+          }
+          if (loadedSettings.businessProfile.whatsapp) {
+            loadedSettings.businessProfile.whatsapp = formatPhoneNumber(loadedSettings.businessProfile.whatsapp);
+          }
           
           // Ensure socialLinks exists
           if (!loadedSettings.businessProfile.socialLinks) {
@@ -407,9 +371,17 @@ const Settings = () => {
               type: 'pattern',
               patternId: 'pattern1',
             },
-            guestMessage: '',
-            loggedInMessage: '',
+            guestMessage: 'שלום אורח, ברוך הבא!',
+            loggedInMessage: 'שלום {name}, ברוך הבא!',
           };
+        } else {
+          // Set default greeting messages if empty
+          if (!loadedSettings.branding.guestMessage || loadedSettings.branding.guestMessage.trim() === '') {
+            loadedSettings.branding.guestMessage = 'שלום אורח, ברוך הבא!';
+          }
+          if (!loadedSettings.branding.loggedInMessage || loadedSettings.branding.loggedInMessage.trim() === '') {
+            loadedSettings.branding.loggedInMessage = 'שלום {name}, ברוך הבא!';
+          }
         }
         
         // Ensure locale has defaults if missing
@@ -482,8 +454,8 @@ const Settings = () => {
               type: 'pattern',
               patternId: 'pattern1',
             },
-            guestMessage: '',
-            loggedInMessage: '',
+            guestMessage: 'שלום אורח, ברוך הבא!',
+            loggedInMessage: 'שלום {name}, ברוך הבא!',
           },
           locale: { language: 'en', rtl: false },
           notifications: {
@@ -530,6 +502,7 @@ const Settings = () => {
 
   const handleSave = async () => {
     try {
+      setSaving(true);
       // Ensure timezone and currency are always set to Israel/ILS
       const settingsToSave = {
         ...settings,
@@ -540,6 +513,7 @@ const Settings = () => {
         },
       };
       await updateSettings(settingsToSave);
+      setLastSaved(new Date());
       toast.success(t('settings.savedSuccessfully') || 'Settings saved successfully');
       // Trigger a custom event to notify other components of settings change
       if (typeof window !== 'undefined') {
@@ -547,6 +521,8 @@ const Settings = () => {
       }
     } catch (error: any) {
       toast.error(error?.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -681,10 +657,196 @@ const Settings = () => {
     <div>
       <PageHeader title={t('settings.title')} />
 
-      <div className="space-y-6">
-        {/* Business Profile */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.businessProfile')}</h3>
+      {/* Save Status Bar */}
+      <div className={`mb-6 flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-muted-foreground">{t('settings.saving') || 'Saving...'}</span>
+            </>
+          ) : lastSaved ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <span className="text-muted-foreground">
+                {t('settings.lastSaved') || 'Last saved'} {lastSaved.toLocaleTimeString()}
+              </span>
+            </>
+          ) : null}
+        </div>
+        <Button 
+          onClick={handleSave} 
+          size="sm" 
+          disabled={saving}
+          className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {t('settings.save') || 'Save Changes'}
+        </Button>
+      </div>
+
+      {/* Main Settings with Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="grid lg:grid-cols-[250px_1fr] gap-6">
+          {/* Sidebar Navigation */}
+          <div className="hidden lg:block">
+            <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
+              <TabsTrigger 
+                value="business" 
+                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Building2 className="w-4 h-4" />
+                <span>{t('settings.businessProfile') || 'Business Profile'}</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="branding" 
+                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Palette className="w-4 h-4" />
+                <span>{t('settings.bookingPageAppearance') || 'Branding'}</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="calendar" 
+                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>{t('settings.calendarSettings') || 'Calendar'}</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="notifications" 
+                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Bell className="w-4 h-4" />
+                <span>{t('settings.notifications') || 'Notifications'}</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="language" 
+                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Globe className="w-4 h-4" />
+                <span>{t('settings.languageAndLocalization') || 'Language'}</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="integrations" 
+                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <Link2 className="w-4 h-4" />
+                <span>{t('settings.integrations') || 'Integrations'}</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Mobile Tabs */}
+          <div className="lg:hidden">
+            <TabsList className="grid grid-cols-3 w-full mb-4">
+              <TabsTrigger value="business" className="gap-1 text-xs">
+                <Building2 className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('settings.businessProfile') || 'Business'}</span>
+              </TabsTrigger>
+              <TabsTrigger value="branding" className="gap-1 text-xs">
+                <Palette className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('settings.bookingPageAppearance') || 'Branding'}</span>
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-1 text-xs">
+                <Calendar className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('settings.calendarSettings') || 'Calendar'}</span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsList className="grid grid-cols-3 w-full mb-4">
+              <TabsTrigger value="notifications" className="gap-1 text-xs">
+                <Bell className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('settings.notifications') || 'Notifications'}</span>
+              </TabsTrigger>
+              <TabsTrigger value="language" className="gap-1 text-xs">
+                <Globe className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('settings.languageAndLocalization') || 'Language'}</span>
+              </TabsTrigger>
+              <TabsTrigger value="integrations" className="gap-1 text-xs">
+                <Link2 className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('settings.integrations') || 'Integrations'}</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Content Area */}
+          <div className="space-y-6">
+            {/* Business Profile Tab */}
+            <TabsContent value="business" className="space-y-6 mt-0">
+              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2 mb-6">
+                  <Building2 className="w-5 h-5 text-primary" />
+                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.businessProfile')}</h3>
+                </div>
+                
+                {/* Logo Upload */}
+                <div className="mb-6 pb-6 border-b">
+                  <label className={`text-sm font-medium mb-3 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.logo')}
+                  </label>
+                  <div className="space-y-4">
+                    {settings.branding.logoUrl ? (
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-32 h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                          <img
+                            src={settings.branding.logoUrl}
+                            alt={t('settings.businessLogo')}
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById('logo-upload')?.click()}
+                            disabled={!canCustomBranding}
+                            title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
+                          >
+                            <Upload className="w-4 h-4 me-2" />
+                            {t('settings.changeLogo')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleRemoveLogo}
+                            disabled={!canCustomBranding}
+                            title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
+                          >
+                            <X className="w-4 h-4 me-2" />
+                            {t('settings.removeLogo')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="w-32 h-32 border-2 border-dashed rounded-lg bg-muted flex items-center justify-center">
+                          <span className="text-sm text-muted-foreground">{t('settings.noLogo')}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          disabled={!canCustomBranding}
+                          title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
+                        >
+                          <Upload className="w-4 h-4 me-2" />
+                          {t('settings.uploadLogo')}
+                        </Button>
+                      </div>
+                    )}
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.businessName')}</label>
@@ -717,12 +879,14 @@ const Settings = () => {
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.phone')}</label>
               <Input
                 value={settings.businessProfile.phone}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
                   setSettings({
                     ...settings,
-                    businessProfile: { ...settings.businessProfile, phone: e.target.value } as BusinessProfile,
-                  })
-                }
+                    businessProfile: { ...settings.businessProfile, phone: formatted } as BusinessProfile,
+                  });
+                }}
+                maxLength={12}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
             </div>
@@ -735,19 +899,21 @@ const Settings = () => {
                     toast.error('Your plan doesn\'t allow WhatsApp integration. Please upgrade to continue.');
                     return;
                   }
+                  const formatted = formatPhoneNumber(e.target.value);
                   setSettings({
                     ...settings,
-                    businessProfile: { ...settings.businessProfile, whatsapp: e.target.value } as BusinessProfile,
+                    businessProfile: { ...settings.businessProfile, whatsapp: formatted } as BusinessProfile,
                   });
                 }}
                 disabled={!canUseWhatsApp}
                 title={!canUseWhatsApp ? 'Your plan doesn\'t allow WhatsApp integration. Please upgrade to continue.' : ''}
+                maxLength={12}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
             </div>
             <div className="md:col-span-2">
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.address')}</label>
-              <Textarea
+              <Input
                 value={settings.businessProfile.address}
                 onChange={(e) =>
                   setSettings({
@@ -755,7 +921,6 @@ const Settings = () => {
                     businessProfile: { ...settings.businessProfile, address: e.target.value } as BusinessProfile,
                   })
                 }
-                rows={3}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
             </div>
@@ -783,79 +948,47 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+            </TabsContent>
 
-        {/* Branding */}
-        <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.bookingPageAppearance')}</h3>
-            {!canCustomBranding && (
-              <span className="text-xs text-muted-foreground">(Upgrade required)</span>
-            )}
-          </div>
-          <div className="space-y-6">
-            <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.logo')}</label>
-              <div className="space-y-4">
-                {settings.branding.logoUrl ? (
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-32 h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                      <img
-                        src={settings.branding.logoUrl}
-                        alt={t('settings.businessLogo')}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                        disabled={!canCustomBranding}
-                        title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
-                      >
-                        <Upload className="w-4 h-4 me-2" />
-                        {t('settings.changeLogo')}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleRemoveLogo}
-                        disabled={!canCustomBranding}
-                        title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
-                      >
-                        <X className="w-4 h-4 me-2" />
-                        {t('settings.removeLogo')}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="w-32 h-32 border-2 border-dashed rounded-lg bg-muted flex items-center justify-center">
-                      <span className="text-sm text-muted-foreground">{t('settings.noLogo')}</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('logo-upload')?.click()}
-                      disabled={!canCustomBranding}
-                      title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
-                    >
-                      <Upload className="w-4 h-4 me-2" />
-                      {t('settings.uploadLogo')}
-                    </Button>
-                  </div>
-                )}
-                <input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                />
+            {/* Branding Tab */}
+            <TabsContent value="branding" className="space-y-6 mt-0">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-primary" />
+                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.bookingPageAppearance')}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!canCustomBranding && (
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">(Upgrade required)</span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPreviewModal(true)}
+                    className="gap-2"
+                  >
+                    <Image className="w-4 h-4" />
+                    {t('settings.openPreview') || 'Open Preview'}
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.themeColor')}</label>
+
+              {/* Settings Panel */}
+              <div className="space-y-6">
+
+              {/* Brand Colors Section */}
+              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <Palette className="w-4 h-4" />
+                  {t('settings.themeColor') || 'Brand Colors'}
+                </h4>
+                <div className="space-y-6">
+                  {/* Theme Color */}
+                  <div>
+                    <label className={`text-sm font-medium mb-3 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('settings.themeColor')}
+                    </label>
               
               {/* Hex Color Input */}
               <div className="flex gap-2 items-center mb-3">
@@ -877,17 +1010,9 @@ const Settings = () => {
                         ...settings,
                         branding: { ...settings.branding, themeColor: newColor },
                       });
-                      // Immediately update CSS variable for preview (only if valid 6-digit hex)
-                      if (value.length === 6) {
-                        const hsl = hexToHsl(newColor);
-                        const root = document.documentElement;
-                        root.style.setProperty('--primary', hsl);
-                        const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
-                        root.style.setProperty('--primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
-                        root.style.setProperty('--ring', hsl);
-                        root.style.setProperty('--sidebar-primary', hsl);
-                        root.style.setProperty('--sidebar-ring', hsl);
-                        root.style.setProperty('--sidebar-accent-foreground', hsl);
+                      // Trigger settings update event for booking page theme refresh
+                      if (value.length === 6 && typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('settingsUpdated'));
                       }
                     }}
                     onPaste={(e) => {
@@ -902,17 +1027,9 @@ const Settings = () => {
                         ...settings,
                         branding: { ...settings.branding, themeColor: newColor },
                       });
-                      // Immediately update CSS variable for preview (only if valid 6-digit hex)
-                      if (value.length === 6) {
-                        const hsl = hexToHsl(newColor);
-                        const root = document.documentElement;
-                        root.style.setProperty('--primary', hsl);
-                        const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
-                        root.style.setProperty('--primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
-                        root.style.setProperty('--ring', hsl);
-                        root.style.setProperty('--sidebar-primary', hsl);
-                        root.style.setProperty('--sidebar-ring', hsl);
-                        root.style.setProperty('--sidebar-accent-foreground', hsl);
+                      // Trigger settings update event for booking page theme refresh
+                      if (value.length === 6 && typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('settingsUpdated'));
                       }
                     }}
                     onKeyDown={(e) => {
@@ -975,16 +1092,10 @@ const Settings = () => {
                         ...settings,
                         branding: { ...settings.branding, themeColor: newColor },
                       });
-                      // Immediately update CSS variable for preview
-                      const hsl = hexToHsl(newColor);
-                      const root = document.documentElement;
-                      root.style.setProperty('--primary', hsl);
-                      const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
-                      root.style.setProperty('--primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
-                      root.style.setProperty('--ring', hsl);
-                      root.style.setProperty('--sidebar-primary', hsl);
-                      root.style.setProperty('--sidebar-ring', hsl);
-                      root.style.setProperty('--sidebar-accent-foreground', hsl);
+                      // Trigger settings update event for booking page theme refresh
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('settingsUpdated'));
+                      }
                     }}
                     className={`w-10 h-10 rounded-lg border-2 transition-all hover:scale-110 hover:shadow-md ${
                       mounted && settings.branding.themeColor === preset.color
@@ -995,18 +1106,18 @@ const Settings = () => {
                     title={preset.name}
                     disabled={!mounted}
                   />
-                ))}
-              </div>
-            </div>
+                    ))}
+                  </div>
+                  </div>
+                </div>
+              </Card>
 
-            {/* Banner Cover */}
-            <div className="pt-4 border-t">
-              <label className={`text-sm font-medium mb-4 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                <span className="flex items-center gap-2">
+              {/* Banner Cover Section */}
+              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <Image className="w-4 h-4" />
                   {t('settings.bannerCover')}
-                </span>
-              </label>
+                </h4>
               <div className="space-y-4">
                 <div className="flex gap-2">
                   <Button
@@ -1026,7 +1137,6 @@ const Settings = () => {
                             type: 'upload' as const, 
                             uploadUrl: settings.branding.bannerCover?.uploadUrl || '',
                             videoUrl: settings.branding.bannerCover?.videoUrl || '',
-                            position: settings.branding.bannerCover?.position || { x: 50, y: 50 },
                           },
                         },
                       });
@@ -1066,26 +1176,6 @@ const Settings = () => {
                       <BannerImagePreview
                         uploadUrl={settings.branding.bannerCover.uploadUrl}
                         videoUrl={settings.branding.bannerCover.videoUrl}
-                        position={settings.branding.bannerCover.position}
-                        onPositionChange={async (newPosition) => {
-                          const updatedSettings = {
-                            ...settings,
-                            branding: {
-                              ...settings.branding,
-                              bannerCover: {
-                                ...settings.branding.bannerCover!,
-                                position: newPosition,
-                              },
-                            },
-                          };
-                          setSettings(updatedSettings);
-                          // Auto-save position change
-                          try {
-                            await updateSettings(updatedSettings);
-                          } catch (error) {
-                            console.error('Failed to save banner position:', error);
-                          }
-                        }}
                         onRemove={async () => {
                           try {
                             // Delete files from Supabase Storage if they exist
@@ -1301,19 +1391,21 @@ const Settings = () => {
                   </div>
                 )}
               </div>
-            </div>
+              </Card>
 
-            {/* Guest & Logged-in Messages */}
-            <div className="pt-4 border-t space-y-4">
-              <div>
-                <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    {t('settings.guestMessage')}
-                  </span>
-                </label>
+              {/* Messages Section */}
+              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <MessageSquare className="w-4 h-4" />
+                  {t('settings.messages') || 'Welcome Messages'}
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('settings.guestMessage')}
+                    </label>
                 <Textarea
-                  value={settings.branding.guestMessage || ''}
+                  value={settings.branding.guestMessage || 'שלום אורח, ברוך הבא!'}
                   onChange={(e) => {
                     if (!canCustomBranding) {
                       toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
@@ -1341,7 +1433,7 @@ const Settings = () => {
                   </span>
                 </label>
                 <Textarea
-                  value={settings.branding.loggedInMessage || ''}
+                  value={settings.branding.loggedInMessage || 'שלום {name}, ברוך הבא!'}
                   onChange={(e) => {
                     if (!canCustomBranding) {
                       toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
@@ -1361,11 +1453,145 @@ const Settings = () => {
                   {t('settings.loggedInMessageDescription')}
                 </p>
               </div>
-            </div>
-            
-            {/* Social Media Links */}
-            <div className="pt-4 border-t">
-              <h4 className={`text-base font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.socialLinks')}</h4>
+                </div>
+              </Card>
+
+              {/* Contact Message Section */}
+              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <MessageSquare className="w-4 h-4" />
+                  {t('settings.contactMessage') || 'Contact Message'}
+                </h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-4 border-b">
+                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                      <label className="text-sm font-medium block">
+                        {t('settings.contactMessageEnabled')}
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t('settings.contactMessageDescription')}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.calendar?.contactMessage?.enabled ?? true}
+                      onCheckedChange={(checked) =>
+                        setSettings({
+                          ...settings,
+                          calendar: {
+                            ...settings.calendar,
+                            contactMessage: {
+                              enabled: checked,
+                              message: settings.calendar?.contactMessage?.message || '',
+                              showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
+                              showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('settings.contactMessageText')}
+                    </label>
+                    <Textarea
+                      value={settings.calendar?.contactMessage?.message || ''}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          calendar: {
+                            ...settings.calendar,
+                            contactMessage: {
+                              ...settings.calendar?.contactMessage,
+                              enabled: settings.calendar?.contactMessage?.enabled ?? true,
+                              message: e.target.value,
+                              showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
+                              showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
+                            },
+                          },
+                        })
+                      }
+                      rows={3}
+                      placeholder={t('settings.contactMessagePlaceholder')}
+                      dir={isRTL ? 'rtl' : 'ltr'}
+                      disabled={!settings.calendar?.contactMessage?.enabled}
+                    />
+                    <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('settings.contactMessageDescription')}
+                      {t('settings.contactMessageHelp') && (
+                        <>
+                          <br />
+                          {t('settings.contactMessageHelp')}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  {settings.calendar?.contactMessage?.enabled && (
+                    <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <div className={isRTL ? 'text-right' : 'text-left'}>
+                            <label className="text-sm font-medium block">
+                              {t('settings.showPhoneInContact')}
+                            </label>
+                            <p className="text-xs text-muted-foreground">
+                              {t('settings.contactPhoneNote')}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={settings.calendar?.contactMessage?.showPhone ?? true}
+                            onCheckedChange={(checked) =>
+                              setSettings({
+                                ...settings,
+                                calendar: {
+                                  ...settings.calendar,
+                                  contactMessage: {
+                                    ...settings.calendar?.contactMessage,
+                                    enabled: settings.calendar?.contactMessage?.enabled ?? true,
+                                    message: settings.calendar?.contactMessage?.message || '',
+                                    showPhone: checked,
+                                    showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className={isRTL ? 'text-right' : 'text-left'}>
+                            <label className="text-sm font-medium block">
+                              {t('settings.showWhatsAppInContact')}
+                            </label>
+                            <p className="text-xs text-muted-foreground">
+                              {t('settings.contactWhatsAppNote')}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={settings.calendar?.contactMessage?.showWhatsApp ?? true}
+                            onCheckedChange={(checked) =>
+                              setSettings({
+                                ...settings,
+                                calendar: {
+                                  ...settings.calendar,
+                                  contactMessage: {
+                                    ...settings.calendar?.contactMessage,
+                                    enabled: settings.calendar?.contactMessage?.enabled ?? true,
+                                    message: settings.calendar?.contactMessage?.message || '',
+                                    showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
+                                    showWhatsApp: checked,
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Social Media Links */}
+              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                <h4 className={`text-base font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.socialLinks')}</h4>
               <div className={`flex items-center justify-end mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -1804,156 +2030,20 @@ const Settings = () => {
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Contact Message Section */}
-            <div className="pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <label className={`text-sm font-medium block ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('settings.contactMessageEnabled')}
-              </label>
-                <Switch
-                  checked={settings.calendar?.contactMessage?.enabled ?? true}
-                  onCheckedChange={(checked) =>
-                      setSettings({
-                        ...settings,
-                      calendar: {
-                        ...settings.calendar,
-                        contactMessage: {
-                          enabled: checked,
-                          message: settings.calendar?.contactMessage?.message || '',
-                          showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
-                          showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
-                          },
-                        },
-                      })
-                    }
-                        />
-                      </div>
-              {settings.calendar?.contactMessage?.enabled && (
-                <>
-                  <div className="mt-4">
-                <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('settings.contactMessageText')}
-                </label>
-                <Textarea
-                      value={settings.calendar?.contactMessage?.message || ''}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                          calendar: {
-                            ...settings.calendar,
-                            contactMessage: {
-                              ...settings.calendar?.contactMessage,
-                              enabled: settings.calendar?.contactMessage?.enabled ?? true,
-                              message: e.target.value,
-                              showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
-                              showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
-                            },
-                          },
-                        })
-                      }
-                      rows={3}
-                      placeholder={t('settings.contactMessagePlaceholder')}
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                />
-                <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('settings.contactMessageDescription')}
-                      {t('settings.contactMessageHelp') && (
-                        <>
-                          <br />
-                          {t('settings.contactMessageHelp')}
-                        </>
-                      )}
-                </p>
-              </div>
-                  <div className="space-y-3 mt-4">
-                      <div className="flex items-center justify-between">
-              <div>
-                        <label className={`text-sm font-medium block ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('settings.showPhoneInContact')}
-                </label>
-                        <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('settings.contactPhoneNote')}
-                </p>
-              </div>
-                        <Switch
-                        checked={settings.calendar?.contactMessage?.showPhone ?? true}
-                        onCheckedChange={(checked) =>
-                    setSettings({
-                      ...settings,
-                            calendar: {
-                              ...settings.calendar,
-                              contactMessage: {
-                                ...settings.calendar?.contactMessage,
-                                enabled: settings.calendar?.contactMessage?.enabled ?? true,
-                                message: settings.calendar?.contactMessage?.message || '',
-                                showPhone: checked,
-                                showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
-                              },
-                            },
-                          })
-                        }
-                        />
-                      </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className={`text-sm font-medium block ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('settings.showWhatsAppInContact')}
-                        </label>
-                        <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                          {t('settings.contactWhatsAppNote')}
-                          </p>
-                        </div>
-                        <Switch
-                        checked={settings.calendar?.contactMessage?.showWhatsApp ?? true}
-                        onCheckedChange={(checked) =>
-                            setSettings({
-                              ...settings,
-                            calendar: {
-                              ...settings.calendar,
-                              contactMessage: {
-                                ...settings.calendar?.contactMessage,
-                                enabled: settings.calendar?.contactMessage?.enabled ?? true,
-                                message: settings.calendar?.contactMessage?.message || '',
-                                showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
-                                showWhatsApp: checked,
-                              },
-                            },
-                          })
-                        }
-                        />
-                      </div>
-                    </div>
-                </>
-              )}
-            </div>
-          </div>
         </Card>
+              </div>
+            </TabsContent>
 
-        {/* Language & Localization */}
-        <Card className={`p-6 shadow-card ${!canUseMultiLanguage ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.languageAndLocalization')}</h3>
-            {!canUseMultiLanguage && (
-              <span className="text-xs text-muted-foreground">(Upgrade required)</span>
-            )}
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.language')}</label>
-              <LanguageSelect disabled={!canUseMultiLanguage} />
-            </div>
-          </div>
-        </Card>
-
-        {/* Calendar Settings */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <Calendar className="w-5 h-5" />
-            {t('settings.calendarSettings')}
-          </h3>
-          <div className="space-y-6">
+            {/* Calendar Tab */}
+            <TabsContent value="calendar" className="space-y-6 mt-0">
+              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2 mb-6">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.calendarSettings')}
+                  </h3>
+                </div>
+                <div className="space-y-6">
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.weekStartDay')}</label>
               <Select
@@ -2170,10 +2260,15 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+            </TabsContent>
 
-        {/* Notifications */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.notifications')}</h3>
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="space-y-6 mt-0">
+              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2 mb-6">
+                  <Bell className="w-5 h-5 text-primary" />
+                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.notifications')}</h3>
+                </div>
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.senderName')}</label>
@@ -2227,14 +2322,15 @@ const Settings = () => {
               {t('settings.reminderMessageHint') || 'Use {{service}}, {{date}}, {{time}}, {{worker}}, and {{business}} as placeholders'}
             </p>
           </div>
-        </Card>
 
-        {/* Reminder Settings */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {t('settings.reminderSettings') || 'Reminder Settings'}
-          </h3>
-          <div className="space-y-4">
+              <Separator className="my-6" />
+              
+              {/* Reminder Settings */}
+              <div>
+                <h4 className={`text-base font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t('settings.reminderSettings') || 'Reminder Settings'}
+                </h4>
+                <div className="space-y-4">
             {/* Enable Reminders */}
             <div className="flex items-center justify-between">
               <div className={isRTL ? 'text-right' : 'text-left'}>
@@ -2346,7 +2442,7 @@ const Settings = () => {
                         }}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">1 day before</span>
+                      <span className="text-sm">{t('settings.oneDayBefore') || '1 day before'}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -2370,7 +2466,7 @@ const Settings = () => {
                         }}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">2 days before</span>
+                      <span className="text-sm">{t('settings.twoDaysBefore') || '2 days before'}</span>
                     </label>
                   </div>
                 </div>
@@ -2428,14 +2524,41 @@ const Settings = () => {
                 </div>
               </>
             )}
-          </div>
+                </div>
+              </div>
         </Card>
+            </TabsContent>
 
-        {/* Google Calendar Sync */}
-        <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-          <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {t('settings.googleCalendar') || 'Google Calendar Sync'}
-          </h3>
+            {/* Language Tab */}
+            <TabsContent value="language" className="space-y-6 mt-0">
+              <Card className={`p-6 shadow-card ${!canUseMultiLanguage ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" />
+                    <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.languageAndLocalization')}</h3>
+                  </div>
+                  {!canUseMultiLanguage && (
+                    <span className="text-xs text-muted-foreground">(Upgrade required)</span>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.language')}</label>
+                    <LanguageSelect disabled={!canUseMultiLanguage} />
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+
+            {/* Integrations Tab */}
+            <TabsContent value="integrations" className="space-y-6 mt-0">
+              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2 mb-6">
+                  <Link2 className="w-5 h-5 text-primary" />
+                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.googleCalendar') || 'Google Calendar Sync'}
+                  </h3>
+                </div>
           <div className="space-y-4">
             <p className={`text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
               {t('settings.googleCalendarDescription') || 'Sync your appointments with Google Calendar. Available in Professional and Business plans.'}
@@ -2461,14 +2584,22 @@ const Settings = () => {
             </Button>
           </div>
         </Card>
-
-        <div className="flex justify-end">
-          <Button onClick={handleSave} size="lg" className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <Save className="w-4 h-4" />
-            {t('settings.save')}
-          </Button>
+            </TabsContent>
+          </div>
         </div>
-      </div>
+      </Tabs>
+
+      {/* Preview Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-[95vw] !max-w-[95vw] w-full h-[90vh] max-h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle>{t('settings.previewBookingPage') || t('preview') || 'Preview'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden p-6 min-h-0">
+            <BookingPagePreview settings={settings} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

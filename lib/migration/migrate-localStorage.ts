@@ -129,8 +129,8 @@ async function createBusiness(
     phone: settings.businessProfile.phone || null,
     whatsapp: settings.businessProfile.whatsapp || settings.businessProfile.phone || null,
     address: settings.businessProfile.address || null,
-    timezone: settings.businessProfile.timezone || 'UTC',
-    currency: settings.businessProfile.currency || 'USD',
+    timezone: 'Asia/Jerusalem', // Always set timezone to Asia/Jerusalem regardless of language or provided value
+    currency: 'ILS', // Always set currency to ILS regardless of language or provided value
     business_type: options.businessType,
   };
 

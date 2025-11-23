@@ -30,6 +30,7 @@ import {
   User,
   Building2,
   ExternalLink,
+  Globe,
   Plus,
   Edit,
   CheckCircle2,
@@ -127,7 +128,8 @@ export default function UserDashboardPage() {
         setUser(profileData.user);
         setEditName(profileData.user.name);
         setEditEmail(profileData.user.email);
-        setEditPhone(profileData.user.phone || '');
+        // Format phone to show only 10 digits
+        setEditPhone(formatPhoneForDisplay(profileData.user.phone));
         
         const initialBusinesses = profileData.businesses || [profileData.business].filter(Boolean);
         
@@ -196,7 +198,7 @@ export default function UserDashboardPage() {
         body: JSON.stringify({
           name: editName,
           email: editEmail,
-          phone: editPhone,
+          phone: editPhone.replace(/\D/g, ''), // Remove dashes before saving
         }),
       });
 
@@ -335,6 +337,33 @@ export default function UserDashboardPage() {
       .slice(0, 2);
   };
 
+  // Extract last 10 digits from phone number and format with dashes (for display)
+  const formatPhoneForDisplay = (phone: string | null | undefined): string => {
+    if (!phone) return '';
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    // Get last 10 digits
+    const last10 = digits.slice(-10);
+    // Format as XXX-XXX-XXXX
+    if (last10.length === 0) return '';
+    if (last10.length <= 3) return last10;
+    if (last10.length <= 6) return `${last10.slice(0, 3)}-${last10.slice(3)}`;
+    return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
+  };
+
+  // Format phone input to allow only 10 digits with dashes (XXX-XXX-XXXX)
+  const formatPhoneInput = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    // Format as XXX-XXX-XXXX
+    if (limited.length === 0) return '';
+    if (limited.length <= 3) return limited;
+    if (limited.length <= 6) return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+  };
+
   const getPlanStatus = (business: Business) => {
     const endDate = business.subscriptionEndsAt || business.trialEndsAt;
     let daysRemaining: number | null = null;
@@ -401,7 +430,7 @@ export default function UserDashboardPage() {
         {/* Welcome Header */}
         <div className="mb-8">
           <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border-2 border-primary">
                 <AvatarFallback className="text-lg font-semibold bg-primary text-primary-foreground">
                   {getInitials(user.name)}
@@ -475,28 +504,38 @@ export default function UserDashboardPage() {
                     <Card key={business.id} className="overflow-hidden">
                       <CardHeader className="pb-4">
                         <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-                          <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <div className={`flex-1 text-center sm:text-left ${isRTL ? 'sm:text-right' : ''}`}>
+                            <div className={`flex items-center justify-center sm:justify-start gap-3 mb-2 ${isRTL ? 'flex-row-reverse sm:justify-start' : ''}`}>
                               <Building2 className="w-5 h-5 text-primary" />
                               <CardTitle className="text-xl">{business.name}</CardTitle>
                               <Badge variant={planStatus.variant}>{planStatus.label}</Badge>
                             </div>
-                            <CardDescription className={`text-sm ${isRTL ? 'text-right' : 'text-left'}`}>/{business.slug}</CardDescription>
+                            <CardDescription className="text-sm">
+                              {t('userDashboard.businessId') || 'Business ID'}: <span className="font-bold">{business.slug}</span>
+                            </CardDescription>
                             {currentPlan && (
-                              <div className={`mt-2 flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                              <div className={`mt-2 flex items-center justify-center sm:justify-start gap-2 text-sm ${isRTL ? 'flex-row-reverse sm:justify-start' : ''}`}>
                                 <CreditCard className="w-4 h-4 text-muted-foreground" />
                                 <span className="text-muted-foreground">
-                                  {currentPlan.name} - ₪{currentPlan.price}/month
+                                  {t(`userDashboard.planNames.${currentPlan.name.toLowerCase()}`) || currentPlan.name} - ₪{currentPlan.price}/{t('userDashboard.month') || 'month'}
                                 </span>
                               </div>
                             )}
                           </div>
-                          <Link href={`/b/${business.slug}/admin/dashboard`}>
-                            <Button className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              {t('userDashboard.goToAdmin') || 'Go to Admin Panel'}
-                              <ExternalLink className="w-4 h-4" />
-                            </Button>
-                          </Link>
+                          <div className={`flex flex-row gap-2 w-full sm:w-auto justify-center ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
+                            <Link href={`/b/${business.slug}/admin/dashboard`} className="flex-1 sm:flex-initial">
+                              <Button className={`w-full sm:w-auto gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                {t('userDashboard.goToAdmin') || 'Go to Admin Panel'}
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                            <Link href={`/b/${business.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial">
+                              <Button variant="outline" className={`w-full sm:w-auto gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <Globe className="w-4 h-4" />
+                                {t('userDashboard.viewPublicSite')}
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </CardHeader>
                       
@@ -506,28 +545,10 @@ export default function UserDashboardPage() {
                         {/* Plan Information */}
                         {user.role === 'owner' && (
                           <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              {startDate && (
-                                <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                  <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-                                    <Calendar className="w-4 h-4" />
-                                    <span>{t('userDashboard.planStartDate') || 'Start Date'}</span>
-                                  </div>
-                                  <p className="font-medium">{formatDate(startDate)}</p>
-                                </div>
-                              )}
-                              {business.renewedAt && (
-                                <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                  <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-                                    <Clock className="w-4 h-4" />
-                                    <span>{t('userDashboard.planRenewalDate') || 'Renewal Date'}</span>
-                                  </div>
-                                  <p className="font-medium">{formatDate(business.renewedAt)}</p>
-                                </div>
-                              )}
+                            <div className={`flex flex-col md:flex-row gap-4 ${isRTL ? 'md:flex-row-reverse' : ''}`} dir={dir}>
                               {endDate && (
-                                <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                  <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                                <div className={`flex-1 space-y-1 text-center md:text-left ${isRTL ? 'md:text-right' : ''}`}>
+                                  <div className={`flex items-center justify-center md:justify-start gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse md:justify-end' : ''}`}>
                                     <Clock3 className="w-4 h-4" />
                                     <span>{t('userDashboard.planEndDate') || 'End Date'}</span>
                                   </div>
@@ -540,6 +561,24 @@ export default function UserDashboardPage() {
                                       }
                                     </p>
                                   )}
+                                </div>
+                              )}
+                              {business.renewedAt && (
+                                <div className={`flex-1 space-y-1 text-center md:text-left ${isRTL ? 'md:text-right' : ''}`}>
+                                  <div className={`flex items-center justify-center md:justify-start gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse md:justify-end' : ''}`}>
+                                    <Clock className="w-4 h-4" />
+                                    <span>{t('userDashboard.planRenewalDate') || 'Renewal Date'}</span>
+                                  </div>
+                                  <p className="font-medium">{formatDate(business.renewedAt)}</p>
+                                </div>
+                              )}
+                              {startDate && (
+                                <div className={`flex-1 space-y-1 text-center md:text-left ${isRTL ? 'md:text-right' : ''}`}>
+                                  <div className={`flex items-center justify-center md:justify-start gap-2 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse md:justify-end' : ''}`}>
+                                    <Calendar className="w-4 h-4" />
+                                    <span>{t('userDashboard.planStartDate') || 'Start Date'}</span>
+                                  </div>
+                                  <p className="font-medium">{formatDate(startDate)}</p>
                                 </div>
                               )}
                             </div>
@@ -567,7 +606,7 @@ export default function UserDashboardPage() {
                                           `Days Remaining: ${daysRemaining}\n` +
                                           `User Name: ${user.name}\n` +
                                           `User Email: ${user.email}\n` +
-                                          `User Phone: ${user.phone || 'N/A'}\n\n` +
+                                          `User Phone: ${formatPhoneForDisplay(user.phone) || 'N/A'}\n\n` +
                                           `Please contact me to renew my plan.\n\nThank you!`
                                         );
                                         window.location.href = `mailto:plans@kalbook.io?subject=${subject}&body=${body}`;
@@ -690,9 +729,9 @@ export default function UserDashboardPage() {
             <Card>
               <CardHeader>
                 <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <CardTitle>{t('userDashboard.profile') || 'Profile'}</CardTitle>
-                    <CardDescription>
+                  <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <CardTitle className={isRTL ? 'text-right' : 'text-left'}>{t('userDashboard.profile') || 'Profile'}</CardTitle>
+                    <CardDescription className={isRTL ? 'text-right' : 'text-left'}>
                       {t('userDashboard.profileDesc') || 'Manage your account information'}
                     </CardDescription>
                   </div>
@@ -708,33 +747,41 @@ export default function UserDashboardPage() {
                 {isEditing ? (
                   <>
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">{t('userDashboard.name') || 'Name'}</Label>
+                      <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <Label htmlFor="name" className={isRTL ? 'text-right' : 'text-left'}>{t('userDashboard.name') || 'Name'}</Label>
                         <Input
                           id="name"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           disabled={saving}
+                          dir={dir}
+                          className={isRTL ? 'text-right' : 'text-left'}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">{t('userDashboard.email') || 'Email'}</Label>
+                      <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <Label htmlFor="email" className={isRTL ? 'text-right' : 'text-left'}>{t('userDashboard.email') || 'Email'}</Label>
                         <Input
                           id="email"
                           type="email"
                           value={editEmail}
                           onChange={(e) => setEditEmail(e.target.value)}
                           disabled={saving}
+                          dir={dir}
+                          className={isRTL ? 'text-right' : 'text-left'}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">{t('userDashboard.phone') || 'Phone'}</Label>
+                      <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <Label htmlFor="phone" className={isRTL ? 'text-right' : 'text-left'}>{t('userDashboard.phone') || 'Phone'}</Label>
                         <Input
                           id="phone"
                           type="tel"
                           value={editPhone}
-                          onChange={(e) => setEditPhone(e.target.value)}
+                          onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))}
                           disabled={saving}
+                          maxLength={12}
+                          placeholder="050-123-4567"
+                          dir="ltr"
+                          className="text-left"
                         />
                       </div>
                     </div>
@@ -746,7 +793,7 @@ export default function UserDashboardPage() {
                           setIsEditing(false);
                           setEditName(user.name);
                           setEditEmail(user.email);
-                          setEditPhone(user.phone || '');
+                          setEditPhone(formatPhoneForDisplay(user.phone));
                         }}
                         disabled={saving}
                         className="flex-1"
@@ -792,23 +839,23 @@ export default function UserDashboardPage() {
                     
                     <Separator />
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-                          <Mail className="w-4 h-4" />
-                          {t('userDashboard.email') || 'Email'}
-                        </Label>
-                        <p className="text-lg font-medium">{user.email}</p>
-                      </div>
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isRTL ? 'md:grid-flow-col-dense' : ''}`}>
                       {user.phone && (
-                        <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                        <div className={`space-y-2 text-left ${isRTL ? 'md:text-right md:order-1' : ''}`}>
+                          <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
                             <Phone className="w-4 h-4" />
                             {t('userDashboard.phone') || 'Phone'}
                           </Label>
-                          <p className="text-lg font-medium">{user.phone}</p>
+                          <p className={`text-lg font-medium text-left ${isRTL ? 'md:text-right' : ''}`} dir="ltr">{formatPhoneForDisplay(user.phone)}</p>
                         </div>
                       )}
+                      <div className={`space-y-2 text-left ${isRTL ? 'md:text-right md:order-2' : ''}`}>
+                        <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+                          <Mail className="w-4 h-4" />
+                          {t('userDashboard.email') || 'Email'}
+                        </Label>
+                        <p className={`text-lg font-medium text-left ${isRTL ? 'md:text-right' : ''}`}>{user.email}</p>
+                      </div>
                     </div>
                   </div>
                 )}

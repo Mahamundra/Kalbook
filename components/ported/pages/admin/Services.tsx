@@ -9,6 +9,8 @@ import { getServices, deleteService, createService, updateService } from '@/lib/
 import { Pencil, Trash2, Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Service } from '@/types/admin';
+import { cn } from '@/lib/utils';
+import { UpgradeModal } from '@/components/admin/UpgradeModal';
 import {
   Dialog,
   DialogContent,
@@ -69,7 +71,7 @@ const Services = () => {
   const [editingServiceName, setEditingServiceName] = useState<string>('');
   const [editingCategory, setEditingCategory] = useState<string>('Other');
   const [formData, setFormData] = useState(defaultFormData);
-  const [isVatEditable, setIsVatEditable] = useState(true);
+  const [isVatEditable, setIsVatEditable] = useState(false);
   const [canManageServices, setCanManageServices] = useState(true); // Default to true to avoid blocking
   const [hasGroupAppointments, setHasGroupAppointments] = useState<boolean | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -78,7 +80,10 @@ const Services = () => {
   const [serviceToDelete, setServiceToDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [currentPlanName, setCurrentPlanName] = useState<string>('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     setMounted(true);
@@ -95,6 +100,18 @@ const Services = () => {
         setLoading(false);
       }
     };
+    
+    // Fetch current plan name
+    fetch('/api/admin/trial-status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.planName) {
+          setCurrentPlanName(data.planName);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching plan name:', error);
+      });
     
     // Check if business has group appointments feature
     fetch('/api/admin/feature-check?feature=group_appointments')
@@ -127,6 +144,41 @@ const Services = () => {
   }, []);
   
   const { localeReady } = useDirection();
+  
+  // Prevent auto-focus on mobile when dialog opens
+  useEffect(() => {
+    if (isDialogOpen && typeof window !== 'undefined') {
+      // Check if mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                       window.innerWidth < 768;
+      
+      if (isMobile && nameInputRef.current) {
+        // Small delay to ensure the input is rendered, then blur if focused
+        const timer = setTimeout(() => {
+          if (nameInputRef.current && document.activeElement === nameInputRef.current) {
+            nameInputRef.current.blur();
+          }
+        }, 100);
+        
+        // Also prevent focus on mount by setting tabIndex to -1 temporarily
+        if (nameInputRef.current) {
+          nameInputRef.current.tabIndex = -1;
+          const restoreTimer = setTimeout(() => {
+            if (nameInputRef.current) {
+              nameInputRef.current.tabIndex = 0;
+            }
+          }, 300);
+          
+          return () => {
+            clearTimeout(timer);
+            clearTimeout(restoreTimer);
+          };
+        }
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isDialogOpen]);
   
   // Don't render until mounted and locale is ready to avoid hydration mismatch
   if (!mounted || !localeReady) {
@@ -206,7 +258,7 @@ const Services = () => {
     setEditingServiceName('');
     setEditingCategory('Other');
     setFormData(defaultFormData);
-    setIsVatEditable(true);
+    setIsVatEditable(false);
     setIsDialogOpen(true);
   };
 
@@ -231,8 +283,8 @@ const Services = () => {
       minCapacity: service.minCapacity ?? null,
       allowWaitlist: service.allowWaitlist || false,
     });
-    // Always allow editing by default
-    setIsVatEditable(true);
+    // Default to unchecked
+    setIsVatEditable(false);
     setIsDialogOpen(true);
   };
 
@@ -242,7 +294,7 @@ const Services = () => {
     setEditingServiceName('');
     setEditingCategory('Other');
     setFormData(defaultFormData);
-    setIsVatEditable(true);
+    setIsVatEditable(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -441,9 +493,8 @@ const Services = () => {
       key: 'actions',
       label: t('services.actions'),
       render: (service: Service) => {
-        const { isRTL } = useLocale();
         return (
-          <div className={`flex items-center gap-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+          <div className="flex items-center gap-2 justify-end">
             <Button
               variant="ghost"
               size="sm"
@@ -487,6 +538,7 @@ const Services = () => {
         action={
           <Button 
             onClick={handleCreate}
+            className="w-full sm:w-auto"
             disabled={!canManageServices}
             title={!canManageServices ? 'Your plan doesn\'t allow adding services. Please upgrade to continue.' : ''}
           >
@@ -497,7 +549,7 @@ const Services = () => {
       />
 
       {/* Category Filter */}
-      <div className="mb-4 flex items-center gap-4">
+      <div className="mb-4 flex items-center gap-4 hidden">
         <Label htmlFor="category-filter" className="whitespace-nowrap">
           {t('services.category')}:
         </Label>
@@ -529,12 +581,12 @@ const Services = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full">
           {/* Sticky Header */}
           <DialogHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
-            <DialogTitle>
+            <DialogTitle className={isRTL ? 'text-right' : ''}>
               {editingServiceId 
                 ? t('services.editServiceTitle').replace('{name}', editingServiceName)
                 : t('services.createService')}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className={isRTL ? 'text-right' : ''}>
               {editingServiceId 
                 ? t('services.editDescription')
                 : t('services.createDescription')}
@@ -547,11 +599,13 @@ const Services = () => {
               <div className="md:col-span-2">
                 <Label htmlFor="name">{t('services.name')} *</Label>
                 <Input
+                  ref={nameInputRef}
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                   placeholder={t('services.name')}
+                  autoFocus={false}
                 />
               </div>
 
@@ -792,49 +846,49 @@ const Services = () => {
       {/* Limit Reached Modal */}
       <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {limitInfo?.type === 'services' && t('limits.servicesLimitReached').replace('{{X}}', limitInfo.limit.toString())}
+          <DialogHeader className="text-center">
+            <DialogTitle className={`${isRTL ? 'text-right' : ''} text-center`}>
+              {limitInfo?.type === 'services' && (
+                <>
+                  {currentPlanName && (
+                    <span className="block text-base font-normal mb-1">
+                      {t('trial.currentPlan')}: {currentPlanName.charAt(0).toUpperCase() + currentPlanName.slice(1)}
+                    </span>
+                  )}
+                  <span>{t('limits.servicesLimitReached').replace('{{X}}', limitInfo.limit.toString())}</span>
+                </>
+              )}
               {limitInfo?.type === 'staff' && t('limits.staffLimitReached').replace('{{X}}', limitInfo.limit.toString())}
               {limitInfo?.type === 'bookings' && t('limits.bookingsLimitReached').replace('{{X}}', limitInfo.limit.toString())}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className={`${isRTL ? 'text-right' : ''} text-center`}>
               {limitInfo?.type === 'services' && t('limits.servicesLimitMessage')}
               {limitInfo?.type === 'staff' && t('limits.staffLimitMessage')}
               {limitInfo?.type === 'bookings' && t('limits.bookingsLimitMessage')}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="text-sm font-medium text-blue-900 mb-2">
-                {t('trial.contactUs') || 'Contact Us:'}
-              </p>
-              <div className="space-y-2 text-sm text-blue-800">
-                <p>
-                  <strong>{t('trial.phone') || 'Phone'}:</strong>{' '}
-                  <a href="tel:0542636737" className="underline hover:text-blue-900 font-medium">
-                    054-263-6737
-                  </a>
-                </p>
-                <p>
-                  <strong>{t('trial.email') || 'Email'}:</strong>{' '}
-                  <a href="mailto:plans@kalbook.io" className="underline hover:text-blue-900 font-medium">
-                    plans@kalbook.io
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row justify-center gap-2 sm:justify-center">
             <Button variant="outline" onClick={() => setShowLimitModal(false)}>
               {t('common.close') || 'Close'}
             </Button>
-            <Button onClick={() => window.location.href = 'mailto:plans@kalbook.io?subject=Upgrade Request'}>
-              {t('trial.contactToUpgrade') || 'Contact to Upgrade'}
+            <Button 
+              onClick={() => {
+                setShowLimitModal(false);
+                setShowUpgradeModal(true);
+              }}
+            >
+              {t('trial.viewPlans') || 'View Plans'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        open={showUpgradeModal} 
+        onOpenChange={setShowUpgradeModal}
+        currentPlanName={currentPlanName}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

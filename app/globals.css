@@ -203,6 +203,16 @@
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
   
+  /* Booking page theme color - only applies to booking pages */
+  /* When --booking-primary is set, use it for --primary on booking pages */
+  /* CSS variables inherit, so setting on the root element applies to all children */
+  [data-booking-page="true"] {
+    --primary: var(--booking-primary, 10 100% 55.3%);
+    --primary-foreground: var(--booking-primary-foreground, 0 0% 100%);
+    --primary-glow: var(--booking-primary-glow, var(--primary-glow));
+    --ring: var(--booking-ring, var(--ring));
+  }
+  
   /* Better mobile scrolling */
   @media (max-width: 768px) {
     body {

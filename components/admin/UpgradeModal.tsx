@@ -32,15 +32,130 @@ interface TrialStatus {
   ownerEmail?: string | null;
 }
 
+interface PlanWithFeatures {
+  id: string;
+  name: string;
+  price: number;
+  planFeatures: Array<{
+    id: string;
+    plan_id: string;
+    feature_name: string;
+    enabled: boolean;
+  }>;
+}
+
+// Feature definitions with human-readable names
+const FEATURE_DEFINITIONS: Record<string, { label: string; description: string; category: string }> = {
+  create_appointments: {
+    label: 'Create Appointments',
+    description: 'Allow businesses to create and manage appointments',
+    category: 'Core'
+  },
+  manage_customers: {
+    label: 'Manage Customers',
+    description: 'Add, edit, and manage customer information',
+    category: 'Core'
+  },
+  manage_workers: {
+    label: 'Manage Workers',
+    description: 'Add, edit, and manage staff/workers',
+    category: 'Core'
+  },
+  manage_services: {
+    label: 'Manage Services',
+    description: 'Create and manage service offerings',
+    category: 'Core'
+  },
+  manage_templates: {
+    label: 'Manage Templates',
+    description: 'Create and manage email/SMS templates',
+    category: 'Communication'
+  },
+  view_analytics: {
+    label: 'View Analytics',
+    description: 'Access to analytics dashboard and reports',
+    category: 'Analytics'
+  },
+  custom_branding: {
+    label: 'Custom Branding',
+    description: 'Customize booking page with logo and colors',
+    category: 'Branding'
+  },
+  whatsapp_integration: {
+    label: 'WhatsApp Integration',
+    description: 'Send notifications via WhatsApp',
+    category: 'Communication'
+  },
+  multi_language: {
+    label: 'Multi-Language',
+    description: 'Support for multiple languages',
+    category: 'Localization'
+  },
+  cloud_storage: {
+    label: 'Cloud Storage',
+    description: 'Store files and documents in the cloud',
+    category: 'Storage'
+  },
+  priority_support: {
+    label: 'Priority Support',
+    description: 'Priority customer support access',
+    category: 'Support'
+  },
+  advanced_reports: {
+    label: 'Advanced Reports',
+    description: 'Access to advanced reporting features',
+    category: 'Analytics'
+  },
+  group_appointments: {
+    label: 'Group Appointments',
+    description: 'Allow creating group services with multiple participants',
+    category: 'Services'
+  },
+  custom_templates: {
+    label: 'Custom Templates',
+    description: 'Allow creating custom message templates',
+    category: 'Communication'
+  },
+  qr_codes: {
+    label: 'QR Codes',
+    description: 'Access to QR code generation for booking pages',
+    category: 'Marketing'
+  },
+};
+
 export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, ownerEmail }: UpgradeModalProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [loading, setLoading] = useState(false);
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
+  const [plans, setPlans] = useState<PlanWithFeatures[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<string>('');
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null);
   const [formData, setFormData] = useState({
     desiredPlan: '',
     contactEmail: '',
     message: '',
   });
+
+  // Fetch plans with features when plan details modal opens
+  useEffect(() => {
+    if (showPlanDetails) {
+      setLoadingPlans(true);
+      fetch('/api/user/plans')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.plans) {
+            setPlans(data.plans);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching plans:', err);
+        })
+        .finally(() => {
+          setLoadingPlans(false);
+        });
+    }
+  }, [showPlanDetails]);
 
   useEffect(() => {
     if (open) {
@@ -92,7 +207,7 @@ export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.desiredPlan) {
+    if (!formData.desiredPlan || formData.desiredPlan === 'none' || formData.desiredPlan.trim() === '') {
       toast.error(t('trial.upgradeModal.desiredPlanRequired'));
       return;
     }
@@ -126,6 +241,7 @@ export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
@@ -134,26 +250,6 @@ export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, 
             {t('trial.upgradeModal.description')}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <p className="text-sm font-medium text-blue-900 mb-2">
-            {t('trial.upgradeModal.contactInfo')}
-          </p>
-          <div className="space-y-2 text-sm text-blue-800">
-            <p>
-              <strong>{t('trial.upgradeModal.phone')}:</strong>{' '}
-              <a href="tel:0542636737" className="underline hover:text-blue-900">
-                054-263-6737
-              </a>
-            </p>
-            <p>
-              <strong>{t('trial.upgradeModal.email')}:</strong>{' '}
-              <a href="mailto:plans@kalbook.io" className="underline hover:text-blue-900">
-                plans@kalbook.io
-              </a>
-            </p>
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -169,15 +265,32 @@ export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="desiredPlan">{t('trial.upgradeModal.desiredPlan')} *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="desiredPlan">{t('trial.upgradeModal.desiredPlan')} *</Label>
+              <button
+                type="button"
+                className="h-auto p-0 text-sm text-primary hover:underline hover:bg-transparent hover:!bg-transparent bg-transparent hover:!text-primary"
+                onClick={() => {
+                  if (formData.desiredPlan && formData.desiredPlan !== 'none') {
+                    setSelectedPlanForDetails(formData.desiredPlan);
+                    setShowPlanDetails(true);
+                  } else {
+                    toast.error(t('trial.upgradeModal.selectPlanFirst') || 'Please select a plan first');
+                  }
+                }}
+              >
+                {t('trial.upgradeModal.viewPlanDetails') || 'View Plan Details'}
+              </button>
+            </div>
             <Select
-              value={formData.desiredPlan}
-              onValueChange={(value) => setFormData({ ...formData, desiredPlan: value })}
+              value={formData.desiredPlan || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, desiredPlan: value === 'none' ? '' : value })}
             >
               <SelectTrigger id="desiredPlan">
-                <SelectValue placeholder={t('trial.upgradeModal.desiredPlan')} />
+                <SelectValue placeholder={t('trial.upgradeModal.selectPlan') || 'Select a plan'} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">{t('trial.upgradeModal.noPlan') || '-- Choose --'}</SelectItem>
                 <SelectItem value="professional">Professional</SelectItem>
                 <SelectItem value="business">Business</SelectItem>
               </SelectContent>
@@ -209,6 +322,32 @@ export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, 
             />
           </div>
 
+          {/* Divider with "Or" in circle */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-3">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-border bg-background text-sm font-medium text-muted-foreground">
+                  {t('common.or') || 'Or'}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              {t('trial.upgradeModal.contactByEmail') || 'you can contact us by email'}
+            </p>
+            <a 
+              href="mailto:plans@kalbook.io" 
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              plans@kalbook.io
+            </a>
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -232,6 +371,83 @@ export function UpgradeModal({ open, onOpenChange, businessId, currentPlanName, 
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Plan Details Modal */}
+    <Dialog open={showPlanDetails} onOpenChange={setShowPlanDetails}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('pricing.title') || 'Plan Details'}</DialogTitle>
+          <DialogDescription>
+            {t('pricing.subtitle') || 'Choose the right plan for your business'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loadingPlans ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-6 py-4">
+            {(() => {
+              // Filter to show only the selected plan
+              const planToShow = plans.find(p => p.name.toLowerCase() === selectedPlanForDetails.toLowerCase());
+              
+              if (!planToShow) {
+                return (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground">
+                      {t('trial.upgradeModal.planNotFound') || 'Plan not found'}
+                    </p>
+                  </div>
+                );
+              }
+
+              const enabledFeatures = planToShow.planFeatures
+                .filter(f => f.enabled)
+                .map(f => {
+                  const translationKey = `trial.planFeatures.${f.feature_name}`;
+                  const translated = t(translationKey);
+                  // If translation exists and is not the key itself, use it; otherwise fallback to feature name
+                  return translated !== translationKey ? translated : (FEATURE_DEFINITIONS[f.feature_name]?.label || f.feature_name);
+                })
+                .sort();
+              
+              return (
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">
+                      {planToShow.name.charAt(0).toUpperCase() + planToShow.name.slice(1)}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">
+                      ₪{planToShow.price}/month
+                    </span>
+                  </div>
+                  <ul className="space-y-2">
+                    {enabledFeatures.length > 0 ? (
+                      enabledFeatures.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <span className="text-primary mt-0.5">✓</span>
+                          <span>{feature}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-sm text-muted-foreground">{t('common.noFeatures') || 'No features available'}</li>
+                    )}
+                  </ul>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => setShowPlanDetails(false)}>
+            {t('common.close') || 'Close'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

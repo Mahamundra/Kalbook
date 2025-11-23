@@ -801,7 +801,7 @@ const Customers = () => {
       label: t('customers.actions') || 'Actions',
       render: (customer: Customer) => {
         return (
-          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex items-center gap-2 justify-end">
             <Button
               variant="ghost"
               size="sm"
