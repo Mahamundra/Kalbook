@@ -450,37 +450,42 @@ const Dashboard = () => {
             <>
               {/* Row 1: Today's Bookings, Revenue MTD, Total Customers, Upcoming Appointments */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayMetrics.slice(0, 4).map((metric, index) => (
-                  <MetricCard key={`row1-${index}`} {...metric} />
-                ))}
+                {displayMetrics.slice(0, 4).map((metric, index) => {
+                  const { key, ...metricProps } = metric;
+                  return <MetricCard key={`row1-${index}`} {...metricProps} />;
+                })}
               </div>
               
               {/* Row 2: This Week Bookings, Confirmed Rate, Most Popular Service, Reminder Delivery Rate */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayMetrics.slice(4, 8).map((metric, index) => (
-                  <MetricCard key={`row2-${index}`} {...metric} />
-                ))}
+                {displayMetrics.slice(4, 8).map((metric, index) => {
+                  const { key, ...metricProps } = metric;
+                  return <MetricCard key={`row2-${index}`} {...metricProps} />;
+                })}
               </div>
               
               {/* Row 3: Week-over-Week Growth, Average Booking Value, Returning Customers Rate, Most Booked Worker */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayMetrics.slice(8, 12).map((metric, index) => (
-                  <MetricCard key={`row3-${index}`} {...metric} />
-                ))}
+                {displayMetrics.slice(8, 12).map((metric, index) => {
+                  const { key, ...metricProps } = metric;
+                  return <MetricCard key={`row3-${index}`} {...metricProps} />;
+                })}
               </div>
               
               {/* Row 4: Revenue This Week, New Customers This Month, Active Customers, Average Appointments Per Day */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayMetrics.slice(12, 16).map((metric, index) => (
-                  <MetricCard key={`row4-${index}`} {...metric} />
-                ))}
+                {displayMetrics.slice(12, 16).map((metric, index) => {
+                  const { key, ...metricProps } = metric;
+                  return <MetricCard key={`row4-${index}`} {...metricProps} />;
+                })}
               </div>
               
               {/* Row 5: Cancellation Rate, Group Appointments, Peak Hours, Average Service Price */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayMetrics.slice(16, 20).map((metric, index) => (
-                  <MetricCard key={`row5-${index}`} {...metric} />
-                ))}
+                {displayMetrics.slice(16, 20).map((metric, index) => {
+                  const { key, ...metricProps } = metric;
+                  return <MetricCard key={`row5-${index}`} {...metricProps} />;
+                })}
               </div>
             </>
           )}
