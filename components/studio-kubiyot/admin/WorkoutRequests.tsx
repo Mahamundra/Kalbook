@@ -253,7 +253,7 @@ export default function StudioKubiyotWorkoutRequestsPage() {
         data={filteredRequests}
         columns={columns}
         loading={loading}
-        searchKeys={['customer_name', 'workout_type_name', 'trainer_name']}
+        searchable={true}
       />
 
       {/* Approve Dialog */}

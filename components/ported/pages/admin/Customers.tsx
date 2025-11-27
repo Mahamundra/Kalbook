@@ -973,6 +973,11 @@ const Customers = () => {
 
   const handleExport = async () => {
     try {
+      const filters = {
+        search,
+        sortBy,
+        sortOrder,
+      };
       const response = await fetch('/api/customers/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1733,7 +1738,7 @@ const Customers = () => {
                       {t('customers.actions') || 'Actions'}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align={isRTL ? 'end' : 'start'} dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
+                  <DropdownMenuContent align={isRTL ? 'end' : 'start'} className={isRTL ? 'text-right' : 'text-left'}>
                     <DropdownMenuItem
                   onClick={() => {
                     handleCloseDetail();

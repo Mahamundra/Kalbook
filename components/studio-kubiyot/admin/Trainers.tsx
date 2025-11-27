@@ -264,7 +264,7 @@ export default function StudioKubiyotTrainersPage() {
         data={trainers}
         columns={columns}
         loading={loading}
-        searchKeys={['name', 'email', 'phone']}
+        searchable={true}
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

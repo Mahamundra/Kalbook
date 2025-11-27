@@ -276,7 +276,7 @@ export default function StudioKubiyotWorkoutTypesPage() {
         data={workoutTypes}
         columns={columns}
         loading={loading}
-        searchKeys={['name', 'description']}
+        searchable={true}
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
