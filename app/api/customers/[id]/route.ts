@@ -222,7 +222,9 @@ export async function PATCH(
           customer_id: customerId,
           tag: tag.trim(),
         }));
-        await supabase.from('customer_tags').insert(tagInserts);
+        await (supabase
+          .from('customer_tags') as any)
+          .insert(tagInserts);
       }
     }
 

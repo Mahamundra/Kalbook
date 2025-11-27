@@ -153,11 +153,12 @@ export async function POST(
     }
 
     // Insert measurement
-    const { data: measurement, error: insertError } = await supabase
-      .from('client_measurements')
+    const insertResult = await (supabase
+      .from('client_measurements') as any)
       .insert(measurementData)
       .select()
-      .single();
+      .single() as { data: any; error: any };
+    const { data: measurement, error: insertError } = insertResult;
 
     if (insertError) {
       return NextResponse.json(
@@ -258,12 +259,13 @@ export async function PATCH(
     }
 
     // Update measurement
-    const { data: updatedMeasurement, error: updateError } = await supabase
-      .from('client_measurements')
+    const updateResult = await (supabase
+      .from('client_measurements') as any)
       .update(updateData)
       .eq('id', measurementId)
       .select()
-      .single();
+      .single() as { data: any; error: any };
+    const { data: updatedMeasurement, error: updateError } = updateResult;
 
     if (updateError) {
       return NextResponse.json(

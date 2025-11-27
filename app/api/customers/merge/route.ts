@@ -66,9 +66,9 @@ export async function POST(request: NextRequest) {
 
     // Merge operations
     // 1. Move appointments from secondary to primary
-    await supabase
-      .from('appointments')
-      .update({ customer_id: primaryCustomerId } as never)
+    await (supabase
+      .from('appointments') as any)
+      .update({ customer_id: primaryCustomerId })
       .eq('customer_id', secondaryCustomerId)
       .eq('business_id', tenantInfo.businessId);
 
@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
       }));
 
     if (tagsToAdd.length > 0) {
-      await supabase.from('customer_tags').insert(tagsToAdd);
+      await (supabase
+        .from('customer_tags') as any)
+        .insert(tagsToAdd);
     }
 
     // Delete secondary customer tags
@@ -109,23 +111,23 @@ export async function POST(request: NextRequest) {
       .eq('customer_id', secondaryCustomerId);
 
     // 3. Move communications from secondary to primary
-    await supabase
-      .from('customer_communications')
-      .update({ customer_id: primaryCustomerId } as never)
+    await (supabase
+      .from('customer_communications') as any)
+      .update({ customer_id: primaryCustomerId })
       .eq('customer_id', secondaryCustomerId)
       .eq('business_id', tenantInfo.businessId);
 
     // 4. Move notes history from secondary to primary
-    await supabase
-      .from('customer_notes_history')
-      .update({ customer_id: primaryCustomerId } as never)
+    await (supabase
+      .from('customer_notes_history') as any)
+      .update({ customer_id: primaryCustomerId })
       .eq('customer_id', secondaryCustomerId)
       .eq('business_id', tenantInfo.businessId);
 
     // 5. Move visits from secondary to primary
-    await supabase
-      .from('visits')
-      .update({ customer_id: primaryCustomerId } as never)
+    await (supabase
+      .from('visits') as any)
+      .update({ customer_id: primaryCustomerId })
       .eq('customer_id', secondaryCustomerId)
       .eq('business_id', tenantInfo.businessId);
 
@@ -180,9 +182,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (Object.keys(updates).length > 0) {
-        await supabase
-          .from('customers')
-          .update(updates as never)
+        await (supabase
+          .from('customers') as any)
+          .update(updates)
           .eq('id', primaryCustomerId);
       }
     }

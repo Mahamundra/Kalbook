@@ -85,10 +85,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Insert tags (ignore conflicts for existing tags)
-      const insertResult = await supabase
-        .from('customer_tags')
+      const insertResult = await (supabase
+        .from('customer_tags') as any)
         .insert(tagInserts)
-        .select();
+        .select() as { data: any; error: any };
 
       if (insertResult.error) {
         // Some tags might already exist, which is fine

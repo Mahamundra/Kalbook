@@ -151,14 +151,14 @@ export async function POST(
     }
 
     // Add note to history
-    const noteResult = await supabase
-      .from('customer_notes_history')
+    const noteResult = await (supabase
+      .from('customer_notes_history') as any)
       .insert({
         customer_id: customerId,
         business_id: tenantInfo.businessId,
         note_text: noteText.trim(),
         created_by: userId || null,
-      } as never)
+      })
       .select(`
         *,
         users (id, name, email)
@@ -178,9 +178,9 @@ export async function POST(
     }
 
     // Update customer's notes field with latest note
-    await supabase
-      .from('customers')
-      .update({ notes: noteText.trim() } as never)
+    await (supabase
+      .from('customers') as any)
+      .update({ notes: noteText.trim() })
       .eq('id', customerId);
 
     // Format response

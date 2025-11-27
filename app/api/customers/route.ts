@@ -276,7 +276,9 @@ export async function POST(request: NextRequest) {
         tag: tag.trim(),
       }));
 
-      await supabase.from('customer_tags').insert(tagInserts);
+      await (supabase
+        .from('customer_tags') as any)
+        .insert(tagInserts);
     }
 
     // Map to Customer interface
