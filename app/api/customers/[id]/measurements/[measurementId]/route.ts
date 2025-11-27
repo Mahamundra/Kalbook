@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
+import type { Database } from '@/lib/supabase/database.types';
+
+type ClientMeasurementUpdate = Database['public']['Tables']['client_measurements']['Update'];
 
 /**
  * PATCH /api/customers/[id]/measurements/[measurementId]
@@ -43,7 +46,7 @@ export async function PATCH(
     }
 
     // Build update data
-    const updateData: any = {};
+    const updateData: ClientMeasurementUpdate = {};
 
     if (body.measured_at !== undefined) {
       updateData.measured_at = body.measured_at;
@@ -74,12 +77,13 @@ export async function PATCH(
     }
 
     // Update measurement
-    const { data: updatedMeasurement, error: updateError } = await supabase
-      .from('client_measurements')
+    const updateResult = await (supabase
+      .from('client_measurements') as any)
       .update(updateData)
       .eq('id', measurementId)
       .select()
-      .single();
+      .single() as { data: any; error: any };
+    const { data: updatedMeasurement, error: updateError } = updateResult;
 
     if (updateError) {
       return NextResponse.json(
