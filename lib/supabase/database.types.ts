@@ -749,6 +749,76 @@ export interface Database {
           updated_at?: string;
         };
       };
+      customer_communications: {
+        Row: {
+          id: string;
+          business_id: string;
+          customer_id: string;
+          channel: 'sms' | 'whatsapp' | 'email';
+          direction: 'inbound' | 'outbound';
+          subject: string | null;
+          message: string;
+          status: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+          sent_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          customer_id: string;
+          channel: 'sms' | 'whatsapp' | 'email';
+          direction?: 'inbound' | 'outbound';
+          subject?: string | null;
+          message: string;
+          status?: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+          sent_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          customer_id?: string;
+          channel?: 'sms' | 'whatsapp' | 'email';
+          direction?: 'inbound' | 'outbound';
+          subject?: string | null;
+          message?: string;
+          status?: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+          sent_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      customer_notes_history: {
+        Row: {
+          id: string;
+          customer_id: string;
+          business_id: string;
+          note_text: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          business_id: string;
+          note_text: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          business_id?: string;
+          note_text?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+      };
     };
   };
 }
