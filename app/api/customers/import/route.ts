@@ -190,9 +190,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Add tags if provided
-        if (customer.tags && customer.tags.length > 0) {
+        if (customer.tags && customer.tags.length > 0 && createResult.data) {
           const tagInserts = customer.tags.map((tag: string) => ({
-            customer_id: createResult.data.id,
+            customer_id: createResult.data!.id,
             tag: tag.trim(),
           }));
 
