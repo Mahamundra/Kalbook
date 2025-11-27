@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     let filteredCustomers = mappedCustomers;
     if (filters.tags && Array.isArray(filters.tags) && filters.tags.length > 0) {
       filteredCustomers = mappedCustomers.filter((customer) =>
-        filters.tags!.some((tag) => customer.tags.includes(tag))
+        filters.tags!.some((tag: string) => customer.tags.includes(tag))
       );
     }
 
