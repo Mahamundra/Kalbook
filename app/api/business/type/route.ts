@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTenantInfoFromRequest } from '@/lib/tenant';
-import { createAdminClient } from '@/lib/supabase/server';
+import { getTenantInfoFromRequest } from '@/lib/tenant/api';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * GET /api/business/type

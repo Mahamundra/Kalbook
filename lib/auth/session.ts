@@ -197,6 +197,26 @@ export async function getCurrentSession(): Promise<AuthSession | null> {
 }
 
 /**
+ * Get session in Supabase format (for API routes that expect session.user.id)
+ * Returns { user: { id: string, ... } } or null
+ */
+export async function getSession(): Promise<{ user: { id: string; email?: string } } | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return null;
+  }
+  
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+    },
+  };
+}
+
+/**
  * Logout current session
  */
 export async function logout(): Promise<void> {
