@@ -83,3 +83,5 @@ CREATE POLICY "Users can update activity_logs for their business"
 
 
 
+
+

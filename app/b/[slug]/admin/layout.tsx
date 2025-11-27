@@ -17,8 +17,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ported/ui/dropdown-menu';
-import { LayoutDashboard, LogOut } from 'lucide-react';
+import { LayoutDashboard, LogOut, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface User {
   name: string;
@@ -31,6 +32,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Detect business slug
   const slugMatch = pathname?.match(/^\/b\/([^/]+)\/admin/);
@@ -56,6 +58,10 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
               name: data.user.name || 'User',
               email: data.user.email || '',
             });
+            // Check if user is owner
+            if (data.user.role === 'owner') {
+              setIsOwner(true);
+            }
           }
         }
       } catch (error) {
@@ -144,6 +150,18 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
+                      {isOwner && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => window.location.href = '/user/dashboard'} 
+                            className="cursor-pointer hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white"
+                          >
+                            <Building2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                            {t('dashboard.goToOwnerDashboard')}
+                          </DropdownMenuItem>
+                        </>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-[#ff3e1b] hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />

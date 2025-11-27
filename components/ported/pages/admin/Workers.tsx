@@ -60,9 +60,33 @@ const Workers = () => {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const [businessType, setBusinessType] = useState<string | null>(null);
+  const isGymTrainer = businessType === 'gym_trainer';
+  
+  // Helper function to get conditional translation key
+  const getT = (key: string) => {
+    if (isGymTrainer && key.startsWith('workers.')) {
+      return t(key.replace('workers.', 'trainers.')) || t(key);
+    }
+    return t(key);
+  };
   
   useEffect(() => {
     setMounted(true);
+    
+    // Fetch business type
+    const fetchBusinessType = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        if (data.success && data.businessType) {
+          setBusinessType(data.businessType);
+        }
+      } catch (error) {
+        console.error('Failed to fetch business type:', error);
+      }
+    };
+    fetchBusinessType();
     // Fetch current user session
     const fetchCurrentUser = async () => {
       try {
@@ -481,7 +505,7 @@ const Workers = () => {
   return (
     <div>
       <PageHeader
-        title={t('workers.title')}
+        title={getT('workers.title')}
         action={
           <Button 
             onClick={handleCreate}
@@ -498,7 +522,7 @@ const Workers = () => {
             }
           >
             <Plus className="w-4 h-4 me-2" />
-            {t('workers.create')}
+            {getT('workers.create')}
           </Button>
         }
       />
@@ -507,8 +531,8 @@ const Workers = () => {
         data={workers}
         columns={columns}
         searchable
-        searchPlaceholder={t('workers.search')}
-        emptyMessage={t('workers.noWorkersFound')}
+        searchPlaceholder={getT('workers.search')}
+        emptyMessage={getT('workers.noWorkersFound')}
         loading={loading}
       />
 
@@ -517,13 +541,13 @@ const Workers = () => {
           <DialogHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
             <DialogTitle>
               {editingWorkerId 
-                ? t('workers.editWorkerTitle').replace('{name}', editingWorkerName)
-                : t('workers.createWorker')}
+                ? getT('workers.editWorkerTitle').replace('{name}', editingWorkerName)
+                : getT('workers.createWorker')}
             </DialogTitle>
             <DialogDescription>
               {editingWorkerId 
-                ? t('workers.editDescription')
-                : t('workers.createDescription')}
+                ? getT('workers.editDescription')
+                : getT('workers.createDescription')}
             </DialogDescription>
           </DialogHeader>
           
@@ -607,6 +631,39 @@ const Workers = () => {
                   </p>
                 )}
               </div>
+
+              {isGymTrainer && (
+                <div className="md:col-span-2">
+                  <Label>Specializations</Label>
+                  <Input
+                    placeholder="e.g., Strength Training, Cardio, Yoga"
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Trainer specializations and expertise areas
+                  </p>
+                </div>
+              )}
+              
+              {isGymTrainer && (
+                <div className="md:col-span-2">
+                  <Label>Google Calendar</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 w-full"
+                    onClick={() => {
+                      // Placeholder for Google Calendar connection
+                      toast.info('Google Calendar integration - Coming soon');
+                    }}
+                  >
+                    Connect Google Calendar
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sync trainer's schedule with Google Calendar
+                  </p>
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <Label>{t('workers.pickColorForDisplay') || 'Pick a color for worker display'}</Label>

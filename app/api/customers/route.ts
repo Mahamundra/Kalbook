@@ -29,6 +29,15 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const blocked = searchParams.get('blocked');
     const tags = searchParams.get('tags'); // comma-separated tags
+    const consentMarketing = searchParams.get('consentMarketing');
+    const lastVisitFrom = searchParams.get('lastVisitFrom');
+    const lastVisitTo = searchParams.get('lastVisitTo');
+    const createdDateFrom = searchParams.get('createdDateFrom');
+    const createdDateTo = searchParams.get('createdDateTo');
+    const dateOfBirthFrom = searchParams.get('dateOfBirthFrom');
+    const dateOfBirthTo = searchParams.get('dateOfBirthTo');
+    const sortBy = searchParams.get('sortBy') || 'created_at';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     const supabase = createAdminClient();
 
@@ -49,10 +58,52 @@ export async function GET(request: NextRequest) {
       query = query.eq('blocked', blocked === 'true');
     }
 
+    if (consentMarketing !== null && consentMarketing !== undefined) {
+      query = query.eq('consent_marketing', consentMarketing === 'true');
+    }
+
+    if (lastVisitFrom) {
+      query = query.gte('last_visit', lastVisitFrom);
+    }
+
+    if (lastVisitTo) {
+      query = query.lte('last_visit', lastVisitTo);
+    }
+
+    if (createdDateFrom) {
+      query = query.gte('created_at', createdDateFrom);
+    }
+
+    if (createdDateTo) {
+      query = query.lte('created_at', createdDateTo);
+    }
+
+    if (dateOfBirthFrom) {
+      query = query.gte('date_of_birth', dateOfBirthFrom);
+    }
+
+    if (dateOfBirthTo) {
+      query = query.lte('date_of_birth', dateOfBirthTo);
+    }
+
+    // Handle sorting
+    // Map frontend sortBy to database column names
+    const sortColumnMap: Record<string, string> = {
+      'name': 'name',
+      'lastVisit': 'last_visit',
+      'createdDate': 'created_at',
+      'created_at': 'created_at',
+      'dateOfBirth': 'date_of_birth',
+      'date_of_birth': 'date_of_birth',
+    };
+
+    const dbSortColumn = sortBy && sortColumnMap[sortBy] ? sortColumnMap[sortBy] : 'created_at';
+    const ascending = sortOrder === 'asc';
+
     // Apply pagination
     const from = (page - 1) * limit;
     const to = from + limit - 1;
-    query = query.order('created_at', { ascending: false }).range(from, to);
+    query = query.order(dbSortColumn, { ascending }).range(from, to);
 
     const queryResult = await query as { data: CustomerRow[] | null; error: any; count: number | null };
     const { data: customers, error, count } = queryResult;
@@ -98,14 +149,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Calculate total after tag filtering if tags were applied
+    let finalTotal = count || 0;
+    if (tags && tags.trim()) {
+      finalTotal = filteredCustomers.length;
+    }
+
     return NextResponse.json({
       success: true,
       customers: filteredCustomers,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total: finalTotal,
+        totalPages: Math.ceil(finalTotal / limit),
+        hasMore: page * limit < finalTotal,
       },
     });
   } catch (error: any) {

@@ -20,3 +20,5 @@ ADD COLUMN IF NOT EXISTS previous_calendar_type TEXT CHECK (
 COMMENT ON COLUMN businesses.previous_calendar_type IS 'Calendar system used before onboarding: appointment_scheduling_app, paper_calendar, google_phone_calendar, or not_using_calendar';
 
 
+
+

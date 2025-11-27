@@ -26,6 +26,8 @@ interface DataTableProps<T> {
   selectedIds?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
   loading?: boolean;
+  serverSidePagination?: boolean;
+  serverSideFiltering?: boolean;
 }
 
 export function DataTable<T extends { id: string }>({

@@ -8,3 +8,5 @@ ALTER COLUMN email DROP NOT NULL;
 -- PostgreSQL allows multiple NULL values in a UNIQUE constraint
 
 
+
+

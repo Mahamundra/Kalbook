@@ -491,22 +491,10 @@ export function getDefaultBannerImageFilename(businessType: BusinessType): strin
 
 /**
  * Get default theme color for business type
+ * Always returns the primary brand color
  */
 export function getDefaultThemeColor(businessType: BusinessType): string {
-  const colorMap: Record<BusinessType, string> = {
-    barbershop: '#1F2937', // dark gray/charcoal
-    beauty_salon: '#EC4899', // pink
-    makeup_artist: '#F59E0B', // amber/gold
-    nail_salon: '#8B5CF6', // purple
-    spa: '#10B981', // emerald green
-    gym_trainer: '#EF4444', // red
-    pilates_studio: '#06B6D4', // cyan
-    physiotherapy: '#3B82F6', // blue
-    life_coach: '#6366F1', // indigo
-    dietitian: '#14B8A6', // teal
-    other: '#0EA5E9', // sky blue (current default)
-  };
-  
-  return colorMap[businessType] || colorMap.other;
+  // Always use the primary brand color for all business types
+  return '#ff3e1b';
 }
 

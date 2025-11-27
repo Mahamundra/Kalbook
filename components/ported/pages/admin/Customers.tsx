@@ -7,7 +7,6 @@ import { DataTable } from '@/components/admin/DataTable';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { 
-  getCustomers, 
   updateCustomer, 
   deleteCustomer, 
   deleteCustomers, 
@@ -23,9 +22,25 @@ import {
   getSettings
 } from '@/lib/api/services';
 import { formatDate } from '@/components/ported/lib/i18n';
-import { Plus, Pencil, Trash2, X, Phone, Bell, Eye, Shield, ShieldOff, Calendar, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Phone, Bell, Eye, Shield, ShieldOff, Calendar, XCircle, Download, Upload, MessageSquare, Mail, MoreVertical, LayoutGrid, List } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ported/ui/dropdown-menu';
 import { toast } from 'sonner';
 import type { Customer } from '@/types/admin';
+import { CustomerStatisticsCard } from '@/components/admin/CustomerStatisticsCard';
+import { CommunicationHistory } from '@/components/admin/CommunicationHistory';
+import { NotesHistory } from '@/components/admin/NotesHistory';
+import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
+import { BulkOperationsDialog } from '@/components/admin/BulkOperationsDialog';
+import { CustomerMergeDialog } from '@/components/admin/CustomerMergeDialog';
+import { ClientMeasurements } from '@/components/admin/ClientMeasurements';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ported/ui/tabs';
+import { downloadCSV } from '@/lib/customers/csv-utils';
 import {
   Dialog,
   DialogContent,
@@ -65,12 +80,14 @@ const TagsInput = ({
   value, 
   onChange, 
   existingTags, 
-  isRTL 
+  isRTL,
+  t
 }: { 
   value: string[]; 
   onChange: (tags: string[]) => void; 
   existingTags: string[];
   isRTL: boolean;
+  t: (key: string) => string | undefined;
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -165,7 +182,7 @@ const TagsInput = ({
               }, 150);
             }}
             onKeyDown={handleInputKeyDown}
-            placeholder={isRTL ? 'הוסף תגיות...' : 'Add tags...'}
+            placeholder={t('customers.addTags') || (isRTL ? 'הוסף תגיות...' : 'Add tags...')}
             className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-auto p-1 min-w-[120px]"
             dir={isRTL ? 'rtl' : 'ltr'}
             autoComplete="off"
@@ -288,6 +305,26 @@ const Customers = () => {
   const { t, locale, isRTL } = useLocale();
   const isMobile = useIsMobile();
   const [mounted, setMounted] = useState(false);
+
+  // Format phone number with dashes (050-000-0000)
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    
+    // Format as XXX-XXX-XXXX (always maintain dashes)
+    if (limited.length === 0) {
+      return '';
+    } else if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -309,25 +346,61 @@ const Customers = () => {
   });
   const [allowManualEndTime, setAllowManualEndTime] = useState(false);
   const [canManageCustomers, setCanManageCustomers] = useState(true); // Default to true to avoid blocking
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isBulkOperationsDialogOpen, setIsBulkOperationsDialogOpen] = useState(false);
+  const [bulkOperation, setBulkOperation] = useState<'tags' | 'export' | 'communication'>('tags');
+  const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState('overview');
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+  const [businessType, setBusinessType] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const isGymTrainer = businessType === 'gym_trainer';
+  
+  // Helper function to get conditional translation key
+  const getT = (key: string) => {
+    if (isGymTrainer && key.startsWith('customers.')) {
+      return t(key.replace('customers.', 'clients.')) || t(key);
+    }
+    return t(key);
+  };
   
   useEffect(() => {
     setMounted(true);
-    const loadData = async () => {
+    loadCustomers();
+    
+    // Fetch business type
+    const fetchBusinessType = async () => {
       try {
-        const [customersData, servicesData, workersData] = await Promise.all([
-          getCustomers(),
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        if (data.success && data.businessType) {
+          setBusinessType(data.businessType);
+        }
+      } catch (error) {
+        console.error('Failed to fetch business type:', error);
+      }
+    };
+    fetchBusinessType();
+    const loadOtherData = async () => {
+      try {
+        const [servicesData, workersData] = await Promise.all([
           getServices(),
           getWorkers(),
         ]);
-        setCustomers(customersData);
         setServices(servicesData);
         setWorkers(workersData);
       } catch (error) {
         console.error('Failed to load data:', error);
-        toast.error('Failed to load customers');
       }
     };
-    loadData();
+    loadOtherData();
 
     // Check feature access
     fetch('/api/admin/feature-check?feature=manage_customers')
@@ -339,9 +412,60 @@ const Customers = () => {
       })
       .catch(error => {
         console.error('Error checking feature:', error);
-        // Default to true if check fails
       });
   }, []);
+
+  useEffect(() => {
+    loadCustomers();
+  }, [page, limit, search, sortBy, sortOrder]);
+
+  // Fetch all tags from customers for filter dropdown
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/customers?limit=10000&page=1');
+        const data = await response.json();
+        if (data.success) {
+          const allTags: string[] = [];
+          (data.customers || []).forEach((customer: Customer) => {
+            if (customer.tags && customer.tags.length > 0) {
+              allTags.push(...customer.tags);
+            }
+          });
+          setExistingTags(Array.from(new Set(allTags))); // Remove duplicates
+        }
+      } catch (error) {
+        console.error('Failed to fetch tags:', error);
+      }
+    };
+    fetchTags();
+  }, []);
+
+  const loadCustomers = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      
+      if (search) params.append('search', search);
+      if (sortBy) params.append('sortBy', sortBy);
+      if (sortOrder) params.append('sortOrder', sortOrder);
+
+      const response = await fetch(`/api/customers?${params.toString()}`);
+      const data = await response.json();
+      if (data.success) {
+        setCustomers(data.customers || []);
+        setTotalCustomers(data.pagination?.total || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load customers:', error);
+      toast.error('Failed to load customers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   
   const { localeReady } = useDirection();
   
@@ -378,26 +502,13 @@ const Customers = () => {
     );
   }
 
-  // Get all existing tags from all customers
-  const getAllExistingTags = (): string[] => {
-    const allTags: string[] = [];
-    customers.forEach(customer => {
-      if (customer.tags && customer.tags.length > 0) {
-        allTags.push(...customer.tags);
-      }
-    });
-    return allTags;
-  };
-
-  const existingTags = getAllExistingTags();
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(t('customers.confirmDelete') || `Are you sure you want to delete ${name}?`)) {
       try {
         const success = await deleteCustomer(id);
         if (success) {
-          const updatedCustomers = await getCustomers();
-          setCustomers(updatedCustomers);
+          loadCustomers();
           setSelectedIds(selectedIds.filter(selectedId => selectedId !== id));
           toast.success(t('customers.customerDeleted') || 'Customer deleted successfully');
         } else {
@@ -424,8 +535,7 @@ const Customers = () => {
       try {
         const deletedCount = await deleteCustomers(selectedIds);
         if (deletedCount > 0) {
-          const updatedCustomers = await getCustomers();
-          setCustomers(updatedCustomers);
+          loadCustomers();
           setSelectedIds([]);
           toast.success(
             t('customers.customersDeleted')?.replace('{count}', deletedCount.toString()) || 
@@ -461,9 +571,11 @@ const Customers = () => {
         birthDay = date.getDate().toString().padStart(2, '0');
       }
     }
+    // Format phone number when loading for edit
+    const formattedPhone = customer.phone ? formatPhoneNumber(customer.phone) : '';
     setFormData({
       name: customer.name,
-      phone: customer.phone,
+      phone: formattedPhone,
       email: customer.email,
       notes: customer.notes || '',
       tags: customer.tags || [],
@@ -485,6 +597,7 @@ const Customers = () => {
 
   const handleCustomerClick = (customer: Customer) => {
     setSelectedCustomer(customer);
+    setDetailTab('overview');
     setIsDetailDialogOpen(true);
   };
 
@@ -495,6 +608,13 @@ const Customers = () => {
 
   const handleCall = (phone: string) => {
     window.location.href = `tel:${phone}`;
+  };
+
+  const handleWhatsApp = (phone: string) => {
+    // Remove any non-digit characters and ensure proper format
+    const cleanPhone = phone.replace(/\D/g, '');
+    // Open WhatsApp with the phone number
+    window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
 
   const handleSendReminderForAppointment = async (apt: any) => {
@@ -529,13 +649,12 @@ const Customers = () => {
       const newBlockedState = !selectedCustomer.blocked;
       const updated = await toggleCustomerBlocked(selectedCustomer.id, newBlockedState);
       if (updated) {
-        const updatedCustomers = await getCustomers();
-        setCustomers(updatedCustomers);
+        loadCustomers();
         setSelectedCustomer(updated);
         if (newBlockedState) {
-          toast.success(t('customers.customerBlocked') || 'Customer blocked from future appointments');
+          toast.success(isGymTrainer ? getT('customers.clientBlockedWorkouts') : getT('customers.customerBlocked') || (isGymTrainer ? 'Client blocked from future workouts' : 'Customer blocked from future appointments'));
         } else {
-          toast.success(t('customers.customerUnblocked') || 'Customer unblocked');
+          toast.success(getT('customers.customerUnblocked') || 'Customer unblocked');
         }
       }
     } catch (error) {
@@ -548,23 +667,27 @@ const Customers = () => {
     if (!selectedCustomer) return;
     const count = customerAppointments.filter(apt => apt.status !== 'cancelled').length;
     if (count === 0) {
-      toast.info(t('customers.noAppointments') || 'No active appointments to cancel');
+      toast.info(isGymTrainer ? getT('customers.noWorkouts') : getT('customers.noAppointments') || (isGymTrainer ? 'No active workouts to cancel' : 'No active appointments to cancel'));
       return;
     }
     if (window.confirm(
-      t('customers.confirmCancelAppointments')?.replace('{count}', count.toString()) || 
+      (isGymTrainer ? getT('customers.confirmCancelWorkouts') : getT('customers.confirmCancelAppointments'))?.replace('{count}', count.toString()) || 
       `Are you sure you want to cancel ${count} appointment(s)?`
     )) {
       try {
         const canceledCount = await cancelCustomerAppointments(selectedCustomer.id);
         const updatedAppointments = await getAppointmentsByCustomerId(selectedCustomer.id);
         setCustomerAppointments(updatedAppointments);
-        const updatedCustomers = await getCustomers();
-        setCustomers(updatedCustomers);
-        const updated = updatedCustomers.find(c => c.id === selectedCustomer.id);
-        if (updated) setSelectedCustomer(updated);
+        loadCustomers();
+        // Refresh selected customer
+        const response = await fetch(`/api/customers?page=1&limit=1000`);
+        const data = await response.json();
+        if (data.success) {
+          const updated = data.customers.find((c: Customer) => c.id === selectedCustomer.id);
+          if (updated) setSelectedCustomer(updated);
+        }
         toast.success(
-          t('customers.appointmentsCancelled')?.replace('{count}', canceledCount.toString()) || 
+          (isGymTrainer ? getT('customers.workoutsCancelled') : getT('customers.appointmentsCancelled'))?.replace('{count}', canceledCount.toString()) || 
           `${canceledCount} appointment(s) cancelled`
         );
       } catch (error) {
@@ -687,7 +810,7 @@ const Customers = () => {
           const featureData = await featureCheck.json();
           
           if (!featureData.canPerform) {
-            toast.error('Your plan doesn\'t allow adding customers. Please upgrade to continue.');
+            toast.error(t('customers.planLimitAddCustomers') || 'Your plan doesn\'t allow adding customers. Please upgrade to continue.');
             return;
           }
         } catch (error) {
@@ -696,17 +819,20 @@ const Customers = () => {
         }
       }
 
+      // Normalize phone (remove dashes) for API calls
+      const normalizedPhone = formData.phone.replace(/[\s\-\(\)]/g, '');
+
       // Check for duplicate phone number (only when creating new customer or updating to a different phone)
       if (!editingCustomerId) {
         // Creating new customer - check if phone already exists
-        const existingCustomer = await getCustomerByPhone(formData.phone);
+        const existingCustomer = await getCustomerByPhone(normalizedPhone);
         if (existingCustomer) {
           toast.error(t('customers.phoneExists') || 'A customer with this phone number already exists');
           return;
         }
       } else {
         // Updating existing customer - check if phone exists for a different customer
-        const existingCustomer = await getCustomerByPhone(formData.phone);
+        const existingCustomer = await getCustomerByPhone(normalizedPhone);
         if (existingCustomer && existingCustomer.id !== editingCustomerId) {
           toast.error(t('customers.phoneExists') || 'A customer with this phone number already exists');
           return;
@@ -715,6 +841,7 @@ const Customers = () => {
 
       const customerData = {
         ...formData,
+        phone: normalizedPhone, // Save normalized phone (without dashes)
         email: formData.email || '',
         tags: formData.tags,
         lastVisit: editingCustomerId 
@@ -733,12 +860,11 @@ const Customers = () => {
         toast.success(t('customers.customerCreated') || 'Customer created successfully');
       }
       
-      const updatedCustomers = await getCustomers();
-      setCustomers(updatedCustomers);
+      loadCustomers();
       handleClose();
     } catch (error) {
       console.error('Failed to save customer:', error);
-      toast.error('Failed to save customer');
+      toast.error(t('customers.saveError') || 'Failed to save customer');
     }
   };
 
@@ -758,6 +884,10 @@ const Customers = () => {
     {
       key: 'phone',
       label: t('customers.phone'),
+      render: (customer: Customer) => {
+        // Format phone number with dashes for display
+        return formatPhoneNumber(customer.phone || '');
+      },
     },
     {
       key: 'email',
@@ -801,7 +931,18 @@ const Customers = () => {
       label: t('customers.actions') || 'Actions',
       render: (customer: Customer) => {
         return (
-          <div className="flex items-center gap-2 justify-end">
+          <div className={`flex items-center gap-2 justify-end ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCall(customer.phone);
+              }}
+              title={t('customers.call') || 'Call'}
+            >
+              <Phone className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -809,6 +950,7 @@ const Customers = () => {
                 e.stopPropagation();
                 handleEdit(customer);
               }}
+              title={t('customers.viewEdit') || 'Edit'}
             >
               <Pencil className="w-4 h-4" />
             </Button>
@@ -819,6 +961,7 @@ const Customers = () => {
                 e.stopPropagation();
                 handleDelete(customer.id, customer.name);
               }}
+              title={t('customers.delete') || 'Delete'}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -828,61 +971,279 @@ const Customers = () => {
     },
   ];
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/customers/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filters }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `customers-export-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        toast.success(t('customers.exportSuccess') || 'Customers exported successfully');
+      } else {
+        toast.error(t('customers.exportError') || 'Failed to export customers');
+      }
+    } catch (error) {
+      toast.error(t('customers.exportError') || 'Failed to export customers');
+    }
+  };
+
+  const handleBulkOperation = (operation: 'tags' | 'export' | 'communication') => {
+    setBulkOperation(operation);
+    setIsBulkOperationsDialogOpen(true);
+  };
+
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
-        title={t('customers.title')}
+        title={getT('customers.title')}
         action={
           <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
             {selectedIds.length > 0 && (
-              <Button 
-                variant="destructive" 
-                onClick={handleBulkDelete}
-                className="w-full sm:w-auto"
-              >
-                <Trash2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                {t('customers.deleteSelected')?.replace('{count}', selectedIds.length.toString()) || 
-                  `Delete (${selectedIds.length})`}
-              </Button>
+              <>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleBulkOperation('tags')}
+                  className="w-full sm:w-auto"
+                >
+                  {t('customers.bulkTags') || 'Bulk Tags'}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleBulkOperation('export')}
+                  className="w-full sm:w-auto"
+                >
+                  <Download className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                  {t('customers.bulkExport') || 'Bulk Export'}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleBulkOperation('communication')}
+                  className="w-full sm:w-auto"
+                >
+                  {t('customers.bulkCommunication') || 'Bulk Message'}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleBulkDelete}
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                  {t('customers.deleteSelected')?.replace('{count}', selectedIds.length.toString()) || 
+                    `Delete (${selectedIds.length})`}
+                </Button>
+              </>
             )}
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline"
+                onClick={handleExport}
+                className="flex-1 sm:flex-none sm:w-auto"
+              >
+                <Download className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                {t('customers.export') || 'Export'}
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setIsImportDialogOpen(true)}
+                className="flex-1 sm:flex-none sm:w-auto"
+              >
+                <Upload className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                {t('customers.import') || 'Import'}
+              </Button>
+            </div>
             <Button 
               onClick={handleCreate} 
               className="w-full sm:w-auto"
               disabled={!canManageCustomers}
-              title={!canManageCustomers ? 'Your plan doesn\'t allow adding customers. Please upgrade to continue.' : ''}
+              title={!canManageCustomers ? (t('customers.planLimitAddCustomers') || 'Your plan doesn\'t allow adding customers. Please upgrade to continue.') : ''}
             >
               <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-              {t('customers.add')}
+              {getT('customers.add')}
             </Button>
           </div>
         }
       />
 
-      <DataTable
-        data={customers}
-        columns={columns}
-        searchable
-        searchPlaceholder={t('customers.search')}
-        emptyMessage={t('customers.noCustomersFound') || 'No customers found'}
-        selectable
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        onRowClick={handleCustomerClick}
-      />
+      <div className="space-y-4 px-4 sm:px-0">
+        <div className={`flex items-center gap-2 flex-wrap ${isRTL ? '' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="flex-1 min-w-[200px]">
+            <Input
+              placeholder={getT('customers.search') || 'Search customers...'}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1); // Reset to first page when search changes
+              }}
+              className="w-full"
+              dir={isRTL ? 'rtl' : 'ltr'}
+            />
+          </div>
+          
+          {/* Sort By */}
+          <Select
+            value={sortBy}
+            onValueChange={(value) => {
+              setSortBy(value);
+              setPage(1); // Reset to first page when sort changes
+            }}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder={t('customers.filters.sortBy') || 'Sort By'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">{t('customers.name') || 'Name'}</SelectItem>
+              <SelectItem value="created_at">{t('customers.filters.createdDate') || 'Created Date'}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="h-8 px-2"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('cards')}
+              className="h-8 px-2"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {viewMode === 'table' ? (
+          <DataTable
+            data={customers}
+            columns={columns}
+            searchable={false}
+            searchPlaceholder={getT('customers.search')}
+            emptyMessage={getT('customers.noCustomersFound') || (isGymTrainer ? 'No clients found' : 'No customers found')}
+            selectable
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            onRowClick={handleCustomerClick}
+            loading={loading}
+          />
+        ) : (
+          <div className="space-y-4 px-4 sm:px-0">
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {t('customers.loading') || 'Loading...'}
+              </div>
+            ) : customers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {getT('customers.noCustomersFound') || (isGymTrainer ? 'No clients found' : 'No customers found')}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+                {customers.map((customer) => (
+                  <div
+                    key={customer.id}
+                    onClick={() => handleCustomerClick(customer)}
+                    className={`border rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-lg transition-all bg-card min-h-[180px] sm:min-h-[200px] flex flex-col ${selectedIds.includes(customer.id) ? 'ring-2 ring-primary' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  >
+                    <div className={`flex items-start justify-between mb-3 sm:mb-4 ${isRTL ? '' : ''}`}>
+                      <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <div className={`flex items-center gap-2 mb-2 sm:mb-3 ${isRTL ? '' : ''}`}>
+                          {customer.blocked && (
+                            <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-destructive shrink-0" />
+                          )}
+                          <h3 className={`font-semibold text-sm sm:text-base truncate ${isRTL ? 'text-right' : 'text-left'}`}>{customer.name}</h3>
+                        </div>
+                        <div className={`space-y-1.5 sm:space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <div className={`flex items-center gap-2 ${isRTL ? '' : ''}`}>
+                            <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
+                            <p className={`text-xs sm:text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                              {formatPhoneNumber(customer.phone || '')}
+                            </p>
+                          </div>
+                          {customer.email && (
+                            <div className={`flex items-center gap-2 ${isRTL ? '' : ''}`}>
+                              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
+                              <p className={`text-xs sm:text-sm text-muted-foreground truncate ${isRTL ? 'text-right' : 'text-left'}`}>
+                                {customer.email}
+                              </p>
+                            </div>
+                          )}
+                          {customer.lastVisit && (
+                            <div className={`flex items-center gap-2 ${isRTL ? '' : ''}`}>
+                              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
+                              <p className={`text-xs sm:text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                                {formatDate(customer.lastVisit, locale)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(customer.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, customer.id]);
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== customer.id));
+                          }
+                        }}
+                        className="shrink-0 w-4 h-4 sm:w-5 sm:h-5 mt-1"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {customer.tags && customer.tags.length > 0 && (
+                      <div className={`flex gap-1.5 sm:gap-2 flex-wrap mt-auto pt-3 sm:pt-4 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+                        {customer.tags.slice(0, 3).map((tag) => (
+                          <Badge key={tag} variant="secondary" className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {tag}
+                          </Badge>
+                        ))}
+                        {customer.tags.length > 3 && (
+                          <Badge variant="secondary" className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
+                            +{customer.tags.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full" dir={isRTL ? 'rtl' : 'ltr'}>
           {/* Sticky Header */}
           <DialogHeader className="p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10">
-            <DialogTitle className="text-lg sm:text-xl break-words">
+            <DialogTitle className={`text-lg sm:text-xl break-words ${isRTL ? 'text-right' : 'text-left'}`}>
               {editingCustomerId 
-                ? t('customers.editCustomerTitle')?.replace('{name}', formData.name) || `Edit ${formData.name}`
-                : t('customers.createCustomer') || 'Create New Customer'}
+                ? getT('customers.editCustomerTitle')?.replace('{name}', formData.name) || `Edit ${formData.name}`
+                : getT('customers.createCustomer') || (isGymTrainer ? 'Create New Client' : 'Create New Customer')}
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
+            <DialogDescription className={`text-xs sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
               {editingCustomerId 
-                ? t('customers.editDescription') || 'Update the customer details below.'
-                : t('customers.createDescription') || 'Fill in the details below to create a new customer.'}
+                ? getT('customers.editDescription') || (isGymTrainer ? 'Update the client details below.' : 'Update the customer details below.')
+                : getT('customers.createDescription') || (isGymTrainer ? 'Fill in the details below to create a new client.' : 'Fill in the details below to create a new customer.')}
             </DialogDescription>
           </DialogHeader>
           
@@ -911,10 +1272,14 @@ const Customers = () => {
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    const formatted = formatPhoneNumber(e.target.value);
+                    setFormData({ ...formData, phone: formatted });
+                  }}
                   required
-                  placeholder={t('customers.phone')}
+                  placeholder={t('customers.phone') || '050-000-0000'}
                   dir={isRTL ? 'rtl' : 'ltr'}
+                  maxLength={12}
                 />
               </div>
 
@@ -938,9 +1303,11 @@ const Customers = () => {
                 </Label>
                 <div className={`flex flex-col sm:flex-row gap-2 mt-2 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                   {/* Year Select */}
-                  <Select
+                  <select
+                    id="birthYear"
                     value={formData.birthYear}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       // Update date if month and day are already selected
                       if (formData.birthMonth && formData.birthDay) {
                         const year = parseInt(value);
@@ -955,26 +1322,26 @@ const Customers = () => {
                         setFormData({ ...formData, birthYear: value });
                       }
                     }}
+                    className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir="ltr"
                   >
-                    <SelectTrigger className="w-full sm:flex-1" dir="ltr">
-                      <SelectValue placeholder={t('auth.year') || 'Year'} />
-                    </SelectTrigger>
-                    <SelectContent dir="ltr">
+                    <option value="">{t('auth.year') || 'Year'}</option>
                       {Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => {
                         const year = new Date().getFullYear() - i;
                         return (
-                          <SelectItem key={year} value={year.toString()}>
+                        <option key={year} value={year.toString()}>
                             {year}
-                          </SelectItem>
+                        </option>
                         );
                       })}
-                    </SelectContent>
-                  </Select>
+                  </select>
 
                   {/* Month Select */}
-                  <Select
+                  <select
+                    id="birthMonth"
                     value={formData.birthMonth}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       // Update date if year and day are already selected
                       if (formData.birthYear && formData.birthDay) {
                         const year = parseInt(formData.birthYear);
@@ -989,28 +1356,27 @@ const Customers = () => {
                         setFormData({ ...formData, birthMonth: value });
                       }
                     }}
+                    className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir="ltr"
                   >
-                    <SelectTrigger className="w-full sm:flex-1" dir="ltr">
-                      <SelectValue placeholder={t('auth.month') || 'Month'} />
-                    </SelectTrigger>
-                    <SelectContent dir="ltr">
+                    <option value="">{t('auth.month') || 'Month'}</option>
                       {Array.from({ length: 12 }, (_, i) => {
                         const month = i + 1;
                         const monthName = new Date(2000, month - 1, 1).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { month: 'long' });
                         return (
-                          <SelectItem key={month} value={month.toString().padStart(2, '0')}>
+                        <option key={month} value={month.toString().padStart(2, '0')}>
                             {monthName}
-                          </SelectItem>
+                        </option>
                         );
                       })}
-                    </SelectContent>
-                  </Select>
+                  </select>
 
                   {/* Day Select */}
-                  <Select
+                  <select
+                    id="birthDay"
                     value={formData.birthDay}
-                    onValueChange={(value) => {
-                      const day = value;
+                    onChange={(e) => {
+                      const day = e.target.value;
                       // Only create date if all three are selected
                       if (formData.birthYear && formData.birthMonth) {
                         const year = parseInt(formData.birthYear);
@@ -1021,11 +1387,10 @@ const Customers = () => {
                         setFormData({ ...formData, birthDay: day });
                       }
                     }}
+                    className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir="ltr"
                   >
-                    <SelectTrigger className="w-full sm:flex-1" dir="ltr">
-                      <SelectValue placeholder={t('auth.day') || 'Day'} />
-                    </SelectTrigger>
-                    <SelectContent dir="ltr">
+                    <option value="">{t('auth.day') || 'Day'}</option>
                       {(() => {
                         // If year and month are selected, show correct days for that month
                         if (formData.birthYear && formData.birthMonth) {
@@ -1035,9 +1400,9 @@ const Customers = () => {
                           return Array.from({ length: daysInMonth }, (_, i) => {
                             const day = i + 1;
                             return (
-                              <SelectItem key={day} value={day.toString().padStart(2, '0')}>
+                            <option key={day} value={day.toString().padStart(2, '0')}>
                                 {day}
-                              </SelectItem>
+                            </option>
                             );
                           });
                         } else {
@@ -1045,15 +1410,14 @@ const Customers = () => {
                           return Array.from({ length: 31 }, (_, i) => {
                             const day = i + 1;
                             return (
-                              <SelectItem key={day} value={day.toString().padStart(2, '0')}>
+                            <option key={day} value={day.toString().padStart(2, '0')}>
                                 {day}
-                              </SelectItem>
+                            </option>
                             );
                           });
                         }
                       })()}
-                    </SelectContent>
-                  </Select>
+                  </select>
                 </div>
               </div>
 
@@ -1084,6 +1448,7 @@ const Customers = () => {
                   onChange={(tags) => setFormData({ ...formData, tags })}
                   existingTags={existingTags}
                   isRTL={isRTL}
+                  t={t}
                 />
               </div>
 
@@ -1128,7 +1493,7 @@ const Customers = () => {
                 }}
                 className="flex-1 sm:flex-initial"
               >
-                {editingCustomerId ? t('customers.updateCustomer') || 'Update Customer' : t('customers.addCustomer') || 'Add Customer'}
+                {editingCustomerId ? getT('customers.updateCustomer') || (isGymTrainer ? 'Update Client' : 'Update Customer') : getT('customers.addCustomer') || (isGymTrainer ? 'Add Client' : 'Add Customer')}
               </Button>
             </div>
           </DialogFooter>
@@ -1137,24 +1502,44 @@ const Customers = () => {
 
       {/* Customer Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full" dir={isRTL ? 'rtl' : 'ltr'}>
+        <DialogContent className={`max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
           {selectedCustomer && (
             <>
               {/* Sticky Header */}
-              <DialogHeader className="p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10">
-                <DialogTitle className="text-lg sm:text-xl break-words flex items-center gap-2">
+              <DialogHeader className={`p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <DialogTitle className={`text-lg sm:text-xl break-words flex items-center gap-2 ${isRTL ? 'flex-row-reverse text-right justify-end' : 'text-left justify-start'}`}>
                   {selectedCustomer.blocked && (
                     <Shield className="w-5 h-5 text-destructive" />
                   )}
-                  {selectedCustomer.name}
+                  <span className={isRTL ? 'text-right' : 'text-left'}>{selectedCustomer.name}</span>
                 </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm">
-                  {t('customers.customerDetails') || 'View and manage customer information and appointments'}
+                <DialogDescription className={`text-xs sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {getT('customers.customerDetails') || (isGymTrainer ? 'View and manage client information and appointments' : 'View and manage customer information and appointments')}
                 </DialogDescription>
               </DialogHeader>
               
+              {/* Tabs */}
+              <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 flex flex-col overflow-hidden">
+                <TabsList className="mx-4 mt-4 gap-1 sm:gap-0 p-1.5 sm:p-1 overflow-x-auto flex-nowrap">
+                  <TabsTrigger value="overview" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.overview') || 'Overview'}</TabsTrigger>
+                  <TabsTrigger value="appointments" className="px-2 sm:px-3 whitespace-nowrap">
+                    {isGymTrainer ? getT('customers.workouts') : getT('customers.appointments')}
+                  </TabsTrigger>
+                  {isGymTrainer && (
+                    <>
+                      <TabsTrigger value="measurements" className="px-2 sm:px-3 whitespace-nowrap">{getT('customers.measurements')}</TabsTrigger>
+                      <TabsTrigger value="workout-plans" className="px-2 sm:px-3 whitespace-nowrap">{getT('customers.workoutPlans')}</TabsTrigger>
+                      <TabsTrigger value="progress" className="px-2 sm:px-3 whitespace-nowrap">{getT('customers.progress')}</TabsTrigger>
+                    </>
+                  )}
+                  <TabsTrigger value="statistics" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.statistics.title') || 'Statistics'}</TabsTrigger>
+                  <TabsTrigger value="communications" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.communications.title') || 'Communications'}</TabsTrigger>
+                  <TabsTrigger value="notes" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.notesHistory.title') || 'Notes History'}</TabsTrigger>
+                </TabsList>
+
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <TabsContent value="overview" className="space-y-6 mt-0 focus-visible:outline-none">
                 {/* Customer Information */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase">
@@ -1162,36 +1547,36 @@ const Customers = () => {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-xs text-muted-foreground">{t('customers.name')}</Label>
-                      <p className="text-sm font-medium">{selectedCustomer.name}</p>
+                      <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.name')}</Label>
+                      <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{selectedCustomer.name}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">{t('customers.phone')}</Label>
-                      <p className="text-sm font-medium">{selectedCustomer.phone}</p>
+                      <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.phone')}</Label>
+                      <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{formatPhoneNumber(selectedCustomer.phone || '')}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">{t('customers.email')}</Label>
-                      <p className="text-sm font-medium">{selectedCustomer.email}</p>
+                      <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.email')}</Label>
+                      <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{selectedCustomer.email}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">{t('customers.lastVisit')}</Label>
-                      <p className="text-sm font-medium">{formatDate(selectedCustomer.lastVisit, locale)}</p>
+                      <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.lastVisit')}</Label>
+                      <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{formatDate(selectedCustomer.lastVisit, locale)}</p>
                     </div>
                     {selectedCustomer.dateOfBirth && (
                       <div>
-                        <Label className="text-xs text-muted-foreground">{t('customers.dateOfBirth')}</Label>
-                        <p className="text-sm font-medium">{formatDate(selectedCustomer.dateOfBirth, locale)}</p>
+                        <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.dateOfBirth')}</Label>
+                        <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{formatDate(selectedCustomer.dateOfBirth, locale)}</p>
                       </div>
                     )}
                     {selectedCustomer.gender && (
                       <div>
-                        <Label className="text-xs text-muted-foreground">{t('customers.gender')}</Label>
-                        <p className="text-sm font-medium">{t(`auth.${selectedCustomer.gender}`) || selectedCustomer.gender}</p>
+                        <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.gender')}</Label>
+                        <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{t(`auth.${selectedCustomer.gender}`) || selectedCustomer.gender}</p>
                       </div>
                     )}
                     <div className="sm:col-span-2">
-                      <Label className="text-xs text-muted-foreground">{t('customers.tags')}</Label>
-                      <div className="flex gap-1 flex-wrap mt-1">
+                      <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.tags')}</Label>
+                      <div className={`flex gap-1 flex-wrap mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         {selectedCustomer.tags.map((tag) => (
                           <Badge key={tag} variant="secondary" className="text-xs">
                             {tag}
@@ -1201,8 +1586,8 @@ const Customers = () => {
                     </div>
                     {selectedCustomer.notes && (
                       <div className="sm:col-span-2">
-                        <Label className="text-xs text-muted-foreground">{t('customers.notes')}</Label>
-                        <p className="text-sm mt-1 p-3 bg-muted rounded-md whitespace-pre-wrap">
+                        <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.notes')}</Label>
+                        <p className={`text-sm mt-1 p-3 bg-muted rounded-md whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
                           {selectedCustomer.notes}
                         </p>
                       </div>
@@ -1210,16 +1595,17 @@ const Customers = () => {
                   </div>
                 </div>
 
-                {/* Appointments */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase">
-                      {t('customers.appointments') || 'Appointments'} ({customerAppointments.length})
+                </TabsContent>
+
+                <TabsContent value="appointments" className="space-y-4 mt-0">
+                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <h3 className={`text-sm font-semibold text-muted-foreground uppercase ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {isGymTrainer ? getT('customers.workouts') : getT('customers.appointments')} ({customerAppointments.length})
                     </h3>
                   </div>
                   {customerAppointments.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      {t('customers.noAppointments') || 'No appointments found'}
+                      {isGymTrainer ? getT('customers.noWorkouts') : getT('customers.noAppointments') || (isGymTrainer ? 'No workouts found' : 'No appointments found')}
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -1229,9 +1615,9 @@ const Customers = () => {
                         return (
                           <div
                             key={apt.id}
-                            className="p-3 border rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
+                            className={`p-3 border rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${isRTL ? 'sm:flex-row-reverse' : ''}`}
                           >
-                            <div className="flex-1 min-w-0">
+                            <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
                               <p className="text-sm font-medium truncate">{apt.service}</p>
                               <p className="text-xs text-muted-foreground">
                                 {start.toLocaleDateString(locale)} {start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
@@ -1264,11 +1650,63 @@ const Customers = () => {
                       })}
                     </div>
                   )}
-                </div>
+                </TabsContent>
+
+                <TabsContent value="statistics" className="mt-0">
+                  <CustomerStatisticsCard customerId={selectedCustomer.id} />
+                </TabsContent>
+
+                <TabsContent value="communications" className="mt-0">
+                  <CommunicationHistory 
+                    customerId={selectedCustomer.id}
+                    onSend={() => {
+                      // Refresh if needed
+                    }}
+                  />
+                </TabsContent>
+
+                <TabsContent value="notes" className="mt-0">
+                  <NotesHistory 
+                    customerId={selectedCustomer.id}
+                    onAddNote={() => {
+                      loadCustomers();
+                      // Refresh customer data
+                      const updated = customers.find(c => c.id === selectedCustomer.id);
+                      if (updated) setSelectedCustomer(updated);
+                    }}
+                  />
+                </TabsContent>
+                {isGymTrainer && (
+                  <>
+                    <TabsContent value="measurements" className="mt-0">
+                      <ClientMeasurements customerId={selectedCustomer.id} />
+                    </TabsContent>
+                    <TabsContent value="workout-plans" className="mt-0">
+                      <div className={`p-4 text-center text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {getT('customers.workoutPlans')} - Coming soon
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="progress" className="mt-0">
+                      <div className={`p-4 text-center text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {getT('customers.progress')} - Coming soon
+                      </div>
+                    </TabsContent>
+                  </>
+                )}
               </div>
+              </Tabs>
 
               {/* Sticky Footer with Actions */}
-              <DialogFooter className="p-4 sm:p-6 pt-4 border-t sticky bottom-0 bg-background z-10 flex flex-col sm:flex-row gap-3 sm:gap-2 flex-wrap">
+              <DialogFooter className={`p-4 sm:p-6 pt-4 border-t sticky bottom-0 bg-background z-10 flex flex-col gap-3 ${isRTL ? 'sm:flex-row-reverse' : 'sm:flex-row'} sm:justify-between`}>
+                {/* Main Action Buttons */}
+                <div className={`flex flex-col sm:flex-row gap-2 flex-wrap ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                  <Button
+                    onClick={handleCreateAppointment}
+                    className="flex-1 sm:flex-initial"
+                  >
+                    <Calendar className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                    {isGymTrainer ? getT('customers.scheduleWorkout') : getT('customers.createAppointment') || (isGymTrainer ? 'Schedule Workout' : 'Create Appointment')}
+                  </Button>
                 <Button
                   onClick={() => handleCall(selectedCustomer.phone)}
                   variant="outline"
@@ -1278,20 +1716,61 @@ const Customers = () => {
                   {t('customers.call') || 'Call'}
                 </Button>
                 <Button
+                    onClick={() => handleWhatsApp(selectedCustomer.phone)}
+                    variant="outline"
+                    className="flex-1 sm:flex-initial"
+                  >
+                    <MessageSquare className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                    WhatsApp
+                  </Button>
+                </div>
+
+                {/* Actions Dropdown Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex-1 sm:flex-initial">
+                      <MoreVertical className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                      {t('customers.actions') || 'Actions'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align={isRTL ? 'end' : 'start'} dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
+                    <DropdownMenuItem
                   onClick={() => {
                     handleCloseDetail();
                     handleEdit(selectedCustomer);
                   }}
-                  variant="outline"
-                  className="flex-1 sm:flex-initial"
+                      className={`${isRTL ? 'flex-row-reverse' : ''}`}
+                      style={{
+                        // @ts-ignore - Radix UI data attributes
+                        '--hover-bg': '#030408',
+                        '--hover-text': '#ffffff',
+                      } as React.CSSProperties}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#030408';
+                        e.currentTarget.style.color = '#ffffff';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.color = '';
+                      }}
                 >
                   <Eye className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
                   {t('customers.viewEdit') || 'View/Edit'}
-                </Button>
-                <Button
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
                   onClick={handleToggleBlock}
-                  variant={selectedCustomer.blocked ? 'default' : 'destructive'}
-                  className="flex-1 sm:flex-initial"
+                      className={`${selectedCustomer.blocked ? '' : 'text-destructive'} ${isRTL ? 'flex-row-reverse' : ''}`}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#030408';
+                        if (!selectedCustomer.blocked) {
+                          e.currentTarget.style.color = 'rgb(239 68 68)'; // destructive color
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.color = '';
+                      }}
                 >
                   {selectedCustomer.blocked ? (
                     <>
@@ -1304,23 +1783,43 @@ const Customers = () => {
                       {t('customers.block') || 'Block'}
                     </>
                   )}
-                </Button>
-                <Button
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                   onClick={handleCancelAllAppointments}
-                  variant="destructive"
-                  className="flex-1 sm:flex-initial"
                   disabled={customerAppointments.filter(apt => apt.status !== 'cancelled').length === 0}
+                      className={`text-destructive ${isRTL ? 'flex-row-reverse' : ''}`}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#030408';
+                        e.currentTarget.style.color = 'rgb(239 68 68)'; // destructive color
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.color = '';
+                      }}
                 >
                   <XCircle className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                  {t('customers.cancelAllAppointments') || 'Cancel All Appointments'}
-                </Button>
-                <Button
-                  onClick={handleCreateAppointment}
-                  className="flex-1 sm:flex-initial"
+                      {isGymTrainer ? getT('customers.cancelAllWorkouts') : getT('customers.cancelAllAppointments') || (isGymTrainer ? 'Cancel All Workouts' : 'Cancel All Appointments')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                  onClick={() => {
+                    setIsDetailDialogOpen(false);
+                    setIsMergeDialogOpen(true);
+                  }}
+                      className={isRTL ? 'flex-row-reverse' : ''}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#030408';
+                        e.currentTarget.style.color = '#ffffff';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.color = '';
+                      }}
                 >
-                  <Calendar className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                  {t('customers.createAppointment') || 'Create Appointment'}
-                </Button>
+                  {t('customers.merge.title') || 'Merge Customer'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </DialogFooter>
             </>
           )}
@@ -1332,20 +1831,24 @@ const Customers = () => {
         <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full" dir={isRTL ? 'rtl' : 'ltr'}>
           {/* Sticky Header */}
           <DialogHeader className="p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10">
-            <DialogTitle className="text-lg sm:text-xl break-words">{t('calendar.createAppointment')}</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">{t('calendar.appointmentDetails')}</DialogDescription>
+            <DialogTitle className={`text-lg sm:text-xl break-words ${isRTL ? 'text-right' : 'text-left'}`}>
+              {isGymTrainer ? t('calendar.scheduleNewWorkout') : t('calendar.createAppointment')}
+            </DialogTitle>
+            <DialogDescription className={`text-xs sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+              {isGymTrainer ? t('calendar.workoutDetails') : t('calendar.appointmentDetails')}
+            </DialogDescription>
           </DialogHeader>
           
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             <div>
-              <Label>{t('calendar.selectService')} *</Label>
+              <Label>{isGymTrainer ? t('calendar.selectWorkoutType') : t('calendar.selectService')} *</Label>
               <Select
                 value={appointmentFormData.serviceId}
                 onValueChange={handleServiceChange}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('calendar.selectService')} />
+                  <SelectValue placeholder={isGymTrainer ? t('calendar.selectWorkoutType') : t('calendar.selectService')} />
                 </SelectTrigger>
                 <SelectContent>
                   {services.filter(s => s.active).map((service) => (
@@ -1357,13 +1860,13 @@ const Customers = () => {
               </Select>
             </div>
             <div>
-              <Label>{t('calendar.selectWorker')} *</Label>
+              <Label>{isGymTrainer ? t('calendar.selectTrainer') : t('calendar.selectWorker')} *</Label>
               <Select
                 value={appointmentFormData.workerId}
                 onValueChange={(value) => setAppointmentFormData({ ...appointmentFormData, workerId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('calendar.selectWorker')} />
+                  <SelectValue placeholder={isGymTrainer ? t('calendar.selectTrainer') : t('calendar.selectWorker')} />
                 </SelectTrigger>
                 <SelectContent>
                   {workers.map((worker) => (
@@ -1476,6 +1979,44 @@ const Customers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <CSVImportDialog
+        open={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={() => {
+          loadCustomers();
+        }}
+      />
+
+      {/* Bulk Operations Dialog */}
+      <BulkOperationsDialog
+        open={isBulkOperationsDialogOpen}
+        onClose={() => setIsBulkOperationsDialogOpen(false)}
+        selectedIds={selectedIds}
+        operation={bulkOperation}
+        onComplete={() => {
+          loadCustomers();
+          setSelectedIds([]);
+        }}
+      />
+
+      {/* Merge Dialog */}
+      <CustomerMergeDialog
+        open={isMergeDialogOpen}
+        onClose={() => setIsMergeDialogOpen(false)}
+        customers={
+          selectedIds.length >= 2
+            ? customers.filter(c => selectedIds.includes(c.id))
+            : customers.slice(0, 10) // Show first 10 if no selection
+        }
+        onMerge={() => {
+          loadCustomers();
+          setSelectedIds([]);
+          setIsDetailDialogOpen(false);
+        }}
+      />
+
     </div>
   );
 };

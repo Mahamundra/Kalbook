@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -65,12 +66,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ported/ui/dropdown-menu';
-import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2 } from 'lucide-react';
+import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2, Mail, Send, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ported/ui/tabs';
 import { Separator } from '@/components/ported/ui/separator';
-import { BookingPagePreview } from './BookingPagePreview';
+import { getTemplates, updateTemplate } from '@/components/ported/lib/mockData';
+import type { Template } from '@/types/admin';
 import {
   Dialog,
   DialogContent,
@@ -203,16 +206,108 @@ const languages: Locale[] = ['en', 'he', 'ar', 'ru'];
 const Settings = () => {
   const { t } = useLocale();
   const { isRTL } = useDirection();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  
+  // Extract business slug from pathname
+  const slugMatch = pathname?.match(/^\/b\/([^/]+)\/admin/);
+  const businessSlug = slugMatch?.[1];
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('business');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [uploading, setUploading] = useState<{ logo?: boolean; banner?: boolean; video?: boolean }>({});
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewRefreshKey, setPreviewRefreshKey] = useState<string>('');
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // Function to refresh the preview iframe
+  const refreshPreview = () => {
+    const newKey = Date.now().toString();
+    setPreviewRefreshKey(newKey);
+    // Update iframe src to force reload with cache busting
+    if (previewIframeRef.current && businessSlug) {
+      previewIframeRef.current.src = `/b/${businessSlug}?preview=${newKey}`;
+    }
+  };
   const [canCustomBranding, setCanCustomBranding] = useState(true); // Default to true to avoid blocking
   const [canUseWhatsApp, setCanUseWhatsApp] = useState(true); // Default to true to avoid blocking
   const [canUseMultiLanguage, setCanUseMultiLanguage] = useState(true); // Default to true to avoid blocking
+  const [canManageTemplates, setCanManageTemplates] = useState(true); // Default to true to avoid blocking
+  const [emailTemplates] = useState(() => getTemplates('email'));
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    emailTemplates[0] || null
+  );
+  const [templateSubject, setTemplateSubject] = useState(selectedTemplate?.subject || '');
+  const [templateBody, setTemplateBody] = useState(selectedTemplate?.body || '');
+
+  // Update template subject/body when selected template changes
+  useEffect(() => {
+    if (selectedTemplate) {
+      setTemplateSubject(selectedTemplate.subject || '');
+      setTemplateBody(selectedTemplate.body);
+    }
+  }, [selectedTemplate]);
+
+  const handleSelectTemplate = (template: Template) => {
+    setSelectedTemplate(template);
+  };
+
+  const handleSaveTemplate = () => {
+    if (!canManageTemplates) {
+      toast.error('Your plan doesn\'t allow managing templates. Please upgrade to continue.');
+      return;
+    }
+
+    // Double-check with API before proceeding
+    fetch('/api/admin/feature-check?feature=manage_templates')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.canPerform) {
+          toast.error('Your plan doesn\'t allow managing templates. Please upgrade to continue.');
+          return;
+        }
+
+        if (selectedTemplate) {
+          updateTemplate(selectedTemplate.id, { subject: templateSubject, body: templateBody });
+          toast.success('Template saved successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Error checking feature:', error);
+        // Continue if check fails (don't block user due to API error)
+        if (selectedTemplate) {
+          updateTemplate(selectedTemplate.id, { subject: templateSubject, body: templateBody });
+          toast.success('Template saved successfully');
+        }
+      });
+  };
+
+  const insertVariable = (variable: string) => {
+    setTemplateBody((prev) => prev + variable);
+  };
+
+  const getTemplatePreview = () => {
+    return templateBody
+      .replace(/\{\{customer\.name\}\}/g, 'John Doe')
+      .replace(/\{\{service\.name\}\}/g, 'Haircut')
+      .replace(/\{\{service\.duration\}\}/g, '30')
+      .replace(/\{\{booking\.start\}\}/g, 'Oct 30, 2025 at 09:00')
+      .replace(/\{\{booking\.end\}\}/g, 'Oct 30, 2025 at 09:30')
+      .replace(/\{\{booking\.link\}\}/g, 'https://bookinghub.app/booking/123')
+      .replace(/\{\{staff\.name\}\}/g, 'David');
+  };
+
+  const templateVariables = [
+    '{{customer.name}}',
+    '{{customer.phone}}',
+    '{{service.name}}',
+    '{{service.duration}}',
+    '{{booking.start}}',
+    '{{booking.end}}',
+    '{{booking.link}}',
+    '{{staff.name}}',
+  ];
   const [settings, setSettings] = useState(() => {
     // Use default value on server to avoid hydration mismatch
     if (typeof window === 'undefined') {
@@ -484,7 +579,8 @@ const Settings = () => {
       fetch('/api/admin/feature-check?feature=custom_branding').then(res => res.json()),
       fetch('/api/admin/feature-check?feature=whatsapp_integration').then(res => res.json()),
       fetch('/api/admin/feature-check?feature=multi_language').then(res => res.json()),
-    ]).then(([brandingData, whatsappData, languageData]) => {
+      fetch('/api/admin/feature-check?feature=manage_templates').then(res => res.json()),
+    ]).then(([brandingData, whatsappData, languageData, templatesData]) => {
       if (brandingData.success) {
         setCanCustomBranding(brandingData.canPerform);
       }
@@ -493,6 +589,9 @@ const Settings = () => {
       }
       if (languageData.success) {
         setCanUseMultiLanguage(languageData.canPerform);
+      }
+      if (templatesData.success) {
+        setCanManageTemplates(templatesData.canPerform);
       }
     }).catch(error => {
       console.error('Error checking features:', error);
@@ -514,6 +613,10 @@ const Settings = () => {
       };
       await updateSettings(settingsToSave);
       setLastSaved(new Date());
+      // Refresh preview to show changes (with a small delay to ensure settings are saved)
+      setTimeout(() => {
+        refreshPreview();
+      }, 500);
       toast.success(t('settings.savedSuccessfully') || 'Settings saved successfully');
       // Trigger a custom event to notify other components of settings change
       if (typeof window !== 'undefined') {
@@ -653,12 +756,15 @@ const Settings = () => {
     );
   }
 
-  return (
-    <div>
-      <PageHeader title={t('settings.title')} />
+  // Create a save handler for each section
+  const createSectionSaveHandler = (sectionName: string) => async () => {
+    await handleSave();
+  };
 
-      {/* Save Status Bar */}
-      <div className={`mb-6 flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+  // Sticky Save Button Component for each section
+  const StickySaveButton = ({ sectionName }: { sectionName: string }) => (
+    <div className={`sticky bottom-0 z-10 py-4 bg-background/95 backdrop-blur-sm border-t mt-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
           {saving ? (
             <>
@@ -688,92 +794,72 @@ const Settings = () => {
           {t('settings.save') || 'Save Changes'}
         </Button>
       </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <PageHeader title={t('settings.title')} />
 
       {/* Main Settings with Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="grid lg:grid-cols-[250px_1fr] gap-6">
-          {/* Sidebar Navigation */}
-          <div className="hidden lg:block">
-            <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
-              <TabsTrigger 
-                value="business" 
-                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Building2 className="w-4 h-4" />
-                <span>{t('settings.businessProfile') || 'Business Profile'}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="branding" 
-                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Palette className="w-4 h-4" />
-                <span>{t('settings.bookingPageAppearance') || 'Branding'}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="calendar" 
-                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Calendar className="w-4 h-4" />
-                <span>{t('settings.calendarSettings') || 'Calendar'}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="notifications" 
-                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Bell className="w-4 h-4" />
-                <span>{t('settings.notifications') || 'Notifications'}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="language" 
-                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Globe className="w-4 h-4" />
-                <span>{t('settings.languageAndLocalization') || 'Language'}</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="integrations" 
-                className={`w-full justify-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <Link2 className="w-4 h-4" />
-                <span>{t('settings.integrations') || 'Integrations'}</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Horizontal Top Bar Navigation */}
+        <div className="mb-6 border-b md:border-b-0 md:mb-6 edge-to-edge-mobile">
+          <TabsList className={`flex flex-row w-full h-14 md:h-auto bg-transparent p-0 gap-0 overflow-x-auto settings-nav-scrollbar ${isRTL ? 'pr-6 pl-6 md:px-0' : 'pl-6 pr-6 md:px-0'}`}>
+            <TabsTrigger 
+              value="business" 
+              className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pr-6 pl-4 md:px-4' : 'pl-6 pr-4 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Building2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.businessProfile') || 'Business Profile'}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="branding" 
+              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Palette className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.bookingPageAppearance') || 'Branding'}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="calendar" 
+              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Calendar className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.calendarSettings') || 'Calendar'}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="notifications" 
+              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Bell className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.notifications') || 'Notifications'}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="language" 
+              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Globe className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.languageAndLocalization') || 'Language'}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="templates" 
+              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Mail className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('nav.templates') || 'Templates'}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="integrations" 
+              className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pl-6 pr-4 md:px-4' : 'pl-4 pr-6 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
+            >
+              <Link2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.integrations') || 'Integrations'}</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-          {/* Mobile Tabs */}
-          <div className="lg:hidden">
-            <TabsList className="grid grid-cols-3 w-full mb-4">
-              <TabsTrigger value="business" className="gap-1 text-xs">
-                <Building2 className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('settings.businessProfile') || 'Business'}</span>
-              </TabsTrigger>
-              <TabsTrigger value="branding" className="gap-1 text-xs">
-                <Palette className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('settings.bookingPageAppearance') || 'Branding'}</span>
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="gap-1 text-xs">
-                <Calendar className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('settings.calendarSettings') || 'Calendar'}</span>
-              </TabsTrigger>
-            </TabsList>
-            <TabsList className="grid grid-cols-3 w-full mb-4">
-              <TabsTrigger value="notifications" className="gap-1 text-xs">
-                <Bell className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('settings.notifications') || 'Notifications'}</span>
-              </TabsTrigger>
-              <TabsTrigger value="language" className="gap-1 text-xs">
-                <Globe className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('settings.languageAndLocalization') || 'Language'}</span>
-              </TabsTrigger>
-              <TabsTrigger value="integrations" className="gap-1 text-xs">
-                <Link2 className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('settings.integrations') || 'Integrations'}</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* Content Area */}
-          <div className="space-y-6">
+        {/* Content Area */}
+        <div className="space-y-6">
             {/* Business Profile Tab */}
             <TabsContent value="business" className="space-y-6 mt-0">
               <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -948,6 +1034,7 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+        <StickySaveButton sectionName="business" />
             </TabsContent>
 
             {/* Branding Tab */}
@@ -2032,6 +2119,7 @@ const Settings = () => {
               </div>
         </Card>
               </div>
+        <StickySaveButton sectionName="branding" />
             </TabsContent>
 
             {/* Calendar Tab */}
@@ -2260,6 +2348,7 @@ const Settings = () => {
             </div>
           </div>
         </Card>
+        <StickySaveButton sectionName="calendar" />
             </TabsContent>
 
             {/* Notifications Tab */}
@@ -2527,6 +2616,7 @@ const Settings = () => {
                 </div>
               </div>
         </Card>
+        <StickySaveButton sectionName="notifications" />
             </TabsContent>
 
             {/* Language Tab */}
@@ -2545,6 +2635,112 @@ const Settings = () => {
                   <div>
                     <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.language')}</label>
                     <LanguageSelect disabled={!canUseMultiLanguage} />
+                  </div>
+                </div>
+              </Card>
+        <StickySaveButton sectionName="language" />
+            </TabsContent>
+
+            {/* Templates Tab */}
+            <TabsContent value="templates" className="space-y-6 mt-0">
+              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2 mb-6">
+                  <Mail className="w-5 h-5 text-primary" />
+                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('templates.title') || 'Templates'}
+                  </h3>
+                </div>
+                <div className="grid lg:grid-cols-[300px_1fr] gap-6">
+                  {/* Template List */}
+                  <Card className="p-4 h-fit">
+                    <div className="space-y-2">
+                      {emailTemplates.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => handleSelectTemplate(template)}
+                          className={`w-full text-start p-3 rounded-lg border transition-colors ${
+                            selectedTemplate?.id === template.id
+                              ? 'bg-accent border-accent-foreground'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{template.subject}</div>
+                          <div className="text-xs text-muted-foreground mt-1 capitalize">
+                            {template.type.replace('_', ' ')} • {template.locale}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {/* Editor */}
+                  <div className="space-y-6">
+                    <Card className="p-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Subject</label>
+                          <Input
+                            value={templateSubject}
+                            onChange={(e) => setTemplateSubject(e.target.value)}
+                            placeholder="Email subject"
+                            disabled={!canManageTemplates}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Body</label>
+                          <Textarea
+                            value={templateBody}
+                            onChange={(e) => setTemplateBody(e.target.value)}
+                            rows={12}
+                            placeholder="Email body"
+                            disabled={!canManageTemplates}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            {t('templates.variables') || 'Variables'}
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {templateVariables.map((variable) => (
+                              <Badge
+                                key={variable}
+                                variant="secondary"
+                                className="cursor-pointer hover:bg-secondary/80"
+                                onClick={() => insertVariable(variable)}
+                              >
+                                {variable}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={handleSaveTemplate}
+                            disabled={!canManageTemplates}
+                            title={!canManageTemplates ? 'Your plan doesn\'t allow managing templates. Please upgrade to continue.' : ''}
+                          >
+                            <Save className="w-4 h-4 me-2" />
+                            {t('templates.save') || 'Save'}
+                          </Button>
+                          <Button variant="outline" onClick={() => toast.info('Test email sent')}>
+                            <Send className="w-4 h-4 me-2" />
+                            {t('templates.test') || 'Test'}
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Preview */}
+                    <Card className="p-6">
+                      <h3 className="font-semibold mb-4">{t('templates.preview') || 'Preview'}</h3>
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="font-medium mb-2">{templateSubject}</div>
+                        <div className="text-sm whitespace-pre-wrap">{getTemplatePreview()}</div>
+                      </div>
+                    </Card>
                   </div>
                 </div>
               </Card>
@@ -2584,19 +2780,47 @@ const Settings = () => {
             </Button>
           </div>
         </Card>
+        <StickySaveButton sectionName="integrations" />
             </TabsContent>
           </div>
-        </div>
       </Tabs>
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
         <DialogContent className="max-w-[95vw] !max-w-[95vw] w-full h-[90vh] max-h-[90vh] p-0 flex flex-col">
           <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-            <DialogTitle>{t('settings.previewBookingPage') || t('preview') || 'Preview'}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{t('settings.previewBookingPage') || t('preview') || 'Preview'}</DialogTitle>
+              {businessSlug && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshPreview}
+                  className="gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  {t('settings.refreshPreview') || 'Refresh'}
+                </Button>
+              )}
+            </div>
           </DialogHeader>
-          <div className="flex-1 overflow-hidden p-6 min-h-0">
-            <BookingPagePreview settings={settings} />
+          <div className="flex-1 overflow-hidden min-h-0">
+            {businessSlug ? (
+              <iframe
+                ref={previewIframeRef}
+                src={`/b/${businessSlug}${previewRefreshKey ? `?preview=${previewRefreshKey}` : ''}`}
+                className="w-full h-full border-0"
+                title={t('settings.previewBookingPage') || 'Booking Page Preview'}
+                allow="fullscreen"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full p-6">
+                <p className="text-muted-foreground">
+                  {t('settings.previewNotAvailable') || 'Preview not available. Please access settings from a business admin page.'}
+                </p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

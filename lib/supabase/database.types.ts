@@ -705,6 +705,50 @@ export interface Database {
           created_at?: string;
         };
       };
+      client_measurements: {
+        Row: {
+          id: string;
+          business_id: string;
+          customer_id: string;
+          measured_at: string;
+          weight: number | null;
+          height: number | null;
+          body_fat_percentage: number | null;
+          muscle_mass: number | null;
+          measurements: Record<string, any> | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          customer_id: string;
+          measured_at?: string;
+          weight?: number | null;
+          height?: number | null;
+          body_fat_percentage?: number | null;
+          muscle_mass?: number | null;
+          measurements?: Record<string, any> | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          customer_id?: string;
+          measured_at?: string;
+          weight?: number | null;
+          height?: number | null;
+          body_fat_percentage?: number | null;
+          muscle_mass?: number | null;
+          measurements?: Record<string, any> | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
