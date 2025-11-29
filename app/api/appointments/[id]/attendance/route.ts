@@ -4,6 +4,15 @@ import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import type { Database } from '@/lib/supabase/database.types';
 
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];
+type AppointmentUpdate = Database['public']['Tables']['appointments']['Update'];
+
+// Extended update type to include attendance fields that were added via migration
+type AppointmentUpdateWithAttendance = AppointmentUpdate & {
+  attended?: boolean;
+  attended_at?: string | null;
+  attendance_notes?: string | null;
+  no_show?: boolean;
+};
 
 /**
  * Helper function to check if business is gym_trainer
@@ -65,7 +74,7 @@ export async function PATCH(
     }
 
     // Build update object
-    const updateData: any = {};
+    const updateData: AppointmentUpdateWithAttendance = {};
     
     if (body.attended !== undefined) {
       updateData.attended = body.attended;
@@ -89,12 +98,12 @@ export async function PATCH(
       updateData.attendance_notes = body.attendance_notes;
     }
 
-    const { data: updatedAppointment, error } = await supabase
+    const { data: updatedAppointment, error } = await (supabase
       .from('appointments')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', params.id)
       .select()
-      .single() as { data: AppointmentRow | null; error: any };
+      .single() as { data: AppointmentRow | null; error: any });
 
     if (error || !updatedAppointment) {
       return NextResponse.json(
