@@ -98,12 +98,14 @@ export async function PATCH(
       updateData.attendance_notes = body.attendance_notes;
     }
 
-    const { data: updatedAppointment, error } = await (supabase
+    const result = await supabase
       .from('appointments')
       .update(updateData as any)
       .eq('id', params.id)
       .select()
-      .single() as { data: AppointmentRow | null; error: any });
+      .single();
+    
+    const { data: updatedAppointment, error } = result as { data: AppointmentRow | null; error: any };
 
     if (error || !updatedAppointment) {
       return NextResponse.json(
