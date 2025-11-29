@@ -8,6 +8,8 @@ import { MetricCard } from '@/components/ported/admin/MetricCard';
 import { ScheduleList } from '@/components/ported/admin/ScheduleList';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
+import { useBusinessType } from '@/lib/hooks/useBusinessType';
+import { ClientMonitoring } from '@/components/admin/ClientMonitoring';
 import { toast } from 'sonner';
 import { Clock, TrendingUp, ArrowRight, ArrowLeft, Loader2, Settings2 } from 'lucide-react';
 import {
@@ -66,6 +68,7 @@ const Dashboard = () => {
   const { t, isRTL } = useLocale();
   const { dir } = useDirection();
   const pathname = usePathname();
+  const businessType = useBusinessType();
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [canViewAnalytics, setCanViewAnalytics] = useState(true);
   const [metricsData, setMetricsData] = useState<DashboardMetricsData | null>(null);
@@ -538,6 +541,11 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Client Monitoring (gym_trainer only) */}
+      {businessType === 'gym_trainer' && (
+        <ClientMonitoring businessType={businessType} />
+      )}
 
       {/* Edit Metrics Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

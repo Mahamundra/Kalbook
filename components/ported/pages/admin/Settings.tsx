@@ -756,15 +756,10 @@ const Settings = () => {
     );
   }
 
-  // Create a save handler for each section
-  const createSectionSaveHandler = (sectionName: string) => async () => {
-    await handleSave();
-  };
-
-  // Sticky Save Button Component for each section
-  const StickySaveButton = ({ sectionName }: { sectionName: string }) => (
-    <div className={`sticky bottom-0 z-10 py-4 bg-background/95 backdrop-blur-sm border-t mt-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+  // Fixed Save Button Component - always visible at bottom
+  const FixedSaveButton = () => (
+    <div className={`fixed bottom-0 left-0 right-0 z-50 py-4 px-4 md:px-6 bg-background/95 backdrop-blur-sm border-t shadow-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`max-w-7xl mx-auto flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
           {saving ? (
             <>
@@ -782,7 +777,7 @@ const Settings = () => {
         </div>
         <Button 
           onClick={handleSave} 
-          size="sm" 
+          size="default" 
           disabled={saving}
           className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
         >
@@ -859,7 +854,7 @@ const Settings = () => {
         </div>
 
         {/* Content Area */}
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             {/* Business Profile Tab */}
             <TabsContent value="business" className="space-y-6 mt-0">
               <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -1034,7 +1029,6 @@ const Settings = () => {
             </div>
           </div>
         </Card>
-        <StickySaveButton sectionName="business" />
             </TabsContent>
 
             {/* Branding Tab */}
@@ -2119,7 +2113,6 @@ const Settings = () => {
               </div>
         </Card>
               </div>
-        <StickySaveButton sectionName="branding" />
             </TabsContent>
 
             {/* Calendar Tab */}
@@ -2348,7 +2341,6 @@ const Settings = () => {
             </div>
           </div>
         </Card>
-        <StickySaveButton sectionName="calendar" />
             </TabsContent>
 
             {/* Notifications Tab */}
@@ -2616,7 +2608,6 @@ const Settings = () => {
                 </div>
               </div>
         </Card>
-        <StickySaveButton sectionName="notifications" />
             </TabsContent>
 
             {/* Language Tab */}
@@ -2638,7 +2629,6 @@ const Settings = () => {
                   </div>
                 </div>
               </Card>
-        <StickySaveButton sectionName="language" />
             </TabsContent>
 
             {/* Templates Tab */}
@@ -2780,10 +2770,12 @@ const Settings = () => {
             </Button>
           </div>
         </Card>
-        <StickySaveButton sectionName="integrations" />
             </TabsContent>
           </div>
       </Tabs>
+
+      {/* Fixed Save Button - Always visible at bottom */}
+      <FixedSaveButton />
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>

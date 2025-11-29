@@ -78,7 +78,15 @@
     "resetToDefault": "Reset to Default",
     "showAll": "Show All",
     "metricsPreferencesSaved": "Metrics preferences saved",
-    "errorSavingPreferences": "Error saving preferences"
+    "errorSavingPreferences": "Error saving preferences",
+    "clientMonitoring": "Client Monitoring",
+    "underMonitoring": "Under Monitoring",
+    "clientsWithFollowUps": "Clients with pending follow-ups or tasks",
+    "expiringMemberships": "Expiring Memberships",
+    "expiringWithin7Days": "Memberships expiring within 7 days",
+    "inactiveClients": "Inactive Clients",
+    "noAppointments14Days": "No appointments in last 14 days",
+    "viewAll": "View All"
   },
   "calendar": {
     "title": "Calendar",
@@ -149,6 +157,8 @@
   },
   "services": {
     "title": "Services",
+    "description": "Description",
+    "headerDescription": "Create and manage service offerings for your clients to book appointments",
     "search": "Search services...",
     "category": "Category",
     "allCategories": "All Categories",
@@ -157,6 +167,7 @@
     "delete": "Delete Service",
     "name": "Name",
     "description": "Description",
+    "descriptionPlaceholder": "Add a description for this service...",
     "duration": "Duration",
     "durationMinutes": "Duration (minutes)",
     "minutes": "min",
@@ -462,6 +473,7 @@
     "confirmBulkDelete": "Are you sure you want to delete {count} client(s)?\n\n{names}",
     "deleteSelected": "Delete Selected ({count})",
     "noClientsFound": "No clients found",
+    "noCustomersFound": "No customers found",
     "clientDetails": "Client Details",
     "customerDetails": "Customer Details",
     "information": "Information",
@@ -470,6 +482,8 @@
     "measurements": "Measurements",
     "workoutPlans": "Workout Plans",
     "progress": "Progress",
+    "membership": "Membership",
+    "followUps": "Follow-Ups",
     "scheduleWorkout": "Schedule Workout",
     "noWorkouts": "No workouts found",
     "workoutsCancelled": "{count} workout(s) cancelled",
@@ -689,6 +703,64 @@
     "saving": "Saving...",
     "addDescription": "Record a new body measurement for this client.",
     "editDescription": "Update the measurement details below."
+  },
+  "memberships": {
+    "title": "Membership",
+    "addMembership": "Add Membership",
+    "createMembership": "Create Membership",
+    "createDescription": "Add a new membership package for this client",
+    "package": "Package",
+    "selectPackage": "Select package or create custom",
+    "customPackage": "Custom Package",
+    "totalSessions": "Total Sessions",
+    "durationDays": "Duration (days)",
+    "remainingSessions": "Remaining",
+    "usedSessions": "Used",
+    "expires": "Expires",
+    "purchased": "Purchased",
+    "noActiveMembership": "No active membership",
+    "history": "History",
+    "notes": "Notes",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "membershipPlans": {
+    "title": "Membership Plans",
+    "description": "Create and manage membership packages for your clients",
+    "create": "Create Plan",
+    "edit": "Edit Membership Plan",
+    "createDescription": "Create a new membership plan for your clients",
+    "editDescription": "Update the membership plan details",
+    "name": "Plan Name",
+    "namePlaceholder": "e.g., Monthly Plan, 10-Session Package",
+    "sessions": "Sessions",
+    "duration": "Duration (days)",
+    "price": "Price",
+    "discountPrice": "Discount Price",
+    "discountPricePlaceholder": "Leave empty for no discount",
+    "savings": "Savings",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "search": "Search plans...",
+    "noPlans": "No membership plans found",
+    "created": "Membership plan created successfully",
+    "updated": "Membership plan updated successfully",
+    "deleted": "Membership plan deleted successfully",
+    "deleteError": "Failed to delete membership plan",
+    "saveError": "Failed to save membership plan",
+    "loadError": "Failed to load membership plans",
+    "nameRequired": "Package name is required",
+    "sessionCountRequired": "Session count must be greater than 0",
+    "durationRequired": "Duration must be greater than 0",
+    "discountInvalid": "Discount price must be less than regular price",
+    "deleteConfirm": "Delete Membership Plan",
+    "deleteConfirmMessage": "Are you sure you want to delete",
+    "deleteWarning": "This action cannot be undone."
   },
   "templates": {
     "title": "Templates",
@@ -1012,7 +1084,13 @@
     "search": "Search...",
     "or": "or",
     "justAMoment": "Just a moment, we are with you",
-    "chooseLanguage": "Choose Language"
+    "chooseLanguage": "Choose Language",
+    "create": "Create",
+    "saving": "Saving...",
+    "schedule": "Schedule",
+    "add": "Add",
+    "deleting": "Deleting...",
+    "actions": "Actions"
   },
   "trial": {
     "currentPlan": "Current Plan",
@@ -1080,7 +1158,7 @@
     "adminDemo": "Admin Demo",
     "switchingLanguage": "Switching language...",
     "features": {
-      "title": "Features",
+      "title": "What's Already Here?!",
       "subtitle": "Everything you need to run your service business smoothly",
       "setup3min": {
         "title": "Set up in 3 minutes",
@@ -1107,6 +1185,26 @@
         "desc": "Hebrew and English support. Works right-to-left and left-to-right.",
         "details": "Serve customers in their preferred language with full bilingual support. Switch seamlessly between Hebrew and English throughout the platform. Complete RTL (right-to-left) support for Hebrew text ensures natural reading experience. All interface elements, forms, and content automatically adapt to the selected language direction. Perfect for businesses serving diverse communities or operating in multilingual markets. Your booking pages, emails, and notifications all support multiple languages."
       },
+      "onlineBooking": {
+        "title": "24/7 Online Booking",
+        "desc": "Always open. Let clients book anytime - even when you're off the clock."
+      },
+      "googleCalendar": {
+        "title": "Google Calendar Integration",
+        "desc": "Sync your appointments with Google Calendar. All your appointments in one place."
+      },
+      "professionalBooking": {
+        "title": "Professional Booking Page",
+        "desc": "Clean and professional booking page that displays your services perfectly."
+      },
+      "recurringAppointments": {
+        "title": "Recurring Appointments",
+        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment."
+      },
+      "mobileOptimized": {
+        "title": "Mobile-Optimized Booking",
+        "desc": "Fully responsive booking experience that looks great on any device."
+      },
       "security": {
         "title": "Simple and secure",
         "desc": "Email code login, pre-built message templates, and peace of mind."
@@ -1120,10 +1218,6 @@
         "title": "QR Codes for Easy Booking",
         "desc": "From scan to scheduled. Create QR codes for booking pages or specific services. Share anywhere, book instantly.",
         "details": "Make booking effortless with QR code technology. Generate unique QR codes for your entire booking page or specific services. Print and display QR codes in your business, on business cards, or marketing materials. Customers simply scan with their phone camera and are instantly taken to your booking page. No app downloads required. Track which QR codes generate the most bookings. Perfect for walk-in customers, events, or promotional campaigns. From scan to scheduled appointment in seconds."
-      },
-      "onlineBooking": {
-        "title": "24/7 Online Booking",
-        "desc": "Always open. Let clients book anytime - even when you're off the clock."
       },
       "groupServices": {
         "title": "Group Services & Packages",
@@ -1163,29 +1257,29 @@
       "month": "/month",
       "riskFree": "14 Days Free Trial",
       "plans": {
-        "basic": {
-          "name": "Basic",
-          "price": "dynamic",
-          "priceNote": "14 days free trial, then competitive pricing.\nNo credit card required. Cancel anytime.",
-          "cta": "Start Free Trial",
-          "note": "",
-          "highlights": ["14 days free trial", "1 staff member", "Up to 100 bookings/month", "Basic booking page", "Email confirmation & reminder", "Bilingual & RTL"]
+        "free": {
+          "name": "Free",
+          "price": "0",
+          "priceNote": "Perfect for getting started",
+          "cta": "Start Free",
+          "note": "Start managing your bookings today - no credit card required",
+          "highlights": ["1 staff member", "Up to 50 bookings/month", "Smart calendar", "Customer management", "Email reminders", "Bilingual & RTL support"]
         },
-        "professional": {
-          "name": "Professional",
+        "pro": {
+          "name": "Pro",
           "price": "dynamic",
           "priceNote": "per month",
           "cta": "Start Pro",
-          "note": "Ideal for active businesses managing multiple staff, unlimited bookings, and advanced features",
-          "highlights": ["Everything in Basic", "Up to 5 staff", "Unlimited bookings", "Packages like Haircut+Beard", "Smart reminders & automation", "WhatsApp messages and OTP", "Option for group classes", "Google/Outlook/Apple Calendar integration", "Analytics dashboard", "Custom branding"]
+          "note": "Everything you need to grow your business",
+          "highlights": ["Everything in Free Plan", "Up to 5 staff", "Unlimited bookings", "Analytics dashboard", "WhatsApp integration", "Google Calendar integration", "Custom branding", "Advanced reminders", "Priority support"]
         },
-        "business": {
-          "name": "Business",
-          "price": "dynamic",
-          "priceNote": "per month",
-          "cta": "Choose Business",
-          "note": "Perfect for growing businesses with multiple locations, advanced reporting needs, and enterprise-level features",
-          "highlights": ["Everything in Professional", "Unlimited staff", "Unlimited bookings", "Cloud image & file storage", "Multiple calendars & branches", "Priority support", "Advanced reports", "API access"]
+        "custom": {
+          "name": "Custom",
+          "price": "custom",
+          "priceNote": "Tailored to your needs",
+          "cta": "Contact Us",
+          "note": "Custom solutions for your specific requirements",
+          "highlights": ["Everything in Pro", "Unlimited staff", "API Access", "White-label solution", "Custom integrations", "Advanced reporting", "Multi-location support", "Custom workflows", "Dedicated support", "Custom development"]
         }
       }
     },
@@ -1251,6 +1345,30 @@
         {
           "q": "What happens if I need help?",
           "a": "We offer support through email and our help center. Business plan customers receive priority support with faster response times. We're here to help you succeed with KalBook."
+        },
+        {
+          "q": "What happens if I need to upgrade or downgrade my plan?",
+          "a": "You can upgrade or downgrade your plan at any time. When you upgrade, changes take effect immediately. When you downgrade, your current plan remains active until the end of your current billing period."
+        },
+        {
+          "q": "Do I need technical knowledge to use KalBook?",
+          "a": "No. KalBook is designed to be simple and intuitive. If you can use a smartphone, you can use KalBook. The initial setup takes just a few minutes."
+        },
+        {
+          "q": "How does billing work? When do I pay?",
+          "a": "Billing is monthly in advance. You pay at the beginning of each month for the upcoming month. If you cancel, you continue to enjoy the service until the end of the billing period you've paid for."
+        },
+        {
+          "q": "Can I integrate KalBook with other systems I use?",
+          "a": "The Custom plan includes full API access that allows you to integrate KalBook with any other system - CRM, payment systems, or any other business tool you use."
+        },
+        {
+          "q": "What happens if my business grows and I need more staff?",
+          "a": "Easy to upgrade. If you're on the Free plan (1 staff) or Pro plan (up to 5 staff) and need more, you can upgrade to Custom which offers unlimited staff and custom-tailored solutions."
+        },
+        {
+          "q": "How do my customers know how to book?",
+          "a": "Your customers receive a direct link to your booking page. The page is simple and intuitive - they choose a service, staff member, date and time, and enter their details. Everything is automatic."
         }
       ]
     },

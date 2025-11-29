@@ -151,17 +151,8 @@ export function ClientMeasurements({ customerId }: ClientMeasurementsProps) {
       </div>
 
       {measurements.length === 0 ? (
-        <div className={`py-8 text-muted-foreground ${isRTL ? 'text-right' : 'text-center'}`}>
-          <p>{t('measurements.noMeasurements') || 'No measurements found'}</p>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            variant="outline"
-            size="sm"
-            className={`mt-4 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-            {t('measurements.addMeasurement') || 'Add Measurement'}
-          </Button>
+        <div className="py-12 text-center">
+          <p className="text-muted-foreground text-lg">{t('measurements.noMeasurements') || 'No measurements found'}</p>
         </div>
       ) : (
         <div className="space-y-4">

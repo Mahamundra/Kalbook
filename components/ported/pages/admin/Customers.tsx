@@ -22,7 +22,7 @@ import {
   getSettings
 } from '@/lib/api/services';
 import { formatDate } from '@/components/ported/lib/i18n';
-import { Plus, Pencil, Trash2, X, Phone, Bell, Eye, Shield, ShieldOff, Calendar, XCircle, Download, Upload, MessageSquare, Mail, MoreVertical, LayoutGrid, List } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Phone, Bell, Eye, Shield, ShieldOff, Calendar, XCircle, Download, Upload, MessageSquare, Mail, MoreVertical, LayoutGrid, List, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +39,10 @@ import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
 import { BulkOperationsDialog } from '@/components/admin/BulkOperationsDialog';
 import { CustomerMergeDialog } from '@/components/admin/CustomerMergeDialog';
 import { ClientMeasurements } from '@/components/admin/ClientMeasurements';
+import { MembershipCard } from '@/components/admin/MembershipCard';
+import { FollowUpTracker } from '@/components/admin/FollowUpTracker';
+import { AttendanceMarker } from '@/components/admin/AttendanceMarker';
+import { ReassignDialog } from '@/components/admin/ReassignDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ported/ui/tabs';
 import { downloadCSV } from '@/lib/customers/csv-utils';
 import {
@@ -358,10 +362,13 @@ const Customers = () => {
   const [bulkOperation, setBulkOperation] = useState<'tags' | 'export' | 'communication'>('tags');
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
   const [detailTab, setDetailTab] = useState('overview');
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const tabsListRef = useRef<HTMLDivElement | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [businessType, setBusinessType] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const isGymTrainer = businessType === 'gym_trainer';
+  const hasUserNavigatedTabs = useRef(false);
   
   // Helper function to get conditional translation key
   const getT = (key: string) => {
@@ -441,6 +448,13 @@ const Customers = () => {
     fetchTags();
   }, []);
 
+  const handleDetailTabChange = useCallback((value: string) => {
+    if (value !== 'overview') {
+      hasUserNavigatedTabs.current = true;
+    }
+    setDetailTab(value);
+  }, []);
+
   const loadCustomers = async () => {
     try {
       setLoading(true);
@@ -483,6 +497,30 @@ const Customers = () => {
       loadAppointments();
     }
   }, [selectedCustomer]);
+
+  useEffect(() => {
+    if (tabsListRef.current && isDetailDialogOpen) {
+      const list = tabsListRef.current;
+      const targetLeft = isRTL ? list.scrollWidth - list.clientWidth : 0;
+      list.scrollTo({ left: targetLeft, behavior: 'auto' });
+    }
+    if (!isDetailDialogOpen) {
+      hasUserNavigatedTabs.current = false;
+    }
+  }, [isDetailDialogOpen, isRTL]);
+
+  useEffect(() => {
+    if (!isDetailDialogOpen) return;
+    if (!hasUserNavigatedTabs.current && detailTab === 'overview') return;
+    const target = tabRefs.current[detailTab];
+    if (target?.scrollIntoView) {
+      target.scrollIntoView({
+        behavior: 'auto',
+        block: 'nearest',
+        inline: isRTL ? 'end' : 'start',
+      });
+    }
+  }, [detailTab, isDetailDialogOpen, isRTL]);
 
   // Handle consent change - must be before early return
   const handleConsentChange = useCallback((checked: boolean) => {
@@ -1017,28 +1055,6 @@ const Customers = () => {
             {selectedIds.length > 0 && (
               <>
                 <Button 
-                  variant="outline"
-                  onClick={() => handleBulkOperation('tags')}
-                  className="w-full sm:w-auto"
-                >
-                  {t('customers.bulkTags') || 'Bulk Tags'}
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleBulkOperation('export')}
-                  className="w-full sm:w-auto"
-                >
-                  <Download className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                  {t('customers.bulkExport') || 'Bulk Export'}
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleBulkOperation('communication')}
-                  className="w-full sm:w-auto"
-                >
-                  {t('customers.bulkCommunication') || 'Bulk Message'}
-                </Button>
-                <Button 
                   variant="destructive" 
                   onClick={handleBulkDelete}
                   className="w-full sm:w-auto"
@@ -1046,6 +1062,13 @@ const Customers = () => {
                   <Trash2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
                   {t('customers.deleteSelected')?.replace('{count}', selectedIds.length.toString()) || 
                     `Delete (${selectedIds.length})`}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleBulkOperation('communication')}
+                  className="w-full sm:w-auto"
+                >
+                  {t('customers.bulkCommunication') || 'Bulk Message'}
                 </Button>
               </>
             )}
@@ -1507,43 +1530,140 @@ const Customers = () => {
 
       {/* Customer Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className={`max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+        <DialogContent className={`max-w-4xl h-[100dvh] sm:h-[90vh] flex flex-col p-0 overflow-hidden w-full sm:w-[95vw] ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
           {selectedCustomer && (
             <>
               {/* Sticky Header */}
-              <DialogHeader className={`p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <DialogTitle className={`text-lg sm:text-xl break-words flex items-center gap-2 ${isRTL ? 'flex-row-reverse text-right justify-end' : 'text-left justify-start'}`}>
-                  {selectedCustomer.blocked && (
-                    <Shield className="w-5 h-5 text-destructive" />
+              <DialogHeader className={`p-4 sm:p-6 pb-4 border-b sticky top-0 bg-background z-10 flex-shrink-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  {isRTL ? (
+                    <>
+                      <DialogTitle className={`text-lg sm:text-xl break-words flex items-center gap-2 flex-1 text-left`}>
+                        {selectedCustomer.blocked && (
+                          <Shield className="w-5 h-5 text-destructive flex-shrink-0" />
+                        )}
+                        <span className="text-left truncate">{selectedCustomer.name}</span>
+                      </DialogTitle>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8 rounded-full flex-shrink-0"
+                        onClick={() => setIsDetailDialogOpen(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8 rounded-full flex-shrink-0"
+                        onClick={() => setIsDetailDialogOpen(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <DialogTitle className={`text-lg sm:text-xl break-words flex items-center gap-2 flex-1 text-right`}>
+                        {selectedCustomer.blocked && (
+                          <Shield className="w-5 h-5 text-destructive flex-shrink-0" />
+                        )}
+                        <span className="text-right truncate">{selectedCustomer.name}</span>
+                      </DialogTitle>
+                    </>
                   )}
-                  <span className={isRTL ? 'text-right' : 'text-left'}>{selectedCustomer.name}</span>
-                </DialogTitle>
-                <DialogDescription className={`text-xs sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+                </div>
+                <DialogDescription className={`text-xs sm:text-sm mt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {getT('customers.customerDetails') || (isGymTrainer ? 'View and manage client information and appointments' : 'View and manage customer information and appointments')}
                 </DialogDescription>
               </DialogHeader>
               
               {/* Tabs */}
-              <Tabs value={detailTab} onValueChange={setDetailTab} className="flex-1 flex flex-col overflow-hidden">
-                <TabsList className="mx-4 mt-4 gap-1 sm:gap-0 p-1.5 sm:p-1 overflow-x-auto flex-nowrap">
-                  <TabsTrigger value="overview" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.overview') || 'Overview'}</TabsTrigger>
-                  <TabsTrigger value="appointments" className="px-2 sm:px-3 whitespace-nowrap">
-                    {isGymTrainer ? getT('customers.workouts') : getT('customers.appointments')}
-                  </TabsTrigger>
-                  {isGymTrainer && (
-                    <>
-                      <TabsTrigger value="measurements" className="px-2 sm:px-3 whitespace-nowrap">{getT('customers.measurements')}</TabsTrigger>
-                      <TabsTrigger value="workout-plans" className="px-2 sm:px-3 whitespace-nowrap">{getT('customers.workoutPlans')}</TabsTrigger>
-                      <TabsTrigger value="progress" className="px-2 sm:px-3 whitespace-nowrap">{getT('customers.progress')}</TabsTrigger>
-                    </>
-                  )}
-                  <TabsTrigger value="statistics" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.statistics.title') || 'Statistics'}</TabsTrigger>
-                  <TabsTrigger value="communications" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.communications.title') || 'Communications'}</TabsTrigger>
-                  <TabsTrigger value="notes" className="px-2 sm:px-3 whitespace-nowrap">{t('customers.notesHistory.title') || 'Notes History'}</TabsTrigger>
-                </TabsList>
+              <Tabs value={detailTab} onValueChange={handleDetailTabChange} className="flex-1 flex flex-col overflow-hidden min-h-0">
+                <div className="border-b md:border-b-0 flex-shrink-0">
+                  <TabsList
+                    ref={tabsListRef}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                    className={`flex flex-row w-full h-14 md:h-auto bg-transparent p-0 gap-0 overflow-x-auto settings-nav-scrollbar overflow-y-hidden touch-pan-x [-webkit-overflow-scrolling:touch] ${isRTL ? 'pr-4 pl-4 md:px-4' : 'pl-4 pr-4 md:px-4'}`}
+                  >
+                    <TabsTrigger
+                      value="overview"
+                      ref={(el) => (tabRefs.current.overview = el)}
+                      className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pr-4 pl-2 md:px-3' : 'pl-4 pr-2 md:px-3'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                    >
+                      {t('customers.overview') || 'Overview'}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="appointments"
+                      ref={(el) => (tabRefs.current.appointments = el)}
+                      className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                    >
+                      {isGymTrainer ? getT('customers.workouts') : getT('customers.appointments')}
+                    </TabsTrigger>
+                    {isGymTrainer && (
+                      <>
+                        <TabsTrigger
+                          value="measurements"
+                          ref={(el) => (tabRefs.current.measurements = el)}
+                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                        >
+                          {getT('customers.measurements')}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="workout-plans"
+                          ref={(el) => (tabRefs.current['workout-plans'] = el)}
+                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                        >
+                          {getT('customers.workoutPlans')}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="progress"
+                          ref={(el) => (tabRefs.current.progress = el)}
+                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                        >
+                          {getT('customers.progress')}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="membership"
+                          ref={(el) => (tabRefs.current.membership = el)}
+                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                        >
+                          {getT('customers.membership') || 'Membership'}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="follow-ups"
+                          ref={(el) => (tabRefs.current['follow-ups'] = el)}
+                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                        >
+                          {getT('customers.followUps') || 'Follow-Ups'}
+                        </TabsTrigger>
+                      </>
+                    )}
+                    <TabsTrigger
+                      value="statistics"
+                      ref={(el) => (tabRefs.current.statistics = el)}
+                      className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                    >
+                      {t('customers.statistics.title') || 'Statistics'}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="communications"
+                      ref={(el) => (tabRefs.current.communications = el)}
+                      className={`hidden flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                    >
+                      {t('customers.communications.title') || 'Communications'}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="notes"
+                      ref={(el) => (tabRefs.current.notes = el)}
+                      className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
+                    >
+                      {t('customers.notesHistory.title') || 'Notes History'}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 min-h-0">
                 <TabsContent value="overview" className="space-y-6 mt-0 focus-visible:outline-none">
                 {/* Customer Information */}
                 <div className="space-y-4">
@@ -1638,6 +1758,37 @@ const Customers = () => {
                               >
                                 {t(`calendar.${apt.status}`)}
                               </Badge>
+                              {isGymTrainer && apt.status === 'confirmed' && (
+                                <>
+                                  <AttendanceMarker
+                                    appointmentId={apt.id}
+                                    attended={(apt as any).attended || false}
+                                    noShow={(apt as any).no_show || false}
+                                    attendanceNotes={(apt as any).attendance_notes || null}
+                                    onUpdate={() => {
+                                      loadCustomers();
+                                      const updated = customers.find(c => c.id === selectedCustomer.id);
+                                      if (updated) setSelectedCustomer(updated);
+                                    }}
+                                  />
+                                  <ReassignDialog
+                                    appointmentId={apt.id}
+                                    currentWorkerId={apt.workerId || apt.staffId || ''}
+                                    serviceId={apt.serviceId || ''}
+                                    workers={workers}
+                                    onReassigned={() => {
+                                      loadCustomers();
+                                      const updated = customers.find(c => c.id === selectedCustomer.id);
+                                      if (updated) setSelectedCustomer(updated);
+                                    }}
+                                  >
+                                    <Button variant="outline" size="sm" className="shrink-0">
+                                      <Users className={`w-3 h-3 ${isRTL ? 'ms-1' : 'me-1'}`} />
+                                      {t('reassign.reassign') || 'Reassign'}
+                                    </Button>
+                                  </ReassignDialog>
+                                </>
+                              )}
                               {apt.status !== 'cancelled' && (
                                 <Button
                                   onClick={() => handleSendReminderForAppointment(apt)}
@@ -1695,6 +1846,26 @@ const Customers = () => {
                       <div className={`p-4 text-center text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
                         {getT('customers.progress')} - Coming soon
                       </div>
+                    </TabsContent>
+                    <TabsContent value="membership" className="mt-0">
+                      <MembershipCard 
+                        customerId={selectedCustomer.id}
+                        onUpdate={() => {
+                          loadCustomers();
+                          const updated = customers.find(c => c.id === selectedCustomer.id);
+                          if (updated) setSelectedCustomer(updated);
+                        }}
+                      />
+                    </TabsContent>
+                    <TabsContent value="follow-ups" className="mt-0">
+                      <FollowUpTracker 
+                        customerId={selectedCustomer.id}
+                        onUpdate={() => {
+                          loadCustomers();
+                          const updated = customers.find(c => c.id === selectedCustomer.id);
+                          if (updated) setSelectedCustomer(updated);
+                        }}
+                      />
                     </TabsContent>
                   </>
                 )}

@@ -25,6 +25,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ported/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ported/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ported/ui/tabs';
+import { useBusinessType } from '@/lib/hooks/useBusinessType';
+import { MembershipPlansManager } from '@/components/admin/MembershipPlansManager';
 
 function ActiveSwitchField({ formData, setFormData, t }: { 
   formData: { active: boolean; name: string; description: string; duration: number; price: number; taxRate: number; isGroupService: boolean; maxCapacity: number | null; minCapacity: number | null; allowWaitlist: boolean }; 
@@ -37,7 +40,7 @@ function ActiveSwitchField({ formData, setFormData, t }: {
   }, [setFormData]);
   
   return (
-    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div className="flex items-center gap-2">
       <Label htmlFor="active" className="cursor-pointer">{t('services.active')}</Label>
       <Switch
         id="active"
@@ -63,6 +66,9 @@ const defaultFormData = {
 
 const Services = () => {
   const { t, isRTL } = useLocale();
+  const businessType = useBusinessType();
+  const isGymTrainer = businessType === 'gym_trainer';
+  const [activeTab, setActiveTab] = useState('services');
   const [mounted, setMounted] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -531,62 +537,130 @@ const Services = () => {
     },
   ];
 
+  const { dir } = useDirection();
+
   return (
-    <div>
-      <PageHeader
-        title={t('services.title')}
-        action={
-          <Button 
-            onClick={handleCreate}
-            className="w-full sm:w-auto"
-            disabled={!canManageServices}
-            title={!canManageServices ? 'Your plan doesn\'t allow adding services. Please upgrade to continue.' : ''}
-          >
-            <Plus className="w-4 h-4 me-2" />
-            {t('services.create')}
-          </Button>
-        }
-      />
+    <div dir={dir}>
+      {isGymTrainer ? (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4" dir={dir}>
+          <TabsList dir={dir}>
+            <TabsTrigger value="services">{t('services.title') || 'Services'}</TabsTrigger>
+            <TabsTrigger value="plans">{t('membershipPlans.title') || 'Membership Plans'}</TabsTrigger>
+          </TabsList>
 
-      {/* Category Filter */}
-      <div className="mb-4 flex items-center gap-4 hidden">
-        <Label htmlFor="category-filter" className="whitespace-nowrap">
-          {t('services.category')}:
-        </Label>
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger id="category-filter" className="w-[200px]">
-            <SelectValue placeholder={t('services.allCategories')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('services.allCategories')}</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <TabsContent value="services" className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <h3 className="text-lg font-semibold">
+                  {t('services.title') || 'Services'}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t('services.headerDescription') || 'Create and manage service offerings for your clients to book appointments'}
+                </p>
+              </div>
+              <Button 
+                onClick={handleCreate}
+                className="w-full sm:w-auto"
+                disabled={!canManageServices}
+                title={!canManageServices ? 'Your plan doesn\'t allow adding services. Please upgrade to continue.' : ''}
+              >
+                <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                {t('services.create')}
+              </Button>
+            </div>
 
-      <DataTable
-        data={filteredServices}
-        columns={columns}
-        searchable
-        searchPlaceholder={t('services.search')}
-        emptyMessage={t('services.noServicesFound')}
-        loading={loading}
-      />
+            {/* Category Filter */}
+            <div className="mb-4 flex items-center gap-4 hidden">
+              <Label htmlFor="category-filter" className="whitespace-nowrap">
+                {t('services.category')}:
+              </Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-filter" className="w-[200px]">
+                  <SelectValue placeholder={t('services.allCategories')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('services.allCategories')}</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DataTable
+              data={filteredServices}
+              columns={columns}
+              searchable
+              searchPlaceholder={t('services.search')}
+              emptyMessage={t('services.noServicesFound')}
+              loading={loading}
+            />
+          </TabsContent>
+
+          <TabsContent value="plans">
+            <MembershipPlansManager />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <>
+          <PageHeader
+            title={t('services.title')}
+            action={
+              <Button 
+                onClick={handleCreate}
+                className="w-full sm:w-auto"
+                disabled={!canManageServices}
+                title={!canManageServices ? 'Your plan doesn\'t allow adding services. Please upgrade to continue.' : ''}
+              >
+                <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+                {t('services.create')}
+              </Button>
+            }
+          />
+
+          {/* Category Filter */}
+          <div className="mb-4 flex items-center gap-4 hidden">
+            <Label htmlFor="category-filter" className="whitespace-nowrap">
+              {t('services.category')}:
+            </Label>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger id="category-filter" className="w-[200px]">
+                <SelectValue placeholder={t('services.allCategories')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('services.allCategories')}</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DataTable
+            data={filteredServices}
+            columns={columns}
+            searchable
+            searchPlaceholder={t('services.search')}
+            emptyMessage={t('services.noServicesFound')}
+            loading={loading}
+          />
+        </>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full">
+        <DialogContent className={`max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden w-[95vw] sm:w-full ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
           {/* Sticky Header */}
-          <DialogHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
-            <DialogTitle className={isRTL ? 'text-right' : ''}>
+          <DialogHeader className={`p-6 pb-4 border-b sticky top-0 bg-background z-10 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <DialogTitle>
               {editingServiceId 
                 ? t('services.editServiceTitle').replace('{name}', editingServiceName)
                 : t('services.createService')}
             </DialogTitle>
-            <DialogDescription className={isRTL ? 'text-right' : ''}>
+            <DialogDescription>
               {editingServiceId 
                 ? t('services.editDescription')
                 : t('services.createDescription')}
@@ -597,7 +671,7 @@ const Services = () => {
           <form ref={formRef} id="service-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <Label htmlFor="name">{t('services.name')} *</Label>
+                <Label htmlFor="name" className={isRTL ? 'text-right' : 'text-left'}>{t('services.name')} *</Label>
                 <Input
                   ref={nameInputRef}
                   id="name"
@@ -610,18 +684,18 @@ const Services = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Label htmlFor="description">{t('services.description')}</Label>
+                <Label htmlFor="description" className={isRTL ? 'text-right' : 'text-left'}>{t('services.description')}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder={t('services.description')}
+                  placeholder={t('services.descriptionPlaceholder') || 'Add a description for this service...'}
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label htmlFor="duration">{t('services.durationMinutes')} *</Label>
+                <Label htmlFor="duration" className={isRTL ? 'text-right' : 'text-left'}>{t('services.durationMinutes')} *</Label>
                 <Input
                   id="duration"
                   type="number"
@@ -633,7 +707,7 @@ const Services = () => {
               </div>
 
               <div>
-                <Label htmlFor="price">{t('services.price')} (₪) *</Label>
+                <Label htmlFor="price" className={isRTL ? 'text-right' : 'text-left'}>{t('services.price')} (₪) *</Label>
                 <Input
                   id="price"
                   type="number"
@@ -646,7 +720,7 @@ const Services = () => {
               </div>
 
               <div>
-                <Label htmlFor="taxRate">{t('services.taxRatePercent')}</Label>
+                <Label htmlFor="taxRate" className={isRTL ? 'text-right' : 'text-left'}>{t('services.taxRatePercent')}</Label>
                 <div className="space-y-2">
                   <Input
                     id="taxRate"
@@ -658,7 +732,7 @@ const Services = () => {
                     onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 18 })}
                     disabled={!isVatEditable}
                   />
-                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} ${isRTL ? 'justify-end' : 'justify-start'} gap-3`}>
+                  <div className="flex items-center justify-start gap-3">
                     {isRTL ? (
                       <>
                         <Label
@@ -713,7 +787,7 @@ const Services = () => {
                 <div className="md:col-span-2 border-t pt-4 mt-4">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className={isRTL ? 'text-right' : 'text-left'}>
                         <Label htmlFor="isGroupService" className="text-base font-semibold">
                           {t('services.groupService')}
                         </Label>
@@ -747,9 +821,9 @@ const Services = () => {
                     </div>
 
                   {formData.isGroupService && (
-                    <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                    <div className={`space-y-4 ${isRTL ? 'pr-4 border-r-2' : 'pl-4 border-l-2'} border-primary/20`}>
                       <div>
-                        <Label htmlFor="maxCapacity">
+                        <Label htmlFor="maxCapacity" className={isRTL ? 'text-right' : 'text-left'}>
                           {t('services.maxCapacityRequired')}
                         </Label>
                         <Input
@@ -767,13 +841,13 @@ const Services = () => {
                           required={formData.isGroupService}
                           placeholder="10"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                           {t('services.maxCapacityDescription')}
                         </p>
                       </div>
 
                       <div>
-                        <Label htmlFor="minCapacity">
+                        <Label htmlFor="minCapacity" className={isRTL ? 'text-right' : 'text-left'}>
                           {t('services.minCapacity')}
                         </Label>
                         <Input
@@ -791,13 +865,13 @@ const Services = () => {
                           }}
                           placeholder={t('services.minCapacityPlaceholder')}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                           {t('services.minCapacityDescription')}
                         </p>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className={isRTL ? 'text-right' : 'text-left'}>
                           <Label htmlFor="allowWaitlist">
                             {t('services.allowWaitlist')}
                           </Label>
@@ -845,9 +919,9 @@ const Services = () => {
 
       {/* Limit Reached Modal */}
       <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
-        <DialogContent>
+        <DialogContent className={isRTL ? 'text-right' : 'text-left'} dir={dir}>
           <DialogHeader className="text-center">
-            <DialogTitle className={`${isRTL ? 'text-right' : ''} text-center`}>
+            <DialogTitle>
               {limitInfo?.type === 'services' && (
                 <>
                   {currentPlanName && (
@@ -861,7 +935,7 @@ const Services = () => {
               {limitInfo?.type === 'staff' && t('limits.staffLimitReached').replace('{{X}}', limitInfo.limit.toString())}
               {limitInfo?.type === 'bookings' && t('limits.bookingsLimitReached').replace('{{X}}', limitInfo.limit.toString())}
             </DialogTitle>
-            <DialogDescription className={`${isRTL ? 'text-right' : ''} text-center`}>
+            <DialogDescription>
               {limitInfo?.type === 'services' && t('limits.servicesLimitMessage')}
               {limitInfo?.type === 'staff' && t('limits.staffLimitMessage')}
               {limitInfo?.type === 'bookings' && t('limits.bookingsLimitMessage')}
@@ -892,8 +966,8 @@ const Services = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className={`sm:max-w-[425px] ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
+          <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -909,7 +983,7 @@ const Services = () => {
           </DialogHeader>
           <div className="py-4">
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800">
+              <p className={`text-sm text-amber-800 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <strong>{t('services.deleteWarning') || 'Warning:'}</strong>{' '}
                 {t('services.deleteWarningMessage') || 'Deleting this service will remove it from all future appointments. Existing appointments will remain, but the service details will be lost.'}
               </p>
@@ -933,12 +1007,12 @@ const Services = () => {
             >
               {deleting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className={`w-4 h-4 animate-spin ${isRTL ? 'ms-2' : 'mr-2'}`} />
                   {t('services.deleting') || 'Deleting...'}
                 </>
               ) : (
                 <>
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'mr-2'}`} />
                   {t('services.deleteConfirm') || 'Delete Service'}
                 </>
               )}

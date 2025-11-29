@@ -320,4 +320,14 @@ html[dir="rtl"] body { direction: rtl; }
       overflow: visible;
     }
   }
+  
+  /* Hide scrollbar for pricing plans slider */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
