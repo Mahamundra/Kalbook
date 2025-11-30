@@ -81,7 +81,7 @@ export async function POST(
 
     // Deduct session
     const newRemainingSessions = membership.remaining_sessions - 1;
-    let newStatus = membership.status;
+    let newStatus: 'active' | 'expired' | 'completed' | 'cancelled' = membership.status;
 
     // Update status if no sessions remaining
     if (newRemainingSessions === 0) {
@@ -89,15 +89,17 @@ export async function POST(
     }
 
     // Update membership
-    const { data: updatedMembership, error: updateError } = await supabase
-      .from('memberships')
+    const updateResult = await (supabase
+      .from('memberships') as any)
       .update({
         remaining_sessions: newRemainingSessions,
-        status: newStatus,
+        status: newStatus as any,
       })
       .eq('id', params.id)
       .select()
-      .single() as { data: MembershipRow | null; error: any };
+      .single();
+    
+    const { data: updatedMembership, error: updateError } = updateResult as { data: MembershipRow | null; error: any };
 
     if (updateError || !updatedMembership) {
       return NextResponse.json(
@@ -107,8 +109,8 @@ export async function POST(
     }
 
     // Log session usage
-    const { error: logError } = await supabase
-      .from('session_usage_log')
+    const { error: logError } = await (supabase
+      .from('session_usage_log') as any)
       .insert({
         membership_id: params.id,
         appointment_id: body.appointment_id || null,

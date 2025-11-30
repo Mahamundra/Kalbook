@@ -98,9 +98,9 @@ export async function PATCH(
       updateData.attendance_notes = body.attendance_notes;
     }
 
-    const result = await supabase
-      .from('appointments')
-      .update(updateData as any)
+    const result = await (supabase
+      .from('appointments') as any)
+      .update(updateData)
       .eq('id', params.id)
       .select()
       .single();

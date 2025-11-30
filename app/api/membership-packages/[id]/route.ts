@@ -96,12 +96,14 @@ export async function PATCH(
     if (body.description !== undefined) updateData.description = body.description.trim();
     if (body.active !== undefined) updateData.active = body.active;
 
-    const { data: updatedPackage, error } = await supabase
-      .from('membership_packages')
+    const result = await (supabase
+      .from('membership_packages') as any)
       .update(updateData)
       .eq('id', params.id)
       .select()
-      .single() as { data: MembershipPackageRow | null; error: any };
+      .single();
+    
+    const { data: updatedPackage, error } = result as { data: MembershipPackageRow | null; error: any };
 
     if (error || !updatedPackage) {
       return NextResponse.json(

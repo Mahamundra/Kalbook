@@ -82,12 +82,14 @@ export async function PATCH(
       updateData.notes = body.notes;
     }
 
-    const { data: updatedFollowUp, error } = await supabase
-      .from('follow_ups')
+    const result = await (supabase
+      .from('follow_ups') as any)
       .update(updateData)
       .eq('id', params.id)
       .select()
-      .single() as { data: FollowUpRow | null; error: any };
+      .single();
+    
+    const { data: updatedFollowUp, error } = result as { data: FollowUpRow | null; error: any };
 
     if (error || !updatedFollowUp) {
       return NextResponse.json(

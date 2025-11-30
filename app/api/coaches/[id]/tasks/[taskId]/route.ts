@@ -88,12 +88,14 @@ export async function PATCH(
       updateData.notes = body.notes;
     }
 
-    const { data: updatedTask, error } = await supabase
-      .from('coach_tasks')
+    const result = await (supabase
+      .from('coach_tasks') as any)
       .update(updateData)
       .eq('id', params.taskId)
       .select()
-      .single() as { data: CoachTaskRow | null; error: any };
+      .single();
+    
+    const { data: updatedTask, error } = result as { data: CoachTaskRow | null; error: any };
 
     if (error || !updatedTask) {
       return NextResponse.json(

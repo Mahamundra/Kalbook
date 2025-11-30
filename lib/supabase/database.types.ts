@@ -819,6 +819,340 @@ export interface Database {
           created_at?: string;
         };
       };
+      membership_packages: {
+        Row: {
+          id: string;
+          business_id: string;
+          name: string;
+          session_count: number;
+          duration_days: number;
+          price: number;
+          discount_price: number | null;
+          active: boolean;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          name: string;
+          session_count: number;
+          duration_days: number;
+          price?: number;
+          discount_price?: number | null;
+          active?: boolean;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          name?: string;
+          session_count?: number;
+          duration_days?: number;
+          price?: number;
+          discount_price?: number | null;
+          active?: boolean;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      memberships: {
+        Row: {
+          id: string;
+          business_id: string;
+          customer_id: string;
+          package_id: string | null;
+          package_name: string;
+          total_sessions: number;
+          remaining_sessions: number;
+          purchased_at: string;
+          expires_at: string | null;
+          status: 'active' | 'expired' | 'completed' | 'cancelled';
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          customer_id: string;
+          package_id?: string | null;
+          package_name: string;
+          total_sessions: number;
+          remaining_sessions: number;
+          purchased_at?: string;
+          expires_at?: string | null;
+          status?: 'active' | 'expired' | 'completed' | 'cancelled';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          customer_id?: string;
+          package_id?: string | null;
+          package_name?: string;
+          total_sessions?: number;
+          remaining_sessions?: number;
+          purchased_at?: string;
+          expires_at?: string | null;
+          status?: 'active' | 'expired' | 'completed' | 'cancelled';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      coach_tasks: {
+        Row: {
+          id: string;
+          business_id: string;
+          worker_id: string;
+          customer_id: string | null;
+          task_type: 'follow_up' | 'assessment' | 'program_update' | 'check_in' | 'other';
+          description: string;
+          status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+          due_date: string | null;
+          completed_at: string | null;
+          notes: string | null;
+          created_by_user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          worker_id: string;
+          customer_id?: string | null;
+          task_type?: 'follow_up' | 'assessment' | 'program_update' | 'check_in' | 'other';
+          description: string;
+          status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+          due_date?: string | null;
+          completed_at?: string | null;
+          notes?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          worker_id?: string;
+          customer_id?: string | null;
+          task_type?: 'follow_up' | 'assessment' | 'program_update' | 'check_in' | 'other';
+          description?: string;
+          status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+          due_date?: string | null;
+          completed_at?: string | null;
+          notes?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      training_summaries: {
+        Row: {
+          id: string;
+          business_id: string;
+          appointment_id: string;
+          worker_id: string;
+          customer_id: string;
+          summary: string;
+          exercises_performed: any;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          appointment_id: string;
+          worker_id: string;
+          customer_id: string;
+          summary: string;
+          exercises_performed?: any;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          appointment_id?: string;
+          worker_id?: string;
+          customer_id?: string;
+          summary?: string;
+          exercises_performed?: any;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      follow_ups: {
+        Row: {
+          id: string;
+          business_id: string;
+          customer_id: string;
+          type: 'check_in' | 'reengagement' | 'assessment' | 'custom';
+          scheduled_for: string;
+          status: 'pending' | 'completed' | 'cancelled' | 'skipped';
+          notes: string | null;
+          completed_at: string | null;
+          created_by_user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          customer_id: string;
+          type?: 'check_in' | 'reengagement' | 'assessment' | 'custom';
+          scheduled_for: string;
+          status?: 'pending' | 'completed' | 'cancelled' | 'skipped';
+          notes?: string | null;
+          completed_at?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          customer_id?: string;
+          type?: 'check_in' | 'reengagement' | 'assessment' | 'custom';
+          scheduled_for?: string;
+          status?: 'pending' | 'completed' | 'cancelled' | 'skipped';
+          notes?: string | null;
+          completed_at?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      session_usage_log: {
+        Row: {
+          id: string;
+          membership_id: string;
+          appointment_id: string | null;
+          used_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          membership_id: string;
+          appointment_id?: string | null;
+          used_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          membership_id?: string;
+          appointment_id?: string | null;
+          used_at?: string;
+          created_at?: string;
+        };
+      };
+      studio_tasks: {
+        Row: {
+          id: string;
+          business_id: string;
+          assigned_to_user_id: string | null;
+          task_type: 'admin' | 'maintenance' | 'marketing' | 'client_relation' | 'other';
+          title: string;
+          description: string | null;
+          status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+          priority: 'low' | 'medium' | 'high' | 'urgent';
+          due_date: string | null;
+          completed_at: string | null;
+          created_by_user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          assigned_to_user_id?: string | null;
+          task_type?: 'admin' | 'maintenance' | 'marketing' | 'client_relation' | 'other';
+          title: string;
+          description?: string | null;
+          status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+          priority?: 'low' | 'medium' | 'high' | 'urgent';
+          due_date?: string | null;
+          completed_at?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          assigned_to_user_id?: string | null;
+          task_type?: 'admin' | 'maintenance' | 'marketing' | 'client_relation' | 'other';
+          title?: string;
+          description?: string | null;
+          status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+          priority?: 'low' | 'medium' | 'high' | 'urgent';
+          due_date?: string | null;
+          completed_at?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      internal_notes: {
+        Row: {
+          id: string;
+          business_id: string;
+          created_by_user_id: string | null;
+          note_type: 'note' | 'meeting' | 'reminder' | 'other';
+          title: string;
+          content: string;
+          tags: string[];
+          meeting_date: string | null;
+          participants: string[];
+          agenda: any;
+          decisions: any;
+          action_items: any;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          created_by_user_id?: string | null;
+          note_type?: 'note' | 'meeting' | 'reminder' | 'other';
+          title: string;
+          content: string;
+          tags?: string[];
+          meeting_date?: string | null;
+          participants?: string[];
+          agenda?: any;
+          decisions?: any;
+          action_items?: any;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          created_by_user_id?: string | null;
+          note_type?: 'note' | 'meeting' | 'reminder' | 'other';
+          title?: string;
+          content?: string;
+          tags?: string[];
+          meeting_date?: string | null;
+          participants?: string[];
+          agenda?: any;
+          decisions?: any;
+          action_items?: any;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

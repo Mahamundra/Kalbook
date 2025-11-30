@@ -187,11 +187,13 @@ export async function POST(request: NextRequest) {
       notes: body.notes || null,
     };
 
-    const { data: newMembership, error } = await supabase
-      .from('memberships')
+    const result = await (supabase
+      .from('memberships') as any)
       .insert(membershipData)
       .select()
-      .single() as { data: MembershipRow | null; error: any };
+      .single();
+    
+    const { data: newMembership, error } = result as { data: MembershipRow | null; error: any };
 
     if (error || !newMembership) {
       return NextResponse.json(

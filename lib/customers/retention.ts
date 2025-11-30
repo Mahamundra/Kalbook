@@ -29,10 +29,12 @@ export async function getInactiveClients(
   cutoffDate.setDate(cutoffDate.getDate() - daysThreshold);
 
   // Get all customers
-  const { data: allCustomers, error: customersError } = await supabase
+  const result = await supabase
     .from('customers')
     .select('*')
     .eq('business_id', businessId);
+  
+  const { data: allCustomers, error: customersError } = result as { data: CustomerRow[] | null; error: any };
 
   if (customersError || !allCustomers) {
     return [];

@@ -167,11 +167,13 @@ export async function POST(
       created_by_user_id: createdByUserId,
     };
 
-    const { data: newTask, error } = await supabase
-      .from('coach_tasks')
+    const result = await (supabase
+      .from('coach_tasks') as any)
       .insert(taskData)
       .select()
-      .single() as { data: CoachTaskRow | null; error: any };
+      .single();
+    
+    const { data: newTask, error } = result as { data: CoachTaskRow | null; error: any };
 
     if (error || !newTask) {
       return NextResponse.json(

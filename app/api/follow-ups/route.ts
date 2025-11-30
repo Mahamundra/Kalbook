@@ -156,11 +156,13 @@ export async function POST(request: NextRequest) {
       created_by_user_id: createdByUserId,
     };
 
-    const { data: newFollowUp, error } = await supabase
-      .from('follow_ups')
+    const result = await (supabase
+      .from('follow_ups') as any)
       .insert(followUpData)
       .select()
-      .single() as { data: FollowUpRow | null; error: any };
+      .single();
+    
+    const { data: newFollowUp, error } = result as { data: FollowUpRow | null; error: any };
 
     if (error || !newFollowUp) {
       return NextResponse.json(

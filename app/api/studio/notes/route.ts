@@ -150,11 +150,13 @@ export async function POST(request: NextRequest) {
       noteData.action_items = body.action_items || [];
     }
 
-    const { data: newNote, error } = await supabase
-      .from('internal_notes')
+    const result = await (supabase
+      .from('internal_notes') as any)
       .insert(noteData)
       .select()
-      .single() as { data: InternalNoteRow | null; error: any };
+      .single();
+    
+    const { data: newNote, error } = result as { data: InternalNoteRow | null; error: any };
 
     if (error || !newNote) {
       return NextResponse.json(

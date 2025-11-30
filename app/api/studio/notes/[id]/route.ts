@@ -94,12 +94,14 @@ export async function PATCH(
       updateData.action_items = body.action_items;
     }
 
-    const { data: updatedNote, error } = await supabase
-      .from('internal_notes')
+    const result = await (supabase
+      .from('internal_notes') as any)
       .update(updateData)
       .eq('id', params.id)
       .select()
-      .single() as { data: InternalNoteRow | null; error: any };
+      .single();
+    
+    const { data: updatedNote, error } = result as { data: InternalNoteRow | null; error: any };
 
     if (error || !updatedNote) {
       return NextResponse.json(

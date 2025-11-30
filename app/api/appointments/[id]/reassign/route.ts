@@ -110,14 +110,16 @@ export async function PATCH(
     }
 
     // Update appointment
-    const { data: updatedAppointment, error } = await supabase
-      .from('appointments')
+    const result = await (supabase
+      .from('appointments') as any)
       .update({
         worker_id: body.worker_id,
       })
       .eq('id', params.id)
       .select()
-      .single() as { data: AppointmentRow | null; error: any };
+      .single();
+    
+    const { data: updatedAppointment, error } = result as { data: AppointmentRow | null; error: any };
 
     if (error || !updatedAppointment) {
       return NextResponse.json(

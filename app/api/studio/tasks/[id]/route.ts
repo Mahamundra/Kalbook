@@ -91,12 +91,14 @@ export async function PATCH(
       updateData.assigned_to_user_id = body.assigned_to_user_id;
     }
 
-    const { data: updatedTask, error } = await supabase
-      .from('studio_tasks')
+    const result = await (supabase
+      .from('studio_tasks') as any)
       .update(updateData)
       .eq('id', params.id)
       .select()
-      .single() as { data: StudioTaskRow | null; error: any };
+      .single();
+    
+    const { data: updatedTask, error } = result as { data: StudioTaskRow | null; error: any };
 
     if (error || !updatedTask) {
       return NextResponse.json(

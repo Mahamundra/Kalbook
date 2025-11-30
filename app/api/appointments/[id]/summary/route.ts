@@ -146,12 +146,14 @@ export async function POST(
     let result;
     if (existingSummary) {
       // Update existing summary
-      const { data: updatedSummary, error } = await supabase
-        .from('training_summaries')
+      const updateResult = await (supabase
+        .from('training_summaries') as any)
         .update(summaryData)
         .eq('id', existingSummary.id)
         .select()
-        .single() as { data: TrainingSummaryRow | null; error: any };
+        .single();
+      
+      const { data: updatedSummary, error } = updateResult as { data: TrainingSummaryRow | null; error: any };
 
       if (error || !updatedSummary) {
         return NextResponse.json(
@@ -163,11 +165,13 @@ export async function POST(
       result = updatedSummary;
     } else {
       // Create new summary
-      const { data: newSummary, error } = await supabase
-        .from('training_summaries')
+      const insertResult = await (supabase
+        .from('training_summaries') as any)
         .insert(summaryData)
         .select()
-        .single() as { data: TrainingSummaryRow | null; error: any };
+        .single();
+      
+      const { data: newSummary, error } = insertResult as { data: TrainingSummaryRow | null; error: any };
 
       if (error || !newSummary) {
         return NextResponse.json(

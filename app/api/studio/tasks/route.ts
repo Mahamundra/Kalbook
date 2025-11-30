@@ -141,11 +141,13 @@ export async function POST(request: NextRequest) {
       created_by_user_id: createdByUserId,
     };
 
-    const { data: newTask, error } = await supabase
-      .from('studio_tasks')
+    const result = await (supabase
+      .from('studio_tasks') as any)
       .insert(taskData)
       .select()
-      .single() as { data: StudioTaskRow | null; error: any };
+      .single();
+    
+    const { data: newTask, error } = result as { data: StudioTaskRow | null; error: any };
 
     if (error || !newTask) {
       return NextResponse.json(

@@ -133,12 +133,14 @@ export async function PATCH(
       updateData.expires_at = body.expires_at ? new Date(body.expires_at).toISOString() : null;
     }
 
-    const { data: updatedMembership, error } = await supabase
-      .from('memberships')
+    const result = await (supabase
+      .from('memberships') as any)
       .update(updateData)
       .eq('id', params.id)
       .select()
-      .single() as { data: MembershipRow | null; error: any };
+      .single();
+    
+    const { data: updatedMembership, error } = result as { data: MembershipRow | null; error: any };
 
     if (error || !updatedMembership) {
       return NextResponse.json(
