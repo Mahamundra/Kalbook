@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { AlertCircle, Users, Calendar, TrendingDown } from 'lucide-react';
-import { Link } from 'next/navigation';
+import Link from 'next/link';
 
 interface MonitoringClient {
   id: string;

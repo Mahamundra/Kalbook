@@ -1587,14 +1587,14 @@ const Customers = () => {
                   >
                     <TabsTrigger
                       value="overview"
-                      ref={(el) => (tabRefs.current.overview = el)}
+                      ref={(el) => { tabRefs.current.overview = el; }}
                       className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pr-4 pl-2 md:px-3' : 'pl-4 pr-2 md:px-3'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                     >
                       {t('customers.overview') || 'Overview'}
                     </TabsTrigger>
                     <TabsTrigger
                       value="appointments"
-                      ref={(el) => (tabRefs.current.appointments = el)}
+                      ref={(el) => { tabRefs.current.appointments = el; }}
                       className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                     >
                       {isGymTrainer ? getT('customers.workouts') : getT('customers.appointments')}
@@ -1603,35 +1603,35 @@ const Customers = () => {
                       <>
                         <TabsTrigger
                           value="measurements"
-                          ref={(el) => (tabRefs.current.measurements = el)}
+                          ref={(el) => { tabRefs.current.measurements = el; }}
                           className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                         >
                           {getT('customers.measurements')}
                         </TabsTrigger>
                         <TabsTrigger
                           value="workout-plans"
-                          ref={(el) => (tabRefs.current['workout-plans'] = el)}
+                          ref={(el) => { tabRefs.current['workout-plans'] = el; }}
                           className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                         >
                           {getT('customers.workoutPlans')}
                         </TabsTrigger>
                         <TabsTrigger
                           value="progress"
-                          ref={(el) => (tabRefs.current.progress = el)}
+                          ref={(el) => { tabRefs.current.progress = el; }}
                           className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                         >
                           {getT('customers.progress')}
                         </TabsTrigger>
                         <TabsTrigger
                           value="membership"
-                          ref={(el) => (tabRefs.current.membership = el)}
+                          ref={(el) => { tabRefs.current.membership = el; }}
                           className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                         >
                           {getT('customers.membership') || 'Membership'}
                         </TabsTrigger>
                         <TabsTrigger
                           value="follow-ups"
-                          ref={(el) => (tabRefs.current['follow-ups'] = el)}
+                          ref={(el) => { tabRefs.current['follow-ups'] = el; }}
                           className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                         >
                           {getT('customers.followUps') || 'Follow-Ups'}
@@ -1640,21 +1640,21 @@ const Customers = () => {
                     )}
                     <TabsTrigger
                       value="statistics"
-                      ref={(el) => (tabRefs.current.statistics = el)}
+                      ref={(el) => { tabRefs.current.statistics = el; }}
                       className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                     >
                       {t('customers.statistics.title') || 'Statistics'}
                     </TabsTrigger>
                     <TabsTrigger
                       value="communications"
-                      ref={(el) => (tabRefs.current.communications = el)}
+                      ref={(el) => { tabRefs.current.communications = el; }}
                       className={`hidden flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                     >
                       {t('customers.communications.title') || 'Communications'}
                     </TabsTrigger>
                     <TabsTrigger
                       value="notes"
-                      ref={(el) => (tabRefs.current.notes = el)}
+                      ref={(el) => { tabRefs.current.notes = el; }}
                       className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                     >
                       {t('customers.notesHistory.title') || 'Notes History'}
