@@ -21,7 +21,6 @@
         "./*"
       ],
       "@/components/ui/*": [
-        "./src/components/ui/*",
         "./components/ported/ui/*",
         "./components/ui/*"
       ],
@@ -37,7 +36,6 @@
         "./components/ported/types/*"
       ],
       "@/lib/*": [
-        "./src/lib/*",
         "./lib/*",
         "./components/ported/lib/*"
       ],
@@ -60,9 +58,6 @@
   ],
   "exclude": [
     "node_modules",
-    "bizcraft-app-suite-main 3/**",
-    "components/ported/admin/AdminLayout.tsx",
-    "components/ported/LanguageToggle.tsx",
-    "components/ported/PageTransition.tsx"
+    "bizcraft-app-suite-main 3/**"
   ]
 }

@@ -18,7 +18,7 @@ curl -X POST http://localhost:3000/api/admin/create-user \
   }'
 ```
 
-The response will include a password (if auto-generated):
+The response will include user information:
 
 ```json
 {
@@ -29,8 +29,7 @@ The response will include a password (if auto-generated):
     "name": "Admin User",
     "businessId": "..."
   },
-  "password": "auto-generated-password",
-  "message": "Admin user created successfully"
+  "message": "Admin user created successfully. User can login via OTP using their phone number."
 }
 ```
 
@@ -51,7 +50,7 @@ fetch('/api/admin/create-user', {
 .then(data => {
   console.log('✅ Admin user created!');
   console.log('Email:', data.user.email);
-  console.log('Password:', data.password);
+  console.log('Phone:', data.user.phone || 'Add phone number to login via OTP');
 });
 ```
 
@@ -69,8 +68,8 @@ fetch('/api/admin/create-user', {
    Example: `http://localhost:3000/b/demo-barbershop/admin/login`
 
 3. **Sign in:**
-   - **Option A (Quick Test):** In development mode, click the "🔧 Use Test Account" button - it will auto-create and login with `test@example.com` / `1234`
-   - **Option B (Manual):** Enter your email and password from Step 1, then click "Sign In"
+   - **Option A (Quick Test):** In development mode, click the "🔧 Use Test Account" button - it will auto-create and login with test credentials
+   - **Option B (OTP):** Enter your phone number and verify with OTP code sent via SMS/WhatsApp
    - You'll be redirected to `/b/[slug]/admin/dashboard`
 
 4. **You should now see the admin dashboard!**
@@ -78,7 +77,7 @@ fetch('/api/admin/create-user', {
 ## Quick Test Login (Development Only)
 
 For quick testing, each business login page has a "Use Test Account" button that:
-- Creates a default test user: `test@example.com` / `1234`
+- Creates a default test user with test credentials
 - Automatically logs you in
 - Links the user to your business
 
@@ -107,10 +106,11 @@ Each business has its own admin panel accessible via:
 ## Login Flow
 
 1. **Access admin panel** → Redirects to login if not authenticated
-2. **Enter email and password** → Sign in with Supabase Auth
-3. **Verify business access** → System checks user belongs to that business
-4. **Redirect to dashboard** → On success, redirected to admin dashboard
-5. **Session persists** → Stay logged in until you logout
+2. **Enter phone number** → System sends OTP code via SMS/WhatsApp
+3. **Enter OTP code** → Verify and create session
+4. **Verify business access** → System checks user belongs to that business
+5. **Redirect to dashboard** → On success, redirected to admin dashboard
+6. **Session persists** → Stay logged in until you logout
 
 ## Security
 
@@ -147,20 +147,15 @@ curl -X POST http://localhost:3000/api/onboarding/create \
 
 ### Option 2: Create Admin User Manually (For Existing Business)
 
-1. **Create user in Supabase Auth:**
+**Note:** Users login via OTP (phone), so you need to ensure the user has a phone number.
 
-   Go to Supabase Dashboard → Authentication → Users → Add User
-
-   - Email: `admin@example.com`
-   - Password: (set a secure password)
-   - Auto Confirm: ✅ (enable)
-
-2. **Create user record in database:**
+1. **Create user record in database:**
 
    Go to Supabase Dashboard → SQL Editor and run:
 
    ```sql
    -- Replace with your actual values
+   -- Generate a UUID for the user (will be created in Supabase Auth on first OTP login)
    INSERT INTO users (
      id,
      business_id,
@@ -169,59 +164,41 @@ curl -X POST http://localhost:3000/api/onboarding/create \
      phone,
      role
    ) VALUES (
-     'auth-user-id-here',  -- Copy from Authentication → Users
-     'your-business-id',   -- Your business ID from businesses table
+     gen_random_uuid(),     -- Generate UUID (Supabase Auth user created on first login)
+     'your-business-id',    -- Your business ID from businesses table
      'admin@example.com',
      'Admin User',
-     '+1234567890',
+     '+1234567890',         -- REQUIRED: Phone number for OTP login
      'owner'
    );
    ```
 
-3. **Find your business ID:**
+   **Note:** The Supabase Auth user will be automatically created when the user logs in via OTP for the first time.
+
+2. **Find your business ID:**
 
    ```sql
    SELECT id, slug, name FROM businesses;
    ```
 
-### Option 3: Use Supabase Auth Sign Up (Recommended for Production)
+### Option 3: Use OTP Flow (Recommended)
 
-1. **Create a sign-up page or use Supabase Auth:**
-
-   ```typescript
-   import { supabase } from '@/lib/supabase/client';
-
-   // Sign up
-   const { data, error } = await supabase.auth.signUp({
-     email: 'admin@example.com',
-     password: 'secure-password',
-   });
-
-   // Then create user record
-   if (data.user) {
-     await supabase.from('users').insert({
-       id: data.user.id,
-       business_id: 'your-business-id',
-       email: 'admin@example.com',
-       name: 'Admin User',
-       role: 'owner',
-     });
-   }
-   ```
-
-2. **Or use the OTP flow** (if phone-based auth is set up):
-   - Send OTP to your phone
-   - Verify OTP
-   - System will create user record
+Users login via OTP (phone-based authentication):
+1. Go to `/b/[slug]/admin/login`
+2. Enter your phone number
+3. Receive OTP code via SMS/WhatsApp
+4. Enter OTP code to verify
+5. System automatically creates Supabase Auth user if it doesn't exist
+6. Session is created and you're logged in
 
 ## Accessing Admin Panel
 
 Once you have an admin user set up:
 
 1. **Sign in:**
-   - Go to `/admin` or `/admin/dashboard`
-   - If not authenticated, you'll be prompted to sign in
-   - Use your admin email and password (or OTP if using phone auth)
+   - Go to `/b/[slug]/admin/login` (replace `[slug]` with your business slug)
+   - Enter your phone number
+   - Verify with OTP code sent via SMS/WhatsApp
 
 2. **Admin Routes Available:**
    - `/admin` → Redirects to `/admin/dashboard`
@@ -276,9 +253,10 @@ If you want to bypass authentication in development for testing:
 
 **Issue:** Can't sign in
 - **Solution:** 
-  - Check Supabase Auth settings
-  - Ensure email auth is enabled
-  - Verify user exists in Authentication → Users
+  - Use OTP login (phone + code)
+  - Ensure user has phone number in database
+  - Check OTP code is correct and not expired (codes expire after 10 minutes)
+  - Verify Twilio/SMS service is configured (or use test code `123456` in development)
 
 ## Finding Your Business ID
 
@@ -325,8 +303,8 @@ fetch('/api/admin/create-user', {
   if (data.success) {
     console.log('✅ Admin user created!');
     console.log('Email:', data.user.email);
-    console.log('Password:', data.password);
-    console.log('Now go to /admin/dashboard and sign in');
+    console.log('Phone:', data.user.phone || '⚠️ Add phone number to enable OTP login');
+    console.log('Now go to /b/[your-slug]/admin/login and sign in with OTP');
   } else {
     console.error('❌ Error:', data.error);
   }

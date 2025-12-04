@@ -16,6 +16,7 @@ import {
 } from '@/components/ported/ui/dialog';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
+import { useIsMobile } from '@/components/ported/hooks/use-mobile';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
@@ -32,6 +33,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
   const router = useRouter();
   const { t, isRTL } = useLocale();
   const { dir } = useDirection();
+  const isMobile = useIsMobile();
 
   const [step, setStep] = useState<'phone' | 'verify' | 'welcome' | 'notRegistered'>('phone');
   const [phone, setPhone] = useState('');
@@ -163,134 +165,148 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     }
   };
 
-  // Handle Google OAuth with popup
+  // Handle Google OAuth - use redirect on mobile, popup on desktop
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       
-      // Get the OAuth URL
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/&popup=true`,
-          skipBrowserRedirect: true,
-        },
-      });
+      if (isMobile) {
+        // Mobile: Use redirect flow (same page)
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
+          },
+        });
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('Failed to get OAuth URL');
+        if (error) throw error;
+        // Redirect will happen automatically - no need to handle response
+        return;
+      } else {
+        // Desktop: Use popup flow
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback?next=/&popup=true`,
+            skipBrowserRedirect: true,
+          },
+        });
 
-      // Open popup window
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        data.url,
-        'google-auth',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
+        if (error) throw error;
+        if (!data?.url) throw new Error('Failed to get OAuth URL');
 
-      if (!popup) {
-        throw new Error('Popup blocked. Please allow popups for this site.');
-      }
+        // Open popup window
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.url,
+          'google-auth',
+          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+        );
 
-      // Listen for message from popup
-      let checkClosedInterval: NodeJS.Timeout | null = null;
-      const messageListener = async (event: MessageEvent) => {
-        // Verify origin for security
-        if (event.origin !== window.location.origin) return;
+        if (!popup) {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
 
-        if (event.data.type === 'OAUTH_SUCCESS') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setIsLoading(false);
+        // Listen for message from popup
+        let checkClosedInterval: NodeJS.Timeout | null = null;
+        const messageListener = async (event: MessageEvent) => {
+          // Verify origin for security
+          if (event.origin !== window.location.origin) return;
 
-          // Wait a bit for cookies to sync between popup and parent window
-          await new Promise(resolve => setTimeout(resolve, 500));
+          if (event.data.type === 'OAUTH_SUCCESS') {
+            window.removeEventListener('message', messageListener);
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            popup.close();
+            setIsLoading(false);
 
-          // Create admin_session cookie by calling our API
-          try {
-            const response = await fetch('/api/auth/oauth-session', {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
+            // Wait a bit for cookies to sync between popup and parent window
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            const data = await response.json();
+            // Create admin_session cookie by calling our API
+            try {
+              const response = await fetch('/api/auth/oauth-session', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
 
-            if (!response.ok) {
-              // Check if user is not registered (404 status)
-              if (response.status === 404) {
+              const data = await response.json();
+
+              if (!response.ok) {
+                // Check if user is not registered (404 status)
+                if (response.status === 404) {
+                  setIsLoading(false);
+                  setStep('notRegistered');
+                  return;
+                }
+                throw new Error(data.error || 'Failed to create session');
+              }
+
+              // Verify response indicates success
+              if (!data.success) {
+                throw new Error(data.error || 'Authentication failed');
+              }
+
+              // Check if user exists
+              if (!data.user || !data.user.id) {
                 setIsLoading(false);
                 setStep('notRegistered');
                 return;
               }
-              throw new Error(data.error || 'Failed to create session');
-            }
 
-            // Verify response indicates success
-            if (!data.success) {
-              throw new Error(data.error || 'Authentication failed');
-            }
-
-            // Check if user exists
-            if (!data.user || !data.user.id) {
               setIsLoading(false);
-              setStep('notRegistered');
-              return;
+              setUserName(data.user?.name || '');
+              setStep('welcome');
+
+              // Show welcome message
+              toast.success(
+                (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
+              );
+              
+              // Small delay to show welcome message
+              await new Promise(resolve => setTimeout(resolve, 1000));
+
+              // Close modal
+              onOpenChange(false);
+              
+              // Call onLoginSuccess callback if provided, otherwise reload page
+              if (onLoginSuccess) {
+                onLoginSuccess();
+              } else {
+                // Reload to ensure all components see the new session
+                window.location.reload();
+              }
+            } catch (error: any) {
+              setIsLoading(false);
+              setError(error.message || 'Failed to complete login');
+              toast.error(error.message || 'Failed to complete login');
             }
-
+          } else if (event.data.type === 'OAUTH_ERROR') {
+            window.removeEventListener('message', messageListener);
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            popup.close();
             setIsLoading(false);
-            setUserName(data.user?.name || '');
-            setStep('welcome');
-
-            // Show welcome message
-            toast.success(
-              (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
-            );
-            
-            // Small delay to show welcome message
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Close modal
-            onOpenChange(false);
-            
-            // Call onLoginSuccess callback if provided, otherwise reload page
-            if (onLoginSuccess) {
-              onLoginSuccess();
-            } else {
-              // Reload to ensure all components see the new session
-              window.location.reload();
-            }
-          } catch (error: any) {
-            setIsLoading(false);
-            setError(error.message || 'Failed to complete login');
-            toast.error(error.message || 'Failed to complete login');
+            toast.error(event.data.error || 'Authentication failed');
           }
-        } else if (event.data.type === 'OAUTH_ERROR') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setIsLoading(false);
-          toast.error(event.data.error || 'Authentication failed');
-        }
-      };
+        };
 
-      window.addEventListener('message', messageListener);
+        window.addEventListener('message', messageListener);
 
-      // Check if popup is closed manually
-      checkClosedInterval = setInterval(() => {
-        if (popup.closed) {
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          window.removeEventListener('message', messageListener);
-          setIsLoading(false);
-        }
-      }, 1000);
+        // Check if popup is closed manually
+        checkClosedInterval = setInterval(() => {
+          if (popup.closed) {
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            window.removeEventListener('message', messageListener);
+            setIsLoading(false);
+          }
+        }, 1000);
+      }
 
     } catch (error: any) {
       toast.error(error.message || 'Failed to initiate Google login');

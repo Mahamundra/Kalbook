@@ -1150,7 +1150,7 @@
   },
   "home": {
     "title": "KalBook",
-    "subtitle": "Everything your service business needs - all in one place.\n\nOnline bookings, smart scheduling, staff and client management, automated reminders and messages.\n\nEasy to use, fast to set up, fully in Hebrew.\n\nGet started today!",
+    "subtitle": "Everything your service business needs – all in one place.\n\nA smart management system that centralizes all important operations:\n\nOnline bookings\n\nDynamic and updating schedule\n\nCustomer and employee management\n\nSending automatic reminders and messages\n\nEasy to operate, quick to set up, in English",
     "startNow": "Let's Start",
     "seeFeatures": "What's Inside?",
     "pricingLabel": "Pricing",
@@ -1263,7 +1263,7 @@
           "priceNote": "Perfect for getting started",
           "cta": "Start Free",
           "note": "Start managing your bookings today - no credit card required",
-          "highlights": ["1 staff member", "Up to 50 bookings/month", "Smart calendar", "Customer management", "Email reminders", "Bilingual & RTL support"]
+          "highlights": ["1 staff member", "Up to 100 bookings/month", "Smart calendar", "Customer management", "Email reminders", "Bilingual & RTL support"]
         },
         "pro": {
           "name": "Pro",
@@ -1336,7 +1336,7 @@
         },
         {
           "q": "What's the difference between plans?",
-          "a": "Basic plan includes 1 staff member and up to 100 bookings per month. Professional plan offers up to 5 staff, unlimited bookings, advanced features like calendar integrations and analytics. Business plan includes unlimited staff, multiple locations, priority support, and API access."
+          "a": "Free plan includes 1 staff member, up to 100 bookings per month, smart calendar, customer management, email reminders, and bilingual & RTL support. Pro plan (₪79/month) includes everything in Free plus up to 5 staff, unlimited bookings, analytics dashboard, WhatsApp integration, Google Calendar integration, custom branding, advanced reminders, and priority support. Custom plan (starting at ₪249/month) includes everything in Pro plus unlimited staff, API access, white-label solution, custom integrations, advanced reporting, multi-location support, custom workflows, dedicated support, and custom development."
         },
         {
           "q": "Can I integrate with Google Calendar?",

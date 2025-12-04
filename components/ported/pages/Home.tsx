@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ported/ui/textarea';
 import { useToast } from '@/components/ported/ui/use-toast';
 import Link from 'next/link';
 import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowLeft, ChevronDown, User, LogOut, LayoutDashboard, CalendarCheck, CalendarSync, Smartphone, FileText, Repeat, Mail, Phone } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
 import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
@@ -53,6 +53,118 @@ export default function Home() {
   const [contactFormData, setContactFormData] = useState({ name: '', email: '', message: '' });
   const [submittingContact, setSubmittingContact] = useState(false);
   const { toast } = useToast();
+
+  // Pricing state - moved to parent to prevent re-fetching on hover
+  const [pricing, setPricing] = useState<{
+    free?: { price: number; currency: string; symbol: string; metadata?: any };
+    pro?: { price: number; currency: string; symbol: string; metadata?: any };
+    custom?: { price: number; currency: string; symbol: string; metadata?: any };
+  }>({});
+  const [pricingLoading, setPricingLoading] = useState(true);
+  const pricingCacheRef = useRef<{ data: any; timestamp: number; lastUpdated: number } | null>(null);
+  const fetchingRef = useRef<boolean>(false);
+
+  // Fetch pricing once at parent level - prevents re-fetching on hover
+  useEffect(() => {
+    // If already fetching, don't start another fetch
+    if (fetchingRef.current) {
+      return;
+    }
+
+    const cacheKey = `pricing_cache_${locale}`;
+    
+    // Check if we have cached data in memory - use it immediately, no checks
+    const cached = pricingCacheRef.current;
+    if (cached && cached.data) {
+      setPricing(cached.data);
+      setPricingLoading(false);
+      return; // Use cached data, no API calls
+    }
+
+    // Check localStorage as backup - use it immediately, no checks
+    try {
+      const stored = localStorage.getItem(cacheKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.data) {
+          setPricing(parsed.data);
+          pricingCacheRef.current = parsed;
+          setPricingLoading(false);
+          return; // Use cached data, no API calls
+        }
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+
+    // No cache exists, fetch from API once
+    fetchingRef.current = true;
+    let cancelled = false;
+    
+    async function fetchPricing() {
+      try {
+        const response = await fetch(`/api/pricing?locale=${locale}`, {
+          cache: 'no-store',
+        });
+        const data = await response.json();
+        
+        // Don't update state if component unmounted or effect cancelled
+        if (cancelled) {
+          return;
+        }
+        
+        if (data.success && data.pricing) {
+          const cacheData = {
+            data: data.pricing,
+            timestamp: Date.now(),
+            lastUpdated: data.lastUpdated || Date.now(),
+          };
+          
+          // Store in memory cache (persists for session)
+          pricingCacheRef.current = cacheData;
+          
+          // Store in localStorage (persists forever, no expiration)
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+          } catch (e) {
+            // Ignore localStorage errors
+          }
+          
+          setPricing(data.pricing);
+        } else {
+          // Fallback to default pricing
+          setPricing({
+            free: { price: 0, currency: 'ILS', symbol: '₪' },
+            pro: { price: 79, currency: 'ILS', symbol: '₪' },
+            custom: { price: 249, currency: 'ILS', symbol: '₪' },
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error fetching pricing:', error);
+          // Fallback to default pricing
+          setPricing({
+            free: { price: 0, currency: 'ILS', symbol: '₪' },
+            pro: { price: 79, currency: 'ILS', symbol: '₪' },
+            custom: { price: 249, currency: 'ILS', symbol: '₪' },
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setPricingLoading(false);
+          fetchingRef.current = false;
+        }
+      }
+    }
+    
+    fetchPricing();
+    
+    // Cleanup function
+    return () => {
+      cancelled = true;
+      fetchingRef.current = false;
+    };
+  }, [locale]);
 
   const getNested = (obj: any, path: string) => {
     return path.split('.').reduce((acc: any, key: string) => (acc ? acc[key] : undefined), obj);
@@ -149,6 +261,46 @@ export default function Home() {
 
   useEffect(() => {
     checkUser();
+  }, []);
+
+  // Handle OAuth callback for homepage admin login (redirect flow)
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const type = urlParams.get('type');
+      
+      // Check if this is an OAuth callback for homepage admin
+      if (code && type === 'homepage_admin') {
+        try {
+          // Wait a bit for session to be set
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Create admin_session cookie by calling our API
+          const response = await fetch('/api/auth/oauth-session', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success && data.user) {
+            // Success - reload to show logged in state
+            window.location.href = '/';
+          } else if (response.status === 404) {
+            // User not registered - could show message or redirect to onboarding
+            window.location.href = '/onboarding';
+          }
+        } catch (error) {
+          console.error('Error handling OAuth callback:', error);
+        }
+      }
+    };
+
+    handleOAuthCallback();
   }, []);
 
   const handleLogout = async () => {
@@ -329,7 +481,9 @@ export default function Home() {
     hoveredFeature,
     setHoveredFeature,
     getFeatureDescription,
-    isRTL
+    isRTL,
+    pricing,
+    loading
   }: { 
     locale: string; 
     getPlan: (planKey: string, field: string) => string;
@@ -339,34 +493,54 @@ export default function Home() {
     setHoveredFeature: (feature: { planKey: string; featureIndex: number } | null) => void;
     getFeatureDescription: (featureText: string, locale: string) => string;
     isRTL: boolean;
-  }) {
-    // Static pricing - no API calls needed
-    const pricing = {
-      free: { price: 0, currency: 'ILS', symbol: '₪' },
-      pro: { price: 79, currency: 'ILS', symbol: '₪' },
+    pricing: {
+      free?: { price: number; currency: string; symbol: string; metadata?: any };
+      pro?: { price: number; currency: string; symbol: string; metadata?: any };
+      custom?: { price: number; currency: string; symbol: string; metadata?: any };
     };
-    const loading = false;
+    loading: boolean;
+  }) {
 
     const getDisplayPrice = (planKey: string): string => {
+      // Always use database price if available (regardless of translation)
+      const planPricing = pricing[planKey as keyof typeof pricing];
+      if (planPricing) {
+        // If price is 0, show "Free"
+        if (planPricing.price === 0) return 'Free';
+        return planPricing.price.toFixed(0);
+      }
+      
+      // Fallback to translation if database price not available
       const planPrice = getPlan(planKey, 'price');
       if (planPrice === 'dynamic') {
-        const planPricing = pricing[planKey as keyof typeof pricing];
-        return planPricing ? planPricing.price.toFixed(0) : '79';
+        return '79'; // Default fallback
       }
       if (planPrice === 'custom') {
         return 'Custom';
       }
+      // If price is "0" in translation, show "Free"
+      if (planPrice === '0') return 'Free';
       return planPrice;
     };
 
     const getCurrencySymbol = (planKey: string): string => {
-      const planPrice = getPlan(planKey, 'price');
-      if (planPrice === 'dynamic') {
-        const planPricing = pricing[planKey as keyof typeof pricing];
-        return planPricing ? planPricing.symbol : '₪';
+      // Always use database pricing if available
+      const planPricing = pricing[planKey as keyof typeof pricing];
+      if (planPricing) {
+        return planPricing.symbol;
       }
-      // Always show currency symbol, even for free plan
+      // Fallback
       return '₪';
+    };
+    
+    // Get highlights from database metadata if available, otherwise use translations
+    const getHighlightsFromDB = (planKey: string): string[] => {
+      const planPricing = pricing[planKey as keyof typeof pricing];
+      if (planPricing?.metadata?.highlights && Array.isArray(planPricing.metadata.highlights) && planPricing.metadata.highlights.length > 0) {
+        return planPricing.metadata.highlights;
+      }
+      // Fallback to translations
+      return getPlanHighlights(planKey);
     };
 
     return (
@@ -374,9 +548,10 @@ export default function Home() {
         {['free', 'pro', 'custom'].map((planKey, index) => {
           const isPro = planKey === 'pro';
           const isCustom = planKey === 'custom';
-          const highlightsArray = getPlanHighlights(planKey);
+          const highlightsArray = getHighlightsFromDB(planKey);
           const displayPrice = getDisplayPrice(planKey);
           const currencySymbol = getCurrencySymbol(planKey);
+          const planMetadata = pricing[planKey as keyof typeof pricing]?.metadata;
           
           return (
             <div
@@ -400,26 +575,40 @@ export default function Home() {
                   </div>
                 )}
                 <div className="text-center mb-5">
-                  <h3 className="text-xl font-bold mb-2">{getPlan(planKey, 'name')}</h3>
+                  <h3 className="text-xl font-bold mb-2">
+                    {planMetadata?.name || getPlan(planKey, 'name')}
+                  </h3>
                   <div className="mb-2">
-                    {loading && getPlan(planKey, 'price') === 'dynamic' && planKey !== 'custom' ? (
+                    {loading ? (
                       <span className="text-3xl font-bold text-primary">...</span>
-                    ) : planKey === 'free' ? (
+                    ) : displayPrice === 'Free' ? (
                       <span className="text-3xl font-bold text-primary">
                         {locale === 'he' ? 'חינם' : 'Free'}
                       </span>
                     ) : planKey === 'custom' ? (
-                      <>
-                        <div className="text-xs text-gray-600 mb-1">
-                          {locale === 'he' ? 'החל מ-' : locale === 'ar' ? 'بدءًا من' : locale === 'ru' ? 'Начиная с' : 'Starting at'}
-                        </div>
-                        <span className="text-3xl font-bold text-primary">
-                          {locale === 'he' ? '₪' : '₪'}249
-                        </span>
-                        <span className="text-gray-500 text-base ml-1">
-                          {' / '}{getPricing('month')}
-                        </span>
-                      </>
+                      <span className="text-3xl font-bold text-primary">
+                        {(locale === 'he' || locale === 'ar') ? (
+                          <>
+                            <span className="text-xs text-gray-600 font-normal">
+                              {locale === 'he' ? 'החל מ-' : 'بدءًا من'}
+                            </span>
+                            <span>{currencySymbol}{pricing.custom?.price || 249}</span>
+                            <span className="text-gray-500 text-base font-normal ml-1">
+                              {' / '}{getPricing('month')}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs text-gray-600 font-normal">
+                              {locale === 'ru' ? 'Начиная с ' : 'Starting at '}
+                            </span>
+                            <span>{currencySymbol}{pricing.custom?.price || 249}</span>
+                            <span className="text-gray-500 text-base font-normal ml-1">
+                              {' / '}{getPricing('month')}
+                            </span>
+                          </>
+                        )}
+                      </span>
                     ) : (
                       <>
                         <span className="text-3xl font-bold text-primary">
@@ -431,14 +620,14 @@ export default function Home() {
                       </>
                     )}
                   </div>
-                  {getPlan(planKey, 'priceNote') && (
+                  {(planMetadata?.priceNote || getPlan(planKey, 'priceNote')) && (
                     <p className="text-xs text-gray-500 mb-2" style={{ whiteSpace: 'pre-line' }}>
-                      {planKey === 'pro' && locale === 'he' ? 'למקצוענים שבינינו' : getPlan(planKey, 'priceNote')}
+                      {planMetadata?.priceNote || (planKey === 'pro' && locale === 'he' ? 'למקצוענים שבינינו' : getPlan(planKey, 'priceNote'))}
                     </p>
                   )}
-                  {getPlan(planKey, 'note') && (
+                  {(planMetadata?.note || getPlan(planKey, 'note')) && (
                     <p className="text-xs text-gray-500 mb-3">
-                      {planKey === 'free' && locale === 'he' ? (
+                      {planMetadata?.note || (planKey === 'free' && locale === 'he' ? (
                         <>
                           התחל לנהל את ההזמנות שלך היום<br />
                           <br />
@@ -446,7 +635,7 @@ export default function Home() {
                         </>
                       ) : (
                         getPlan(planKey, 'note')
-                      )}
+                      ))}
                     </p>
                   )}
                 </div>
@@ -519,16 +708,23 @@ export default function Home() {
         isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 relative">
+            {/* Left side - Language Toggle */}
+            <div className="flex-1 flex items-center gap-2 sm:gap-3">
+              <LanguageToggle />
+            </div>
+            
+            {/* Center - Logo */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
               <img 
                 src="/kalbook-logo.svg" 
                 alt="KalBook.io" 
                 className="h-8 sm:h-12 w-auto"
               />
             </div>
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              <LanguageToggle />
+            
+            {/* Right side - User button */}
+            <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4">
               {!loadingUser && !user && (
                 <Button 
                   variant="outline" 
@@ -594,7 +790,7 @@ export default function Home() {
             >
               <div className="relative w-full" style={{ maxWidth: '240px' }}>
                 {/* Phone Frame */}
-                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '9/18', maxWidth: '240px' }}>
+                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '9/17', maxWidth: '240px' }}>
                   {/* Phone Container */}
                   <div 
                     className="relative bg-black rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-0.5 sm:p-1 md:p-1.5 shadow-2xl w-full h-full"
@@ -626,7 +822,7 @@ export default function Home() {
                         muted
                         playsInline
                       >
-                        <source src="https://urqobqgofkwobbwfszxa.supabase.co/storage/v1/object/public/business-assets/out.mp4" type="video/mp4" />
+                        <source src="https://urqobqgofkwobbwfszxa.supabase.co/storage/v1/object/public/business-assets/iphone_onboarding.mp4" type="video/mp4" />
                       </video>
                     </div>
                     
@@ -647,42 +843,129 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="text-center order-1 md:order-none"
+            dir={isRTL ? 'rtl' : 'ltr'}
           >
-            <div className="flex items-center justify-center mb-4 sm:mb-6">
-              <img 
-                src="/kalbook-logo.svg" 
-                alt="KalBook.io" 
-                className="h-10 sm:h-12 md:h-16 lg:h-20 w-auto flex-shrink-0"
-              />
-            </div>
-            <div className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 space-y-3 sm:space-y-4">
-              {getHome('subtitle').split('\n\n').map((paragraph: string, index: number, array: string[]) => (
-                <p 
-                  key={index} 
-                  className={index === array.length - 1 ? 'font-semibold' : ''}
-                  style={index === array.length - 1 ? { color: '#ff3e1b', fontSize: 'clamp(18px, 4vw, 20px)' } : {}}
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                >
-                  {paragraph.split('\n').map((line: string, lineIndex: number, lines: string[]) => {
-                    // Fix period placement for RTL - use LRM to keep period on the right
-                    const trimmedLine = line.trim();
-                    const fixedLine = isRTL && trimmedLine.endsWith('.') 
-                      ? trimmedLine.slice(0, -1) + '\u200E.' // Add LRM before period to keep it on right
-                      : line;
+            {/* Main Content - Centered with improved hierarchy */}
+            <div className="max-w-3xl mx-auto">
+              {(() => {
+                const subtitleText = getHome('subtitle');
+                const paragraphs = subtitleText.split('\n\n');
+                
+                return paragraphs.map((paragraph: string, index: number) => {
+                  const lines = paragraph.split('\n').filter(line => line.trim());
+                  const isFirstParagraph = index === 0;
+                  const isBulletList = index > 0 && index < paragraphs.length - 1;
+                  const isLastParagraph = index === paragraphs.length - 1;
+                  
+                  // First paragraph - Main headline (largest, boldest)
+                  if (isFirstParagraph) {
+                    const titleText = "כל מה שעסק השירות שלך צריך במקום אחד";
+                    const subheadingText = "מערכת ניהול חכמה שמרכזת את כל הפעולות החשובות לעסק שלך";
+                    
                     return (
-                      <span key={lineIndex}>
-                        {fixedLine}
-                        {lineIndex < lines.length - 1 && <br />}
-                      </span>
+                      <div key={index} dir={isRTL ? 'rtl' : 'ltr'}>
+                        <h1 
+                          className="text-2xl md:text-3xl font-semibold text-slate-800 text-center leading-snug max-w-[700px] mx-auto"
+                        >
+                          {titleText}
+                        </h1>
+                        <p className="text-center text-slate-600 mt-2 text-base md:text-lg">
+                          {subheadingText}
+                        </p>
+                      </div>
                     );
-                  })}
-                </p>
-              ))}
+                  }
+                  
+                  // Bullet list - Compact, centered, smaller
+                  if (isBulletList) {
+                    return (
+                      <div 
+                        key={index}
+                        className="mb-3 sm:mb-4"
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                      >
+                        {lines.map((line: string, lineIndex: number) => {
+                          const trimmedLine = line.trim();
+                          if (!trimmedLine) return null;
+                          
+                          // Skip the intro line (מערכת ניהול חכמה...) since it's already shown as subheading
+                          const isIntroLine = lineIndex === 0 && (trimmedLine.includes('מערכת ניהול חכמה') || trimmedLine.includes(':'));
+                          if (isIntroLine) {
+                            return null;
+                          }
+                          
+                          // Bullet items - smaller, compact, centered
+                          return (
+                            <div 
+                              key={lineIndex}
+                              className="flex items-center justify-center mb-1 sm:mb-1.5"
+                              dir={isRTL ? 'rtl' : 'ltr'}
+                            >
+                              <span className={`text-[#ff3e1a] text-sm ${isRTL ? 'ml-2' : 'mr-2'}`}>•</span>
+                              <span className="text-sm sm:text-base text-gray-600 text-center">
+                                {trimmedLine}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+                  
+                  // Last paragraph - Bold sales sentence (highlighted)
+                  if (isLastParagraph) {
+                    return (
+                      <p 
+                        key={index}
+                        className="text-lg sm:text-xl md:text-2xl font-bold text-[#ff3e1b] mb-8 sm:mb-10 mt-6 sm:mt-8 leading-tight"
+                        dir={isRTL ? 'rtl' : 'ltr'}
+                      >
+                        {lines.map((line: string, lineIndex: number) => {
+                          const trimmedLine = line.trim();
+                          const fixedLine = isRTL && trimmedLine.endsWith('.') 
+                            ? trimmedLine.slice(0, -1) + '\u200E.' 
+                            : trimmedLine;
+                          return (
+                            <span key={lineIndex}>
+                              {fixedLine}
+                              {lineIndex < lines.length - 1 && <br />}
+                            </span>
+                          );
+                        })}
+                      </p>
+                    );
+                  }
+                  
+                  // Default paragraph styling
+                  return (
+                    <p 
+                      key={index}
+                      className="text-base sm:text-lg text-gray-600 mb-3 sm:mb-4"
+                      dir={isRTL ? 'rtl' : 'ltr'}
+                    >
+                      {lines.map((line: string, lineIndex: number) => {
+                        const trimmedLine = line.trim();
+                        const fixedLine = isRTL && trimmedLine.endsWith('.') 
+                          ? trimmedLine.slice(0, -1) + '\u200E.' 
+                          : trimmedLine;
+                        return (
+                          <span key={lineIndex}>
+                            {fixedLine}
+                            {lineIndex < lines.length - 1 && <br />}
+                          </span>
+                        );
+                      })}
+                    </p>
+                  );
+                });
+              })()}
             </div>
-            <div className={`flex gap-3 sm:gap-4 justify-center flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+
+            {/* CTA Buttons - Centered, larger, with shadow */}
+            <div className={`flex gap-4 sm:gap-5 justify-center flex-wrap mt-8 sm:mt-10 ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
               <Button 
                 size="lg" 
-                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto"
+                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold shadow-lg hover:shadow-xl transition-all duration-300 bg-[#ff3e1a] hover:bg-[#ff3e1a]/90"
                 onClick={() => {
                   const pricingSection = document.getElementById('pricing');
                   if (pricingSection) {
@@ -692,15 +975,15 @@ export default function Home() {
               >
                 {getHome('startNow')}
                 {isRTL ? (
-                  <ArrowLeft className="mr-2 w-5 h-5" />
+                  <ArrowLeft className="mr-2 w-5 h-5 sm:w-6 sm:h-6" />
                 ) : (
-                  <ArrowRight className="ml-2 w-5 h-5" />
+                  <ArrowRight className="ml-2 w-5 h-5 sm:w-6 sm:h-6" />
                 )}
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto"
+                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold border-2"
                 onClick={() => {
                   const featuresSection = document.getElementById('features');
                   if (featuresSection) {
@@ -723,7 +1006,7 @@ export default function Home() {
             >
               <div className="relative w-full" style={{ maxWidth: '240px' }}>
                 {/* Phone Frame */}
-                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '9/18', maxWidth: '240px' }}>
+                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '9/17', maxWidth: '240px' }}>
                   {/* Phone Container */}
                   <div 
                     className="relative bg-black rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-0.5 sm:p-1 md:p-1.5 shadow-2xl w-full h-full"
@@ -755,7 +1038,7 @@ export default function Home() {
                         muted
                         playsInline
                       >
-                        <source src="https://urqobqgofkwobbwfszxa.supabase.co/storage/v1/object/public/business-assets/out.mp4" type="video/mp4" />
+                        <source src="https://urqobqgofkwobbwfszxa.supabase.co/storage/v1/object/public/business-assets/iphone_onboarding.mp4" type="video/mp4" />
                       </video>
                     </div>
                     
@@ -867,12 +1150,14 @@ export default function Home() {
             setHoveredFeature={setHoveredFeature}
             getFeatureDescription={getFeatureDescription}
             isRTL={isRTL}
+            pricing={pricing}
+            loading={pricingLoading}
           />
         </div>
       </section>
 
-      {/* Custom Features Section */}
-      <section className="bg-white py-16">
+      {/* Custom Features Section - Hidden but kept for future use */}
+      {/* <section className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -943,7 +1228,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ Section */}
       <section id="faq" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -958,55 +1243,64 @@ export default function Home() {
         </motion.div>
 
         <div className="space-y-4">
-          {(homeData?.faq?.items || []).slice(0, 4).map((item: any, index: number) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
-            >
-              <Card className="overflow-hidden">
-                <button
-                  onClick={() => toggleFaq(index)}
-                  className={`w-full p-6 flex items-center justify-between text-left transition-all duration-300 ease-in-out ${
-                    expandedFaq === index 
-                      ? 'bg-primary/5 text-primary' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <span className={`font-semibold text-lg pr-4 transition-colors duration-300 ${
-                    expandedFaq === index ? 'text-primary' : ''
-                  }`}>{getFaq(index, 'q')}</span>
-                  <ChevronDown
-                    className={`w-5 h-5 transition-all duration-300 ease-in-out flex-shrink-0 ${
-                      expandedFaq === index 
-                        ? 'transform rotate-180 text-primary' 
-                        : 'text-gray-500'
+          {(() => {
+            // Show items: 0, 1, 2, 3 (current) + 4, 5, 7, 10, 11, 12 (items 5, 6, 8, 11, 12, 13)
+            const faqItems = homeData?.faq?.items || [];
+            const indicesToShow = [0, 1, 2, 3, 4, 5, 7, 10, 11, 12];
+            const filteredItems = indicesToShow
+              .filter(idx => idx < faqItems.length)
+              .map(idx => ({ item: faqItems[idx], originalIndex: idx }));
+            
+            return filteredItems.map(({ item, originalIndex }, displayIndex) => (
+              <motion.div
+                key={originalIndex}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.2, delay: displayIndex * 0.05 }}
+              >
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => toggleFaq(originalIndex)}
+                    className={`w-full p-6 flex items-center justify-between text-left transition-all duration-300 ease-in-out ${
+                      expandedFaq === originalIndex 
+                        ? 'bg-primary/5 text-primary' 
+                        : 'hover:bg-gray-50'
                     }`}
-                  />
-                </button>
-                <AnimatePresence initial={false}>
-                  {expandedFaq === index && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ 
-                        duration: 0.4,
-                        ease: [0.4, 0, 0.2, 1]
-                      }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-6 pt-4 pb-6">
-                        <p className="text-gray-600">{getFaq(index, 'a')}</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Card>
-            </motion.div>
-          ))}
+                  >
+                    <span className={`font-semibold text-lg pr-4 transition-colors duration-300 ${
+                      expandedFaq === originalIndex ? 'text-primary' : ''
+                    }`}>{getFaq(originalIndex, 'q')}</span>
+                    <ChevronDown
+                      className={`w-5 h-5 transition-all duration-300 ease-in-out flex-shrink-0 ${
+                        expandedFaq === originalIndex 
+                          ? 'transform rotate-180 text-primary' 
+                          : 'text-gray-500'
+                      }`}
+                    />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {expandedFaq === originalIndex && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ 
+                          duration: 0.4,
+                          ease: [0.4, 0, 0.2, 1]
+                        }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-6 pt-4 pb-6">
+                          <p className="text-gray-600">{getFaq(originalIndex, 'a')}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+              </motion.div>
+            ));
+          })()}
         </div>
       </section>
 

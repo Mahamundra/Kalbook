@@ -8,12 +8,14 @@ import { Label } from '@/components/ported/ui/label';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ported/ui/input-otp';
 import { useLocale } from '@/components/ported/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
+import { useIsMobile } from '@/components/ported/hooks/use-mobile';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CustomField, RegistrationSettings } from '@/types/admin';
 // Removed mock data imports - now using API
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ported/ui/select';
 import { getCustomerByPhone } from '@/lib/api/services';
+import { supabase } from '@/lib/supabase/client';
 
 type LoginStep = 'phone' | 'verify' | 'register';
 
@@ -31,11 +33,14 @@ export function LoginRegisterDialog({
   registrationSettings,
 }: LoginRegisterDialogProps) {
   const { t, isRTL, locale } = useLocale();
+  const { dir } = useDirection();
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<LoginStep>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const otpInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -218,6 +223,198 @@ export function LoginRegisterDialog({
     }
   };
 
+  // Handle Google OAuth
+  const handleGoogleLogin = async () => {
+    try {
+      setIsOAuthLoading(true);
+      
+      // Get the OAuth URL
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&popup=true&type=customer`,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('Failed to get OAuth URL');
+
+      // Open popup window
+      const width = 500;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      const popup = window.open(
+        data.url,
+        'google-auth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+
+      if (!popup) {
+        throw new Error('Popup blocked. Please allow popups for this site.');
+      }
+
+      // Listen for message from popup
+      let checkClosedInterval: NodeJS.Timeout | null = null;
+      const messageListener = async (event: MessageEvent) => {
+        // Verify origin for security
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data.type === 'OAUTH_SUCCESS') {
+          window.removeEventListener('message', messageListener);
+          if (checkClosedInterval) clearInterval(checkClosedInterval);
+          popup.close();
+          setIsOAuthLoading(false);
+
+          // Wait a bit for cookies to sync
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Get Supabase Auth session
+          let session = null;
+          const maxRetries = 5;
+          
+          for (let i = 0; i < maxRetries; i++) {
+            const { data, error } = await supabase.auth.getSession();
+            session = data?.session;
+            
+            if (session?.user) {
+              break;
+            }
+            
+            if (i === 2) {
+              const { data: userData } = await supabase.auth.getUser();
+              if (userData?.user) {
+                const { data: refreshedSession } = await supabase.auth.getSession();
+                session = refreshedSession?.session;
+                if (session?.user) break;
+              }
+            }
+            
+            if (i < maxRetries - 1) {
+              await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
+            }
+          }
+          
+          if (!session?.user) {
+            toast.info('Completing login...');
+            window.location.reload();
+            return;
+          }
+
+          // Pre-fill form with OAuth data
+          const userEmail = session.user.email || '';
+          const userPhone = session.user.phone || '';
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+
+          if (userPhone) {
+            setPhone(userPhone);
+          }
+          if (userEmail) {
+            setFormData(prev => ({ ...prev, email: userEmail }));
+          }
+          if (userName) {
+            setFormData(prev => ({ ...prev, name: userName }));
+          }
+
+          // Create customer session from OAuth
+          try {
+            const sessionResponse = await fetch('/api/auth/oauth-session-customer', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            const sessionData = await sessionResponse.json();
+
+            if (!sessionResponse.ok) {
+              throw new Error(sessionData.error || 'Failed to create session');
+            }
+
+            if (!sessionData.success || !sessionData.session) {
+              throw new Error('Failed to create customer session');
+            }
+
+            const customerSession = sessionData.session;
+
+            // Check if customer has complete profile (name, etc.)
+            if (customerSession.name && customerSession.name !== customerSession.phone) {
+              // Customer exists with complete profile - log them in
+              toast.success(t('auth.welcomeBack')?.replace('{{name}}', customerSession.name) || `Welcome back, ${customerSession.name}!`);
+              onSuccess({
+                phone: customerSession.phone,
+                name: customerSession.name,
+                email: customerSession.email || userEmail,
+                customerId: customerSession.customerId,
+                businessId: customerSession.businessId,
+              });
+              onClose();
+            } else {
+              // Customer needs to complete registration
+              if (userPhone) setPhone(userPhone);
+              if (userEmail) setFormData(prev => ({ ...prev, email: userEmail }));
+              if (userName) setFormData(prev => ({ ...prev, name: userName }));
+              
+              toast.info(t('auth.completeRegistration') || 'Please complete your registration');
+              setStep('register');
+            }
+          } catch (error: any) {
+            console.error('Error creating customer session:', error);
+            // Pre-fill form and proceed to registration
+            if (userPhone) setPhone(userPhone);
+            if (userEmail) setFormData(prev => ({ ...prev, email: userEmail }));
+            if (userName) setFormData(prev => ({ ...prev, name: userName }));
+            
+            toast.info(t('auth.completeRegistration') || 'Please complete your registration');
+            setStep('register');
+          }
+        } else if (event.data.type === 'OAUTH_ERROR') {
+          window.removeEventListener('message', messageListener);
+          if (checkClosedInterval) clearInterval(checkClosedInterval);
+          popup.close();
+          setIsOAuthLoading(false);
+          toast.error(event.data.error || 'Authentication failed');
+        }
+      };
+
+      window.addEventListener('message', messageListener);
+
+      // Check if popup is closed manually
+      checkClosedInterval = setInterval(() => {
+        if (popup.closed) {
+          if (checkClosedInterval) clearInterval(checkClosedInterval);
+          window.removeEventListener('message', messageListener);
+          setIsOAuthLoading(false);
+        }
+      }, 1000);
+
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to initiate Google login');
+      setIsOAuthLoading(false);
+    }
+  };
+
+  // Handle Apple OAuth
+  const handleAppleLogin = async () => {
+    try {
+      setIsOAuthLoading(true);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to initiate Apple login');
+      setIsOAuthLoading(false);
+    }
+  };
+
   const handleRegister = async () => {
     if (!formData.name || !formData.birthYear || !formData.birthMonth || !formData.birthDay) {
       toast.error(t('auth.fillRequiredFields') || 'Please fill in all required fields');
@@ -331,11 +528,74 @@ export function LoginRegisterDialog({
               </div>
               <Button
                 onClick={handlePhoneSubmit}
-                disabled={!phone || isVerifying}
+                disabled={!phone || isVerifying || isOAuthLoading}
                 className="w-full"
               >
                 {isVerifying ? t('auth.sending') : t('auth.sendCode')}
               </Button>
+
+              {/* Divider */}
+              <div className="relative py-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-background px-4 text-sm text-muted-foreground">
+                    {t('onboarding.auth.additionalOptions') || t('onboarding.auth.or') || 'Additional login options'}
+                  </span>
+                </div>
+              </div>
+
+              {/* OAuth Buttons */}
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 font-medium"
+                  onClick={handleGoogleLogin}
+                  disabled={isOAuthLoading || isVerifying}
+                >
+                  <svg className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`} viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  {t('onboarding.auth.signInWithGoogle') || 'Sign in with Google'}
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full h-12 bg-black hover:bg-gray-900 text-white font-medium"
+                  onClick={handleAppleLogin}
+                  disabled={isOAuthLoading || isVerifying}
+                >
+                  <svg 
+                    aria-hidden="true" 
+                    focusable="false" 
+                    data-prefix="fab" 
+                    data-icon="apple" 
+                    className={`svg-inline--fa fa-apple text-white text-xl ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}
+                    role="img" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 384 512"
+                  >
+                    <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"></path>
+                  </svg>
+                  {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
+                </Button>
+              </div>
             </motion.div>
           )}
 

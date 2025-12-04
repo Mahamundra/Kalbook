@@ -224,11 +224,7 @@ kalbook/
    }
    ```
 
-2. **Or use the migration page** (if migrating from localStorage):
-   - Navigate to `http://localhost:3000/migration`
-   - Fill in the form and start migration
-
-3. **Access the admin panel**:
+2. **Access the admin panel**:
    - Go to `/b/[your-slug]/admin/login`
    - Sign in with your admin credentials
 

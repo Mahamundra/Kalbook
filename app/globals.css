@@ -229,6 +229,17 @@
 }
 
 html[dir="rtl"] body { direction: rtl; }
+
+/* Hebrew font for Hebrew text - apply only when language is Hebrew */
+html[lang="he"] body {
+  font-family: var(--font-noto-sans-hebrew), var(--font-work-sans), system-ui, sans-serif;
+}
+
+/* Apply Hebrew font to all elements when language is Hebrew */
+html[lang="he"],
+html[lang="he"] * {
+  font-family: var(--font-noto-sans-hebrew), var(--font-work-sans), system-ui, sans-serif;
+}
 .skeleton { background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 37%, rgba(0,0,0,0.06) 63%); background-size: 400% 100%; animation: shimmer 1s linear infinite; }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 
@@ -329,5 +340,86 @@ html[dir="rtl"] body { direction: rtl; }
   
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Computer Monitor Banner Styles */
+  .monitor-container {
+    perspective: 1000px;
+    perspective-origin: center center;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .monitor {
+    position: relative;
+    width: 100%;
+    transform-style: preserve-3d;
+  }
+
+  .monitor-screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 0 0 2px #2a2a2a;
+    margin: 0 auto;
+  }
+
+  .screen-content {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, hsl(10 100% 55.3% / 0.15) 0%, hsl(10 100% 55.3% / 0.08) 50%, transparent 100%);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .screen-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, hsl(10 100% 55.3% / 0.3) 0%, transparent 70%);
+    animation: screenPulse 3s ease-in-out infinite;
+  }
+
+  .monitor-stand {
+    position: relative;
+    width: 40%;
+    height: 60px;
+    margin: 0 auto;
+    margin-top: -10px;
+  }
+
+  .stand-base {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+  }
+
+  .stand-base::before {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120%;
+    height: 20px;
+    background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  }
+
+  @keyframes screenPulse {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 }

@@ -100,8 +100,14 @@ export function Footer() {
             
             {/* Copyright - Right */}
             <div className="order-2 md:order-3">
-              <p className="text-sm text-muted-foreground text-center md:text-right">
-                © {new Date().getFullYear()} Kalbook.io. All rights reserved.
+              <p 
+                className="text-sm text-muted-foreground text-center md:text-right"
+                style={locale === 'he' || locale === 'ar' ? { direction: 'ltr' } : {}}
+              >
+                {locale === 'he' 
+                  ? `© ${new Date().getFullYear()} Kalbook.io ${getFooter('rights') || 'כל הזכויות שמורות'}`
+                  : `© ${new Date().getFullYear()} Kalbook.io. ${getFooter('rights') || 'All rights reserved.'}`
+                }
               </p>
             </div>
           </div>

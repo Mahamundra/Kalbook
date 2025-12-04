@@ -15,8 +15,11 @@ type BusinessRow = Database['public']['Tables']['businesses']['Row'];
  *   email: string,
  *   name: string,
  *   phone?: string,
- *   password?: string (optional - generates random if not provided)
+ *   password?: string (optional - auto-generated for Supabase Auth, not used for login)
  * }
+ * 
+ * Note: Users login via OTP (phone), not email/password. Password is only required
+ * for Supabase Auth user creation but is not used for authentication.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -173,8 +176,8 @@ export async function POST(request: NextRequest) {
         name: (newUser as any).name,
         businessId: targetBusinessId,
       },
-      password: userPassword, // Only return if password was auto-generated
-      message: 'Admin user created successfully',
+      // Password not returned - users login via OTP (phone), not email/password
+      message: 'Admin user created successfully. User can login via OTP using their phone number.',
     });
   } catch (error: any) {
     console.error('Error creating admin user:', error);

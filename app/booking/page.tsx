@@ -142,6 +142,81 @@ function BookingPageContent() {
     time: string;
   } | null>(null);
 
+  // Handle OAuth callback for customer login (redirect flow)
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const code = searchParams.get('code');
+      const type = searchParams.get('type');
+      
+      // Check if this is an OAuth callback for customer
+      if (code && type === 'customer') {
+        try {
+          // Wait a bit for session to be set
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Create customer session from OAuth
+          const sessionResponse = await fetch('/api/auth/oauth-session-customer', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const sessionData = await sessionResponse.json();
+
+          if (sessionResponse.ok && sessionData.success && sessionData.session) {
+            const customerSession = sessionData.session;
+            
+            // Check if customer has complete profile
+            if (customerSession.name && customerSession.name !== customerSession.phone) {
+              // Customer exists with complete profile - log them in
+              setIsLoggedIn(true);
+              setCurrentUser({
+                phone: customerSession.phone,
+                name: customerSession.name,
+                email: customerSession.email || '',
+                customerId: customerSession.customerId,
+                businessId: customerSession.businessId,
+              });
+              setCustomerInfo({
+                name: customerSession.name,
+                email: customerSession.email || '',
+                phone: customerSession.phone,
+              });
+              
+              // Save session to localStorage
+              const expirationTime = new Date().getTime() + (14 * 24 * 60 * 60 * 1000);
+              const session = {
+                user: {
+                  phone: customerSession.phone,
+                  name: customerSession.name,
+                  email: customerSession.email || '',
+                  customerId: customerSession.customerId,
+                  businessId: customerSession.businessId,
+                },
+                expirationTime: expirationTime
+              };
+              localStorage.setItem('userSession', JSON.stringify(session));
+              
+              // Clean URL
+              window.history.replaceState({}, '', window.location.pathname);
+            } else {
+              // Customer needs to complete registration - open dialog
+              setShowLoginDialog(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error handling OAuth callback:', error);
+          // Open login dialog on error
+          setShowLoginDialog(true);
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [searchParams]);
+
   // Check for valid session on mount
   useEffect(() => {
     const storedSession = localStorage.getItem('userSession');

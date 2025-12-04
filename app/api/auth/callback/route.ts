@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/onboarding';
   const isPopup = requestUrl.searchParams.get('popup') === 'true';
+  const type = requestUrl.searchParams.get('type'); // 'homepage_admin', 'customer', etc.
 
   if (code) {
     const supabase = await createClient();
@@ -46,8 +47,8 @@ export async function GET(request: NextRequest) {
         );
       }
       
-      // Redirect to onboarding with error
-      const redirectUrl = new URL('/onboarding', requestUrl.origin);
+      // Redirect with error
+      const redirectUrl = new URL(next, requestUrl.origin);
       redirectUrl.searchParams.set('error', 'oauth_error');
       return NextResponse.redirect(redirectUrl.toString());
     }
@@ -86,7 +87,28 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Redirect to the next URL (onboarding page)
+  // For redirect flow (mobile), handle session creation and redirect
+  if (type === 'homepage_admin') {
+    // Redirect to homepage - session will be created client-side
+    return NextResponse.redirect(new URL('/', requestUrl.origin).toString());
+  }
+
+  if (type === 'business_admin') {
+    // Redirect back to business admin login - session will be created client-side
+    return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
+  }
+
+  if (type === 'customer') {
+    // Redirect back to booking page - session will be created client-side
+    return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
+  }
+
+  if (type === 'onboarding') {
+    // Redirect back to onboarding - session will be handled client-side
+    return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
+  }
+
+  // Default: Redirect to the next URL (onboarding page)
   return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
 }
 

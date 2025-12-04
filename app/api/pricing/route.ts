@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Get all active plans from database
+    // Get all active plans from database with features (metadata) and updated_at
     const plansResult = await supabase
       .from('plans')
-      .select('name, price')
+      .select('name, price, features, updated_at')
       .eq('active', true)
-      .order('price', { ascending: true }) as { data: Array<{ name: string; price: number }> | null; error: any };
+      .order('price', { ascending: true }) as { data: Array<{ name: string; price: number; features: Record<string, any>; updated_at: string }> | null; error: any };
 
     if (plansResult.error) {
       throw new Error(plansResult.error.message || 'Failed to fetch plans');
@@ -32,38 +32,71 @@ export async function GET(request: NextRequest) {
     const currency = locale === 'he' || locale === 'ar' ? 'ILS' : 'USD';
     const symbol = getCurrencySymbol(currency);
 
-    // Build pricing object
-    const pricing: Record<string, { price: number; currency: string; symbol: string }> = {};
+    // Build pricing object - map to homepage plan keys (free, pro, custom)
+    const pricing: Record<string, { price: number; currency: string; symbol: string; metadata?: any }> = {};
 
     plans.forEach((plan) => {
       const planName = plan.name.toLowerCase();
-      if (['basic', 'professional', 'business'].includes(planName)) {
-        // Prices are stored in ILS, convert to display currency if needed
+      const features = plan.features || {};
+      
+      // Map database plan names to homepage plan keys
+      // Also check metadata name if it exists
+      const metadataName = features.name ? features.name.toLowerCase() : null;
+      let homepageKey: string | null = null;
+      
+      if (planName === 'basic' || planName === 'free' || metadataName === 'free') {
+        homepageKey = 'free';
+      } else if (planName === 'professional' || planName === 'pro' || metadataName === 'pro') {
+        homepageKey = 'pro';
+      } else if (planName === 'business' || planName === 'custom' || metadataName === 'custom') {
+        homepageKey = 'custom';
+      }
+      
+      if (homepageKey) {
+        // Prices are stored in ILS
         let displayPrice = Number(plan.price);
         
-        // For now, we'll show ILS prices directly (no conversion)
-        // If you want currency conversion, uncomment the following:
-        // if (currency === 'USD') {
-        //   displayPrice = displayPrice / 3.7; // Approximate ILS to USD conversion
-        // }
-        
-        pricing[planName] = {
-          price: displayPrice,
-          currency: 'ILS', // Always ILS for now
-          symbol: '₪', // Always show ILS symbol
-        };
+        // If this plan key already exists, only update if this plan has a lower price (for ordering)
+        if (!pricing[homepageKey] || pricing[homepageKey].price > displayPrice) {
+          pricing[homepageKey] = {
+            price: displayPrice,
+            currency: 'ILS',
+            symbol: '₪',
+            metadata: {
+              name: features.name || plan.name,
+              priceNote: features.priceNote || '',
+              cta: features.cta || '',
+              note: features.note || '',
+              // Get highlights for the current locale, fallback to old format or empty
+              highlights: features[`highlights_${locale}`] || features.highlights || [],
+            },
+          };
+        }
       }
     });
 
     // Ensure all three plans are present (fallback to 0 if missing)
-    if (!pricing.basic) pricing.basic = { price: 0, currency: 'ILS', symbol: '₪' };
-    if (!pricing.professional) pricing.professional = { price: 0, currency: 'ILS', symbol: '₪' };
-    if (!pricing.business) pricing.business = { price: 0, currency: 'ILS', symbol: '₪' };
+    if (!pricing.free) pricing.free = { price: 0, currency: 'ILS', symbol: '₪', metadata: {} };
+    if (!pricing.pro) pricing.pro = { price: 79, currency: 'ILS', symbol: '₪', metadata: {} };
+    if (!pricing.custom) pricing.custom = { price: 249, currency: 'ILS', symbol: '₪', metadata: {} };
+
+    // Get the latest updated_at timestamp from all plans for cache invalidation
+    const latestUpdate = plans.length > 0 
+      ? Math.max(...plans.map(p => new Date(p.updated_at).getTime()))
+      : Date.now();
 
     return NextResponse.json({
       success: true,
       pricing,
       locale,
+      lastUpdated: latestUpdate, // Timestamp for cache invalidation
+    }, {
+      headers: {
+        // Disable all caching - always fetch fresh data from database
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
     });
   } catch (error: any) {
     return NextResponse.json(

@@ -17,6 +17,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-work-sans)", "system-ui", "sans-serif"],
+        hebrew: ["var(--font-noto-sans-hebrew)", "var(--font-work-sans)", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

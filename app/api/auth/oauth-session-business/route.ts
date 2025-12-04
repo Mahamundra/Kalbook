@@ -1,0 +1,149 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import type { Database } from '@/lib/supabase/database.types';
+
+type UserRow = Database['public']['Tables']['users']['Row'];
+
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+/**
+ * POST /api/auth/oauth-session-business
+ * Create admin_session cookie from Supabase Auth session for business admin login
+ * Checks if user exists in users table for the specified business and creates session cookie
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { businessSlug } = body;
+
+    if (!businessSlug) {
+      return NextResponse.json(
+        { error: 'Business slug is required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await createClient();
+    
+    // Get current Supabase Auth session
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const adminSupabase = createAdminClient();
+    
+    // Get business by slug
+    const { data: business, error: businessError } = await adminSupabase
+      .from('businesses')
+      .select('id, slug, name')
+      .eq('slug', businessSlug)
+      .maybeSingle() as { data: { id: string; slug: string; name: string } | null; error: any };
+
+    if (businessError || !business) {
+      return NextResponse.json(
+        { error: 'Business not found' },
+        { status: 404 }
+      );
+    }
+
+    // Find user by email in users table for this business (owner or admin)
+    let dbUser: UserRow | null = null;
+    let userError: any = null;
+
+    // If user.email exists, try exact match first
+    if (user.email) {
+      const exactMatch = await adminSupabase
+        .from('users')
+        .select('*')
+        .eq('email', user.email)
+        .eq('business_id', business.id)
+        .in('role', ['admin', 'owner'])
+        .maybeSingle() as { data: UserRow | null; error: any };
+      
+      dbUser = exactMatch.data;
+      userError = exactMatch.error;
+    }
+
+    // If not found, try case-insensitive search
+    if (userError || !dbUser) {
+      const { data: allUsers } = await adminSupabase
+        .from('users')
+        .select('*')
+        .eq('business_id', business.id)
+        .in('role', ['admin', 'owner']) as { data: UserRow[] | null; error: any };
+
+      if (allUsers) {
+        const normalizedEmail = (user.email || '').toLowerCase().trim();
+        for (const u of allUsers) {
+          const dbEmail = (u.email || '').toLowerCase().trim();
+          if (dbEmail === normalizedEmail) {
+            dbUser = u;
+            userError = null;
+            break;
+          }
+        }
+      }
+    }
+
+    // If user not found, return 404
+    if (userError || !dbUser) {
+      return NextResponse.json(
+        { 
+          error: 'No admin account found with this email for this business. Please contact the business owner to add you as an admin.',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Create response with user and business info
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        phone: dbUser.phone,
+        role: dbUser.role || 'admin',
+      },
+      business: {
+        id: business.id,
+        slug: business.slug,
+        name: business.name,
+      },
+    });
+
+    // Set admin session cookie for middleware to check
+    const sessionData = JSON.stringify({
+      type: 'business_owner',
+      userId: dbUser.id,
+      businessId: (dbUser as any).business_id,
+      email: dbUser.email,
+      phone: dbUser.phone,
+      name: dbUser.name,
+      role: dbUser.role || 'admin',
+    });
+
+    response.cookies.set('admin_session', sessionData, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    return response;
+  } catch (error: any) {
+    console.error('Error creating OAuth session:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create session. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
+

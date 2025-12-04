@@ -19,6 +19,7 @@ import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ported/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ported/ui/dialog";
 import { supabase } from "@/lib/supabase/client";
+import { useIsMobile } from "@/components/ported/hooks/use-mobile";
 import en from "@/messages/en.json";
 import he from "@/messages/he.json";
 import ar from "@/messages/ar.json";
@@ -65,11 +66,11 @@ const Onboarding = () => {
   const [otpCountdown, setOtpCountdown] = useState(0);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<string>('basic');
-  const [planDetails, setPlanDetails] = useState<{name: string, price: number, symbol: string} | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string>('free');
+  const [planDetails, setPlanDetails] = useState<{name: string, price: number, symbol: string, metadata?: any} | null>(null);
   const [loadingPlanDetails, setLoadingPlanDetails] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
-  const [allPlans, setAllPlans] = useState<Array<{name: string, price: number, symbol: string, key: string}>>([]);
+  const [allPlans, setAllPlans] = useState<Array<{name: string, price: number, symbol: string, key: string, metadata?: any}>>([]);
   const [errors, setErrors] = useState<{
     name?: string;
     englishName?: string;
@@ -88,8 +89,15 @@ const Onboarding = () => {
   const router = useRouter();
   const { toast } = useToast();
   const { locale, t, dir, isRTL } = useLocale();
+  const isMobile = useIsMobile();
   const lastBusinessTypeRef = useRef<BusinessType | null>(null);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Total steps - now 12 instead of 6
+  const TOTAL_STEPS = 11;
+  
+  // Current service step (for steps 8-10)
+  const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
 
   // Helper function to get nested values from translations
   const getTranslation = (key: string): any => {
@@ -105,6 +113,97 @@ const Onboarding = () => {
     } catch {
       return null;
     }
+  };
+
+  // Get encouragement message based on progress
+  const getEncouragementMessage = (currentStep: number, totalSteps: number): string => {
+    const percentage = Math.round((currentStep / totalSteps) * 100);
+    const messages = {
+      en: {
+        early: "You're on the right track! 🚀",
+        middle: "Great! You're already halfway there ✨",
+        late: "Almost done! Your system is almost ready 🎉",
+        final: "That's it! One more moment and you're in the system 🎊"
+      },
+      he: {
+        early: "אתה בדרך הנכונה! 🚀",
+        middle: "מעולה! אתה כבר באמצע הדרך ✨",
+        late: "כמעט סיימת! עוד רגע המערכת שלך מוכנה 🎉",
+        final: "זהו! עוד שנייה ואתה בתוך המערכת 🎊"
+      },
+      ar: {
+        early: "أنت على الطريق الصحيح! 🚀",
+        middle: "رائع! أنت بالفعل في منتصف الطريق ✨",
+        late: "كادت تنتهي! لحظة أخرى ونظامك جاهز 🎉",
+        final: "هذا كل شيء! لحظة أخرى وستكون في النظام 🎊"
+      },
+      ru: {
+        early: "Вы на правильном пути! 🚀",
+        middle: "Отлично! Вы уже на полпути ✨",
+        late: "Почти готово! Еще момент и ваша система готова 🎉",
+        final: "Вот и все! Еще секунда и вы в системе 🎊"
+      }
+    };
+    
+    const langMessages = messages[locale as keyof typeof messages] || messages.en;
+    
+    if (percentage < 30) return langMessages.early;
+    if (percentage < 60) return langMessages.middle;
+    if (percentage < 90) return langMessages.late;
+    return langMessages.final;
+  };
+
+  // Get step-specific feedback message
+  const getStepFeedback = (currentStep: number): string => {
+    const feedbacks: Record<number, Record<string, string>> = {
+      2: {
+        en: "Great! The business name is almost ready.",
+        he: "מצוין! שם העסק עוד רגע מוכן.",
+        ar: "رائع! اسم العمل جاهز تقريبًا.",
+        ru: "Отлично! Название бизнеса почти готово."
+      },
+      3: {
+        en: "Nice! A few more details and you'll have an active system.",
+        he: "יפה! עוד כמה פרטים ויש לך מערכת פעילה.",
+        ar: "جميل! بضع تفاصيل أخرى وستحصل على نظام نشط.",
+        ru: "Отлично! Еще несколько деталей и у вас будет активная система."
+      },
+      4: {
+        en: "Perfect! This helps us build you an accurate display.",
+        he: "מעולה! זה עוזר לנו לבנות לך תצוגה מדויקת.",
+        ar: "مثالي! هذا يساعدنا في بناء عرض دقيق لك.",
+        ru: "Отлично! Это помогает нам создать для вас точный дисплей."
+      },
+      5: {
+        en: "Excellent! Your system is almost ready.",
+        he: "נהדר! עוד רגע המערכת שלך מוכנה.",
+        ar: "ممتاز! نظامك جاهز تقريبًا.",
+        ru: "Отлично! Ваша система почти готова."
+      },
+      8: {
+        en: "Nice! 2 more services and you'll have an active menu.",
+        he: "יפה! עוד 2 שירותים ויש לך תפריט פעיל.",
+        ar: "جميل! خدمتان أخريان وستحصل على قائمة نشطة.",
+        ru: "Отлично! Еще 2 услуги и у вас будет активное меню."
+      },
+      9: {
+        en: "Great! One more service and you'll have a full menu.",
+        he: "מצוין! עוד שירות אחד ויש לך תפריט מלא.",
+        ar: "رائع! خدمة أخرى وستحصل على قائمة كاملة.",
+        ru: "Отлично! Еще одна услуга и у вас будет полное меню."
+      },
+      10: {
+        en: "Perfect! Your menu is ready.",
+        he: "מושלם! התפריט שלך מוכן.",
+        ar: "مثالي! قائمتك جاهزة.",
+        ru: "Отлично! Ваше меню готово."
+      }
+    };
+    
+    const stepFeedback = feedbacks[currentStep];
+    if (!stepFeedback) return "";
+    
+    return stepFeedback[locale] || stepFeedback.en || "";
   };
 
   // Format phone number with dashes (050-000-0000)
@@ -362,145 +461,159 @@ const Onboarding = () => {
     }
   }, [showOtpModal]);
 
-  // Handle Google OAuth with popup
+  // Handle Google OAuth - use redirect on mobile, popup on desktop
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
       
-      // Get the OAuth URL
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&popup=true`,
-          skipBrowserRedirect: true,
-        },
-      });
+      if (isMobile) {
+        // Mobile: Use redirect flow (same page)
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&type=onboarding`,
+          },
+        });
 
-      if (error) throw error;
-      if (!data?.url) throw new Error('Failed to get OAuth URL');
+        if (error) throw error;
+        // Redirect will happen automatically - no need to handle response
+        return;
+      } else {
+        // Desktop: Use popup flow
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&popup=true`,
+            skipBrowserRedirect: true,
+          },
+        });
 
-      // Open popup window
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        data.url,
-        'google-auth',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
+        if (error) throw error;
+        if (!data?.url) throw new Error('Failed to get OAuth URL');
 
-      if (!popup) {
-        throw new Error('Popup blocked. Please allow popups for this site.');
-      }
+        // Open popup window
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.url,
+          'google-auth',
+          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+        );
 
-      // Listen for message from popup
-      let checkClosedInterval: NodeJS.Timeout | null = null;
-      const messageListener = async (event: MessageEvent) => {
-        // Verify origin for security
-        if (event.origin !== window.location.origin) return;
+        if (!popup) {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
 
-        if (event.data.type === 'OAUTH_SUCCESS') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setLoading(false);
+        // Listen for message from popup
+        let checkClosedInterval: NodeJS.Timeout | null = null;
+        const messageListener = async (event: MessageEvent) => {
+          // Verify origin for security
+          if (event.origin !== window.location.origin) return;
 
-          // Wait a bit for cookies to sync between popup and parent window
-          await new Promise(resolve => setTimeout(resolve, 500));
+          if (event.data.type === 'OAUTH_SUCCESS') {
+            window.removeEventListener('message', messageListener);
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            popup.close();
+            setLoading(false);
 
-          // Get Supabase Auth session to extract user info
-          try {
-            // Retry getting session with exponential backoff
-            let session = null;
-            let sessionError = null;
-            const maxRetries = 5;
-            
-            for (let i = 0; i < maxRetries; i++) {
-              const { data, error } = await supabase.auth.getSession();
-              session = data?.session;
-              sessionError = error;
+            // Wait a bit for cookies to sync between popup and parent window
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Get Supabase Auth session to extract user info
+            try {
+              // Retry getting session with exponential backoff
+              let session = null;
+              let sessionError = null;
+              const maxRetries = 5;
               
-              if (session?.user) {
-                break;
-              }
-              
-              // If not found, try getUser() which might force a refresh
-              if (i === 2) {
-                const { data: userData } = await supabase.auth.getUser();
-                if (userData?.user) {
-                  // If getUser works but getSession doesn't, refresh the session
-                  const { data: refreshedSession } = await supabase.auth.getSession();
-                  session = refreshedSession?.session;
-                  if (session?.user) break;
+              for (let i = 0; i < maxRetries; i++) {
+                const { data, error } = await supabase.auth.getSession();
+                session = data?.session;
+                sessionError = error;
+                
+                if (session?.user) {
+                  break;
+                }
+                
+                // If not found, try getUser() which might force a refresh
+                if (i === 2) {
+                  const { data: userData } = await supabase.auth.getUser();
+                  if (userData?.user) {
+                    // If getUser works but getSession doesn't, refresh the session
+                    const { data: refreshedSession } = await supabase.auth.getSession();
+                    session = refreshedSession?.session;
+                    if (session?.user) break;
+                  }
+                }
+                
+                // Wait before retrying (exponential backoff)
+                if (i < maxRetries - 1) {
+                  await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
                 }
               }
               
-              // Wait before retrying (exponential backoff)
-              if (i < maxRetries - 1) {
-                await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
+              if (sessionError || !session?.user) {
+                // If we still don't have a session, reload the page to ensure cookies are read
+                toast.info('Completing login...');
+                window.location.reload();
+                return;
               }
-            }
-            
-            if (sessionError || !session?.user) {
-              // If we still don't have a session, reload the page to ensure cookies are read
-              toast.info('Completing login...');
-              window.location.reload();
-              return;
-            }
 
-            // Set authenticated user data from Supabase Auth session
-            const userEmail = session.user.email || '';
-            const userPhone = session.user.phone || '';
-            const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-            
-            setAuthenticatedUser({
-              email: userEmail,
-              phone: userPhone,
-              name: userName,
-            });
-            
-            if (userPhone) {
-              const displayPhone = formatPhoneForDisplay(userPhone);
-              setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+              // Set authenticated user data from Supabase Auth session
+              const userEmail = session.user.email || '';
+              const userPhone = session.user.phone || '';
+              const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+              
+              setAuthenticatedUser({
+                email: userEmail,
+                phone: userPhone,
+                name: userName,
+              });
+              
+              if (userPhone) {
+                const displayPhone = formatPhoneForDisplay(userPhone);
+                setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+              }
+              if (userEmail) {
+                setBusinessInfo(prev => ({ ...prev, email: userEmail }));
+              }
+              if (userName) {
+                setOwnerName(userName);
+              }
+              setOtpVerified(true);
+              toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
+              
+              // Continue to step 2
+              setTimeout(() => {
+                setStep(2);
+              }, 500);
+            } catch (error: any) {
+              setLoading(false);
+              toast.error(error.message || 'Failed to get user information');
             }
-            if (userEmail) {
-              setBusinessInfo(prev => ({ ...prev, email: userEmail }));
-            }
-            if (userName) {
-              setOwnerName(userName);
-            }
-            setOtpVerified(true);
-            toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
-            
-            // Continue to step 2
-            setTimeout(() => {
-              setStep(2);
-            }, 500);
-          } catch (error: any) {
+          } else if (event.data.type === 'OAUTH_ERROR') {
+            window.removeEventListener('message', messageListener);
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            popup.close();
             setLoading(false);
-            toast.error(error.message || 'Failed to get user information');
+            toast.error(event.data.error || 'Authentication failed');
           }
-        } else if (event.data.type === 'OAUTH_ERROR') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setLoading(false);
-          toast.error(event.data.error || 'Authentication failed');
-        }
-      };
+        };
 
-      window.addEventListener('message', messageListener);
+        window.addEventListener('message', messageListener);
 
-      // Check if popup is closed manually
-      checkClosedInterval = setInterval(() => {
-        if (popup.closed) {
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          window.removeEventListener('message', messageListener);
-          setLoading(false);
-        }
-      }, 1000);
+        // Check if popup is closed manually
+        checkClosedInterval = setInterval(() => {
+          if (popup.closed) {
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            window.removeEventListener('message', messageListener);
+            setLoading(false);
+          }
+        }, 1000);
+      }
 
     } catch (error: any) {
       toast.error(error.message || 'Failed to initiate Google login');
@@ -527,12 +640,19 @@ const Onboarding = () => {
   // Read plan from URL params on mount
   useEffect(() => {
     const planParam = searchParams.get('plan');
-    const validPlans = ['basic', 'professional', 'business'];
+    const validPlans = ['free', 'pro', 'custom', 'basic', 'professional', 'business'];
     if (planParam && validPlans.includes(planParam.toLowerCase())) {
-      setSelectedPlan(planParam.toLowerCase());
+      // Map old plan names to new ones
+      const planMapping: Record<string, string> = {
+        'basic': 'free',
+        'professional': 'pro',
+        'business': 'custom'
+      };
+      const mappedPlan = planMapping[planParam.toLowerCase()] || planParam.toLowerCase();
+      setSelectedPlan(mappedPlan);
     } else {
-      // Default to 'basic' if no plan or invalid plan provided
-      setSelectedPlan('basic');
+      // Default to 'free' if no plan or invalid plan provided
+      setSelectedPlan('free');
     }
   }, [searchParams]);
 
@@ -548,17 +668,21 @@ const Onboarding = () => {
             // Set current plan details
             const currentPlanData = data.pricing[selectedPlan];
             if (currentPlanData) {
+              // Use translated name from metadata if available, otherwise use plan key
+              const planName = currentPlanData.metadata?.name || 
+                             selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1);
               setPlanDetails({
-                name: selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1),
+                name: planName,
                 price: currentPlanData.price,
                 symbol: currentPlanData.symbol,
+                metadata: currentPlanData.metadata,
               });
             }
             // Set all plans for modal
             const plansArray = [
-              { key: 'basic', ...data.pricing.basic },
-              { key: 'professional', ...data.pricing.professional },
-              { key: 'business', ...data.pricing.business },
+              { key: 'free', ...data.pricing.free, metadata: data.pricing.free.metadata },
+              { key: 'pro', ...data.pricing.pro, metadata: data.pricing.pro.metadata },
+              { key: 'custom', ...data.pricing.custom, metadata: data.pricing.custom.metadata },
             ];
             setAllPlans(plansArray);
           }
@@ -594,16 +718,106 @@ const Onboarding = () => {
           return;
         }
 
-        // Check for OAuth callback
+        // Check for OAuth callback (redirect flow for mobile)
+        const code = searchParams.get('code');
+        const type = searchParams.get('type');
+        if (code && type === 'onboarding') {
+          // Wait a bit for session to be set
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Get Supabase Auth session to extract user info
+          try {
+            let session = null;
+            const maxRetries = 5;
+            
+            for (let i = 0; i < maxRetries; i++) {
+              const { data, error } = await supabase.auth.getSession();
+              session = data?.session;
+              
+              if (session?.user) {
+                break;
+              }
+              
+              if (i === 2) {
+                const { data: userData } = await supabase.auth.getUser();
+                if (userData?.user) {
+                  const { data: refreshedSession } = await supabase.auth.getSession();
+                  session = refreshedSession?.session;
+                  if (session?.user) break;
+                }
+              }
+              
+              if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
+              }
+            }
+            
+            if (session?.user) {
+              const userEmail = session.user.email || '';
+              const userPhone = session.user.phone || '';
+              const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+              
+              setAuthenticatedUser({
+                email: userEmail,
+                phone: userPhone,
+                name: userName,
+              });
+              
+              if (userPhone) {
+                const displayPhone = formatPhoneForDisplay(userPhone);
+                setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+              }
+              if (userEmail) {
+                setBusinessInfo(prev => ({ ...prev, email: userEmail }));
+              }
+              if (userName) {
+                setOwnerName(userName);
+              }
+              setOtpVerified(true);
+              toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
+              
+              // Clean URL
+              window.history.replaceState({}, '', '/onboarding');
+              
+              // Continue to step 2
+              setTimeout(() => {
+                setStep(2);
+              }, 500);
+            }
+          } catch (error: any) {
+            console.error('Error handling OAuth callback:', error);
+            toast.error(error.message || 'Failed to get user information');
+          }
+        }
+
+        // Check for OAuth error
         const errorParam = searchParams.get('error');
         if (errorParam === 'oauth_error') {
           toast.error(t('onboarding.auth.oauthError') || 'Authentication failed. Please try again.');
         }
 
         // Check Supabase session
+        // First check if user is a super-admin - if so, ignore their session
+        let isSuperAdminUser = false;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const verifyResponse = await fetch('/api/super-admin/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id }),
+            });
+            const verifyData = await verifyResponse.json();
+            isSuperAdminUser = verifyData.isSuperAdmin === true;
+          }
+        } catch (error) {
+          // If check fails, assume not super-admin
+        }
+
+        // Only use session if user is not a super-admin
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (session?.user && !otpVerified) {
-          // User authenticated via OAuth
+        if (session?.user && !otpVerified && !isSuperAdminUser) {
+          // User authenticated via OAuth (and not a super-admin)
           const userEmail = session.user.email || '';
           const userPhone = session.user.phone || '';
           const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
@@ -634,37 +848,39 @@ const Onboarding = () => {
           }
         }
 
-        // Also check existing user profile API
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user) {
-            setIsLoggedIn(true);
-            setLoggedInUser({
-              email: data.user.email,
-              phone: data.user.phone || '',
-              name: data.user.name,
-            });
-            if (!authenticatedUser) {
-              const userPhone = data.user.phone || '';
-              const displayPhone = userPhone ? formatPhoneForDisplay(userPhone) : '';
-              setAuthenticatedUser({
+        // Also check existing user profile API (but skip if super-admin)
+        if (!isSuperAdminUser) {
+          const response = await fetch('/api/user/profile');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              setIsLoggedIn(true);
+              setLoggedInUser({
                 email: data.user.email,
-                phone: userPhone,
+                phone: data.user.phone || '',
                 name: data.user.name,
               });
-              setBusinessInfo(prev => ({
-                ...prev,
-                email: data.user.email,
-                phone: displayPhone,
-              }));
-              setOwnerName(data.user.name);
-              setOtpVerified(true);
-              // Automatically move to step 2 after authentication
-              if (step === 1) {
-                setTimeout(() => {
-                  setStep(2);
-                }, 500);
+              if (!authenticatedUser) {
+                const userPhone = data.user.phone || '';
+                const displayPhone = userPhone ? formatPhoneForDisplay(userPhone) : '';
+                setAuthenticatedUser({
+                  email: data.user.email,
+                  phone: userPhone,
+                  name: data.user.name,
+                });
+                setBusinessInfo(prev => ({
+                  ...prev,
+                  email: data.user.email,
+                  phone: displayPhone,
+                }));
+                setOwnerName(data.user.name);
+                setOtpVerified(true);
+                // Automatically move to step 2 after authentication
+                if (step === 1) {
+                  setTimeout(() => {
+                    setStep(2);
+                  }, 500);
+                }
               }
             }
           }
@@ -681,29 +897,40 @@ const Onboarding = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
-  // Ensure phone is always formatted when on step 2
+  // Ensure phone and email are filled when on step 4 (contact info step)
   useEffect(() => {
-    if (step === 2 && businessInfo.phone && !authenticatedUser?.phone) {
+    if (step === 4) {
+      // If authenticated user has phone but businessInfo doesn't, fill it
+      if (authenticatedUser?.phone && !businessInfo.phone) {
+        const displayPhone = formatPhoneForDisplay(authenticatedUser.phone);
+        setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+      }
+      // If authenticated user has email but businessInfo doesn't, fill it
+      if (authenticatedUser?.email && !businessInfo.email) {
+        setBusinessInfo(prev => ({ ...prev, email: authenticatedUser.email! }));
+      }
       // Format phone if it's not already formatted (no dashes or has country code)
-      const digits = businessInfo.phone.replace(/\D/g, '');
-      if (digits.length > 10 || !businessInfo.phone.includes('-')) {
-        const formatted = formatPhoneForDisplay(businessInfo.phone);
-        if (formatted !== businessInfo.phone) {
-          setBusinessInfo(prev => ({ ...prev, phone: formatted }));
-        }
-      } else {
-        // Ensure it's formatted with dashes
-        const formatted = formatPhoneNumber(businessInfo.phone);
-        if (formatted !== businessInfo.phone) {
-          setBusinessInfo(prev => ({ ...prev, phone: formatted }));
+      if (businessInfo.phone && !authenticatedUser?.phone) {
+        const digits = businessInfo.phone.replace(/\D/g, '');
+        if (digits.length > 10 || !businessInfo.phone.includes('-')) {
+          const formatted = formatPhoneForDisplay(businessInfo.phone);
+          if (formatted !== businessInfo.phone) {
+            setBusinessInfo(prev => ({ ...prev, phone: formatted }));
+          }
+        } else {
+          // Ensure it's formatted with dashes
+          const formatted = formatPhoneNumber(businessInfo.phone);
+          if (formatted !== businessInfo.phone) {
+            setBusinessInfo(prev => ({ ...prev, phone: formatted }));
+          }
         }
       }
     }
-  }, [step, businessInfo.phone, authenticatedUser?.phone]);
+  }, [step, businessInfo.phone, businessInfo.email, authenticatedUser?.phone, authenticatedUser?.email]);
 
-  // Scroll to continue button when business type is selected on step 3
+  // Scroll to continue button when business type is selected on step 6
   useEffect(() => {
-    if (step === 3 && businessType && continueButtonRef.current) {
+    if (step === 6 && businessType && continueButtonRef.current) {
       // Small delay to ensure the button is rendered
       setTimeout(() => {
         continueButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -711,9 +938,9 @@ const Onboarding = () => {
     }
   }, [businessType, step]);
 
-  // Load default services when business type is selected and moving to step 4
+  // Load default services when business type is selected and moving to step 7
   useEffect(() => {
-    if (businessType && step === 4) {
+    if (businessType && step === 7 && services.length === 0) {
       // Always reload services when business type changes or when locale changes
       // Get translations for default services
       const servicesTranslations = getTranslation(`onboarding.services.defaultServices.${businessType}`);
@@ -951,50 +1178,92 @@ const Onboarding = () => {
         return;
       }
     }
-    // Step 2: Business info - validate required fields
+    // Step 2: Business name - validate
     if (step === 2) {
-      setTouched({ name: true, phone: true });
-      
-      const newErrors: typeof errors = {};
+      setTouched({ name: true });
       const nameError = getFieldError('name', businessInfo.name);
-      const phoneError = getFieldError('phone', businessInfo.phone);
-      
-      if (nameError) newErrors.name = nameError;
-      if (phoneError) newErrors.phone = phoneError;
-      
-      setErrors(newErrors);
-      
-      if (Object.keys(newErrors).length > 0) {
-        toast.error(t('onboarding.errors.fillRequiredFields'));
+      if (nameError) {
+        setErrors({ name: nameError });
+        toast.error(nameError);
         return;
       }
+      setErrors({});
     }
-    // Step 3: Business type - check if selected
-    if (step === 3 && !businessType) {
+    // Step 3: Owner name - validate
+    if (step === 3) {
+      setTouched({ ownerName: true });
+      const ownerError = getFieldError('ownerName', ownerName);
+      if (ownerError) {
+        setErrors({ ownerName: ownerError });
+        toast.error(ownerError);
+        return;
+      }
+      setErrors({});
+    }
+    // Step 4: Contact Info (Phone + Email) - validate
+    if (step === 4) {
+      setTouched({ phone: true });
+      // Check phone from businessInfo or authenticatedUser
+      const phoneToValidate = businessInfo.phone || (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '');
+      const phoneError = getFieldError('phone', phoneToValidate);
+      if (phoneError) {
+        setErrors({ phone: phoneError });
+        toast.error(phoneError);
+        return;
+      }
+      // Email is optional but if provided should be valid
+      const emailToValidate = businessInfo.email || authenticatedUser?.email || '';
+      if (emailToValidate) {
+        setTouched({ email: true });
+        const emailError = getFieldError('email', emailToValidate);
+        if (emailError) {
+          setErrors({ email: emailError });
+          toast.error(emailError);
+          return;
+        }
+      }
+      setErrors({});
+    }
+    // Step 5: Address - optional, no validation needed
+    if (step === 5) {
+      setErrors({});
+    }
+    // Step 6: Business type - check if selected
+    if (step === 6 && !businessType) {
       toast.error(t('onboarding.errors.selectBusinessType'));
       return;
     }
-    // Step 4: Services - validate services
-    if (step === 4) {
-      if (services.length === 0) {
-        setErrors({ services: t('onboarding.errors.atLeastOneService') });
-        toast.error(t('onboarding.errors.atLeastOneService'));
-        return;
+    // Step 7-9: Services - validate current service
+    if (step >= 7 && step <= 9) {
+      const serviceIndex = step - 7;
+      // Ensure we have enough services
+      while (services.length <= serviceIndex) {
+        setServices([...services, {
+          id: `new-${Date.now()}-${services.length}`,
+          name: '',
+          description: '',
+          category: '',
+          duration: 30,
+          price: 0,
+        }]);
       }
-      const invalidServices = services.filter(
-        (s) => !s.name.trim() || s.duration <= 0 || s.price < 0
-      );
-      if (invalidServices.length > 0) {
-        setErrors({ services: t('onboarding.errors.invalidService') });
-        toast.error(t('onboarding.errors.invalidService'));
-        return;
+      
+      const currentService = services[serviceIndex];
+      if (currentService && currentService.name.trim()) {
+        // Validate service if it has a name
+        if (currentService.duration <= 0 || currentService.price < 0) {
+          setErrors({ services: t('onboarding.errors.invalidService') });
+          toast.error(t('onboarding.errors.invalidService'));
+          return;
+        }
       }
-    }
-    // Step 5: Plan confirmation - move to final step
-    if (step === 5) {
       setErrors({});
-      setStep(6);
-    } else if (step < 6) {
+    }
+    // Step 10: Plan confirmation - move to final step
+    if (step === 10) {
+      setErrors({});
+      setStep(11);
+    } else if (step < 11) {
       // Clear errors when moving to next step
       setErrors({});
       setStep(step + 1);
@@ -1034,7 +1303,7 @@ const Onboarding = () => {
             services: services.map(({ id, ...service }) => service),
             ownerName,
             useAnotherAccount,
-            plan: selectedPlan || 'basic',
+            plan: selectedPlan || 'free',
             adminUser: {
               email: businessInfo.email || authenticatedUser?.email || '',
               name: ownerName || authenticatedUser?.name || '',
@@ -1173,26 +1442,26 @@ const Onboarding = () => {
           homepageHref="/"
         />
         
-        {/* Plan Banner */}
-        {planDetails && step < 5 && step > 1 && (
-          <Card className="mb-6 p-4 border-primary/20">
+        {/* Plan Banner - Softer */}
+        {planDetails && step < 10 && step > 1 && (
+          <Card className="mb-6 p-4 border-green-200 bg-green-50">
             <div className="flex items-center justify-between" dir={dir}>
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-1">
+                <p className="text-sm text-gray-600 mb-1">
                   {t('onboarding.selectedPlan') || 'Selected Plan'}
                 </p>
                 <div className="flex flex-col gap-1">
-                  <span className="text-lg font-semibold">
+                  <span className="text-lg font-semibold text-gray-800">
                     {planDetails.name}
                   </span>
                   {planDetails.price > 0 && (
-                    <span className="text-muted-foreground">
+                    <span className="text-gray-600">
                       {planDetails.symbol}{planDetails.price}
                       {t('home.pricing.month') || '/month'}
                     </span>
                   )}
-                  {selectedPlan === 'basic' && (
-                    <span className="text-xs text-primary font-semibold">
+                  {selectedPlan === 'free' && (
+                    <span className="text-xs text-green-600 font-semibold">
                       {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
                     </span>
                   )}
@@ -1209,29 +1478,49 @@ const Onboarding = () => {
           </Card>
         )}
         
-        {/* Progress Bar */}
-        <div className="mb-8">
+        {/* Enhanced Progress Bar - Soft Green/Turquoise */}
+        <div className="mb-6">
           <div>
             <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">{t('onboarding.stepOf').replace('{step}', step.toString()).replace('{total}', '6')}</span>
-              <span className="text-sm text-muted-foreground">{Math.round((step / 6) * 100)}% {t('onboarding.complete')}</span>
+              <span className="text-sm font-medium text-gray-700">
+                {locale === 'he' ? `שלב ${step} מתוך ${TOTAL_STEPS}` : 
+                 locale === 'ar' ? `الخطوة ${step} من ${TOTAL_STEPS}` :
+                 locale === 'ru' ? `Шаг ${step} из ${TOTAL_STEPS}` :
+                 `Step ${step} of ${TOTAL_STEPS}`}
+              </span>
+              <span className="text-sm text-gray-500">
+                {Math.round((step / TOTAL_STEPS) * 100)}% {t('onboarding.complete') || (locale === 'he' ? 'הושלם' : locale === 'ar' ? 'مكتمل' : locale === 'ru' ? 'завершено' : 'complete')}
+              </span>
             </div>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${(step / 6) * 100}%` }}
+                className="h-full transition-all duration-500 ease-out"
+                style={{ 
+                  width: `${(step / TOTAL_STEPS) * 100}%`,
+                  background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)'
+                }}
               />
             </div>
+            {/* Encouragement message - more friendly */}
+            <p className="text-xs text-gray-600 mt-2 text-center">
+              {getEncouragementMessage(step, TOTAL_STEPS)}
+            </p>
           </div>
         </div>
 
-        {/* Step Content */}
-        <Card className="p-8 shadow-card">
+        {/* Step Content - Softer, more modern card */}
+        <Card className="p-6 sm:p-8 shadow-lg border-gray-200 bg-white rounded-2xl">
           {step === 1 && (
             <div className="animate-fade-in">
-              {/* Welcome Message */}
-              <div className="text-center mb-8">
-                <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}</h2>
+              {/* Welcome Message - Softer */}
+              <div className="text-center mb-6">
+                <h2 className="text-lg font-medium mb-2 text-gray-700">{t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}</h2>
+                <p className="text-sm text-gray-600">
+                  {locale === 'he' ? 'זה לוקח פחות מדקה :)' :
+                   locale === 'ar' ? 'يستغرق أقل من دقيقة :)' :
+                   locale === 'ru' ? 'Это займет меньше минуты :)' :
+                   "This takes less than a minute :)"}
+                </p>
               </div>
               
               {!otpVerified && !authenticatedUser ? (
@@ -1258,7 +1547,7 @@ const Onboarding = () => {
                         }}
                         maxLength={12}
                         disabled={otpSent}
-                        className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base`}
+                        className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
                         dir={dir}
                       />
                     </div>
@@ -1267,7 +1556,7 @@ const Onboarding = () => {
                       onClick={handleSendOtp}
                       loading={sendingOtp}
                       disabled={!phoneNumber.trim() || phoneNumber.replace(/\D/g, '').length < 10}
-                      className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                      className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
                     >
                       {t('onboarding.auth.login') || t('onboarding.auth.sendOtp') || 'Login'}
                     </LoadingButton>
@@ -1368,8 +1657,8 @@ const Onboarding = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-600" />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">
                     {t('onboarding.auth.authenticated') || 'Authenticated!'}
@@ -1382,7 +1671,11 @@ const Onboarding = () => {
                      authenticatedUser?.email && t('onboarding.auth.emailVerified')?.replace('{email}', authenticatedUser.email) ||
                      t('onboarding.auth.readyToContinue') || 'You\'re ready to continue'}
                   </p>
-                  <LoadingButton onClick={handleNext} loading={loading} className="w-full max-w-md">
+                  <LoadingButton 
+                    onClick={handleNext} 
+                    loading={loading} 
+                    className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white font-medium"
+                  >
                     {t('onboarding.buttons.continue') || 'Continue'}
                   </LoadingButton>
                 </div>
@@ -1391,30 +1684,125 @@ const Onboarding = () => {
           )}
 
           {step === 2 && (
-            <div className="animate-fade-in">
-              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.businessInfo.title')}</h2>
-              <p className="text-muted-foreground mb-8">{t('onboarding.businessInfo.subtitle')}</p>
-              <div className="space-y-6">
+            <div className="animate-fade-in max-w-lg mx-auto text-center">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">
+                {locale === 'he' ? 'מה שם העסק שלך?' :
+                 locale === 'ar' ? 'ما اسم عملك؟' :
+                 locale === 'ru' ? 'Какое название вашего бизнеса?' :
+                 "What's your business name?"}
+              </h2>
+              
+              {/* Subtitle - more friendly */}
+              <p className="text-sm text-gray-600 mb-4">
+                {locale === 'he' ? 'כדי שנוכל להציג אותו ללקוחות במסך קביעת תור' :
+                 locale === 'ar' ? 'حتى نتمكن من عرضه للعملاء في شاشة الحجز' :
+                 locale === 'ru' ? 'Чтобы мы могли показать его клиентам на экране бронирования' :
+                 "So we can show it to customers on the booking page"}
+              </p>
+              
+              {/* Reassuring message - softer */}
+              <p className="text-xs text-gray-500 mb-5">
+                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                 "💡 Don't worry – everything can be changed later"}
+              </p>
+              
+              <div className="space-y-4 max-w-md mx-auto">
                 <div>
-                  <Label htmlFor="name">{t('onboarding.businessInfo.name')}</Label>
+                  <Label htmlFor="name" className="text-center block">
+                    {locale === 'he' ? 'שם העסק' :
+                     locale === 'ar' ? 'اسم العمل' :
+                     locale === 'ru' ? 'Название бизнеса' :
+                     'Business Name'}
+                  </Label>
                   <Input
                     id="name"
-                    placeholder={t('onboarding.businessInfo.namePlaceholder')}
+                    placeholder={locale === 'he' ? 'לדוגמה: המספרה של דימה' : (t('onboarding.businessInfo.namePlaceholder') || 'e.g., Dima\'s Barbershop')}
                     value={businessInfo.name}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
                     onBlur={() => handleBlur('name')}
                     dir={dir}
-                    className={`mt-2 ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.name ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
+                    autoFocus
                   />
+                  {/* Explanation under field - removed as it's in subtitle */}
                   {errors.name && (
                     <p className="mt-1 text-sm text-red-500">{errors.name}</p>
                   )}
                 </div>
+                
+                {/* Preview - softer design */}
+                {businessInfo.name && !errors.name && (
+                  <div className="mt-5 p-4 bg-green-50 rounded-xl border border-green-200">
+                    <p className="text-xs text-gray-600 mb-2">
+                      {locale === 'he' ? '✨ כך זה ייראה ללקוחות:' :
+                       locale === 'ar' ? '✨ هكذا سيظهر للعملاء:' :
+                       locale === 'ru' ? '✨ Так это будет выглядеть для клиентов:' :
+                       '✨ This is how it will look to customers:'}
+                    </p>
+                    <p className="text-lg font-semibold text-gray-800">
+                      KalBook - {businessInfo.name}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Positive feedback - softer */}
+                {businessInfo.name && !errors.name && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 mt-3">
+                    <Check className="w-4 h-4" />
+                    <span className="font-medium">{getStepFeedback(2)}</span>
+                  </div>
+                )}
+                
+                {/* Error message - softer */}
+                {errors.name && (
+                  <p className="mt-2 text-sm text-red-500">
+                    {locale === 'he' ? 'צריך רק למלא את שם העסק כדי להמשיך :)' :
+                     locale === 'ar' ? 'تحتاج فقط لملء اسم العمل للمتابعة :)' :
+                     locale === 'ru' ? 'Нужно просто заполнить название бизнеса, чтобы продолжить :)' :
+                     'Just need to fill in the business name to continue :)'}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Step 3: Owner Name */}
+          {step === 3 && (
+            <div className="animate-fade-in max-w-lg mx-auto text-center">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">
+                {locale === 'he' ? 'מה השם שלך?' :
+                 locale === 'ar' ? 'מה اسمك؟' :
+                 locale === 'ru' ? 'Как вас зовут?' :
+                 "What's your name?"}
+              </h2>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                {locale === 'he' ? 'כך נציג אותך במערכת' :
+                 locale === 'ar' ? 'هكذا سنعرضك في النظام' :
+                 locale === 'ru' ? 'Так мы покажем вас в системе' :
+                 "This is how we'll show you in the system"}
+              </p>
+              
+              <p className="text-xs text-gray-500 mb-5">
+                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                 "💡 Don't worry – everything can be changed later"}
+              </p>
+              
+              <div className="space-y-4 max-w-md mx-auto">
                 <div>
-                  <Label htmlFor="ownerName">{t('onboarding.businessInfo.ownerName') || 'Business Owner Name'}</Label>
+                  <Label htmlFor="ownerName" className="text-center block">
+                    {locale === 'he' ? 'שם הבעלים' :
+                     locale === 'ar' ? 'اسم المالك' :
+                     locale === 'ru' ? 'Имя владельца' :
+                     'Owner Name'}
+                  </Label>
                   <Input
                     id="ownerName"
-                    placeholder={t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter owner name'}
+                    placeholder={locale === 'he' ? 'מי בעל הבית!?' : (t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter your name')}
                     value={ownerName}
                     onChange={(e) => {
                       setOwnerName(e.target.value);
@@ -1424,57 +1812,63 @@ const Onboarding = () => {
                     }}
                     onBlur={() => handleBlur('ownerName')}
                     dir={dir}
-                    className={`mt-2 ${errors.ownerName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.ownerName ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
+                    autoFocus
                   />
                   {errors.ownerName && (
                     <p className="mt-1 text-sm text-red-500">{errors.ownerName}</p>
                   )}
                 </div>
+                
+                {ownerName && !errors.ownerName && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <Check className="w-4 h-4" />
+                    <span>{getStepFeedback(3)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Step 4: Contact Info (Phone + Email) */}
+          {step === 4 && (
+            <div className="animate-fade-in max-w-lg mx-auto text-center">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">
+                {locale === 'he' ? 'איך ליצור איתך קשר?' :
+                 locale === 'ar' ? 'كيف يمكن التواصل معك؟' :
+                 locale === 'ru' ? 'Как с вами связаться?' :
+                 "How can we contact you?"}
+              </h2>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                {locale === 'he' ? 'כך לקוחות יוכלו ליצור איתך קשר ולקבל עדכונים' :
+                 locale === 'ar' ? 'هكذا يمكن للعملاء التواصل معك والحصول على التحديثات' :
+                 locale === 'ru' ? 'Так клиенты смогут связаться с вами и получать обновления' :
+                 "This is how customers can contact you and receive updates"}
+              </p>
+              
+              <p className="text-xs text-gray-500 mb-5">
+                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                 "💡 Don't worry – everything can be changed later"}
+              </p>
+              
+              <div className="space-y-4 max-w-md mx-auto">
+                {/* Phone Field */}
                 <div>
-                  <Label htmlFor="address">{t('onboarding.businessInfo.address')}</Label>
-                  <Input
-                    id="address"
-                    placeholder={t('onboarding.businessInfo.addressPlaceholder')}
-                    value={businessInfo.address}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
-                    dir={dir}
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">{t('onboarding.businessInfo.email')}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder={t('onboarding.businessInfo.emailPlaceholder') || 'Enter email address'}
-                    value={businessInfo.email}
-                    onChange={(e) => {
-                      // Only allow changes if not authenticated via OAuth
-                      if (!authenticatedUser?.email) {
-                        handleFieldChange('email', e.target.value);
-                      }
-                    }}
-                    onBlur={() => handleBlur('email')}
-                    disabled={!!authenticatedUser?.email}
-                    dir="ltr"
-                    className={`mt-2 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''} ${authenticatedUser?.email ? 'bg-muted cursor-not-allowed' : ''}`}
-                  />
-                  {authenticatedUser?.email && (
-                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
-                  )}
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="phone">{t('onboarding.businessInfo.phone')}</Label>
+                  <Label htmlFor="phone" className="text-center block">
+                    {locale === 'he' ? 'מספר טלפון' :
+                     locale === 'ar' ? 'رقم الهاتف' :
+                     locale === 'ru' ? 'Номер телефона' :
+                     'Phone Number'}
+                  </Label>
                   <Input
                     id="phone"
                     type="tel"
                     placeholder={t('onboarding.businessInfo.phonePlaceholder') || '050-000-0000'}
-                    value={businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : ''}
+                    value={businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '')}
                     onChange={(e) => {
-                      // Format as user types (only if not disabled)
                       if (!authenticatedUser?.phone) {
                         const formatted = formatPhoneNumber(e.target.value);
                         handleFieldChange('phone', formatted);
@@ -1484,7 +1878,8 @@ const Onboarding = () => {
                     disabled={!!authenticatedUser?.phone}
                     dir="ltr"
                     maxLength={12}
-                    className={`mt-2 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} ${authenticatedUser?.phone ? 'bg-muted cursor-not-allowed' : ''}`}
+                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.phone ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.phone ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    autoFocus={!authenticatedUser?.phone}
                   />
                   {authenticatedUser?.phone && (
                     <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
@@ -1493,40 +1888,109 @@ const Onboarding = () => {
                     <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
                   )}
                 </div>
+                
+                {/* Email Field */}
                 <div>
-                  <Label htmlFor="previousCalendar">{t('onboarding.businessInfo.previousCalendar') || 'Which calendar did you use until now?'}</Label>
-                  <Select
-                    value={businessInfo.previousCalendarType}
-                    onValueChange={(value) => setBusinessInfo({ ...businessInfo, previousCalendarType: value as typeof businessInfo.previousCalendarType })}
-                  >
-                    <SelectTrigger id="previousCalendar" className="mt-2" dir={dir}>
-                      <SelectValue placeholder={t('onboarding.businessInfo.previousCalendarPlaceholder') || 'Select an option (optional)'} />
-                    </SelectTrigger>
-                    <SelectContent dir={dir}>
-                      <SelectItem value="appointment_scheduling_app">
-                        {t('onboarding.businessInfo.calendarOptions.appointmentSchedulingApp') || 'Appointment scheduling application'}
-                      </SelectItem>
-                      <SelectItem value="paper_calendar">
-                        {t('onboarding.businessInfo.calendarOptions.paperCalendar') || 'Paper calendar'}
-                      </SelectItem>
-                      <SelectItem value="google_phone_calendar">
-                        {t('onboarding.businessInfo.calendarOptions.googlePhoneCalendar') || 'Google/Phone calendar'}
-                      </SelectItem>
-                      <SelectItem value="not_using_calendar">
-                        {t('onboarding.businessInfo.calendarOptions.notUsingCalendar') || 'Not using a calendar'}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.businessInfo.previousCalendarHint') || 'This helps us understand your needs better (optional)'}</p>
+                  <Label htmlFor="email" className="text-center block">
+                    {locale === 'he' ? 'אימייל (אופציונלי)' :
+                     locale === 'ar' ? 'البريد الإلكتروني (اختياري)' :
+                     locale === 'ru' ? 'Email (необязательно)' :
+                     'Email (optional)'}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder={t('onboarding.businessInfo.emailPlaceholder') || 'Enter email address'}
+                    value={businessInfo.email || authenticatedUser?.email || ''}
+                    onChange={(e) => {
+                      if (!authenticatedUser?.email) {
+                        handleFieldChange('email', e.target.value);
+                      }
+                    }}
+                    onBlur={() => handleBlur('email')}
+                    disabled={!!authenticatedUser?.email}
+                    dir="ltr"
+                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    autoFocus={!!(authenticatedUser?.phone && !authenticatedUser?.email)}
+                  />
+                  {authenticatedUser?.email && (
+                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
+                  )}
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                  )}
+                </div>
+                
+                {/* Positive feedback */}
+                {(businessInfo.phone || authenticatedUser?.phone) && !errors.phone && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 mt-3">
+                    <Check className="w-4 h-4" />
+                    <span className="font-medium">{getStepFeedback(4)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Step 5: Address (Optional) */}
+          {step === 5 && (
+            <div className="animate-fade-in max-w-lg mx-auto text-center">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">
+                {locale === 'he' ? 'מה הכתובת של העסק? (אופציונלי)' :
+                 locale === 'ar' ? 'ما عنوان العمل؟ (اختياري)' :
+                 locale === 'ru' ? 'Какой адрес бизнеса? (необязательно)' :
+                 "What's the business address? (optional)"}
+              </h2>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                {locale === 'he' ? 'נציג אותה ללקוחות (אופציונלי)' :
+                 locale === 'ar' ? 'سنعرضه للعملاء (اختياري)' :
+                 locale === 'ru' ? 'Мы покажем его клиентам (необязательно)' :
+                 "We'll show it to customers (optional)"}
+              </p>
+              
+              <p className="text-xs text-gray-500 mb-5">
+                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                 "💡 Don't worry – everything can be changed later"}
+              </p>
+              
+              <div className="space-y-4 max-w-md mx-auto">
+                <div>
+                  <Label htmlFor="address" className="text-center block">
+                    {locale === 'he' ? 'כתובת' :
+                     locale === 'ar' ? 'العنوان' :
+                     locale === 'ru' ? 'Адрес' :
+                     'Address'}
+                  </Label>
+                  <Input
+                    id="address"
+                    placeholder={t('onboarding.businessInfo.addressPlaceholder') || 'Enter business address'}
+                    value={businessInfo.address}
+                    onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
+                    dir={dir}
+                    className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
+                    autoFocus
+                  />
                 </div>
               </div>
             </div>
           )}
-
-          {step === 3 && (
-            <div className="animate-fade-in">
-              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.chooseBusinessType.title')}</h2>
-              <p className="text-muted-foreground mb-8">{t('onboarding.chooseBusinessType.subtitle')}</p>
+          
+          {/* Step 6: Business Type */}
+          {step === 6 && (
+            <div className="animate-fade-in text-center">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">{t('onboarding.chooseBusinessType.title')}</h2>
+              <p className="text-sm text-gray-600 mb-4">{t('onboarding.chooseBusinessType.subtitle')}</p>
+              
+              {/* Reassuring message - softer */}
+              <p className="text-xs text-gray-500 mb-5">
+                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                 "💡 Don't worry – everything can be changed later"}
+              </p>
               
               {/* Category Filter */}
               <div 
@@ -1578,8 +2042,8 @@ const Onboarding = () => {
                     onClick={() => setBusinessType(type.id)}
                     className={`group p-6 rounded-lg border-2 transition-all ${
                       businessType === type.id
-                        ? "border-[#ff3e1b] bg-[#ff3e1b] text-white shadow-soft"
-                        : "border-border hover:bg-[#030408] hover:text-white hover:border-[#030408]"
+                        ? "border-green-500 bg-green-500 text-white shadow-md"
+                        : "border-gray-200 hover:bg-gray-50 hover:border-green-300"
                     }`}
                     dir={dir}
                   >
@@ -1605,8 +2069,183 @@ const Onboarding = () => {
               </div>
             </div>
           )}
-
-          {step === 4 && (
+          
+          {/* Steps 8-10: Services - one at a time */}
+          {step >= 7 && step <= 9 && (
+            <div className="animate-fade-in max-w-lg mx-auto text-center">
+              {(() => {
+                const serviceIndex = step - 7;
+                // Ensure we have enough services
+                const currentServices = services.length > serviceIndex ? services : [
+                  ...services,
+                  ...Array(serviceIndex + 1 - services.length).fill(null).map((_, i) => ({
+                    id: `new-${Date.now()}-${services.length + i}`,
+                    name: '',
+                    description: '',
+                    category: '',
+                    duration: 30,
+                    price: 0,
+                  }))
+                ];
+                const currentService = currentServices[serviceIndex] || {
+                  id: `new-${Date.now()}`,
+                  name: '',
+                  description: '',
+                  category: '',
+                  duration: 30,
+                  price: 0,
+                };
+                
+                return (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-medium mb-2 text-gray-700">
+                        {locale === 'he' ? `שירות ${serviceIndex + 1} (מתוך 3)` :
+                         locale === 'ar' ? `الخدمة ${serviceIndex + 1} (من 3)` :
+                         locale === 'ru' ? `Услуга ${serviceIndex + 1} (из 3)` :
+                         `Service ${serviceIndex + 1} (of 3)`}
+                      </h2>
+                      <p className="text-sm text-gray-600 mb-4">
+                        {locale === 'he' ? 'רק 2-3 שירותים להתחלה, תמיד אפשר להוסיף עוד אחרי ההקמה' :
+                         locale === 'ar' ? 'فقط 2-3 خدمات للبدء، يمكنك دائمًا إضافة المزيد بعد الإعداد' :
+                         locale === 'ru' ? 'Только 2-3 услуги для начала, всегда можно добавить больше после настройки' :
+                         'Just 2-3 services to start, you can always add more after setup'}
+                      </p>
+                      <p className="text-xs text-gray-500 mb-5">
+                        {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                         locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                         locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                         "💡 Don't worry – everything can be changed later"}
+                      </p>
+                    </div>
+                    
+                    <Card className="p-5 bg-gray-50 border-gray-200">
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor={`service-name-${serviceIndex}`}>
+                            {locale === 'he' ? 'שם השירות' :
+                             locale === 'ar' ? 'اسم الخدمة' :
+                             locale === 'ru' ? 'Название услуги' :
+                             'Service Name'}
+                          </Label>
+                          <Input
+                            id={`service-name-${serviceIndex}`}
+                            value={currentService.name}
+                            onChange={(e) => {
+                              const updated = [...currentServices];
+                              updated[serviceIndex] = { ...updated[serviceIndex], name: e.target.value };
+                              setServices(updated);
+                            }}
+                            className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
+                            placeholder={locale === 'he' ? 'לדוגמה: תספורת' : (t('onboarding.services.namePlaceholder') || 'e.g., Haircut')}
+                            autoFocus
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor={`service-description-${serviceIndex}`}>
+                            {locale === 'he' ? 'תיאור (אופציונלי)' :
+                             locale === 'ar' ? 'الوصف (اختياري)' :
+                             locale === 'ru' ? 'Описание (необязательно)' :
+                             'Description (optional)'}
+                          </Label>
+                          <Input
+                            id={`service-description-${serviceIndex}`}
+                            value={currentService.description}
+                            onChange={(e) => {
+                              const updated = [...currentServices];
+                              updated[serviceIndex] = { ...updated[serviceIndex], description: e.target.value };
+                              setServices(updated);
+                            }}
+                            className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
+                            placeholder={t('onboarding.services.descriptionPlaceholder') || 'Brief description'}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor={`service-duration-${serviceIndex}`}>
+                              {locale === 'he' ? 'משך זמן (דקות)' :
+                               locale === 'ar' ? 'المدة (بالدقائق)' :
+                               locale === 'ru' ? 'Продолжительность (минуты)' :
+                               'Duration (minutes)'}
+                            </Label>
+                            <Input
+                              id={`service-duration-${serviceIndex}`}
+                              type="number"
+                              min="1"
+                              value={currentService.duration}
+                              onChange={(e) => {
+                                const updated = [...currentServices];
+                                updated[serviceIndex] = { ...updated[serviceIndex], duration: parseInt(e.target.value) || 0 };
+                                setServices(updated);
+                              }}
+                              className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
+                              placeholder="30"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`service-price-${serviceIndex}`}>
+                              {locale === 'he' ? 'מחיר (₪)' :
+                               locale === 'ar' ? 'السعر (₪)' :
+                               locale === 'ru' ? 'Цена (₪)' :
+                               'Price (₪)'}
+                            </Label>
+                            <Input
+                              id={`service-price-${serviceIndex}`}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={currentService.price}
+                              onChange={(e) => {
+                                const updated = [...currentServices];
+                                updated[serviceIndex] = { ...updated[serviceIndex], price: parseFloat(e.target.value) || 0 };
+                                setServices(updated);
+                              }}
+                              className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                        
+                        {currentService.name && (
+                          <div className="flex items-center gap-2 text-sm text-green-600 mt-4 font-medium">
+                            <Check className="w-4 h-4" />
+                            <span>{getStepFeedback(step)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                    
+                    {/* Skip button */}
+                    <div className="text-center">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          // If service has no name, skip it
+                          if (!currentService.name.trim()) {
+                            handleNext();
+                          } else {
+                            // Service has name, validate and continue
+                            handleNext();
+                          }
+                        }}
+                        className="text-sm text-gray-500 hover:text-gray-700"
+                      >
+                        {locale === 'he' ? 'דלג - תמיד אפשר להוסיף אחרי ההקמה' :
+                         locale === 'ar' ? 'تخطي - يمكنك دائمًا إضافة المزيد بعد الإعداد' :
+                         locale === 'ru' ? 'Пропустить - всегда можно добавить после настройки' :
+                         'Skip - you can always add more after setup'}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          
+          {/* Old step 4 - removed, replaced with steps 8-10 */}
+          {false && step === 4 && (
             <div className="animate-fade-in">
               <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.services.title')}</h2>
               <p className="text-muted-foreground mb-8">{t('onboarding.services.subtitle')}</p>
@@ -1733,10 +2372,19 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 5 && (
-            <div className="animate-fade-in">
-              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.planConfirmation.title') || 'Plan Confirmation'}</h2>
-              <p className="text-muted-foreground mb-8">{t('onboarding.planConfirmation.subtitle') || 'Review your selected plan'}</p>
+          {/* Step 10: Plan Confirmation */}
+          {step === 10 && (
+            <div className="animate-fade-in text-center">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">{t('onboarding.planConfirmation.title') || 'Plan Confirmation'}</h2>
+              <p className="text-sm text-gray-600 mb-4">{t('onboarding.planConfirmation.subtitle') || 'Review your selected plan'}</p>
+              
+              {/* Reassuring message - softer */}
+              <p className="text-xs text-gray-500 mb-5">
+                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
+                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
+                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
+                 "💡 Don't worry – everything can be changed later"}
+              </p>
               
               {planDetails && (
                 <div className="space-y-6">
@@ -1747,7 +2395,7 @@ const Onboarding = () => {
                         <h3 className="text-xl font-semibold mb-2">{planDetails.name}</h3>
                         {planDetails.price > 0 && (
                           <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-primary">
+                            <span className="text-3xl font-bold text-green-600">
                               {planDetails.symbol}{planDetails.price}
                             </span>
                             <span className="text-muted-foreground">
@@ -1759,12 +2407,12 @@ const Onboarding = () => {
                     </div>
 
                     {/* Conditional Content Based on Plan */}
-                    {selectedPlan === 'basic' ? (
+                    {selectedPlan === 'free' ? (
                       <div className="space-y-4">
-                        <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                           <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-5 h-5 text-primary" />
-                            <h4 className="font-semibold text-primary">
+                            <Sparkles className="w-5 h-5 text-green-600" />
+                            <h4 className="font-semibold text-green-700">
                               {t('onboarding.planConfirmation.freeTrial') || '14 Days Free Trial'}
                             </h4>
                           </div>
@@ -1798,155 +2446,151 @@ const Onboarding = () => {
                       </h4>
                       <ul className="space-y-2">
                         {(() => {
-                          // Get all features, merging lower plans and replacing conflicts
+                          // Get all features from plan metadata (from API)
                           let allFeatures: string[] = [];
                           
-                          if (selectedPlan === 'business') {
-                            // Business: Start with Basic + Professional, then add/override with Business
-                            const basicFeatures = getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
-                            const professionalFeatures = getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
-                            const businessFeatures = getTranslation('home.pricing.plans.business.highlights') as string[] || [];
-                            
-                            // Start with Basic features (excluding "Everything in Basic" type items)
-                            allFeatures = basicFeatures.filter(f => 
-                              !f.toLowerCase().includes('everything in') && 
-                              !f.includes('הכל בחבילת') &&
-                              !f.includes('הכל ב')
-                            );
-                            
-                            // Add Professional features, replacing conflicts
-                            professionalFeatures.forEach(profFeature => {
-                              if (profFeature.toLowerCase().includes('everything in') || 
-                                  profFeature.includes('הכל בחבילת') ||
-                                  profFeature.includes('הכל ב')) {
-                                // Skip "Everything in Basic" placeholder
-                                return;
-                              }
-                              // Check for conflicts (staff/workers, bookings, etc.)
-                              // Check in both English and Hebrew
-                              const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
-                                                    profFeature.toLowerCase().includes('employee') ||
-                                                    profFeature.includes('עובד') ||
-                                                    profFeature.includes('עובדים');
-                              const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
-                                                      profFeature.includes('הזמנות');
-                              
-                              if (isStaffFeature) {
-                                // Replace staff/worker feature - remove any feature mentioning workers/staff/employees
-                                allFeatures = allFeatures.filter(f => 
-                                  !(f.toLowerCase().includes('staff') || 
-                                    f.toLowerCase().includes('employee') ||
-                                    f.includes('עובד') ||
-                                    f.includes('עובדים'))
-                                );
-                                allFeatures.push(profFeature);
-                              } else if (isBookingFeature) {
-                                // Replace booking feature
-                                allFeatures = allFeatures.filter(f => 
-                                  !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
-                                );
-                                allFeatures.push(profFeature);
-                              } else {
-                                // Add new feature
-                                allFeatures.push(profFeature);
-                              }
-                            });
-                            
-                            // Add Business features, replacing conflicts
-                            businessFeatures.forEach(bizFeature => {
-                              if (bizFeature.toLowerCase().includes('everything in') || 
-                                  bizFeature.includes('הכל בחבילת') ||
-                                  bizFeature.includes('הכל ב')) {
-                                // Skip "Everything in Professional" placeholder
-                                return;
-                              }
-                              // Check for conflicts
-                              // Check in both English and Hebrew
-                              const isStaffFeature = bizFeature.toLowerCase().includes('staff') || 
-                                                    bizFeature.toLowerCase().includes('employee') ||
-                                                    bizFeature.includes('עובד') ||
-                                                    bizFeature.includes('עובדים');
-                              const isBookingFeature = bizFeature.toLowerCase().includes('booking') ||
-                                                      bizFeature.includes('הזמנות');
-                              
-                              if (isStaffFeature) {
-                                // Replace staff/worker feature - remove any feature mentioning workers/staff/employees
-                                allFeatures = allFeatures.filter(f => 
-                                  !(f.toLowerCase().includes('staff') || 
-                                    f.toLowerCase().includes('employee') ||
-                                    f.includes('עובד') ||
-                                    f.includes('עובדים'))
-                                );
-                                allFeatures.push(bizFeature);
-                              } else if (isBookingFeature) {
-                                // Replace booking feature
-                                allFeatures = allFeatures.filter(f => 
-                                  !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
-                                );
-                                allFeatures.push(bizFeature);
-                              } else {
-                                // Add new feature
-                                allFeatures.push(bizFeature);
-                              }
-                            });
-                          } else if (selectedPlan === 'professional') {
-                            // Professional: Start with Basic, then add/override with Professional
-                            const basicFeatures = getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
-                            const professionalFeatures = getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
-                            
-                            // Start with Basic features (excluding "Everything in Basic" type items)
-                            allFeatures = basicFeatures.filter(f => 
-                              !f.toLowerCase().includes('everything in') && 
-                              !f.includes('הכל בחבילת') &&
-                              !f.includes('הכל ב')
-                            );
-                            
-                            // Add Professional features, replacing conflicts
-                            professionalFeatures.forEach(profFeature => {
-                              if (profFeature.toLowerCase().includes('everything in') || 
-                                  profFeature.includes('הכל בחבילת') ||
-                                  profFeature.includes('הכל ב')) {
-                                // Skip "Everything in Basic" placeholder
-                                return;
-                              }
-                              // Check for conflicts (staff/workers, bookings, etc.)
-                              // Check in both English and Hebrew
-                              const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
-                                                    profFeature.toLowerCase().includes('employee') ||
-                                                    profFeature.includes('עובד') ||
-                                                    profFeature.includes('עובדים');
-                              const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
-                                                      profFeature.includes('הזמנות');
-                              
-                              if (isStaffFeature) {
-                                // Replace staff/worker feature - remove any feature mentioning workers/staff/employees
-                                allFeatures = allFeatures.filter(f => 
-                                  !(f.toLowerCase().includes('staff') || 
-                                    f.toLowerCase().includes('employee') ||
-                                    f.includes('עובד') ||
-                                    f.includes('עובדים'))
-                                );
-                                allFeatures.push(profFeature);
-                              } else if (isBookingFeature) {
-                                // Replace booking feature
-                                allFeatures = allFeatures.filter(f => 
-                                  !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
-                                );
-                                allFeatures.push(profFeature);
-                              } else {
-                                // Add new feature
-                                allFeatures.push(profFeature);
-                              }
-                            });
+                          // Use highlights from planDetails.metadata if available
+                          if (planDetails?.metadata?.highlights && Array.isArray(planDetails.metadata.highlights)) {
+                            allFeatures = planDetails.metadata.highlights;
                           } else {
-                            // Basic: Show only Basic features
-                            allFeatures = getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                            // Fallback to old translation system
+                            if (selectedPlan === 'custom') {
+                              // Custom: Start with Free + Pro, then add/override with Custom
+                              const freeFeatures = getTranslation('home.pricing.plans.free.highlights') as string[] || 
+                                                  getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                              const proFeatures = getTranslation('home.pricing.plans.pro.highlights') as string[] || 
+                                                 getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
+                              const customFeatures = getTranslation('home.pricing.plans.custom.highlights') as string[] || 
+                                                    getTranslation('home.pricing.plans.business.highlights') as string[] || [];
+                            
+                              // Start with Free features (excluding "Everything in Free" type items)
+                              allFeatures = freeFeatures.filter(f => 
+                                !f.toLowerCase().includes('everything in') && 
+                                !f.includes('הכל בחבילת') &&
+                                !f.includes('הכל ב')
+                              );
+                              
+                              // Add Pro features, replacing conflicts
+                              proFeatures.forEach(profFeature => {
+                                if (profFeature.toLowerCase().includes('everything in') || 
+                                    profFeature.includes('הכל בחבילת') ||
+                                    profFeature.includes('הכל ב')) {
+                                  return;
+                                }
+                                const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
+                                                      profFeature.toLowerCase().includes('employee') ||
+                                                      profFeature.includes('עובד') ||
+                                                      profFeature.includes('עובדים');
+                                const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
+                                                        profFeature.includes('הזמנות');
+                                
+                                if (isStaffFeature) {
+                                  allFeatures = allFeatures.filter(f => 
+                                    !(f.toLowerCase().includes('staff') || 
+                                      f.toLowerCase().includes('employee') ||
+                                      f.includes('עובד') ||
+                                      f.includes('עובדים'))
+                                  );
+                                  allFeatures.push(profFeature);
+                                } else if (isBookingFeature) {
+                                  allFeatures = allFeatures.filter(f => 
+                                    !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
+                                  );
+                                  allFeatures.push(profFeature);
+                                } else {
+                                  allFeatures.push(profFeature);
+                                }
+                              });
+                              
+                              // Add Custom features, replacing conflicts
+                              customFeatures.forEach(customFeature => {
+                                if (customFeature.toLowerCase().includes('everything in') || 
+                                    customFeature.includes('הכל בחבילת') ||
+                                    customFeature.includes('הכל ב')) {
+                                  return;
+                                }
+                                const isStaffFeature = customFeature.toLowerCase().includes('staff') || 
+                                                      customFeature.toLowerCase().includes('employee') ||
+                                                      customFeature.includes('עובד') ||
+                                                      customFeature.includes('עובדים');
+                                const isBookingFeature = customFeature.toLowerCase().includes('booking') ||
+                                                        customFeature.includes('הזמנות');
+                                
+                                if (isStaffFeature) {
+                                  allFeatures = allFeatures.filter(f => 
+                                    !(f.toLowerCase().includes('staff') || 
+                                      f.toLowerCase().includes('employee') ||
+                                      f.includes('עובד') ||
+                                      f.includes('עובדים'))
+                                  );
+                                  allFeatures.push(customFeature);
+                                } else if (isBookingFeature) {
+                                  allFeatures = allFeatures.filter(f => 
+                                    !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
+                                  );
+                                  allFeatures.push(customFeature);
+                                } else {
+                                  allFeatures.push(customFeature);
+                                }
+                              });
+                            } else if (selectedPlan === 'pro') {
+                              // Pro: Start with Free, then add/override with Pro
+                              const freeFeatures = getTranslation('home.pricing.plans.free.highlights') as string[] || 
+                                                  getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                              const proFeatures = getTranslation('home.pricing.plans.pro.highlights') as string[] || 
+                                                 getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
+                              
+                              // Start with Free features (excluding "Everything in Free" type items)
+                              allFeatures = freeFeatures.filter(f => 
+                                !f.toLowerCase().includes('everything in') && 
+                                !f.includes('הכל בחבילת') &&
+                                !f.includes('הכל ב')
+                              );
+                              
+                              // Add Pro features, replacing conflicts
+                              proFeatures.forEach(profFeature => {
+                                if (profFeature.toLowerCase().includes('everything in') || 
+                                    profFeature.includes('הכל בחבילת') ||
+                                    profFeature.includes('הכל ב')) {
+                                  // Skip "Everything in Free" placeholder
+                                  return;
+                                }
+                                // Check for conflicts (staff/workers, bookings, etc.)
+                                const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
+                                                      profFeature.toLowerCase().includes('employee') ||
+                                                      profFeature.includes('עובד') ||
+                                                      profFeature.includes('עובדים');
+                                const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
+                                                        profFeature.includes('הזמנות');
+                                
+                                if (isStaffFeature) {
+                                  allFeatures = allFeatures.filter(f => 
+                                    !(f.toLowerCase().includes('staff') || 
+                                      f.toLowerCase().includes('employee') ||
+                                      f.includes('עובד') ||
+                                      f.includes('עובדים'))
+                                  );
+                                  allFeatures.push(profFeature);
+                                } else if (isBookingFeature) {
+                                  allFeatures = allFeatures.filter(f => 
+                                    !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
+                                  );
+                                  allFeatures.push(profFeature);
+                                } else {
+                                  allFeatures.push(profFeature);
+                                }
+                              });
+                            } else {
+                              // Free: Show only Free features
+                              allFeatures = getTranslation('home.pricing.plans.free.highlights') as string[] || 
+                                          getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
+                            }
                           }
                           
                           return allFeatures.map((highlight: string, i: number) => (
                             <li key={i} className="flex items-start gap-2 text-sm">
-                              <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-muted-foreground">{highlight}</span>
+                              <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-600">{highlight}</span>
                             </li>
                           ));
                         })()}
@@ -1969,13 +2613,14 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 6 && (
+          {/* Step 12: Final Step (moved from step 6) */}
+          {step === 11 && (
             <div className="animate-fade-in text-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: '#ff3e1b' }}>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-green-500">
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-lg sm:text-3xl font-bold mb-2">{t('onboarding.almostThere.title')}</h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              <h2 className="text-lg font-medium mb-2 text-gray-700">{t('onboarding.almostThere.title')}</h2>
+              <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
                 {t('onboarding.almostThere.subtitle').replace('{businessType}', businessTypes.find(t => t.id === businessType)?.title || businessType?.replace('_', ' ') || '')}
               </p>
               <div className={`bg-muted/50 rounded-lg p-6 max-w-md mx-auto ${dir === 'rtl' ? 'text-right' : 'text-left'}`} dir={dir}>
@@ -1983,7 +2628,7 @@ const Onboarding = () => {
                 <ul className={`space-y-2 text-sm text-muted-foreground ${dir === 'rtl' ? 'text-right' : 'text-left'}`} dir={dir}>
                   {(getTranslation('onboarding.almostThere.items') as string[] || []).map((item, i) => (
                     <li key={i} className="flex items-center gap-2" dir={dir}>
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -2012,8 +2657,13 @@ const Onboarding = () => {
                   {t('onboarding.buttons.back')}
                 </LoadingButton>
               )}
-              <LoadingButton ref={continueButtonRef} onClick={handleNext} loading={loading}>
-                {step === 6 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
+              <LoadingButton 
+                ref={continueButtonRef} 
+                onClick={handleNext} 
+                loading={loading}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium"
+              >
+                {step === 11 ? t('onboarding.buttons.completeSetup') : t('onboarding.buttons.continue')}
               </LoadingButton>
             </div>
           )}
@@ -2061,7 +2711,7 @@ const Onboarding = () => {
                 onClick={() => handleVerifyOtp()}
                 loading={verifyingOtp}
                 disabled={otpCode.length !== 6}
-                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
               >
                 {t('onboarding.auth.verify') || 'Verify'}
               </LoadingButton>
@@ -2073,7 +2723,7 @@ const Onboarding = () => {
                   variant="link"
                   onClick={handleResendOtp}
                   disabled={otpCountdown > 0 || sendingOtp}
-                  className="h-auto p-0 text-primary"
+                  className="h-auto p-0 text-green-600 hover:text-green-700"
                 >
                   {otpCountdown > 0 
                     ? t('onboarding.auth.sendAgainIn')?.replace('{seconds}', otpCountdown.toString()) || `Send again in ${otpCountdown}s`
@@ -2106,35 +2756,39 @@ const Onboarding = () => {
             {allPlans.map((plan) => {
               const planKey = plan.key;
               const isSelected = selectedPlan === planKey;
-              const isProfessional = planKey === 'professional';
-              const planName = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-              const planHighlights = getTranslation(`home.pricing.plans.${planKey}.highlights`) as string[] || [];
+              const isProfessional = planKey === 'pro';
+              // Use translated name from metadata if available, otherwise use plan key
+              const planName = plan.metadata?.name || planKey.charAt(0).toUpperCase() + planKey.slice(1);
+              // Use highlights from metadata if available, otherwise fallback to translations
+              const planHighlights = plan.metadata?.highlights || 
+                                    getTranslation(`home.pricing.plans.${planKey}.highlights`) as string[] || 
+                                    getTranslation(`home.pricing.plans.${planKey === 'free' ? 'basic' : planKey === 'pro' ? 'professional' : 'business'}.highlights`) as string[] || [];
               
               return (
                 <Card
                   key={planKey}
                   className={`p-4 sm:p-6 h-full flex flex-col relative transition-all ${
                     isSelected
-                      ? 'border-2 border-primary'
-                      : 'border hover:border-primary/50'
-                  } ${isProfessional && !isSelected ? 'border-primary/30' : ''}`}
+                      ? 'border-2 border-green-500 bg-green-50'
+                      : 'border border-gray-200 hover:border-green-300 bg-white'
+                  } ${isProfessional && !isSelected ? 'border-green-300' : ''}`}
                 >
                   {isProfessional && !isSelected && (
                     <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-primary text-primary-foreground px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold">
+                      <span className="bg-green-600 text-white px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold">
                         {t('home.pricing.bestSeller') || 'Best Seller'}
                       </span>
                     </div>
                   )}
                   <div className="text-center mb-3 sm:mb-4">
                     <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2">{planName}</h3>
-                    {planKey === 'basic' && (
-                      <p className="text-xs font-semibold text-primary mb-1 sm:mb-2">
-                        {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
+                    {planKey === 'free' && (
+                      <p className="text-xs font-semibold text-green-600 mb-1 sm:mb-2">
+                        {plan.metadata?.priceNote || t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
                       </p>
                     )}
                     <div className="mb-1 sm:mb-2">
-                      <span className="text-2xl sm:text-3xl font-bold text-primary">
+                      <span className="text-2xl sm:text-3xl font-bold text-green-600">
                         {plan.symbol}{plan.price}
                       </span>
                       {plan.price > 0 && (
@@ -2143,17 +2797,17 @@ const Onboarding = () => {
                         </span>
                       )}
                     </div>
-                    {getTranslation(`home.pricing.plans.${planKey}.priceNote`) && (
+                    {plan.metadata?.priceNote && (
                       <p className="text-xs text-muted-foreground mb-2" style={{ whiteSpace: 'pre-line' }}>
-                        {getTranslation(`home.pricing.plans.${planKey}.priceNote`)}
+                        {plan.metadata.priceNote}
                       </p>
                     )}
                   </div>
                   <ul className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-8 flex-grow">
                     {planHighlights.map((highlight: string, i: number) => (
                       <li key={i} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-muted-foreground">{highlight}</span>
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-600">{highlight}</span>
                       </li>
                     ))}
                   </ul>
@@ -2165,8 +2819,8 @@ const Onboarding = () => {
                       e.stopPropagation();
                       setSelectedPlan(planKey);
                       setShowPlanModal(false);
-                      // Scroll to bottom where continue button is (only on step 5)
-                      if (step === 5) {
+                      // Scroll to bottom where continue button is (only on step 10)
+                      if (step === 10) {
                         setTimeout(() => {
                           window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                         }, 100);
@@ -2175,7 +2829,7 @@ const Onboarding = () => {
                     >
                       {isSelected
                         ? (t('onboarding.planSelected') || 'Selected')
-                        : (getTranslation(`home.pricing.plans.${planKey}.cta`) || t('onboarding.selectPlan') || 'Select Plan')}
+                        : (plan.metadata?.cta || getTranslation(`home.pricing.plans.${planKey}.cta`) || t('onboarding.selectPlan') || 'Select Plan')}
                     </Button>
                   </div>
                 </Card>

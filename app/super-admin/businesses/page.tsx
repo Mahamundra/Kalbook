@@ -28,6 +28,7 @@ export default function SuperAdminBusinessesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -89,6 +90,31 @@ export default function SuperAdminBusinessesPage() {
       alert('Failed to update plan');
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleDelete = async (businessId: string, businessName: string) => {
+    if (!confirm(`Are you sure you want to delete "${businessName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(businessId);
+    try {
+      const res = await fetch(`/api/super-admin/businesses/${businessId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        await loadData();
+      } else {
+        alert('Failed to delete business: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting business:', error);
+      alert('Failed to delete business');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -155,22 +181,32 @@ export default function SuperAdminBusinessesPage() {
                       : '-'}
                   </td>
                   <td className="p-2">
-                    <Select
-                      value={business.plan_id || ''}
-                      onValueChange={(value) => handlePlanChange(business.id, value)}
-                      disabled={updating === business.id}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {plans.map((plan) => (
-                          <SelectItem key={plan.id} value={plan.id}>
-                            {plan.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={business.plan_id || ''}
+                        onValueChange={(value) => handlePlanChange(business.id, value)}
+                        disabled={updating === business.id || deleting === business.id}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {plans.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id}>
+                              {plan.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(business.id, business.name)}
+                        disabled={deleting === business.id || updating === business.id}
+                      >
+                        {deleting === business.id ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { generateUniqueSlugFromBusinessType, getDefaultServices, getDefaultTimezone, getDefaultCurrency, getDefaultThemeColor } from '@/lib/onboarding/utils';
 import { uploadDefaultBannerImage } from '@/lib/storage/upload-server';
 import { toE164Format } from '@/lib/customers/utils';
+import { isSuperAdminFromRequest } from '@/lib/super-admin/auth';
 import type { BusinessType } from '@/lib/supabase/database.types';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -38,9 +39,13 @@ export async function POST(request: NextRequest) {
     body = await request.json();
     const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount, plan } = body;
     
-    // Check if user is logged in
-    const session = getAdminSession(request);
-    const isLoggedIn = !!session;
+    // Check if current user is a super-admin - if so, ignore any existing sessions
+    // Super-admins should not be used for business creation
+    const isSuperAdmin = await isSuperAdminFromRequest(request);
+    
+    // Check if user is logged in (but ignore if they're a super-admin)
+    const session = isSuperAdmin ? null : getAdminSession(request);
+    const isLoggedIn = !!session && !isSuperAdmin;
 
     // Validate required fields
     const validBusinessTypes = ['barbershop', 'nail_salon', 'gym_trainer', 'beauty_salon', 'makeup_artist', 'spa', 'pilates_studio', 'physiotherapy', 'life_coach', 'dietitian', 'other'];
@@ -95,11 +100,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate and get selected plan (default to 'basic' if not provided or invalid)
-    const validPlans = ['basic', 'professional', 'business'];
-    const selectedPlanName = (plan && typeof plan === 'string' && validPlans.includes(plan.toLowerCase()))
+    // Validate and get selected plan (default to 'free' if not provided or invalid)
+    // Map homepage plan keys to database plan names
+    const planMapping: Record<string, string> = {
+      'free': 'basic',
+      'pro': 'professional',
+      'custom': 'business'
+    };
+    
+    const validPlans = ['free', 'pro', 'custom', 'basic', 'professional', 'business'];
+    const planKey = (plan && typeof plan === 'string' && validPlans.includes(plan.toLowerCase()))
       ? plan.toLowerCase()
-      : 'basic';
+      : 'free';
+    
+    // Map to database plan name
+    const selectedPlanName = planMapping[planKey] || planKey;
     
     const planResult = await supabase
       .from('plans')
@@ -130,9 +145,9 @@ export async function POST(request: NextRequest) {
       selectedPlan = fallbackPlan;
     }
 
-    // Only basic plan gets 14-day trial period
-    // Professional and business plans start as active subscriptions
-    const isBasicPlan = selectedPlanName === 'basic';
+    // Only basic/free plan gets 14-day trial period
+    // Professional/pro and business/custom plans start as active subscriptions
+    const isBasicPlan = selectedPlanName === 'basic' || planKey === 'free';
     
     let trialStartedAt: Date | null = null;
     let trialEndsAt: Date | null = null;
@@ -247,9 +262,10 @@ export async function POST(request: NextRequest) {
     let authUserId: string | undefined;
     let shouldReuseAccount = false;
 
-    try {
+      try {
         // Check if user is logged in and using same account
-        if (isLoggedIn && session && e164Phone && !useAnotherAccount) {
+        // Skip this check if user is a super-admin (super-admins should never reuse their account)
+        if (!isSuperAdmin && isLoggedIn && session && e164Phone && !useAnotherAccount) {
           // Check if phone and email match logged-in user's info
           const sessionPhone = session.phone;
           const sessionEmail = session.email;

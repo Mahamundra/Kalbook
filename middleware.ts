@@ -25,7 +25,6 @@ export async function middleware(request: NextRequest) {
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isOldAdminRoute = pathname.startsWith('/admin') && !pathname.startsWith('/b/');
   const isSlugAdminRoute = pathname.match(/^\/b\/[^/]+\/admin/);
-  const isMigrationRoute = pathname.startsWith('/migration');
   const isUserDashboardRoute = pathname.startsWith('/user/dashboard');
   const isSuperAdminRoute = pathname.startsWith('/super-admin');
   const isDebugRoute = pathname.startsWith('/debug');
@@ -246,7 +245,7 @@ export async function middleware(request: NextRequest) {
   const is404Route = pathname === '/404';
   const isUnauthorizedRoute = pathname === '/unauthorized';
   
-  if (!isOldAdminRoute && !isApiRoute && !isOnboardingRoute && !isMigrationRoute && !isSlugAdminRoute && !isRootPath && !is404Route && !isUnauthorizedRoute && !isSuperAdminRoute && !isDebugRoute) {
+  if (!isOldAdminRoute && !isApiRoute && !isOnboardingRoute && !isSlugAdminRoute && !isRootPath && !is404Route && !isUnauthorizedRoute && !isSuperAdminRoute && !isDebugRoute) {
     const businessSlug = extractBusinessSlug(url, hostname);
 
     if (businessSlug) {

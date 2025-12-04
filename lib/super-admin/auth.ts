@@ -3,8 +3,10 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createMiddlewareClient } from '@/lib/supabase/middleware';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
+import type { NextRequest } from 'next/server';
 
 type SuperAdminUserRow = Database['public']['Tables']['super_admin_users']['Row'];
 
@@ -80,6 +82,41 @@ export async function requireSuperAdmin(): Promise<void> {
   const isAdmin = await isSuperAdmin();
   if (!isAdmin) {
     throw new Error('Super admin access required');
+  }
+}
+
+/**
+ * Check if current user from request is a super admin
+ * Useful for API routes that need to check super admin status
+ */
+export async function isSuperAdminFromRequest(request: NextRequest): Promise<boolean> {
+  try {
+    const { supabase } = createMiddlewareClient(request);
+    
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return false;
+    }
+
+    const adminClient = createAdminClient();
+    const adminResult = await adminClient
+      .from('super_admin_users')
+      .select('*')
+      .eq('id', user.id)
+      .eq('is_super_admin', true)
+      .maybeSingle() as { data: SuperAdminUserRow | null; error: any };
+
+    if (adminResult.error) {
+      return false;
+    }
+
+    return adminResult.data !== null;
+  } catch (error: any) {
+    return false;
   }
 }
 
