@@ -50,7 +50,7 @@ function getInitialLocale(): Locale {
     return localeCookie.value as Locale;
   }
   
-  return 'en';
+  return 'he';
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

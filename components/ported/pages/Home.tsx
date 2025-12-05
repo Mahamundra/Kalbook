@@ -778,7 +778,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-16 md:pt-24 pb-12 sm:pb-16 md:pb-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-16 md:pt-24 pb-12 sm:pb-16 md:pb-20">
         <div className="flex flex-col md:grid md:grid-cols-[1fr_1fr] gap-6 sm:gap-8 md:gap-12 items-center" dir="ltr">
           {/* Phone Mockup Side - First for RTL, Second for LTR */}
           {isRTL && (
@@ -859,7 +859,7 @@ export default function Home() {
                   
                   // First paragraph - Main headline (largest, boldest)
                   if (isFirstParagraph) {
-                    const titleText = "כל מה שעסק השירות שלך צריך במקום אחד";
+                    const titleText = "הדרך הקלה לנהל את העסק שלך";
                     const subheadingText = "מערכת ניהול חכמה שמרכזת את כל הפעולות החשובות לעסק שלך";
                     
                     return (
@@ -869,7 +869,7 @@ export default function Home() {
                         >
                           {titleText}
                         </h1>
-                        <p className="text-center text-slate-600 mt-2 text-base md:text-lg">
+                        <p className="text-center text-slate-600 mt-4 text-base md:text-lg">
                           {subheadingText}
                         </p>
                       </div>
@@ -898,10 +898,10 @@ export default function Home() {
                           return (
                             <div 
                               key={lineIndex}
-                              className="flex items-center justify-center mb-1 sm:mb-1.5"
+                              className="flex items-center justify-center mb-0.5"
                               dir={isRTL ? 'rtl' : 'ltr'}
                             >
-                              <span className={`text-[#ff3e1a] text-sm ${isRTL ? 'ml-2' : 'mr-2'}`}>•</span>
+                              <span className={`text-[#ff3e1a] text-3xl ${isRTL ? 'ml-2' : 'mr-2'}`}>•</span>
                               <span className="text-sm sm:text-base text-gray-600 text-center">
                                 {trimmedLine}
                               </span>
@@ -917,7 +917,7 @@ export default function Home() {
                     return (
                       <p 
                         key={index}
-                        className="text-lg sm:text-xl md:text-2xl font-bold text-[#ff3e1b] mb-8 sm:mb-10 mt-6 sm:mt-8 leading-tight"
+                        className="text-lg sm:text-xl md:text-2xl font-bold text-[#ff3e1b] mb-8 sm:mb-10 mt-6 sm:mt-8 leading-none"
                         dir={isRTL ? 'rtl' : 'ltr'}
                       >
                         {lines.map((line: string, lineIndex: number) => {
@@ -965,7 +965,7 @@ export default function Home() {
             <div className={`flex gap-4 sm:gap-5 justify-center flex-wrap mt-8 sm:mt-10 ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
               <Button 
                 size="lg" 
-                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold shadow-lg hover:shadow-xl transition-all duration-300 bg-[#ff3e1a] hover:bg-[#ff3e1a]/90"
+                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold shadow-md hover:shadow-lg transition-all duration-200 bg-[#ff3e1a] hover:bg-[#ff3e1a]/90"
                 onClick={() => {
                   const pricingSection = document.getElementById('pricing');
                   if (pricingSection) {
@@ -983,7 +983,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold border-2"
+                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold border-2 shadow-md hover:shadow-lg transition-all duration-200"
                 onClick={() => {
                   const featuresSection = document.getElementById('features');
                   if (featuresSection) {

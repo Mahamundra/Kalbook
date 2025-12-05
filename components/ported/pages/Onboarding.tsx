@@ -93,8 +93,11 @@ const Onboarding = () => {
   const lastBusinessTypeRef = useRef<BusinessType | null>(null);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
   
-  // Total steps - now 12 instead of 6
-  const TOTAL_STEPS = 11;
+  // Total steps - 10 steps (excluding authentication step 1)
+  const TOTAL_STEPS = 10;
+  
+  // Calculate display step (step 1 is authentication, not counted)
+  const displayStep = step > 1 ? step - 1 : 0;
   
   // Current service step (for steps 8-10)
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
@@ -1118,9 +1121,8 @@ const Onboarding = () => {
         return t('onboarding.errors.invalidEnglishName');
       }
     } else if (field === 'email') {
-      if (!value.trim()) {
-        return t('onboarding.errors.fillRequiredFields');
-      } else if (!validateEmail(value)) {
+      // Email is optional - only validate format if provided
+      if (value.trim() && !validateEmail(value)) {
         return t('onboarding.errors.invalidEmail');
       }
     } else if (field === 'phone') {
@@ -1211,17 +1213,7 @@ const Onboarding = () => {
         toast.error(phoneError);
         return;
       }
-      // Email is optional but if provided should be valid
-      const emailToValidate = businessInfo.email || authenticatedUser?.email || '';
-      if (emailToValidate) {
-        setTouched({ email: true });
-        const emailError = getFieldError('email', emailToValidate);
-        if (emailError) {
-          setErrors({ email: emailError });
-          toast.error(emailError);
-          return;
-        }
-      }
+      // Email is optional - no validation needed
       setErrors({});
     }
     // Step 5: Address - optional, no validation needed
@@ -1460,11 +1452,6 @@ const Onboarding = () => {
                       {t('home.pricing.month') || '/month'}
                     </span>
                   )}
-                  {selectedPlan === 'free' && (
-                    <span className="text-xs text-green-600 font-semibold">
-                      {t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
-                    </span>
-                  )}
                 </div>
               </div>
               <Button
@@ -1479,34 +1466,36 @@ const Onboarding = () => {
         )}
         
         {/* Enhanced Progress Bar - Soft Green/Turquoise */}
-        <div className="mb-6">
-          <div>
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {locale === 'he' ? `שלב ${step} מתוך ${TOTAL_STEPS}` : 
-                 locale === 'ar' ? `الخطوة ${step} من ${TOTAL_STEPS}` :
-                 locale === 'ru' ? `Шаг ${step} из ${TOTAL_STEPS}` :
-                 `Step ${step} of ${TOTAL_STEPS}`}
-              </span>
-              <span className="text-sm text-gray-500">
-                {Math.round((step / TOTAL_STEPS) * 100)}% {t('onboarding.complete') || (locale === 'he' ? 'הושלם' : locale === 'ar' ? 'مكتمل' : locale === 'ru' ? 'завершено' : 'complete')}
-              </span>
+        {step > 1 && (
+          <div className="mb-6">
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {locale === 'he' ? `שלב ${displayStep} מתוך ${TOTAL_STEPS}` : 
+                   locale === 'ar' ? `الخطوة ${displayStep} من ${TOTAL_STEPS}` :
+                   locale === 'ru' ? `Шаг ${displayStep} из ${TOTAL_STEPS}` :
+                   `Step ${displayStep} of ${TOTAL_STEPS}`}
+                </span>
+                <span className="text-sm text-gray-500">
+                  {Math.round((displayStep / TOTAL_STEPS) * 100)}% {t('onboarding.complete') || (locale === 'he' ? 'הושלם' : locale === 'ar' ? 'مكتمل' : locale === 'ru' ? 'завершено' : 'complete')}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all duration-500 ease-out"
+                  style={{ 
+                    width: `${(displayStep / TOTAL_STEPS) * 100}%`,
+                    background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)'
+                  }}
+                />
+              </div>
+              {/* Encouragement message - more friendly */}
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {getEncouragementMessage(displayStep, TOTAL_STEPS)}
+              </p>
             </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full transition-all duration-500 ease-out"
-                style={{ 
-                  width: `${(step / TOTAL_STEPS) * 100}%`,
-                  background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)'
-                }}
-              />
-            </div>
-            {/* Encouragement message - more friendly */}
-            <p className="text-xs text-gray-600 mt-2 text-center">
-              {getEncouragementMessage(step, TOTAL_STEPS)}
-            </p>
           </div>
-        </div>
+        )}
 
         {/* Step Content - Softer, more modern card */}
         <Card className="p-6 sm:p-8 shadow-lg border-gray-200 bg-white rounded-2xl">
@@ -1718,7 +1707,7 @@ const Onboarding = () => {
                   </Label>
                   <Input
                     id="name"
-                    placeholder={locale === 'he' ? 'לדוגמה: המספרה של דימה' : (t('onboarding.businessInfo.namePlaceholder') || 'e.g., Dima\'s Barbershop')}
+                    placeholder={locale === 'he' ? 'לדוגמה: סטודיו חן פיטנס' : (t('onboarding.businessInfo.namePlaceholder') || 'e.g., Dima\'s Barbershop')}
                     value={businessInfo.name}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
                     onBlur={() => handleBlur('name')}
@@ -1757,7 +1746,7 @@ const Onboarding = () => {
                 
                 {/* Error message - softer */}
                 {errors.name && (
-                  <p className="mt-2 text-sm text-red-500">
+                  <p className="mt-2 text-sm text-slate-500">
                     {locale === 'he' ? 'צריך רק למלא את שם העסק כדי להמשיך :)' :
                      locale === 'ar' ? 'تحتاج فقط لملء اسم العمل للمتابعة :)' :
                      locale === 'ru' ? 'Нужно просто заполнить название бизнеса, чтобы продолжить :)' :
@@ -1984,12 +1973,12 @@ const Onboarding = () => {
               <h2 className="text-lg font-medium mb-2 text-gray-700">{t('onboarding.chooseBusinessType.title')}</h2>
               <p className="text-sm text-gray-600 mb-4">{t('onboarding.chooseBusinessType.subtitle')}</p>
               
-              {/* Reassuring message - softer */}
+              {/* Info message */}
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                 "💡 Don't worry – everything can be changed later"}
+                {locale === 'he' ? 'בחרו את סוג העסק שמתאים לכם ביותר' :
+                 locale === 'ar' ? 'اختر نوع العمل الذي يناسبك أكثر' :
+                 locale === 'ru' ? 'Выберите тип бизнеса, который вам больше всего подходит' :
+                 "Choose the business type that best fits you"}
               </p>
               
               {/* Category Filter */}
@@ -2036,36 +2025,61 @@ const Onboarding = () => {
                 style={dir === 'rtl' ? { direction: 'rtl' } : undefined}
                 dir={dir}
               >
-                {filteredBusinessTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => setBusinessType(type.id)}
-                    className={`group p-6 rounded-lg border-2 transition-all ${
-                      businessType === type.id
-                        ? "border-green-500 bg-green-500 text-white shadow-md"
-                        : "border-gray-200 hover:bg-gray-50 hover:border-green-300"
-                    }`}
-                    dir={dir}
-                  >
+                {filteredBusinessTypes.map((type) => {
+                  const isSelected = businessType === type.id;
+                  return (
+                    <button
+                      key={type.id}
+                      onClick={(e) => {
+                        // Only allow one selection at a time
+                        // Clear any hover state
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.borderColor = '';
+                        e.currentTarget.style.color = '';
+                        // Select this type (deselects any previously selected type)
+                        setBusinessType(type.id);
+                      }}
+                      className={`group p-6 rounded-lg border-2 transition-all ${
+                        isSelected
+                          ? "border-green-500 bg-green-500 text-white shadow-md"
+                          : "border-gray-200 hover:!bg-green-500 hover:!border-green-500 hover:!text-white hover:shadow-md"
+                      }`}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = '#22c55e'; // green-500
+                          e.currentTarget.style.borderColor = '#22c55e';
+                          e.currentTarget.style.color = 'white';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = '';
+                          e.currentTarget.style.borderColor = '';
+                          e.currentTarget.style.color = '';
+                        }
+                      }}
+                      dir={dir}
+                    >
                     <div className={`flex flex-col ${dir === 'rtl' ? 'items-start text-right' : 'items-start text-left'}`}>
                       <type.icon className={`w-8 h-8 mb-3 transition-colors ${
-                        businessType === type.id 
+                        isSelected 
                           ? "text-white" 
                           : "text-muted-foreground group-hover:text-white"
                       }`} />
                       <h3 className={`text-lg font-semibold mb-1 transition-colors ${
-                        businessType === type.id 
+                        isSelected 
                           ? "text-white" 
                           : "text-foreground group-hover:text-white"
                       }`}>{type.title}</h3>
                       <p className={`text-sm transition-colors ${
-                        businessType === type.id 
+                        isSelected 
                           ? "text-white" 
                           : "text-muted-foreground group-hover:text-white"
                       }`}>{type.description}</p>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -2407,26 +2421,7 @@ const Onboarding = () => {
                     </div>
 
                     {/* Conditional Content Based on Plan */}
-                    {selectedPlan === 'free' ? (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-5 h-5 text-green-600" />
-                            <h4 className="font-semibold text-green-700">
-                              {t('onboarding.planConfirmation.freeTrial') || '14 Days Free Trial'}
-                            </h4>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {t('onboarding.planConfirmation.trialExplanation') || 'Start with 14 days free, no credit card required'}
-                          </p>
-                        </div>
-                        {planDetails.price > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            {t('onboarding.planConfirmation.afterTrial')?.replace('{price}', `${planDetails.symbol}${planDetails.price}`) || `After the trial period, you'll be charged ${planDetails.symbol}${planDetails.price} per month`}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
+                    {selectedPlan !== 'free' && (
                       <div className="space-y-4">
                         <div className="p-4 bg-muted/50 rounded-lg border">
                           <h4 className="font-semibold mb-2">
@@ -2782,11 +2777,6 @@ const Onboarding = () => {
                   )}
                   <div className="text-center mb-3 sm:mb-4">
                     <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2">{planName}</h3>
-                    {planKey === 'free' && (
-                      <p className="text-xs font-semibold text-green-600 mb-1 sm:mb-2">
-                        {plan.metadata?.priceNote || t('home.pricing.monthlyNote')?.split('.')[0] || '14 Days Free Trial'}
-                      </p>
-                    )}
                     <div className="mb-1 sm:mb-2">
                       <span className="text-2xl sm:text-3xl font-bold text-green-600">
                         {plan.symbol}{plan.price}

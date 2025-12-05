@@ -25,7 +25,7 @@ interface DirectionProviderProps {
   initialLocale?: Locale;
 }
 
-export const DirectionProvider = ({ children, initialLocale = 'en' }: DirectionProviderProps) => {
+export const DirectionProvider = ({ children, initialLocale = 'he' }: DirectionProviderProps) => {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   
   const [isTransitioning, setIsTransitioning] = useState(false);

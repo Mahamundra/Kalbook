@@ -116,7 +116,8 @@ export async function POST(request: NextRequest) {
     // Map to database plan name
     const selectedPlanName = planMapping[planKey] || planKey;
     
-    const planResult = await supabase
+    // Try to find the plan (prefer active plans)
+    let planResult = await supabase
       .from('plans')
       .select('id')
       .eq('name', selectedPlanName)
@@ -125,8 +126,19 @@ export async function POST(request: NextRequest) {
     
     let selectedPlan = planResult.data;
     
+    // If not found, try without active filter (in case plan exists but is marked inactive)
     if (!selectedPlan) {
-      // Fallback to basic plan if selected plan not found
+      planResult = await supabase
+        .from('plans')
+        .select('id')
+        .eq('name', selectedPlanName)
+        .single() as { data: { id: string } | null; error: any };
+      
+      selectedPlan = planResult.data;
+    }
+    
+    // If still not found, try fallback to basic plan (with active filter)
+    if (!selectedPlan) {
       const fallbackResult = await supabase
         .from('plans')
         .select('id')
@@ -134,16 +146,58 @@ export async function POST(request: NextRequest) {
         .eq('active', true)
         .single() as { data: { id: string } | null; error: any };
       
-      const fallbackPlan = fallbackResult.data;
-      if (!fallbackPlan) {
-        return NextResponse.json(
-          { error: 'Plan not found. Please contact support.' },
-          { status: 500 }
-        );
-      }
-      
-      selectedPlan = fallbackPlan;
+      selectedPlan = fallbackResult.data;
     }
+    
+    // If still not found, try basic plan without active filter
+    if (!selectedPlan) {
+      const fallbackResult = await supabase
+        .from('plans')
+        .select('id')
+        .eq('name', 'basic')
+        .single() as { data: { id: string } | null; error: any };
+      
+      selectedPlan = fallbackResult.data;
+    }
+    
+    // Last resort: try to get any plan that exists
+    if (!selectedPlan) {
+      const anyPlanResult = await supabase
+        .from('plans')
+        .select('id')
+        .limit(1)
+        .single() as { data: { id: string } | null; error: any };
+      
+      selectedPlan = anyPlanResult.data;
+    }
+    
+    // If no plan found at all, return error
+    if (!selectedPlan) {
+      console.error('No plans found in database. Plan lookup failed for:', {
+        requestedPlan: selectedPlanName,
+        planKey,
+        originalPlan: plan
+      });
+      
+      // Try to see what plans actually exist in the database
+      const allPlansCheck = await supabase
+        .from('plans')
+        .select('name, active')
+        .limit(10);
+      
+      console.error('Available plans in database:', allPlansCheck.data);
+      
+      return NextResponse.json(
+        { error: 'Plan not found. Please contact support.' },
+        { status: 500 }
+      );
+    }
+    
+    console.log('Plan lookup successful:', {
+      requestedPlan: selectedPlanName,
+      planKey,
+      planId: selectedPlan.id
+    });
 
     // Only basic/free plan gets 14-day trial period
     // Professional/pro and business/custom plans start as active subscriptions
