@@ -263,46 +263,6 @@ export default function Home() {
     checkUser();
   }, []);
 
-  // Handle OAuth callback for homepage admin login (redirect flow)
-  useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const type = urlParams.get('type');
-      
-      // Check if this is an OAuth callback for homepage admin
-      if (code && type === 'homepage_admin') {
-        try {
-          // Wait a bit for session to be set
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Create admin_session cookie by calling our API
-          const response = await fetch('/api/auth/oauth-session', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success && data.user) {
-            // Success - reload to show logged in state
-            window.location.href = '/';
-          } else if (response.status === 404) {
-            // User not registered - could show message or redirect to onboarding
-            window.location.href = '/onboarding';
-          }
-        } catch (error) {
-          console.error('Error handling OAuth callback:', error);
-        }
-      }
-    };
-
-    handleOAuthCallback();
-  }, []);
-
   const handleLogout = async () => {
     try {
       // Call logout API to properly clear cookie
@@ -565,28 +525,28 @@ export default function Home() {
               }}
             >
               <Card 
-                className={`p-6 h-full relative flex flex-col ${isPro ? 'border-2 border-primary shadow-lg scale-105' : ''} ${isCustom ? 'border-2 border-gray-300' : ''}`}
+                className={`p-6 h-full relative flex flex-col border border-[#e2e2e2] ${isPro ? 'border-2 border-[#ff411b] shadow-lg scale-105' : ''} ${isCustom ? 'border-2 border-[#e2e2e2]' : ''}`}
               >
                 {(isPro || planKey === 'free' || planKey === 'custom') && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isPro ? 'bg-[#ff411b] text-white' : 'bg-gray-200 text-gray-700'}`}>
                       {planKey === 'free' ? (locale === 'he' ? 'בסיסי' : 'Basic') : planKey === 'custom' ? 'Custom' : getPricing('bestSeller')}
                     </span>
                   </div>
                 )}
                 <div className="text-center mb-5">
-                  <h3 className="text-xl font-bold mb-2">
+                  <h3 className="text-xl font-bold mb-2 text-[#030408]">
                     {planMetadata?.name || getPlan(planKey, 'name')}
                   </h3>
                   <div className="mb-2">
                     {loading ? (
-                      <span className="text-3xl font-bold text-primary">...</span>
+                      <span className="text-3xl font-bold text-gray-700">...</span>
                     ) : displayPrice === 'Free' ? (
-                      <span className="text-3xl font-bold text-primary">
+                      <span className="text-3xl font-bold text-gray-700">
                         {locale === 'he' ? 'חינם' : 'Free'}
                       </span>
                     ) : planKey === 'custom' ? (
-                      <span className="text-3xl font-bold text-primary">
+                      <span className="text-3xl font-bold text-gray-700">
                         {(locale === 'he' || locale === 'ar') ? (
                           <>
                             <span className="text-xs text-gray-600 font-normal">
@@ -611,7 +571,7 @@ export default function Home() {
                       </span>
                     ) : (
                       <>
-                        <span className="text-3xl font-bold text-primary">
+                        <span className={`text-3xl font-bold ${isPro ? 'text-[#ff411b]' : 'text-gray-700'}`}>
                           {currencySymbol}{displayPrice}
                         </span>
                         <span className="text-gray-500 text-base ml-1">
@@ -631,7 +591,7 @@ export default function Home() {
                         <>
                           התחל לנהל את ההזמנות שלך היום<br />
                           <br />
-                          <span className="text-primary font-bold">אין צורך בכרטיס אשראי</span>
+                          <span className="text-gray-700 font-bold">אין צורך בכרטיס אשראי</span>
                         </>
                       ) : (
                         getPlan(planKey, 'note')
@@ -648,7 +608,7 @@ export default function Home() {
                         className="relative"
                       >
                         <div
-                          className={`flex items-start gap-2 py-1 px-2 rounded-lg transition-all cursor-pointer group ${isHovered ? 'bg-primary/10' : 'hover:bg-primary/10'}`}
+                          className={`flex items-start gap-2 py-1 px-2 rounded-lg transition-all cursor-pointer group ${isHovered ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
                           onMouseEnter={() => {
                             setHoveredFeature({ planKey, featureIndex: i });
                           }}
@@ -657,15 +617,15 @@ export default function Home() {
                             setHoveredFeature(null);
                           }}
                         >
-                          <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                          <span className={`text-sm text-gray-700 transition-all ${isHovered ? 'font-bold' : 'group-hover:font-bold'}`}>{highlight}</span>
+                          <Check className="w-4 h-4 text-[#17a34a] mt-0.5 flex-shrink-0" />
+                          <span className={`text-sm text-gray-600 transition-all ${isHovered ? 'font-bold' : 'group-hover:font-bold'}`}>{highlight}</span>
                         </div>
                         {isHovered && (
                           <div 
                             className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 z-50 w-72 p-4 bg-white border border-gray-200 rounded-lg shadow-xl`}
                             style={{ pointerEvents: 'none' }}
                           >
-                            <h4 className="font-semibold text-primary mb-2 text-base">{highlight}</h4>
+                            <h4 className="font-semibold text-[#030408] mb-2 text-base">{highlight}</h4>
                             <p className="text-sm text-gray-600 leading-relaxed">{getFeatureDescription(highlight, locale)}</p>
                           </div>
                         )}
@@ -675,7 +635,7 @@ export default function Home() {
                 </ul>
                 {planKey === 'custom' ? (
                   <Button
-                    className="w-full"
+                    className="w-full border border-[#ff411b] text-[#ff411b] bg-white hover:bg-orange-50"
                     variant="outline"
                     size="lg"
                     onClick={() => setContactModalOpen(true)}
@@ -685,7 +645,7 @@ export default function Home() {
                 ) : (
                   <Link href={`/onboarding?plan=${planKey}`} className="block mt-auto">
                     <Button
-                      className="w-full"
+                      className={`w-full ${isPro ? 'bg-[#ff411b] hover:bg-[#e23a16] text-white' : 'border border-[#ff411b] text-[#ff411b] bg-white hover:bg-orange-50'}`}
                       variant={isPro ? 'default' : 'outline'}
                       size="lg"
                     >
@@ -708,23 +668,16 @@ export default function Home() {
         isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center gap-2 relative">
-            {/* Left side - Language Toggle */}
-            <div className="flex-1 flex items-center gap-2 sm:gap-3">
-              <LanguageToggle />
-            </div>
-            
-            {/* Center - Logo */}
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <img 
                 src="/kalbook-logo.svg" 
                 alt="KalBook.io" 
                 className="h-8 sm:h-12 w-auto"
               />
             </div>
-            
-            {/* Right side - User button */}
-            <div className="flex-1 flex items-center justify-end gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <LanguageToggle />
               {!loadingUser && !user && (
                 <Button 
                   variant="outline" 
@@ -759,12 +712,12 @@ export default function Home() {
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
+                      <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer hover:bg-[#ff411b] hover:text-white focus:bg-[#ff411b] focus:text-white">
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-[#ff3e1b] hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
+                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-[#ff411b] hover:bg-[#e23a16] hover:text-white focus:bg-[#e23a16] focus:text-white">
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.logout') || 'Logout'}
                       </DropdownMenuItem>
@@ -778,7 +731,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-16 md:pt-24 pb-12 sm:pb-16 md:pb-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-16 md:pt-24 pb-12 sm:pb-16 md:pb-20">
         <div className="flex flex-col md:grid md:grid-cols-[1fr_1fr] gap-6 sm:gap-8 md:gap-12 items-center" dir="ltr">
           {/* Phone Mockup Side - First for RTL, Second for LTR */}
           {isRTL && (
@@ -847,125 +800,46 @@ export default function Home() {
           >
             {/* Main Content - Centered with improved hierarchy */}
             <div className="max-w-3xl mx-auto">
-              {(() => {
-                const subtitleText = getHome('subtitle');
-                const paragraphs = subtitleText.split('\n\n');
-                
-                return paragraphs.map((paragraph: string, index: number) => {
-                  const lines = paragraph.split('\n').filter(line => line.trim());
-                  const isFirstParagraph = index === 0;
-                  const isBulletList = index > 0 && index < paragraphs.length - 1;
-                  const isLastParagraph = index === paragraphs.length - 1;
-                  
-                  // First paragraph - Main headline (largest, boldest)
-                  if (isFirstParagraph) {
-                    const titleText = "הדרך הקלה לנהל את העסק שלך";
-                    const subheadingText = "מערכת ניהול חכמה שמרכזת את כל הפעולות החשובות לעסק שלך";
-                    
-                    return (
-                      <div key={index} dir={isRTL ? 'rtl' : 'ltr'}>
-                        <h1 
-                          className="text-2xl md:text-3xl font-semibold text-slate-800 text-center leading-snug max-w-[700px] mx-auto"
-                        >
-                          {titleText}
-                        </h1>
-                        <p className="text-center text-slate-600 mt-4 text-base md:text-lg">
-                          {subheadingText}
-                        </p>
-                      </div>
-                    );
-                  }
-                  
-                  // Bullet list - Compact, centered, smaller
-                  if (isBulletList) {
-                    return (
-                      <div 
-                        key={index}
-                        className="mb-3 sm:mb-4"
-                        dir={isRTL ? 'rtl' : 'ltr'}
-                      >
-                        {lines.map((line: string, lineIndex: number) => {
-                          const trimmedLine = line.trim();
-                          if (!trimmedLine) return null;
-                          
-                          // Skip the intro line (מערכת ניהול חכמה...) since it's already shown as subheading
-                          const isIntroLine = lineIndex === 0 && (trimmedLine.includes('מערכת ניהול חכמה') || trimmedLine.includes(':'));
-                          if (isIntroLine) {
-                            return null;
-                          }
-                          
-                          // Bullet items - smaller, compact, centered
-                          return (
-                            <div 
-                              key={lineIndex}
-                              className="flex items-center justify-center mb-0.5"
-                              dir={isRTL ? 'rtl' : 'ltr'}
-                            >
-                              <span className={`text-[#ff3e1a] text-3xl ${isRTL ? 'ml-2' : 'mr-2'}`}>•</span>
-                              <span className="text-sm sm:text-base text-gray-600 text-center">
-                                {trimmedLine}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  }
-                  
-                  // Last paragraph - Bold sales sentence (highlighted)
-                  if (isLastParagraph) {
-                    return (
-                      <p 
-                        key={index}
-                        className="text-lg sm:text-xl md:text-2xl font-bold text-[#ff3e1b] mb-8 sm:mb-10 mt-6 sm:mt-8 leading-none"
-                        dir={isRTL ? 'rtl' : 'ltr'}
-                      >
-                        {lines.map((line: string, lineIndex: number) => {
-                          const trimmedLine = line.trim();
-                          const fixedLine = isRTL && trimmedLine.endsWith('.') 
-                            ? trimmedLine.slice(0, -1) + '\u200E.' 
-                            : trimmedLine;
-                          return (
-                            <span key={lineIndex}>
-                              {fixedLine}
-                              {lineIndex < lines.length - 1 && <br />}
-                            </span>
-                          );
-                        })}
-                      </p>
-                    );
-                  }
-                  
-                  // Default paragraph styling
-                  return (
-                    <p 
-                      key={index}
-                      className="text-base sm:text-lg text-gray-600 mb-3 sm:mb-4"
-                      dir={isRTL ? 'rtl' : 'ltr'}
-                    >
-                      {lines.map((line: string, lineIndex: number) => {
-                        const trimmedLine = line.trim();
-                        const fixedLine = isRTL && trimmedLine.endsWith('.') 
-                          ? trimmedLine.slice(0, -1) + '\u200E.' 
-                          : trimmedLine;
-                        return (
-                          <span key={lineIndex}>
-                            {fixedLine}
-                            {lineIndex < lines.length - 1 && <br />}
-                          </span>
-                        );
-                      })}
-                    </p>
-                  );
-                });
-              })()}
+              {/* Main headline */}
+              <div dir={isRTL ? 'rtl' : 'ltr'}>
+                <h1 
+                  className="text-2xl md:text-3xl font-semibold text-[#030408] text-center leading-snug max-w-[700px] mx-auto"
+                >
+                  {getHome('hero.title')}
+                </h1>
+                <p className="text-center text-gray-600 mt-4 text-base md:text-lg">
+                  {getHome('hero.subtitle')}
+                </p>
+              </div>
+              
+              {/* Bullet list */}
+              <div className="mb-3 sm:mb-4" dir={isRTL ? 'rtl' : 'ltr'}>
+                {((getHome('hero.bullets') as string[]) || []).map((item: string, itemIndex: number) => (
+                  <div 
+                    key={itemIndex}
+                    className="flex items-center justify-center mb-0.5"
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  >
+                    <span className={`text-gray-600 text-3xl ${isRTL ? 'ml-2' : 'mr-2'}`}>•</span>
+                    <span className="text-sm sm:text-base text-gray-600 text-center">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Highlight line */}
+              <p 
+                className="text-lg sm:text-xl md:text-2xl font-bold text-gray-700 mb-8 sm:mb-10 mt-6 sm:mt-8 leading-none text-center"
+                dir={isRTL ? 'rtl' : 'ltr'}
+              >
+                {getHome('hero.highlight')}
+              </p>
             </div>
-
-            {/* CTA Buttons - Centered, larger, with shadow */}
-            <div className={`flex gap-4 sm:gap-5 justify-center flex-wrap mt-8 sm:mt-10 ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className={`flex gap-3 sm:gap-4 justify-center flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
               <Button 
                 size="lg" 
-                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold shadow-md hover:shadow-lg transition-all duration-200 bg-[#ff3e1a] hover:bg-[#ff3e1a]/90"
+                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto bg-[#ff411b] hover:bg-[#e23a16] text-white shadow-md"
                 onClick={() => {
                   const pricingSection = document.getElementById('pricing');
                   if (pricingSection) {
@@ -975,15 +849,15 @@ export default function Home() {
               >
                 {getHome('startNow')}
                 {isRTL ? (
-                  <ArrowLeft className="mr-2 w-5 h-5 sm:w-6 sm:h-6" />
+                  <ArrowLeft className="mr-2 w-5 h-5" />
                 ) : (
-                  <ArrowRight className="ml-2 w-5 h-5 sm:w-6 sm:h-6" />
+                  <ArrowRight className="ml-2 w-5 h-5" />
                 )}
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-base sm:text-lg md:text-xl px-8 sm:px-10 md:px-12 py-6 sm:py-7 w-full sm:w-auto font-semibold border-2 shadow-md hover:shadow-lg transition-all duration-200"
+                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto border border-[#ff411b] text-[#ff411b] bg-white hover:bg-orange-50"
                 onClick={() => {
                   const featuresSection = document.getElementById('features');
                   if (featuresSection) {
@@ -1064,7 +938,7 @@ export default function Home() {
           transition={{ duration: 0.3 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{getHome('features.title')}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#030408]">{getHome('features.title')}</h2>
           <p className="text-gray-600 text-lg">{getHome('features.subtitle') || 'Everything you need to run your service business smoothly'}</p>
         </motion.div>
 
@@ -1080,15 +954,15 @@ export default function Home() {
                 transition={{ duration: 0.25, delay: index * 0.05 }}
               >
                 <Card 
-                  className="p-6 h-full hover:shadow-lg transition-shadow cursor-pointer"
+                  className="p-6 h-full hover:shadow-lg transition-shadow cursor-pointer bg-[#f7f7f8] border border-[#e2e2e2]"
                   onClick={() => setSelectedFeature(key)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <Icon className="w-6 h-6 text-primary" />
+                    <div className="p-3 rounded-lg">
+                      <Icon className="w-6 h-6 text-gray-700" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-2">{getFeature(key, 'title')}</h3>
+                      <h3 className="text-xl font-semibold mb-2 text-[#030408]">{getFeature(key, 'title')}</h3>
                       <p className="text-gray-600">{getFeature(key, 'desc')}</p>
                     </div>
                   </div>
@@ -1106,13 +980,13 @@ export default function Home() {
             <>
               <DialogHeader>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="p-3 rounded-lg bg-primary/10">
+                  <div className="p-3 rounded-lg">
                     {(() => {
                       const Icon = featureIcons[selectedFeature as keyof typeof featureIcons] || Calendar;
-                      return <Icon className="w-8 h-8 text-primary" />;
+                      return <Icon className="w-8 h-8 text-gray-600" />;
                     })()}
                   </div>
-                  <DialogTitle className="text-2xl">{getFeature(selectedFeature, 'title')}</DialogTitle>
+                  <DialogTitle className="text-2xl text-[#030408]">{getFeature(selectedFeature, 'title')}</DialogTitle>
                 </div>
               </DialogHeader>
               <DialogDescription asChild>
@@ -1127,6 +1001,31 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
+      {/* Who is it for Section - Compact Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.3 }}
+          className="text-center mb-8"
+        >
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-[#030408]">{getHome('whoIsItFor.title')}</h2>
+        </motion.div>
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {((getHome('whoIsItFor.categories') as string[]) || []).map((category: string, index: number) => (
+              <div 
+                key={index}
+                className={`p-4 bg-[#f7f7f8] border border-[#e2e2e2] rounded-lg text-center ${index === 4 ? 'md:col-span-2' : ''}`}
+              >
+                <p className="text-sm text-gray-700">{category}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1137,7 +1036,7 @@ export default function Home() {
             transition={{ duration: 0.3 }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{getPricing('title')}</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#030408]">{getPricing('title')}</h2>
             <p className="text-gray-600 text-lg mb-2">{getPricing('subtitle')}</p>
           </motion.div>
 
@@ -1153,6 +1052,28 @@ export default function Home() {
             pricing={pricing}
             loading={pricingLoading}
           />
+        </div>
+      </section>
+
+      {/* Testimonials Section - Compact */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.3 }}
+          className="text-center mb-8"
+        >
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-[#030408]">{getHome('testimonials.title')}</h2>
+        </motion.div>
+        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          {((getHome('testimonials.items') as Array<{text: string, author: string}>) || []).map((testimonial: {text: string, author: string}, index: number) => (
+            <Card key={index} className="p-4 bg-[#f7f7f8] border border-[#e2e2e2]">
+              <p className={`text-sm ${index === 0 ? 'text-gray-700' : 'text-gray-600'} text-center`} dir={isRTL ? 'rtl' : 'ltr'}>
+                "{testimonial.text}" – {testimonial.author}
+              </p>
+            </Card>
+          ))}
         </div>
       </section>
 
@@ -1239,7 +1160,7 @@ export default function Home() {
           transition={{ duration: 0.3 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t('home.faq.title')}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#030408]">{t('home.faq.title')}</h2>
         </motion.div>
 
         <div className="space-y-4">
@@ -1259,22 +1180,25 @@ export default function Home() {
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.2, delay: displayIndex * 0.05 }}
               >
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden bg-white border border-[#e2e2e2]">
                   <button
                     onClick={() => toggleFaq(originalIndex)}
+                    style={{
+                      backgroundColor: expandedFaq === originalIndex ? 'rgb(247 247 248 / var(--tw-bg-opacity))' : undefined
+                    }}
                     className={`w-full p-6 flex items-center justify-between text-left transition-all duration-300 ease-in-out ${
                       expandedFaq === originalIndex 
-                        ? 'bg-primary/5 text-primary' 
-                        : 'hover:bg-gray-50'
-                    }`}
+                        ? 'bg-[#f7f7f8]' 
+                        : ''
+                    } hover:!bg-[#f7f7f8] text-[#030408] hover:!text-[#030408]`}
                   >
                     <span className={`font-semibold text-lg pr-4 transition-colors duration-300 ${
-                      expandedFaq === originalIndex ? 'text-primary' : ''
+                      expandedFaq === originalIndex ? 'text-[#030408]' : 'text-[#030408]'
                     }`}>{getFaq(originalIndex, 'q')}</span>
                     <ChevronDown
                       className={`w-5 h-5 transition-all duration-300 ease-in-out flex-shrink-0 ${
                         expandedFaq === originalIndex 
-                          ? 'transform rotate-180 text-primary' 
+                          ? 'transform rotate-180 text-gray-500' 
                           : 'text-gray-500'
                       }`}
                     />
@@ -1322,24 +1246,24 @@ export default function Home() {
               <h3 className="font-semibold text-lg">{getHome('contact.info') || 'Contact Information'}</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-primary" />
-                  <a href="mailto:contact@kalbook.io" className="text-sm hover:text-primary transition-colors">
+                  <Mail className="w-5 h-5 text-gray-600" />
+                  <a href="mailto:contact@kalbook.io" className="text-sm hover:text-gray-700 transition-colors">
                     contact@kalbook.io
                   </a>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-primary" />
-                  <a href="tel:+972542636737" className="text-sm hover:text-primary transition-colors">
+                  <Phone className="w-5 h-5 text-gray-600" />
+                  <a href="tel:+972542636737" className="text-sm hover:text-gray-700 transition-colors">
                     054-263-3737
                   </a>
                 </div>
                 <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <MessageSquare className="w-5 h-5 text-gray-600" />
                   <a
                     href="https://wa.me/972542636737"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm hover:text-primary transition-colors"
+                    className="text-sm hover:text-gray-700 transition-colors"
                   >
                     WhatsApp
                   </a>
@@ -1355,6 +1279,7 @@ export default function Home() {
                   id="contact-name"
                   value={contactFormData.name}
                   onChange={(e) => setContactFormData({ ...contactFormData, name: e.target.value })}
+                  className="bg-[#f7f7f8] border border-[#e2e2e2]"
                   required
                 />
               </div>
@@ -1365,6 +1290,7 @@ export default function Home() {
                   type="email"
                   value={contactFormData.email}
                   onChange={(e) => setContactFormData({ ...contactFormData, email: e.target.value })}
+                  className="bg-[#f7f7f8] border border-[#e2e2e2]"
                   required
                 />
               </div>
@@ -1374,11 +1300,12 @@ export default function Home() {
                   id="contact-message"
                   value={contactFormData.message}
                   onChange={(e) => setContactFormData({ ...contactFormData, message: e.target.value })}
+                  className="bg-[#f7f7f8] border border-[#e2e2e2]"
                   rows={4}
                   required
                 />
               </div>
-              <Button type="submit" disabled={submittingContact} className="w-full">
+              <Button type="submit" disabled={submittingContact} className="w-full bg-[#ff411b] hover:bg-[#e23a16] text-white">
                 {submittingContact ? (getHome('contact.submitting') || 'Sending...') : (getHome('contact.submit') || 'Send Message')}
               </Button>
             </form>

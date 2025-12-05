@@ -260,6 +260,12 @@ html[lang="he"] * {
     color: white;
   }
   
+  /* Override hover effect for footer buttons - only show underline */
+  footer button:hover:not(:disabled) {
+    background-color: transparent !important;
+    color: inherit !important;
+  }
+  
   /* Thin scrollbar for modals */
   .scrollbar-thin {
     scrollbar-width: thin;

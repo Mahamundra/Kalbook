@@ -1278,10 +1278,48 @@
           "price": "custom",
           "priceNote": "Tailored to your needs",
           "cta": "Contact Us",
-          "note": "Custom solutions for your specific requirements",
+          "note": "Custom solutions for your specific requirements. Dedicated support, advanced capabilities, and everything you need to grow fast.",
           "highlights": ["Everything in Pro", "Unlimited staff", "API Access", "White-label solution", "Custom integrations", "Advanced reporting", "Multi-location support", "Custom workflows", "Dedicated support", "Custom development"]
         }
       }
+    },
+    "hero": {
+      "title": "The easy way to manage customers, schedules, and appointments - all in one place.",
+      "subtitle": "Everything in one place: appointments, customers, staff, reminders - without getting scattered.",
+      "bullets": [
+        "24/7 online bookings - so you don't answer phones all day",
+        "Smart and updating schedule - no double bookings",
+        "Customer and staff management - records, reminders, history",
+        "Automatic reminders - fewer no-shows, more order"
+      ],
+      "highlight": "Easy to operate, quick to set up, and fully in Hebrew."
+    },
+    "whoIsItFor": {
+      "title": "Who is it for?",
+      "categories": [
+        "Beauty salons and grooming",
+        "Fitness and training",
+        "Health and wellness",
+        "Clinics and therapists",
+        "Any business that manages customers and schedules"
+      ]
+    },
+    "testimonials": {
+      "title": "Customer Reviews",
+      "items": [
+        {
+          "text": "I switched to KalBook and saved 7 hours a month on scheduling appointments. Simple and good system.",
+          "author": "Fitness trainer"
+        },
+        {
+          "text": "Finally a Hebrew system that works smoothly. Fewer no-shows and much more order.",
+          "author": "Fitness trainer"
+        },
+        {
+          "text": "My entire clinic is managed from my phone. Never going back to WhatsApp.",
+          "author": "Cosmetologist"
+        }
+      ]
     },
     "faq": {
       "title": "Frequently Asked Questions",
