@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ported/ui/select';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { formatDate } from '@/components/ported/lib/i18n';
+import { formatDate } from '@/lib/i18n';
 import { Send, MessageSquare, Mail, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 

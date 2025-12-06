@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AdminSidebar } from '@/components/ported/admin/AdminSidebar';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,12 +15,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ported/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, LogOut, Building2, User, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import Link from 'next/link';
-import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
 
 interface User {

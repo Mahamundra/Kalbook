@@ -1,17 +1,17 @@
 "use client";
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
-import { Button } from '@/components/ported/ui/button';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ported/ui/input';
-import { Label } from '@/components/ported/ui/label';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useParams, useSearchParams } from 'next/navigation';
 import { 
   getSettings as getMockSettings,
-} from '@/components/ported/lib/mockData';
+} from '@/lib/mockData';
 import { 
   getServices, 
   getWorkers,
@@ -26,7 +26,7 @@ import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, ChevronD
 import { Badge } from '@/components/ui/badge';
 import type { Service, Appointment, Worker } from '@/types/admin';
 import Link from 'next/link';
-import { LoginRegisterDialog } from '@/components/ported/components/LoginRegisterDialog';
+import { LoginRegisterDialog } from '@/components/LoginRegisterDialog';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import {
   AlertDialog,
@@ -37,7 +37,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ported/ui/alert-dialog';
+} from '@/components/ui/alert-dialog';
 
 type BookingStep = 1 | 2 | 3 | 4;
 

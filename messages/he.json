@@ -1041,7 +1041,8 @@
     "registrationError": "ההרשמה נכשלה. אנא נסה שוב.",
     "logout": "התנתק",
     "logoutSuccess": "התנתקת בהצלחה",
-    "verifiedPhone": "טלפון מאומת:"
+    "verifiedPhone": "טלפון מאומת:",
+    "waitBeforeRequestingCode": "אנא המתן לפני בקשת קוד נוסף"
   },
   "adminLogin": {
     "title": "כניסת מנהל",

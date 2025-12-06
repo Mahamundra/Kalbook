@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { isRTL as checkRTL, detectBrowserLocale, getLocaleDisplayName } from '@/components/ported/lib/i18n';
+import { isRTL as checkRTL, detectBrowserLocale, getLocaleDisplayName } from '@/lib/i18n';
 
 type Locale = 'en' | 'he' | 'ar' | 'ru';
 

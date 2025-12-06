@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { AlertCircle, Users, Calendar, TrendingDown } from 'lucide-react';
 import Link from 'next/link';

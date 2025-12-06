@@ -3,7 +3,7 @@ import { he, ar, ru } from "date-fns/locale";
 import type { Locale } from "date-fns";
 
 import { useCalendar } from "@/calendar/contexts/calendar-context";
-import { useLocale } from "@/components/ported/hooks/useLocale";
+import { useLocale } from "@/hooks/useLocale";
 
 export function TodayButton() {
   const { setSelectedDate } = useCalendar();

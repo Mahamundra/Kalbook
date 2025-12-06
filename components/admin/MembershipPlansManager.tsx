@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';

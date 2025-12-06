@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAppointments, createAppointment, updateAppointment, deleteAppointment } from '@/lib/api/services';
 import { getWorkers, getServices } from '@/lib/api/services';
-import type { Appointment, Worker, Service } from '@/components/ported/types/admin';
+import type { Appointment, Worker, Service } from '@/types/admin';
 import { appointmentsToEvents, type ExtendedSchedulerEvent } from './event-mapper';
 
 interface UseAppointmentsOptions {

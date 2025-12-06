@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Alert, AlertDescription } from '@/components/ported/ui/alert';
-import { Button } from '@/components/ported/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { UpgradeModal } from './UpgradeModal';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 
 interface TrialStatus {
   success: boolean;

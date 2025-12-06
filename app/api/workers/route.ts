@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { toE164Format } from '@/lib/customers/utils';
-import type { Worker } from '@/components/ported/types/admin';
+import type { Worker } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type WorkerRow = Database['public']['Tables']['workers']['Row'];

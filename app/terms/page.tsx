@@ -4,17 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Footer } from '@/components/ui/Footer';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
-import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ported/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
 import { LogOut, LayoutDashboard, ChevronDown } from 'lucide-react';
 
@@ -127,18 +127,6 @@ export default function TermsPage() {
                 
                 {/* User menu / Greetings */}
                 <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                  {!loadingUser && !user && (
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
-                        <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
-                          {getTimeBasedEmoji()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs sm:text-sm text-muted-foreground">
-                        {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}
-                      </span>
-                    </div>
-                  )}
                   {!loadingUser && user && (
                     <>
                       <div className="w-2 sm:w-3" />
@@ -147,13 +135,8 @@ export default function TermsPage() {
                           <button 
                             className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
                           >
-                            <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
-                              <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
-                                {getTimeBasedEmoji()}
-                              </AvatarFallback>
-                            </Avatar>
                             <span className="text-xs sm:text-sm text-muted-foreground">
-                              {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
+                              <span className="font-medium text-foreground">{user.name}</span>
                             </span>
                             <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                           </button>

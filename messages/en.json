@@ -978,7 +978,8 @@
     "registrationError": "Registration failed. Please try again.",
     "logout": "Logout",
     "logoutSuccess": "Logged out successfully",
-    "verifiedPhone": "Verified Phone:"
+    "verifiedPhone": "Verified Phone:",
+    "waitBeforeRequestingCode": "Please wait before requesting another code"
   },
   "adminLogin": {
     "title": "Admin Login",

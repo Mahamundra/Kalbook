@@ -1,7 +1,7 @@
 "use client";
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { getLocaleDisplayName } from '@/components/ported/lib/i18n';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { getLocaleDisplayName } from '@/lib/i18n';
+import { useLocale } from '@/hooks/useLocale';
 import { Languages } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -10,7 +10,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from '@/components/ported/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 type Locale = 'en' | 'he' | 'ar' | 'ru';

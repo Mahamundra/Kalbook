@@ -10,7 +10,7 @@ import type {
   Worker,
   Settings,
   Template,
-} from '@/components/ported/types/admin';
+} from '@/types/admin';
 
 /**
  * Base API error class

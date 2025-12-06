@@ -5,7 +5,7 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from 'react';
-import type { Service, Worker, Customer } from '@/components/ported/types/admin';
+import type { Service, Worker, Customer } from '@/types/admin';
 
 interface AppointmentContextType {
   services: Service[];

@@ -1041,7 +1041,8 @@
     "registrationError": "فشل التسجيل. يرجى المحاولة مرة أخرى.",
     "logout": "تسجيل الخروج",
     "logoutSuccess": "تم تسجيل الخروج بنجاح",
-    "verifiedPhone": "الهاتف المؤكد:"
+    "verifiedPhone": "الهاتف المؤكد:",
+    "waitBeforeRequestingCode": "يرجى الانتظار قبل طلب رمز آخر"
   },
   "adminLogin": {
     "title": "تسجيل دخول المدير",

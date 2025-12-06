@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLocale } from '@/components/ported/hooks/useLocale';
-import { formatDate } from '@/components/ported/lib/i18n';
+import { useLocale } from '@/hooks/useLocale';
+import { formatDate } from '@/lib/i18n';
 import { Loader2 } from 'lucide-react';
 
 interface CustomerStatistics {

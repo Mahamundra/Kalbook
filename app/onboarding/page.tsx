@@ -1,3 +1,3 @@
 "use client";
-import Onboarding from "@/components/ported/pages/Onboarding";
+import Onboarding from "@/components/pages/Onboarding";
 export default function Page() { return <Onboarding />; }

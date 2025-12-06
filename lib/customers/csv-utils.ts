@@ -2,7 +2,7 @@
  * CSV Export/Import utilities for customers
  */
 
-import type { Customer } from '@/components/ported/types/admin';
+import type { Customer } from '@/types/admin';
 
 /**
  * Export customers to CSV string

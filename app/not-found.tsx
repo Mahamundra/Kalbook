@@ -1,8 +1,8 @@
 "use client";
 import Link from 'next/link';
-import { Button } from '@/components/ported/ui/button';
+import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 
 export default function NotFound() {
   const { t, isRTL, dir } = useLocale();

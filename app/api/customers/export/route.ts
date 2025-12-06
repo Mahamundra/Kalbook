@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { mapCustomerToInterface } from '@/lib/customers/utils';
 import { exportCustomersToCSV } from '@/lib/customers/csv-utils';
 import type { Database } from '@/lib/supabase/database.types';
-import type { Customer } from '@/components/ported/types/admin';
+import type { Customer } from '@/types/admin';
 
 /**
  * POST /api/customers/export

@@ -2,7 +2,7 @@
  * Data mapper for converting between Appointment/Worker and big-calendar IEvent/IUser formats
  */
 
-import type { Appointment, Worker } from '@/components/ported/types/admin';
+import type { Appointment, Worker } from '@/types/admin';
 import type { IEvent, IUser } from '@/calendar/interfaces';
 import type { TEventColor } from '@/calendar/types';
 

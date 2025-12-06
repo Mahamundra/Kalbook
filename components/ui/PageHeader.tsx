@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from '@/components/ported/ui/button';
+import { Button } from '@/components/ui/button';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 
 interface PageHeaderProps {
   homepageButtonText?: string;

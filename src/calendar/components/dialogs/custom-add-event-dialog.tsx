@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { useCalendar } from "@/calendar/contexts/calendar-context";
-import { useLocale } from "@/components/ported/hooks/useLocale";
+import { useLocale } from "@/hooks/useLocale";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 
-import type { Service, Worker, Customer } from "@/components/ported/types/admin";
+import type { Service, Worker, Customer } from "@/types/admin";
 
 interface IProps {
   children: React.ReactNode;

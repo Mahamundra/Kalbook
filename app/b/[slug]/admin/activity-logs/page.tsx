@@ -1,5 +1,5 @@
 "use client";
-import Component from "@/components/ported/pages/admin/ActivityLogs";
+import Component from "@/components/pages/admin/ActivityLogs";
 
 export default function Page() {
   return <Component />;

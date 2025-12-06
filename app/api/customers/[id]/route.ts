@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapCustomerToInterface, normalizePhone } from '@/lib/customers/utils';
-import type { Customer } from '@/components/ported/types/admin';
+import type { Customer } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type CustomerRow = Database['public']['Tables']['customers']['Row'];

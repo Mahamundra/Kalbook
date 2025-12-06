@@ -2,21 +2,21 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ported/ui/button';
-import { LoadingButton } from '@/components/ported/ui/loading-button';
-import { Input } from '@/components/ported/ui/input';
-import { Label } from '@/components/ported/ui/label';
-import { Alert, AlertDescription } from '@/components/ported/ui/alert';
+import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ported/ui/dialog';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+} from '@/components/ui/dialog';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { useIsMobile } from '@/components/ported/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
@@ -105,12 +105,10 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
       toast.success(t('adminLogin.codeSent') || 'Code sent successfully');
-      // Focus first OTP input after modal opens (desktop only)
-      if (!isMobile) {
-        setTimeout(() => {
-          otpInputRefs.current[0]?.focus();
-        }, 100);
-      }
+      // Focus first OTP input after modal opens
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
     } catch (error: any) {
       setSendingOtp(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
@@ -131,8 +129,8 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     const newCode = newDigits.join('');
     setCode(newCode);
 
-    // Auto-focus next input (desktop only)
-    if (value && index < 5 && !isMobile) {
+    // Auto-focus next input
+    if (value && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
 
@@ -144,7 +142,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
 
   // Handle OTP key down (backspace)
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0 && !isMobile) {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
     }
   };
@@ -162,7 +160,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     setCode(pastedCode);
     if (pastedCode.length === 6) {
       handleVerifyCode(pastedCode);
-    } else if (!isMobile) {
+    } else {
       otpInputRefs.current[Math.min(pastedCode.length, 5)]?.focus();
     }
   };
@@ -417,9 +415,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       // Clear OTP on error
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
-      if (!isMobile) {
-        otpInputRefs.current[0]?.focus();
-      }
+      otpInputRefs.current[0]?.focus();
     }
   };
 
@@ -442,14 +438,14 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     setError(null);
   };
 
-  // Focus first OTP input when step changes to verify (desktop only)
+  // Focus first OTP input when step changes to verify
   useEffect(() => {
-    if (step === 'verify' && otpInputRefs.current[0] && !isMobile) {
+    if (step === 'verify' && otpInputRefs.current[0]) {
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
       }, 100);
     }
-  }, [step, isMobile]);
+  }, [step]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -752,7 +748,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                     onPaste={index === 0 ? handleOtpPaste : undefined}
                     disabled={isLoading}
                     className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
-                    autoFocus={index === 0 && !isMobile}
+                    autoFocus={index === 0}
                   />
                 ))}
               </div>

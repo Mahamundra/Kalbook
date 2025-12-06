@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button } from '@/components/ported/ui/button';
-import { Input } from '@/components/ported/ui/input';
-import { Label } from '@/components/ported/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ported/ui/card';
-import { Alert, AlertDescription } from '@/components/ported/ui/alert';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ported/ui/input-otp';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { useIsMobile } from '@/components/ported/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Loader2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';

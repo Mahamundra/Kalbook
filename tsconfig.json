@@ -21,23 +21,19 @@
         "./*"
       ],
       "@/components/ui/*": [
-        "./components/ported/ui/*",
         "./components/ui/*"
       ],
       "@/components/admin/*": [
-        "./components/admin/*",
-        "./components/ported/admin/*"
+        "./components/admin/*"
       ],
       "@/hooks/*": [
-        "./src/hooks/*",
-        "./components/ported/hooks/*"
+        "./src/hooks/*"
       ],
       "@/types/*": [
-        "./components/ported/types/*"
+        "./lib/types/*"
       ],
       "@/lib/*": [
-        "./lib/*",
-        "./components/ported/lib/*"
+        "./lib/*"
       ],
       "@/calendar/*": [
         "./src/calendar/*"
@@ -58,6 +54,8 @@
   ],
   "exclude": [
     "node_modules",
-    "bizcraft-app-suite-main 3/**"
+    "bizcraft-app-suite-main 3/**",
+    "scripts/**",
+    "components/ported/**"
   ]
 }

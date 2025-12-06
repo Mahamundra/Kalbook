@@ -2,7 +2,7 @@
  * Customer utility functions
  */
 
-import type { Customer, Visit } from '@/components/ported/types/admin';
+import type { Customer, Visit } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type CustomerRow = Database['public']['Tables']['customers']['Row'];

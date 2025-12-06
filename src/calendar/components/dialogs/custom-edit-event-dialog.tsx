@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { useCalendar } from "@/calendar/contexts/calendar-context";
-import { useLocale } from "@/components/ported/hooks/useLocale";
+import { useLocale } from "@/hooks/useLocale";
 import { getAppointmentIdFromEventId } from "@/lib/calendar/big-calendar-mapper";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { toLocalDateTimeString } from "@/lib/calendar/date-utils";
 
-import type { Service, Worker, Customer, Appointment } from "@/components/ported/types/admin";
+import type { Service, Worker, Customer, Appointment } from "@/types/admin";
 import type { IEvent } from "@/calendar/interfaces";
 
 interface IProps {

@@ -1,5 +1,5 @@
 "use client";
-import Component from "@/components/ported/pages/admin/QRCodes";
+import Component from "@/components/pages/admin/QRCodes";
 
 export default function Page() {
   return <Component />;

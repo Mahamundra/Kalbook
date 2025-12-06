@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useCalendar } from "@/calendar/contexts/calendar-context";
 import { useTranslations } from "@/calendar/hooks/use-translations";
-import { useLocale } from "@/components/ported/hooks/useLocale";
+import { useLocale } from "@/hooks/useLocale";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

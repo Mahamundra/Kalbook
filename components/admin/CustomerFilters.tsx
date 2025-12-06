@@ -5,17 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ported/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { X, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ported/ui/popover';
-import { Checkbox } from '@/components/ported/ui/checkbox';
+} from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface CustomerFilters {
   search?: string;

@@ -8,7 +8,7 @@ import { Calendar, Clock, Text, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useTranslations } from "@/calendar/hooks/use-translations";
-import { useLocale } from "@/components/ported/hooks/useLocale";
+import { useLocale } from "@/hooks/useLocale";
 import { useAppointmentContext } from "@/lib/calendar/appointment-context";
 import { CustomEditEventDialog } from "@/calendar/components/dialogs/custom-edit-event-dialog";
 

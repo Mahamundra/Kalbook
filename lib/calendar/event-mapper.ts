@@ -5,7 +5,7 @@
  * For big-calendar integration, use the functions in big-calendar-mapper.ts
  */
 
-import type { Appointment, Worker } from '@/components/ported/types/admin';
+import type { Appointment, Worker } from '@/types/admin';
 
 // Calendar Event interface
 export interface SchedulerEvent {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useDirection } from '@/components/providers/DirectionProvider';
 

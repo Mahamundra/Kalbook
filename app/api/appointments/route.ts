@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
 import { isTrialExpired, canBusinessPerformAction } from '@/lib/trial/utils';
-import type { Appointment } from '@/components/ported/types/admin';
+import type { Appointment } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type CustomerRow = Database['public']['Tables']['customers']['Row'];

@@ -4,7 +4,7 @@ import type { Locale } from "date-fns";
 
 import { useCalendar } from "@/calendar/contexts/calendar-context";
 import { useTranslations } from "@/calendar/hooks/use-translations";
-import { useLocale } from "@/components/ported/hooks/useLocale";
+import { useLocale } from "@/hooks/useLocale";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 

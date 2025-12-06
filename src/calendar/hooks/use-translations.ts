@@ -2,7 +2,7 @@
  * Translation hook for big-calendar components
  */
 
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 
 export function useTranslations() {
   const { t } = useLocale();

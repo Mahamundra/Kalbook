@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { AdminSidebar } from '@/components/ported/admin/AdminSidebar';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { MobileBottomNav } from '@/components/admin/MobileBottomNav';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
@@ -15,11 +15,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ported/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, LogOut, Building2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
 
 interface User {

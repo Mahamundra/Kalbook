@@ -2,7 +2,7 @@
  * Customer statistics calculation utilities
  */
 
-import type { Customer } from '@/components/ported/types/admin';
+import type { Customer } from '@/types/admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { mapCustomerToInterface } from '@/lib/customers/utils';
 import type { Database } from '@/lib/supabase/database.types';

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
-import type { Appointment } from '@/components/ported/types/admin';
+import type { Appointment } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];

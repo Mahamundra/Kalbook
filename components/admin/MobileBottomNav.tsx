@@ -17,7 +17,7 @@ import {
   X,
   ExternalLink
 } from 'lucide-react';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { cn } from '@/lib/utils';
 import {
@@ -27,7 +27,7 @@ import {
   SheetTitle,
   SheetTrigger,
   SheetClose,
-} from '@/components/ported/ui/sheet';
+} from '@/components/ui/sheet';
 
 const mobileNavItems = [
   { 

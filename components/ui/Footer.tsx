@@ -3,19 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Instagram, Facebook, Mail, Phone, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ported/ui/button';
-import { Input } from '@/components/ported/ui/input';
-import { Label } from '@/components/ported/ui/label';
-import { Textarea } from '@/components/ported/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ported/ui/dialog';
-import { useToast } from '@/components/ported/ui/use-toast';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+} from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
+import { useLocale } from '@/hooks/useLocale';
 import en from '@/messages/en.json';
 import he from '@/messages/he.json';
 import ar from '@/messages/ar.json';

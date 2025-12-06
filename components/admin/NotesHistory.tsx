@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { formatDate } from '@/components/ported/lib/i18n';
+import { formatDate } from '@/lib/i18n';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 

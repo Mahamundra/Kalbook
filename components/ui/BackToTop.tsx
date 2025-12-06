@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
-import { Button } from '@/components/ported/ui/button';
+import { Button } from '@/components/ui/button';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { cn } from '@/lib/utils';
 

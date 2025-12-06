@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ported/ui/button';
-import { Input } from '@/components/ported/ui/input';
-import { Label } from '@/components/ported/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ported/ui/card';
-import { Alert, AlertDescription } from '@/components/ported/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ported/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ported/ui/tabs';
-import { Badge } from '@/components/ported/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
-import { Separator } from '@/components/ported/ui/separator';
-import { useLocale } from '@/components/ported/hooks/useLocale';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Footer } from '@/components/ui/Footer';

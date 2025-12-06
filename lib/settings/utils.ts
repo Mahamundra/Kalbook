@@ -2,7 +2,7 @@
  * Settings utility functions for merging and mapping
  */
 
-import type { Settings, BusinessProfile, Branding, LocaleSettings, NotificationSettings, CalendarSettings, RegistrationSettings } from '@/components/ported/types/admin';
+import type { Settings, BusinessProfile, Branding, LocaleSettings, NotificationSettings, CalendarSettings, RegistrationSettings } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];

@@ -3,7 +3,7 @@
  */
 
 import type { Database } from '@/lib/supabase/database.types';
-import type { Appointment } from '@/components/ported/types/admin';
+import type { Appointment } from '@/types/admin';
 import type { AppointmentStatus } from '@/lib/supabase/database.types';
 
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'];

@@ -1,5 +1,5 @@
 "use client";
-import Component from "@/components/ported/pages/admin/Calendar";
+import Component from "@/components/pages/admin/Calendar";
 
 export default function Page() {
   return <Component />;

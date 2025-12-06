@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button } from '@/components/ported/ui/button';
+import { Button } from '@/components/ui/button';
 import { Home, ShieldAlert } from 'lucide-react';
 
 export default function UnauthorizedPage() {

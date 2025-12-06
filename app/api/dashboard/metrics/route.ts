@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
-import type { Appointment } from '@/components/ported/types/admin';
+import type { Appointment } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 export const dynamic = 'force-dynamic';

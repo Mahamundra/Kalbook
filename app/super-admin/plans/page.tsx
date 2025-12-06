@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ported/ui/button';
-import { Checkbox } from '@/components/ported/ui/checkbox';
-import { Label } from '@/components/ported/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Save, Loader2, CheckCircle2, Plus, X, GripVertical } from 'lucide-react';
-import { Input } from '@/components/ported/ui/input';
-import { Textarea } from '@/components/ported/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import en from '@/messages/en.json';
 import he from '@/messages/he.json';
 import ar from '@/messages/ar.json';
