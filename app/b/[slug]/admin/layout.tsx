@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,18 +16,60 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ported/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Building2 } from 'lucide-react';
+import { LayoutDashboard, LogOut, Building2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { Avatar, AvatarFallback } from '@/components/ported/ui/avatar';
+import { getTimeBasedGreeting } from '@/lib/utils/greetings';
 
 interface User {
   name: string;
   email: string;
 }
 
+// Helper function to get user initials
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+// Helper function to get time-based emoji (day/night/evening)
+const getTimeBasedEmoji = (): string => {
+  const hour = new Date().getHours();
+  
+  // Morning/Day: 5am - 6pm (sun)
+  if (hour >= 5 && hour < 18) {
+    return '☀️'; // Sun
+  }
+  // Evening: 6pm - 10pm (sunset)
+  else if (hour >= 18 && hour < 22) {
+    return '🌆'; // Sunset/Cityscape
+  }
+  // Night: 10pm - 5am (stars)
+  else {
+    return '✨'; // Stars
+  }
+};
+
+// Helper function to get time-based avatar styling
+const getTimeBasedAvatarStyle = (): string => {
+  const hour = new Date().getHours();
+  
+  // Night: 10pm - 5am (palevioletred background with orange border)
+  if (hour >= 22 || hour < 5) {
+    return 'bg-[palevioletred] border-[.5px] border-solid border-[#FF6A3D] text-gray-700';
+  }
+  // Default: gray background
+  return 'bg-gray-200 text-gray-700';
+};
+
 export default function BusinessAdminLayout({ children }: { children: React.ReactNode }) {
   const { dir, isTransitioning } = useDirection();
-  const { t, isRTL } = useLocale();
+  const { t, isRTL, locale } = useLocale();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -122,31 +163,37 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
                 <KalBookLogo size="lg" variant="full" animated={false} />
               </div>
               
-              {/* Right side - User menu (mobile only) */}
+              {/* Right side - User menu */}
               <div className="flex-1" />
               {!loadingUser && user && (
-                <div className="md:hidden">
+                <div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className="h-9 w-9"
+                      <button 
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
-                        <Avatar className="h-5 w-5">
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                            {user.name.charAt(0).toUpperCase()}
+                        <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
+                          <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
+                            {getTimeBasedEmoji()}
                           </AvatarFallback>
                         </Avatar>
-                      </Button>
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align={isRTL ? "start" : "end"}>
+                    <DropdownMenuContent 
+                      align={isRTL ? "end" : "end"} 
+                      className={isRTL ? "text-right [&>*]:text-right" : ""}
+                      style={isRTL ? { direction: 'rtl' } : { direction: 'ltr' }}
+                    >
                       <div className="px-2 py-1.5">
                         <p className="text-sm font-medium">{user.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
+                      <DropdownMenuItem onClick={handleGoToDashboard} className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
@@ -155,7 +202,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={() => window.location.href = '/user/dashboard'} 
-                            className="cursor-pointer hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white"
+                            className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}
                           >
                             <Building2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                             {t('dashboard.goToOwnerDashboard')}
@@ -163,7 +210,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
                         </>
                       )}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-[#ff3e1b] hover:bg-[#ff3e1b] hover:text-white focus:bg-[#ff3e1b] focus:text-white">
+                      <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.logout') || 'Logout'}
                       </DropdownMenuItem>

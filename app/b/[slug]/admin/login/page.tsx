@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     async function fetchBusiness() {
       try {
-        const response = await fetch(`/api/debug/business?slug=${slug}`);
+        const response = await fetch(`/api/business?slug=${slug}`);
         const data = await response.json();
         if (data.exists && data.business) {
           setBusinessName(data.business.name);
@@ -391,10 +391,10 @@ export default function AdminLoginPage() {
             <KalBookLogo size="lg" variant="full" animated={false} />
           </div>
           
-          <CardTitle className={`text-2xl font-bold text-center ${isRTL ? 'text-right' : 'text-left'}`}>
+          <CardTitle className={`text-2xl font-bold text-center text-[#030408] ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('adminLogin.title') || 'Admin Login'}
           </CardTitle>
-          <CardDescription className={`text-center ${isRTL ? 'text-right' : 'text-left'}`}>
+          <CardDescription className={`text-center text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
             {businessName 
               ? (t('adminLogin.subtitleWithBusiness') || 'Sign in to {businessName}').replace('{businessName}', businessName)
               : (t('adminLogin.subtitle') || 'Sign in to manage your business')

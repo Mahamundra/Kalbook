@@ -5,9 +5,9 @@ import type { Database } from '@/lib/supabase/database.types';
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 
 /**
- * GET /api/debug/business
- * Debug endpoint to check if a business exists
- * Usage: /api/debug/business?slug=ui
+ * GET /api/business?slug=xxx
+ * Check if a business exists by slug
+ * Usage: /api/business?slug=ui
  */
 export async function GET(request: NextRequest) {
   try {
@@ -37,26 +37,12 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-      if (!business) {
-      // List all businesses to help user
-      const { data: allBusinesses } = await supabase
-        .from('businesses')
-        .select('slug, name, id')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
+    if (!business) {
       return NextResponse.json({
         exists: false,
         slug,
         message: `Business with slug "${slug}" not found`,
-        availableBusinesses: (allBusinesses || []).map((b: any) => ({
-          slug: b.slug,
-          name: b.name,
-          adminUrl: `/b/${b.slug}/admin/dashboard`,
-          bookingUrl: `/b/${b.slug}`,
-        })),
-        hint: 'Use one of the available slugs above, or visit /api/businesses for full list',
-      });
+      }, { status: 404 });
     }
 
     return NextResponse.json({

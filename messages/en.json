@@ -1092,6 +1092,12 @@
     "deleting": "Deleting...",
     "actions": "Actions"
   },
+  "greetings": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "night": "Good night"
+  },
   "trial": {
     "currentPlan": "Current Plan",
     "plan": "Plan",

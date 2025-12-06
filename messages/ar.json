@@ -1155,6 +1155,12 @@
     "deleting": "جاري الحذف...",
     "actions": "الإجراءات"
   },
+  "greetings": {
+    "morning": "صباح الخير",
+    "afternoon": "مساء الخير",
+    "evening": "مساء الخير",
+    "night": "ليلة سعيدة"
+  },
   "trial": {
     "currentPlan": "الخطة الحالية",
     "plan": "الخطة",

@@ -1155,6 +1155,12 @@
     "deleting": "Удаление...",
     "actions": "Действия"
   },
+  "greetings": {
+    "morning": "Доброе утро",
+    "afternoon": "Добрый день",
+    "evening": "Добрый вечер",
+    "night": "Спокойной ночи"
+  },
   "trial": {
     "currentPlan": "Текущий план",
     "plan": "План",

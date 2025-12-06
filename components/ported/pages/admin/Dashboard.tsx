@@ -408,7 +408,7 @@ const Dashboard = () => {
     <div dir={dir} className="space-y-6 pb-20 md:pb-6">
       {/* Welcome Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{t('dashboard.title') || 'Dashboard'}</h1>
+        <h1 className="text-3xl font-bold text-[#030408]">{t('dashboard.title') || 'Dashboard'}</h1>
         <p className="text-muted-foreground">
           {t('dashboard.welcome') || 'Welcome back! Here\'s what\'s happening today.'}
         </p>
@@ -418,7 +418,7 @@ const Dashboard = () => {
       {canViewAnalytics ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">{t('dashboard.analytics') || 'Analytics'}</h2>
+            <h2 className="text-xl font-semibold text-[#030408]">{t('dashboard.analytics') || 'Analytics'}</h2>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <TrendingUp className="w-4 h-4" />

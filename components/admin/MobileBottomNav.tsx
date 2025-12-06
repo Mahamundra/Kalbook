@@ -163,7 +163,7 @@ export const MobileBottomNav = () => {
                   "flex flex-col items-center justify-center gap-1 transition-colors",
                   "hover:bg-muted/50 active:bg-muted",
                   isActive 
-                    ? "text-primary" 
+                    ? "text-[#030408]" 
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -238,7 +238,7 @@ export const MobileBottomNav = () => {
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                         "hover:bg-muted/50 active:bg-muted",
-                        isActive && "bg-primary/10 text-primary font-medium"
+                        isActive && "bg-[#030408]/10 text-[#030408] font-medium"
                       )}
                     >
                       <item.icon className="w-5 h-5" />

@@ -74,6 +74,36 @@ interface Plan {
   price: number;
 }
 
+// Helper function to get time-based emoji (day/night/evening)
+const getTimeBasedEmoji = (): string => {
+  const hour = new Date().getHours();
+  
+  // Morning/Day: 5am - 6pm (sun)
+  if (hour >= 5 && hour < 18) {
+    return '☀️'; // Sun
+  }
+  // Evening: 6pm - 10pm (sunset)
+  else if (hour >= 18 && hour < 22) {
+    return '🌆'; // Sunset/Cityscape
+  }
+  // Night: 10pm - 5am (stars)
+  else {
+    return '✨'; // Stars
+  }
+};
+
+// Helper function to get time-based avatar styling
+const getTimeBasedAvatarStyle = (): string => {
+  const hour = new Date().getHours();
+  
+  // Night: 10pm - 5am (palevioletred background with orange border)
+  if (hour >= 22 || hour < 5) {
+    return 'bg-[palevioletred] border-[.5px] border-solid border-[#FF6A3D] text-gray-700';
+  }
+  // Default: gray background
+  return 'bg-gray-200 text-gray-700';
+};
+
 export default function UserDashboardPage() {
   const router = useRouter();
   const { t, isRTL } = useLocale();
@@ -432,12 +462,12 @@ export default function UserDashboardPage() {
           <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border-2 border-primary">
-                <AvatarFallback className="text-lg font-semibold bg-primary text-primary-foreground">
-                  {getInitials(user.name)}
+                <AvatarFallback className={`text-lg font-semibold ${getTimeBasedAvatarStyle()}`}>
+                  {getTimeBasedEmoji()}
                 </AvatarFallback>
               </Avatar>
               <div className={isRTL ? 'text-right' : 'text-left'}>
-                <h1 className="text-3xl font-bold">{t('userDashboard.title') || 'My Account'}</h1>
+                <h1 className="text-3xl font-bold text-[#030408]">{t('userDashboard.title') || 'My Account'}</h1>
                 <p className="text-muted-foreground mt-1">
                   {t('userDashboard.welcome') || `Welcome back, ${user.name}`}
                 </p>
@@ -823,8 +853,8 @@ export default function UserDashboardPage() {
                   <div className="space-y-6">
                     <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <Avatar className="h-20 w-20 border-2 border-primary">
-                        <AvatarFallback className="text-2xl font-semibold bg-primary text-primary-foreground">
-                          {getInitials(user.name)}
+                        <AvatarFallback className={`text-2xl font-semibold ${getTimeBasedAvatarStyle()}`}>
+                          {getTimeBasedEmoji()}
                         </AvatarFallback>
                       </Avatar>
                       <div className={isRTL ? 'text-right' : 'text-left'}>

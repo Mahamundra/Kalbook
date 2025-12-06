@@ -31,7 +31,7 @@ interface AdminLoginModalProps {
 
 export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLoginModalProps) {
   const router = useRouter();
-  const { t, isRTL } = useLocale();
+  const { t, isRTL, locale } = useLocale();
   const { dir } = useDirection();
   const isMobile = useIsMobile();
 
@@ -456,15 +456,15 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <KalBookLogo size="lg" variant="full" animated={false} />
               </div>
-              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <DialogTitle className="text-2xl font-bold text-center">
+              <DialogTitle className="text-2xl font-bold text-center text-[#030408]">
                 {t('adminLogin.notRegistered.title') || 'Not Registered'}
               </DialogTitle>
-              <DialogDescription className="text-center">
+              <DialogDescription className="text-center text-gray-600">
                 {t('adminLogin.notRegistered.message') || 'It seems that you are not registered in the system.'}
               </DialogDescription>
             </DialogHeader>
@@ -474,18 +474,30 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
             <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <KalBookLogo size="lg" variant="full" animated={false} />
             </div>
-            <DialogTitle className="text-2xl font-bold text-center">
-              {step === 'welcome'
-                ? (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', userName)
-                : (t('adminLogin.homepageLogin') || t('adminLogin.title') || 'Admin Login')
-              }
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              {step === 'welcome'
-                ? (t('adminLogin.loginSuccess') || 'Redirecting to your dashboard...')
-                : (t('adminLogin.subtitle') || 'Sign in to manage your business')
-              }
-            </DialogDescription>
+            {step === 'phone' && (
+              <>
+                <DialogTitle className="text-lg font-medium text-center text-gray-700 mb-2">
+                  {t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}
+                </DialogTitle>
+                <DialogDescription className="text-center text-sm text-gray-600">
+                  {isRTL 
+                    ? 'זה לוקח פחות מדקה :)'
+                    : locale === 'ar' ? 'يستغرق أقل من دقيقة :)'
+                    : locale === 'ru' ? 'Это займет меньше минуты :)'
+                    : "This takes less than a minute :)"}
+                </DialogDescription>
+              </>
+            )}
+            {step === 'welcome' && (
+              <>
+                <DialogTitle className="text-2xl font-bold text-center text-[#030408]">
+                  {(t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', userName)}
+                </DialogTitle>
+                <DialogDescription className="text-center text-gray-600">
+                  {t('adminLogin.loginSuccess') || 'Redirecting to your dashboard...'}
+                </DialogDescription>
+              </>
+            )}
           </DialogHeader>
         )}
 
@@ -495,14 +507,14 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
           </div>
         ) : step === 'notRegistered' ? (
           <div className="space-y-6 text-center">
-            <div className="space-y-4 pt-4 border-t">
+            <div className="space-y-4 pt-4 border-t border-[#e2e2e2]">
               <div className="space-y-3">
-                <p className="text-sm font-medium pb-4">
+                <p className="text-sm font-medium text-gray-700 pb-4">
                   {t('adminLogin.notRegistered.createBusiness') || 'Want to create a new business?'}
                 </p>
                 <Link href="/onboarding">
                   <Button 
-                    className="w-full"
+                    className="w-full bg-[#17a34a] hover:bg-[#15803d] text-white"
                     onClick={() => {
                       // Store verified phone in sessionStorage
                       const cleanPhone = phone.replace(/\D/g, '');
@@ -514,10 +526,10 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                 </Link>
               </div>
               <div className="space-y-2 pt-2">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-600">
                   {t('adminLogin.notRegistered.needAccess') || 'Need access to an existing business?'}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500">
                   {t('adminLogin.notRegistered.contactOwner') || 'Please ask the business owner to add you as a user.'}
                 </p>
               </div>
@@ -525,7 +537,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
             <Button
               variant="outline"
               onClick={handleBackToPhone}
-              className="w-full"
+              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {t('adminLogin.back') || 'Back'}
             </Button>
@@ -561,7 +573,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                   maxLength={12}
                   disabled={sendingOtp}
                   autoComplete="tel"
-                  className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base`}
+                  className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
                   dir={dir}
                 />
               </div>
@@ -570,7 +582,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                 onClick={handlePhoneSubmit}
                 loading={sendingOtp}
                 disabled={!phone.trim() || phone.replace(/\D/g, '').length < 10}
-                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
               >
                 {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
               </LoadingButton>
@@ -593,7 +605,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               <Button
                 type="button"
                 variant="outline"
-                className="w-full h-12 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 font-medium"
+                className="w-full h-12 bg-white hover:bg-gray-50 border border-[#e2e2e2] text-gray-700 hover:text-gray-900 font-medium"
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
               >
@@ -619,7 +631,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               </Button>
               <Button
                 type="button"
-                className="w-full h-12 bg-black hover:bg-gray-900 text-white font-medium"
+                className="w-full h-12 bg-[#030408] hover:bg-[#030408]/90 text-white font-medium"
                 onClick={handleAppleLogin}
                 disabled={isLoading}
               >
@@ -640,8 +652,8 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
             </div>
 
             {/* Terms and Privacy Agreement */}
-            <div className="mt-4 pt-4 border-t text-center">
-              <p className="text-xs text-muted-foreground">
+            <div className="mt-4 pt-4 border-t border-[#e2e2e2] text-center">
+              <p className="text-xs text-gray-500">
                 {(() => {
                   const agreementText = t('adminLogin.termsAgreement') || 'By logging in you agree to {terms} and {privacy}';
                   const termsText = t('adminLogin.termsOfUse') || 'terms of use';
@@ -654,13 +666,13 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                   return parts.map((part, index) => {
                     if (part === '{terms}') {
                       return (
-                        <Link key={`terms-${index}`} href="/terms" target="_blank" rel="noopener noreferrer" className="text-muted-foreground underline">
+                        <Link key={`terms-${index}`} href="/terms" target="_blank" rel="noopener noreferrer" className="text-gray-500 underline">
                           {termsText}
                         </Link>
                       );
                     } else if (part === '{privacy}') {
                       return (
-                        <Link key={`privacy-${index}`} href="/privacy" target="_blank" rel="noopener noreferrer" className="text-muted-foreground underline">
+                        <Link key={`privacy-${index}`} href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-500 underline">
                           {privacyText}
                         </Link>
                       );

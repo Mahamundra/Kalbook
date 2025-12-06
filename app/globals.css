@@ -60,7 +60,7 @@
     --brand-primary-strong: 10 100% 50%;
     --brand-accent: 160 84% 31%;
     --brand-bg-soft: 138 76% 97%;
-    --text-strong: 228 45% 2%;
+    --text-strong: 0 0% 1.2%; /* #030408 - black for titles */
     --text-muted: 217 19% 35%;
     --border-soft: 220 13% 91%;
 
@@ -108,10 +108,10 @@
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 10 100% 55.3%;
+    --sidebar-primary: 0 0% 1.2%; /* #030408 - black for active states */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 10 100% 95%;
-    --sidebar-accent-foreground: 10 100% 55.3%;
+    --sidebar-accent: 0 0% 1.2%; /* #030408 - black for hover states */
+    --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 10 100% 55.3%;
   }
@@ -121,7 +121,7 @@
     --brand-primary-strong: 10 100% 60%;
     --brand-accent: 160 84% 40%;
     --brand-bg-soft: 222 47% 14%;
-    --text-strong: 210 40% 98%;
+    --text-strong: 0 0% 98%; /* Light text for dark mode */
     --text-muted: 215 20% 65%;
     --border-soft: 217 33% 17%;
 
@@ -164,10 +164,10 @@
 
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 10 100% 65.3%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 10 100% 65.3%;
+    --sidebar-primary: 0 0% 98%; /* Light text for dark mode active states */
+    --sidebar-primary-foreground: 0 0% 1.2%; /* #030408 - dark background */
+    --sidebar-accent: 0 0% 98%; /* Light text for dark mode hover */
+    --sidebar-accent-foreground: 0 0% 1.2%; /* #030408 - dark background */
     --sidebar-border: 217 33% 17%;
     --sidebar-ring: 10 100% 65.3%;
   }
@@ -258,6 +258,12 @@ html[lang="he"] * {
   .hover-bg:hover {
     background-color: #030408;
     color: white;
+  }
+  
+  /* Welcome back button hover - override with important */
+  .welcome-back-button:hover {
+    background-color: rgb(247, 247, 248) !important;
+    color: inherit !important;
   }
   
   /* Override hover effect for footer buttons - only show underline */

@@ -119,16 +119,16 @@ export default function SuperAdminLoginPage() {
         <CardHeader className="space-y-1">
           {/* Logo and Header */}
           <div className="flex flex-col items-center justify-center gap-3 mb-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-lg">
-              <Shield className="w-8 h-8 text-primary" />
+            <div className="h-16 w-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-lg">
+              <Shield className="w-8 h-8 text-gray-600 dark:text-gray-400" />
             </div>
             <KalBookLogo size="lg" variant="full" animated={false} />
           </div>
           
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center text-[#030408]">
             Super Admin Login
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-gray-600">
             Access the platform administration panel
           </CardDescription>
         </CardHeader>

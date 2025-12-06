@@ -35,8 +35,49 @@ import he from '@/messages/he.json';
 import ar from '@/messages/ar.json';
 import ru from '@/messages/ru.json';
 import { Footer } from '@/components/ui/Footer';
+import { getTimeBasedGreeting } from '@/lib/utils/greetings';
 
 const translations = { en, he, ar, ru };
+
+// Helper function to get user initials
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+// Helper function to get time-based emoji (day/night/evening)
+const getTimeBasedEmoji = (): string => {
+  const hour = new Date().getHours();
+  
+  // Morning/Day: 5am - 6pm (sun)
+  if (hour >= 5 && hour < 18) {
+    return '☀️'; // Sun
+  }
+  // Evening: 6pm - 10pm (sunset)
+  else if (hour >= 18 && hour < 22) {
+    return '🌆'; // Sunset/Cityscape
+  }
+  // Night: 10pm - 5am (stars)
+  else {
+    return '✨'; // Stars
+  }
+};
+
+// Helper function to get time-based avatar styling
+const getTimeBasedAvatarStyle = (): string => {
+  const hour = new Date().getHours();
+  
+  // Night: 10pm - 5am (palevioletred background with orange border)
+  if (hour >= 22 || hour < 5) {
+    return 'bg-[palevioletred] border-[.5px] border-solid border-[#FF6A3D] text-gray-700';
+  }
+  // Default: gray background
+  return 'bg-gray-200 text-gray-700';
+};
 
 export default function Home() {
   const router = useRouter();
@@ -49,6 +90,7 @@ export default function Home() {
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [hoveredFeature, setHoveredFeature] = useState<{ planKey: string; featureIndex: number } | null>(null);
+  const [expandedFeature, setExpandedFeature] = useState<{ planKey: string; featureIndex: number } | null>(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({ name: '', email: '', message: '' });
   const [submittingContact, setSubmittingContact] = useState(false);
@@ -194,6 +236,14 @@ export default function Home() {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
 
+  const toggleFeature = (planKey: string, featureIndex: number) => {
+    setExpandedFeature(
+      expandedFeature?.planKey === planKey && expandedFeature?.featureIndex === featureIndex
+        ? null
+        : { planKey, featureIndex }
+    );
+  };
+
   // Handle scroll to show/hide header
   useEffect(() => {
     let lastScrollTop = window.scrollY || 0;
@@ -318,6 +368,64 @@ export default function Home() {
     bilingual: Globe,
   };
 
+  // Helper to render description with bold terms
+  const renderDescriptionWithBold = (description: string, locale: string): React.ReactNode => {
+    if (locale === 'he') {
+      // Terms to bold in Hebrew
+      const boldTerms = ['יומן חכם', 'תזכורות במייל', 'ניהול לקוחות', 'וואטסאפ', 'WhatsApp'];
+      const text = description;
+      const matches: Array<{ index: number; length: number; text: string }> = [];
+      
+      // Find all occurrences of all terms
+      boldTerms.forEach(term => {
+        const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          matches.push({
+            index: match.index,
+            length: match[0].length,
+            text: match[0]
+          });
+        }
+      });
+      
+      // Sort matches by index
+      matches.sort((a, b) => a.index - b.index);
+      
+      // Remove overlapping matches (keep first occurrence)
+      const nonOverlapping: typeof matches = [];
+      let lastEnd = 0;
+      matches.forEach(match => {
+        if (match.index >= lastEnd) {
+          nonOverlapping.push(match);
+          lastEnd = match.index + match.length;
+        }
+      });
+      
+      // Build parts array
+      const parts: (string | React.ReactElement)[] = [];
+      let lastIndex = 0;
+      
+      nonOverlapping.forEach((match, i) => {
+        // Add text before match
+        if (match.index > lastIndex) {
+          parts.push(text.substring(lastIndex, match.index));
+        }
+        // Add bold term
+        parts.push(<strong key={`bold-${i}-${match.index}`}>{match.text}</strong>);
+        lastIndex = match.index + match.length;
+      });
+      
+      // Add remaining text
+      if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+      }
+      
+      return parts.length > 0 ? <>{parts}</> : description;
+    }
+    return description;
+  };
+
   // Feature descriptions for popups
   const getFeatureDescription = (featureText: string, locale: string): string => {
     const descriptions: Record<string, Record<string, string>> = {
@@ -349,31 +457,46 @@ export default function Home() {
         'Custom development': 'We build unique features specifically for your business requirements.',
       },
       he: {
-        'עובד אחד': 'מושלם ליזמים עצמאיים. נהל את העסק שלך עם חשבון עובד אחד.',
-        'עד 50 הזמנות בחודש': 'אידיאלי לעסקים קטנים שמתחילים. שדרג כשתצטרך יותר קיבולת.',
-        'יומן חכם': 'צפה בלוח הזמנים שלך בפורמט יומי, שבועי או חודשי. גרור ושחרר כדי לשנות תורים.',
-        'ניהול לקוחות': 'אחסן מידע לקוחות, היסטוריית הזמנות והערות במקום אחד.',
-        'תזכורות במייל': 'אישורים ותזכורות אוטומטיים במייל כדי להפחית אי-הגעה.',
-        'תמיכה דו לשונית ו-RTL': 'תמיכה מלאה בעברית, אנגלית, ערבית ורוסית עם פריסה מימין לשמאל.',
-            'עד 5 עובדים': 'הוסף עד 5 חברי צוות. מושלם לעסקים קטנים ובינוניים.',
-            'עובדים ללא הגבלה': 'הוסף כמה חברי צוות שאתה צריך. מושלם לעסקים גדלים.',
-        'הזמנות ללא הגבלה': 'אין הגבלות על כמה תורים אתה יכול לנהל. גדל ללא הגבלות.',
-        'הכל בחבילת Free': 'כל התכונות מחבילת Free כלולות ב-Pro.',
-        'לוח בקרה ואנליטיקה': 'עקוב אחר הכנסות, מגמות הזמנות ותובנות לקוחות עם דוחות מפורטים.',
-        'אינטגרציה עם וואטסאפ': 'שלח אישורי תורים ותזכורות דרך וואטסאפ לשיפור מעורבות.',
-        'אינטגרציה עם Google Calendar': 'סנכרן את התורים שלך עם Google Calendar. כל התורים במקום אחד.',
-        'מותג מותאם אישית': 'הוסף את הלוגו וצבעי המותג שלך כדי להפוך את דף ההזמנות לשלך באמת.',
-        'תזכורות מתקדמות': 'תזמון תזכורות מותאם אישית וערוצי תזכורת מרובים.',
-        'תמיכה בעדיפות': 'קבל זמני תגובה מהירים יותר ותמיכה ייעודית כשאתה צריך עזרה.',
-        'הכל בחבילת Pro': 'כל תכונות חבילת Pro כלולות ב-Custom.',
-        'גישה ל-API': 'גישה מלאה ל-REST API לשילוב KalBook עם המערכות והזרימות הקיימות שלך.',
-        'פתרון White-Label': 'הסר לחלוטין את המותג שלנו והשתמש בשלך. מושלם לסוכנויות וסוחרים.',
-        'אינטגרציות מותאמות': 'חבר את KalBook ל-CRM, ERP, מעבדי תשלומים וכלי עסק אחרים שלך.',
-        'דוחות מתקדמים': 'דוחות מותאמים אישית לצרכי העסק שלך עם יכולות ייצוא.',
-        'תמיכה במיקומים מרובים': 'נהל מספר סניפים או מיקומים מדשבורד אחד.',
-        'זרימות עבודה מותאמות': 'אוטומציה של תהליכי העסק הייחודיים שלך עם כללים וטריגרים מותאמים.',
-        'תמיכה ייעודית': 'מנהל חשבון אישי ותמיכה בעדיפות 24/7 לעסק שלך.',
-        'פיתוח מותאם אישית': 'אנחנו בונים תכונות ייחודיות במיוחד לדרישות העסק שלך.',
+        'עובד אחד': 'מתאים בדיוק לעצמאיים. אתה הבוס, אתה הצוות – וזו המערכת שלך לניהול פשוט ויעיל.',
+        'עד 100 הזמנות בחודש': 'מתאים לעסקים קטנים או בתחילת הדרך. מספיק לייצר הכנסה יפה, ולגדול בזמן שלך.',
+        'יומן חכם ונוח': 'תזיז פגישות בקלות עם גרירה פשוטה. תצוגת יום / שבוע / חודש – מה שנוח לך.',
+        'ניהול לקוחות קל ונגיש': 'כל לקוח, כל הזמנה, כל הערה – מרוכזים במקום אחד. נגמר הסלט של וואטסאפ, פתקים וזיכרון.',
+        'תזכורות במייל – אוטומטיות': 'המערכת דואגת לשלוח אישור ותזכורת לכל לקוח – בלי לרדוף, בלי שכחות.',
+        'תמיכה מלאה בעברית + RTL + עוד שפות': 'מתאים לקהלים דוברי עברית, ערבית, רוסית ואנגלית. הממשק מרגיש בבית.',
+        'הכול מתוכנית FREE': 'כל מה שאהבת, פשוט בגרסה הרבה יותר עוצמתית.',
+        'עד 5 עובדים': 'מתאים לקוסמטיקאיות עם צוות, קליניקות, מכוני יופי או עסקים שצומחים.',
+        'הזמנות ללא הגבלה': 'שיווק אגרסיבי? מעולה. תזמין כמה שבא לך. אין חסימות, אין תקרות זכוכית.',
+        'לוח בקרה ודו"חות חכמים': 'ראה את הכנסות, כמות פגישות, לקוחות חוזרים ועוד – בלחיצת כפתור. תתחיל להכיר את העסק שלך באמת.',
+        'אינטגרציה עם WhatsApp': 'שלח תזכורות ואישורים דרך וואטסאפ. אנשים קוראים את זה. זה עובד.',
+        'סנכרון עם Google Calendar': 'התזמונים שלך במקום אחד. בלי כפילויות. בלי בלגן.',
+        'מותג מותאם אישית': 'שמים את הלוגו שלך, הצבעים שלך. נראה כמו מערכת פרטית שלך לגמרי.',
+        'תזכורות מתקדמות': 'שולח SMS, מייל או וואטסאפ – מתי שאתה בוחר, איך שאתה בוחר. הם לא ישכחו.',
+        'תמיכה בעדיפות': 'כשמשהו דחוף – יש לך גב. מענה מהיר ממוקד ומקצועי.',
+        'הכול מתוכנית PRO': 'פשוט עם עוד הרבה כוח וגמישות.',
+        'עובדים ללא הגבלה': 'יש לך צוות גדול? שלוחות? כולם נכנסים – בלי לשבור את הראש.',
+        'גישה מלאה ל-API': 'תחבר את KalBook לכל מערכת שאתה עובד איתה – CRM, ERP, סליקה ועוד.',
+        'פתרון White-Label מלא': 'מוריד את השם שלנו, מעלה את שלך. נראה כמו מוצר שאתה פיתחת.',
+        'אינטגרציות מותאמות אישית': 'אנחנו מחברים אותך למה שצריך כדי שהעסק יזרום – גם אם זו מערכת נדירה.',
+        'דו"חות מותאמים אישית': 'תראה את מה שחשוב לך, לא מה שכולם רואים.',
+        'תמיכה במיקומים מרובים': 'ניהול של סניפים שונים תחת לוח בקרה אחד. פשוט ונקי.',
+        'זרימות עבודה מותאמות': 'אוטומציה של תהליכים ייחודיים לעסק שלך. עם כללים, טריגרים, חוקים – בדיוק איך שאתה עובד.',
+        'תמיכה ייעודית 24/7': 'לא רק צוות תמיכה – מנהל חשבון אישי שמכיר אותך ואת העסק שלך.',
+        'פיתוח מותאם אישית': 'צריך פיצ\'ר שאין? נדאג שהוא יהיה. הצוות שלנו מפתח במיוחד עבורך.',
+        // Backward compatibility - old feature names
+        'יומן חכם': 'תזיז פגישות בקלות עם גרירה פשוטה. תצוגת יום / שבוע / חודש – מה שנוח לך.',
+        'ניהול לקוחות': 'כל לקוח, כל הזמנה, כל הערה – מרוכזים במקום אחד. נגמר הסלט של וואטסאפ, פתקים וזיכרון.',
+        'תזכורות במייל': 'המערכת דואגת לשלוח אישור ותזכורת לכל לקוח – בלי לרדוף, בלי שכחות.',
+        'תמיכה דו לשונית ו-RTL': 'מתאים לקהלים דוברי עברית, ערבית, רוסית ואנגלית. הממשק מרגיש בבית.',
+        'הכל בחבילת Free': 'כל מה שאהבת, פשוט בגרסה הרבה יותר עוצמתית.',
+        'לוח בקרה ואנליטיקה': 'ראה את הכנסות, כמות פגישות, לקוחות חוזרים ועוד – בלחיצת כפתור. תתחיל להכיר את העסק שלך באמת.',
+        'אינטגרציה עם וואטסאפ': 'שלח תזכורות ואישורים דרך וואטסאפ. אנשים קוראים את זה. זה עובד.',
+        'אינטגרציה עם Google Calendar': 'התזמונים שלך במקום אחד. בלי כפילויות. בלי בלגן.',
+        'הכל בחבילת Pro': 'פשוט עם עוד הרבה כוח וגמישות.',
+        'גישה ל-API': 'תחבר את KalBook לכל מערכת שאתה עובד איתה – CRM, ERP, סליקה ועוד.',
+        'פתרון White-Label': 'מוריד את השם שלנו, מעלה את שלך. נראה כמו מוצר שאתה פיתחת.',
+        'אינטגרציות מותאמות': 'אנחנו מחברים אותך למה שצריך כדי שהעסק יזרום – גם אם זו מערכת נדירה.',
+        'דוחות מתקדמים': 'תראה את מה שחשוב לך, לא מה שכולם רואים.',
+        'תמיכה ייעודית': 'לא רק צוות תמיכה – מנהל חשבון אישי שמכיר אותך ואת העסק שלך.',
       },
       ar: {
         'موظف واحد': 'مثالي لرجال الأعمال المستقلين. إدارة عملك بحساب موظف واحد.',
@@ -443,7 +566,10 @@ export default function Home() {
     getFeatureDescription,
     isRTL,
     pricing,
-    loading
+    loading,
+    expandedFeature,
+    toggleFeature,
+    setExpandedFeature
   }: { 
     locale: string; 
     getPlan: (planKey: string, field: string) => string;
@@ -459,6 +585,9 @@ export default function Home() {
       custom?: { price: number; currency: string; symbol: string; metadata?: any };
     };
     loading: boolean;
+    expandedFeature: { planKey: string; featureIndex: number } | null;
+    toggleFeature: (planKey: string, featureIndex: number) => void;
+    setExpandedFeature: (feature: { planKey: string; featureIndex: number } | null) => void;
   }) {
 
     const getDisplayPrice = (planKey: string): string => {
@@ -536,7 +665,7 @@ export default function Home() {
                 )}
                 <div className="text-center mb-5">
                   <h3 className="text-xl font-bold mb-2 text-[#030408]">
-                    {planMetadata?.name || getPlan(planKey, 'name')}
+                    <strong>{planMetadata?.name || getPlan(planKey, 'name')}</strong>
                   </h3>
                   <div className="mb-2">
                     {loading ? (
@@ -599,36 +728,64 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-                <ul className="space-y-1.5 mb-5 flex-grow relative">
+                <ul className="space-y-1 mb-5 flex-grow relative">
                   {highlightsArray.map((highlight: string, i: number) => {
-                    const isHovered = hoveredFeature?.planKey === planKey && hoveredFeature?.featureIndex === i;
+                    const isExpanded = expandedFeature?.planKey === planKey && expandedFeature?.featureIndex === i;
                     return (
                       <li 
                         key={i} 
                         className="relative"
                       >
-                        <div
-                          className={`flex items-start gap-2 py-1 px-2 rounded-lg transition-all cursor-pointer group ${isHovered ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
-                          onMouseEnter={() => {
-                            setHoveredFeature({ planKey, featureIndex: i });
-                          }}
-                          onMouseLeave={() => {
-                            // Close immediately when leaving the feature item
-                            setHoveredFeature(null);
-                          }}
-                        >
-                          <Check className="w-4 h-4 text-[#17a34a] mt-0.5 flex-shrink-0" />
-                          <span className={`text-sm text-gray-600 transition-all ${isHovered ? 'font-bold' : 'group-hover:font-bold'}`}>{highlight}</span>
-                        </div>
-                        {isHovered && (
-                          <div 
-                            className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 z-50 w-72 p-4 bg-white border border-gray-200 rounded-lg shadow-xl`}
-                            style={{ pointerEvents: 'none' }}
+                        <div className="overflow-hidden">
+                          <button
+                            onClick={() => toggleFeature(planKey, i)}
+                            style={{
+                              backgroundColor: isExpanded ? 'rgb(247, 247, 248)' : undefined
+                            }}
+                            className={`w-full py-2 px-1 flex items-center justify-between transition-all duration-200 ease-in-out rounded-md ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
+                            onMouseEnter={(e) => {
+                              if (!isExpanded) {
+                                e.currentTarget.style.backgroundColor = 'rgb(247, 247, 248)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isExpanded) {
+                                e.currentTarget.style.backgroundColor = '';
+                              }
+                            }}
                           >
-                            <h4 className="font-semibold text-[#030408] mb-2 text-base">{highlight}</h4>
-                            <p className="text-sm text-gray-600 leading-relaxed">{getFeatureDescription(highlight, locale)}</p>
-                          </div>
-                        )}
+                            <div className={`flex items-start gap-2 flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <Check className="w-4 h-4 text-[#17a34a] mt-0.5 flex-shrink-0" />
+                              <div className={`flex-1 ${isRTL ? 'pl-4' : 'pr-4'}`}>
+                                <span className={`text-sm transition-colors duration-200 ${
+                                  isExpanded ? 'text-[#030408] font-bold' : 'text-gray-600 font-semibold'
+                                }`}>{highlight}</span>
+                                <AnimatePresence initial={false}>
+                                  {isExpanded && (
+                                    <motion.span
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      <br />
+                                      <span className="text-sm text-gray-600 leading-relaxed">
+                                        {renderDescriptionWithBold(getFeatureDescription(highlight, locale), locale)}
+                                      </span>
+                                    </motion.span>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            </div>
+                            <ChevronDown
+                              className={`w-4 h-4 transition-all duration-200 ease-in-out flex-shrink-0 text-gray-400 ${
+                                isExpanded 
+                                  ? 'transform rotate-180' 
+                                  : ''
+                              }`}
+                            />
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
@@ -667,17 +824,15 @@ export default function Home() {
       <header className={`bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm transition-transform duration-300 ease-in-out will-change-transform ${
         isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
           <div className="flex items-center justify-between gap-2">
+            {/* Language Toggle */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <img 
-                src="/kalbook-logo.svg" 
-                alt="KalBook.io" 
-                className="h-8 sm:h-12 w-auto"
-              />
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <LanguageToggle />
+            </div>
+            
+            {/* User menu / Login button */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {!loadingUser && !user && (
                 <Button 
                   variant="outline" 
@@ -694,30 +849,36 @@ export default function Home() {
                   <div className="w-2 sm:w-3" />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className="h-8 w-8 sm:h-10 sm:w-10"
+                      <button 
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
-                        <Avatar className="h-5 w-5 sm:h-6 sm:w-6">
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
-                            {user.name.charAt(0).toUpperCase()}
+                        <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
+                          <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
+                            {getTimeBasedEmoji()}
                           </AvatarFallback>
                         </Avatar>
-                      </Button>
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align={isRTL ? "start" : "end"}>
+                    <DropdownMenuContent 
+                      align={isRTL ? "end" : "end"} 
+                      className={isRTL ? "text-right [&>*]:text-right" : ""}
+                      style={isRTL ? { direction: 'rtl' } : { direction: 'ltr' }}
+                    >
                       <div className="px-2 py-1.5">
                         <p className="text-sm font-medium">{user.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleGoToDashboard} className="cursor-pointer hover:bg-[#ff411b] hover:text-white focus:bg-[#ff411b] focus:text-white">
+                      <DropdownMenuItem onClick={handleGoToDashboard} className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-[#ff411b] hover:bg-[#e23a16] hover:text-white focus:bg-[#e23a16] focus:text-white">
+                      <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.logout') || 'Logout'}
                       </DropdownMenuItem>
@@ -726,6 +887,15 @@ export default function Home() {
                 </>
               )}
             </div>
+          </div>
+          
+          {/* Center - Logo (absolutely positioned for true centering) */}
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <img 
+              src="/kalbook-logo.svg" 
+              alt="KalBook.io" 
+              className="h-8 sm:h-12 w-auto"
+            />
           </div>
         </div>
       </header>
@@ -1051,6 +1221,9 @@ export default function Home() {
             isRTL={isRTL}
             pricing={pricing}
             loading={pricingLoading}
+            expandedFeature={expandedFeature}
+            toggleFeature={toggleFeature}
+            setExpandedFeature={setExpandedFeature}
           />
         </div>
       </section>
@@ -1142,7 +1315,7 @@ export default function Home() {
                 transition={{ duration: 0.25, delay: index * 0.05 }}
               >
                 <Card className="p-6 h-full hover:shadow-lg transition-shadow">
-                  <h3 className="text-xl font-semibold mb-2 text-primary">{feature.title}</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-[#030408]">{feature.title}</h3>
                   <p className="text-gray-600">{feature.desc}</p>
                 </Card>
               </motion.div>

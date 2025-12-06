@@ -27,7 +27,6 @@ export async function middleware(request: NextRequest) {
   const isSlugAdminRoute = pathname.match(/^\/b\/[^/]+\/admin/);
   const isUserDashboardRoute = pathname.startsWith('/user/dashboard');
   const isSuperAdminRoute = pathname.startsWith('/super-admin');
-  const isDebugRoute = pathname.startsWith('/debug');
   
   // Redirect old login page to homepage
   if (pathname.match(/^\/b\/[^/]+\/admin\/login$/)) {
@@ -244,8 +243,9 @@ export async function middleware(request: NextRequest) {
   const isRootPath = pathname === '/';
   const is404Route = pathname === '/404';
   const isUnauthorizedRoute = pathname === '/unauthorized';
+  const isAvatarPreviewRoute = pathname === '/avatar-preview';
   
-  if (!isOldAdminRoute && !isApiRoute && !isOnboardingRoute && !isSlugAdminRoute && !isRootPath && !is404Route && !isUnauthorizedRoute && !isSuperAdminRoute && !isDebugRoute) {
+  if (!isOldAdminRoute && !isApiRoute && !isOnboardingRoute && !isSlugAdminRoute && !isRootPath && !is404Route && !isUnauthorizedRoute && !isSuperAdminRoute && !isAvatarPreviewRoute) {
     const businessSlug = extractBusinessSlug(url, hostname);
 
     if (businessSlug) {

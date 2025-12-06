@@ -49,7 +49,7 @@ export const LanguageToggle = () => {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 sm:px-4 py-1.5 sm:py-2 text-sm transition-all hover:bg-accent hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+            "group flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 sm:px-4 py-1.5 sm:py-2 text-sm transition-all hover:bg-[#030408] hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
             isRTL && "flex-row-reverse"
           )}
           aria-label="Select language"
@@ -70,7 +70,7 @@ export const LanguageToggle = () => {
             <DropdownMenuRadioItem
               key={lang}
               value={lang}
-              className="group cursor-pointer my-1 data-[state=checked]:bg-[#ff3e1b] data-[state=checked]:text-white hover:bg-black hover:text-white focus:bg-[#ff3e1b] focus:text-white"
+              className="group cursor-pointer my-1 data-[state=checked]:bg-[#ff3e1b] data-[state=checked]:text-white hover:bg-[#030408] hover:text-white focus:bg-[#ff3e1b] focus:text-white"
             >
               <div className={cn(
                 "flex items-center justify-between w-full",
