@@ -112,10 +112,12 @@ const TagsInput = ({
       onChange([...value, trimmedTag]);
       setInputValue('');
       // Keep popover open to allow adding multiple tags quickly
-      // Focus back on input after adding
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      // Focus back on input after adding (desktop only)
+      if (!isMobile) {
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      }
     }
   };
 

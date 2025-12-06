@@ -36,7 +36,11 @@ export function Footer() {
 
   const homeData = getNested(translations[locale as keyof typeof translations] || translations.en, 'home');
   const getHome = (key: string) => getNested(homeData, key) || '';
-  const getFooter = (key: string) => getNested(homeData?.footer, key) || '';
+  const getFooter = (key: string) => {
+    const footerData = getNested(homeData, 'footer');
+    const value = getNested(footerData, key);
+    return value || '';
+  };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,12 +95,12 @@ export function Footer() {
                 {getHome('contact.title') || 'Contact Us'}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full"></span>
               </button>
-              <Link href="/terms" className="text-sm text-muted-foreground relative inline-block group">
-                {getFooter('terms')}
+              <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground relative inline-block group">
+                {getFooter('terms') || (locale === 'ar' ? 'الشروط' : locale === 'he' ? 'תנאי שימוש' : locale === 'ru' ? 'Условия' : 'Terms')}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full"></span>
               </Link>
-              <Link href="/privacy" className="text-sm text-muted-foreground relative inline-block group">
-                {getFooter('privacy')}
+              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground relative inline-block group">
+                {getFooter('privacy') || (locale === 'ar' ? 'الخصوصية' : locale === 'he' ? 'מדיניות פרטיות' : locale === 'ru' ? 'Конфиденциальность' : 'Privacy')}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full"></span>
               </Link>
             </div>

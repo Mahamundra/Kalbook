@@ -74,9 +74,9 @@ export function LoginRegisterDialog({
     }
   }, [open, registrationSettings?.defaultGender]);
 
-  // Auto-focus first OTP input when step changes to verify (fallback if animation callback doesn't work)
+  // Auto-focus first OTP input when step changes to verify (fallback if animation callback doesn't work) - desktop only
   useEffect(() => {
-    if (step === 'verify') {
+    if (step === 'verify' && !isMobile) {
       // Fallback focus after a delay (in case onAnimationComplete doesn't fire)
       const timer = setTimeout(() => {
         const dialog = document.querySelector('[role="dialog"]');
@@ -96,7 +96,7 @@ export function LoginRegisterDialog({
       }, 400); // Delay to allow Framer Motion animation to complete
       return () => clearTimeout(timer);
     }
-  }, [step]);
+  }, [step, isMobile]);
 
   const handlePhoneSubmit = async () => {
     if (!phone) return;
@@ -606,23 +606,25 @@ export function LoginRegisterDialog({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
               onAnimationComplete={() => {
-                // Focus the OTP input after animation completes
-                setTimeout(() => {
-                  const dialog = document.querySelector('[role="dialog"]');
-                  if (dialog) {
-                    const inputs = dialog.querySelectorAll('input');
-                    const otpInput = Array.from(inputs).find((input) => {
-                      const el = input as HTMLInputElement;
-                      return el.maxLength === 6 || el.getAttribute('inputmode') === 'numeric' || el.type === 'text';
-                    }) as HTMLInputElement;
-                    
-                    if (otpInput) {
-                      otpInput.focus();
-                    } else if (inputs.length > 0) {
-                      (inputs[0] as HTMLInputElement).focus();
+                // Focus the OTP input after animation completes (desktop only)
+                if (!isMobile) {
+                  setTimeout(() => {
+                    const dialog = document.querySelector('[role="dialog"]');
+                    if (dialog) {
+                      const inputs = dialog.querySelectorAll('input');
+                      const otpInput = Array.from(inputs).find((input) => {
+                        const el = input as HTMLInputElement;
+                        return el.maxLength === 6 || el.getAttribute('inputmode') === 'numeric' || el.type === 'text';
+                      }) as HTMLInputElement;
+                      
+                      if (otpInput) {
+                        otpInput.focus();
+                      } else if (inputs.length > 0) {
+                        (inputs[0] as HTMLInputElement).focus();
+                      }
                     }
-                  }
-                }, 50);
+                  }, 50);
+                }
               }}
               className="space-y-4"
             >

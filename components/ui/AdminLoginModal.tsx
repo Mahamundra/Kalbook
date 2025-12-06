@@ -105,10 +105,12 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
       toast.success(t('adminLogin.codeSent') || 'Code sent successfully');
-      // Focus first OTP input after modal opens
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
+      // Focus first OTP input after modal opens (desktop only)
+      if (!isMobile) {
+        setTimeout(() => {
+          otpInputRefs.current[0]?.focus();
+        }, 100);
+      }
     } catch (error: any) {
       setSendingOtp(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
@@ -129,8 +131,8 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     const newCode = newDigits.join('');
     setCode(newCode);
 
-    // Auto-focus next input
-    if (value && index < 5) {
+    // Auto-focus next input (desktop only)
+    if (value && index < 5 && !isMobile) {
       otpInputRefs.current[index + 1]?.focus();
     }
 
@@ -142,7 +144,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
 
   // Handle OTP key down (backspace)
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0 && !isMobile) {
       otpInputRefs.current[index - 1]?.focus();
     }
   };
@@ -160,7 +162,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     setCode(pastedCode);
     if (pastedCode.length === 6) {
       handleVerifyCode(pastedCode);
-    } else {
+    } else if (!isMobile) {
       otpInputRefs.current[Math.min(pastedCode.length, 5)]?.focus();
     }
   };
@@ -415,7 +417,9 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       // Clear OTP on error
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
-      otpInputRefs.current[0]?.focus();
+      if (!isMobile) {
+        otpInputRefs.current[0]?.focus();
+      }
     }
   };
 
@@ -438,14 +442,14 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     setError(null);
   };
 
-  // Focus first OTP input when step changes to verify
+  // Focus first OTP input when step changes to verify (desktop only)
   useEffect(() => {
-    if (step === 'verify' && otpInputRefs.current[0]) {
+    if (step === 'verify' && otpInputRefs.current[0] && !isMobile) {
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
       }, 100);
     }
-  }, [step]);
+  }, [step, isMobile]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -748,7 +752,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                     onPaste={index === 0 ? handleOtpPaste : undefined}
                     disabled={isLoading}
                     className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
-                    autoFocus={index === 0}
+                    autoFocus={index === 0 && !isMobile}
                   />
                 ))}
               </div>

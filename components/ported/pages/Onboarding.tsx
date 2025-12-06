@@ -388,10 +388,12 @@ const Onboarding = () => {
       setOtpCode('');
       setOtpDigits(['', '', '', '', '', '']);
       toast.success(t('onboarding.auth.otpSent') || 'OTP code sent successfully');
-      // Focus first OTP input after modal opens
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
+      // Focus first OTP input after modal opens (desktop only)
+      if (!isMobile) {
+        setTimeout(() => {
+          otpInputRefs.current[0]?.focus();
+        }, 100);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to send OTP');
     } finally {
@@ -413,10 +415,12 @@ const Onboarding = () => {
     setOtpCode('');
     setOtpDigits(['', '', '', '', '', '']);
     setOtpCountdown(0);
-    // Focus on phone input
-    setTimeout(() => {
-      phoneInputRef.current?.focus();
-    }, 100);
+    // Focus on phone input (desktop only)
+    if (!isMobile) {
+      setTimeout(() => {
+        phoneInputRef.current?.focus();
+      }, 100);
+    }
   };
 
   // Handle OTP digit change
@@ -432,8 +436,8 @@ const Onboarding = () => {
     const code = newDigits.join('');
     setOtpCode(code);
 
-    // Auto-focus next input
-    if (value && index < 5) {
+    // Auto-focus next input (desktop only)
+    if (value && index < 5 && !isMobile) {
       otpInputRefs.current[index + 1]?.focus();
     }
 
@@ -445,7 +449,7 @@ const Onboarding = () => {
 
   // Handle OTP key down (backspace)
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0 && !isMobile) {
       otpInputRefs.current[index - 1]?.focus();
     }
   };
@@ -462,7 +466,7 @@ const Onboarding = () => {
     setOtpCode(pastedData);
     if (pastedData.length === 6) {
       handleVerifyOtp(pastedData);
-    } else {
+    } else if (!isMobile) {
       otpInputRefs.current[Math.min(pastedData.length, 5)]?.focus();
     }
   };
@@ -536,7 +540,9 @@ const Onboarding = () => {
       // Clear OTP on error
       setOtpDigits(['', '', '', '', '', '']);
       setOtpCode('');
-      otpInputRefs.current[0]?.focus();
+      if (!isMobile) {
+        otpInputRefs.current[0]?.focus();
+      }
     } finally {
       setVerifyingOtp(false);
     }
@@ -552,14 +558,14 @@ const Onboarding = () => {
     }
   }, [otpCountdown]);
 
-  // Focus first OTP input when modal opens
+  // Focus first OTP input when modal opens (desktop only)
   useEffect(() => {
-    if (showOtpModal && otpInputRefs.current[0]) {
+    if (showOtpModal && otpInputRefs.current[0] && !isMobile) {
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
       }, 100);
     }
-  }, [showOtpModal]);
+  }, [showOtpModal, isMobile]);
 
   // Handle Google OAuth - use redirect on mobile, popup on desktop
   const handleGoogleLogin = async () => {
@@ -1885,7 +1891,7 @@ const Onboarding = () => {
                     onBlur={() => handleBlur('name')}
                     dir={dir}
                     className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.name ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
-                    autoFocus
+                    autoFocus={!isMobile}
                   />
                   {/* Explanation under field - removed as it's in subtitle */}
                   {errors.name && (
@@ -1974,7 +1980,7 @@ const Onboarding = () => {
                     onBlur={() => handleBlur('ownerName')}
                     dir={dir}
                     className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.ownerName ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
-                    autoFocus
+                    autoFocus={!isMobile}
                   />
                   {errors.ownerName && (
                     <p className="mt-1 text-sm text-red-500">{errors.ownerName}</p>
@@ -2040,7 +2046,7 @@ const Onboarding = () => {
                     dir="ltr"
                     maxLength={12}
                     className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.phone ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.phone ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                    autoFocus={!authenticatedUser?.phone}
+                    autoFocus={!authenticatedUser?.phone && !isMobile}
                   />
                   {authenticatedUser?.phone && (
                     <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
@@ -2072,7 +2078,7 @@ const Onboarding = () => {
                     disabled={!!authenticatedUser?.email}
                     dir="ltr"
                     className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                    autoFocus={!!(authenticatedUser?.phone && !authenticatedUser?.email)}
+                    autoFocus={!!(authenticatedUser?.phone && !authenticatedUser?.email) && !isMobile}
                   />
                   {authenticatedUser?.email && (
                     <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
@@ -2132,7 +2138,7 @@ const Onboarding = () => {
                     onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
                     dir={dir}
                     className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
-                    autoFocus
+                    autoFocus={!isMobile}
                   />
                 </div>
               </div>
@@ -2324,7 +2330,7 @@ const Onboarding = () => {
                             }}
                             className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
                             placeholder={locale === 'he' ? 'לדוגמה: תספורת' : (t('onboarding.services.namePlaceholder') || 'e.g., Haircut')}
-                            autoFocus
+                            autoFocus={!isMobile}
                           />
                         </div>
                         
@@ -2868,7 +2874,7 @@ const Onboarding = () => {
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     onPaste={index === 0 ? handleOtpPaste : undefined}
                     className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
-                    autoFocus={index === 0}
+                    autoFocus={index === 0 && !isMobile}
                   />
                 ))}
               </div>
