@@ -1048,7 +1048,9 @@
     "subtitle": "قم بتسجيل الدخول لإدارة عملك",
     "subtitleWithBusiness": "قم بتسجيل الدخول إلى {businessName}",
     "homepageLogin": "تسجيل دخول المدير",
+    "welcome": "مرحباً",
     "welcomeBack": "مرحباً بعودتك! {name}",
+    "signInToGetStarted": "سجل الدخول للبدء",
     "login": "تسجيل الدخول",
     "noUserYet": "إذا لم يكن لديك مستخدم بعد",
     "createNewBusiness": "إنشاء عمل جديد",
@@ -1252,6 +1254,10 @@
         "title": "ثنائي اللغة وجاهز لـ RTL",
         "desc": "دعم العبرية والإنجليزية. يعمل من اليمين إلى اليسار ومن اليسار إلى اليمين."
       },
+      "cancelAppointments": {
+        "title": "إلغاء المواعيد بنقرة واحدة",
+        "desc": "اسمح للعملاء بإلغاء أو إعادة جدولة الموعد – بدون مكالمات، بدون إزعاج. يمكن للعملاء تغيير أو إلغاء المواعيد بأنفسهم من خلال الرابط الذي تلقوه. مكالمات أقل، ارتباك أقل، وتقويمك محدث دائماً."
+      },
       "onlineBooking": {
         "title": "حجز عبر الإنترنت 24/7",
         "desc": "مفتوح دائماً. اسمح للعملاء بالحجز في أي وقت - حتى عندما تكون خارج العمل."
@@ -1439,6 +1445,14 @@
     "homepageLogin": "تسجيل دخول المسؤول",
     "title": "تسجيل دخول المسؤول",
     "subtitle": "أدخل بريدك الإلكتروني لتسجيل الدخول إلى لوحة التحكم",
+    "welcome": "مرحباً",
+    "welcomeBack": "مرحباً بعودتك! {name}",
+    "signInToGetStarted": "سجل الدخول للبدء",
+    "login": "تسجيل الدخول",
+    "phonePlaceholder": "أدخل رقم الهاتف",
+    "termsAgreement": "بتسجيل الدخول، أنت توافق على {terms} و{privacy}",
+    "termsOfUse": "شروط الاستخدام",
+    "privacyPolicy": "سياسة الخصوصية",
     "emailLabel": "البريد الإلكتروني",
     "emailPlaceholder": "name@example.com",
     "sendCode": "إرسال رمز",
@@ -1458,5 +1472,38 @@
   "userDashboard": {
     "title": "حسابي",
     "logout": "تسجيل الخروج"
+  },
+  "onboarding": {
+    "auth": {
+      "title": "ابدأ",
+      "subtitle": "سجل الدخول للمتابعة مع إعداد عملك",
+      "welcome": "مرحباً، لنبدأ",
+      "login": "تسجيل الدخول",
+      "additionalOptions": "خيارات تسجيل الدخول الإضافية",
+      "phoneNumber": "رقم الهاتف",
+      "phonePlaceholder": "أدخل رقم الهاتف",
+      "sendOtp": "إرسال رمز التحقق",
+      "changeNumber": "تغيير",
+      "enterOtp": "أدخل رمز التحقق",
+      "otpPlaceholder": "123456",
+      "verify": "تحقق",
+      "or": "أو",
+      "signInWithGoogle": "تسجيل الدخول باستخدام Google",
+      "signInWithApple": "تسجيل الدخول باستخدام Apple",
+      "phoneRequired": "رقم الهاتف مطلوب",
+      "invalidPhone": "يرجى إدخال رقم هاتف صحيح",
+      "otpRequired": "رمز التحقق مطلوب",
+      "otpSent": "تم إرسال رمز التحقق بنجاح",
+      "verified": "تم التحقق من رقم الهاتف",
+      "authenticated": "تم التحقق!",
+      "phoneVerified": "تم التحقق من رقم الهاتف {phone}",
+      "emailVerified": "تم التحقق من البريد الإلكتروني {email}",
+      "readyToContinue": "أنت جاهز للمتابعة",
+      "pleaseAuthenticate": "يرجى التحقق للمتابعة",
+      "oauthError": "فشل التحقق. يرجى المحاولة مرة أخرى.",
+      "otpSentTo": "أرسلنا رمز التحقق إلى {phone}",
+      "otpCode": "رمز التحقق",
+      "didntReceiveCode": "لم تستلم الرمز؟"
+    }
   }
 }

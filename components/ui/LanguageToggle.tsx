@@ -49,15 +49,15 @@ export const LanguageToggle = () => {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 sm:px-4 py-1.5 sm:py-2 text-sm transition-all hover:bg-[#030408] hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+            "group flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 rounded-md border border-input bg-background px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-sm transition-all hover:bg-[#030408] hover:border-accent-foreground/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
             isRTL && "flex-row-reverse"
           )}
           aria-label="Select language"
         >
-          <Languages className="w-3.5 h-3.5 text-muted-foreground group-hover:text-white" />
+          <Languages className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground group-hover:text-white" />
           <div className={cn("flex flex-col leading-none", isRTL ? "items-end" : "items-start")}>
-            <span className="text-[10px] text-muted-foreground leading-tight group-hover:text-white">{t('common.chooseLanguage')}</span>
-            <span className="text-xs font-medium leading-tight group-hover:text-white">{getLocaleDisplayName(locale)}</span>
+            <span className="hidden sm:block text-[10px] text-muted-foreground leading-tight group-hover:text-white">{t('common.chooseLanguage')}</span>
+            <span className="text-[11px] sm:text-xs font-medium leading-tight group-hover:text-white">{getLocaleDisplayName(locale)}</span>
           </div>
         </button>
       </DropdownMenuTrigger>

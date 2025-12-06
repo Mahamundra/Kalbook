@@ -985,7 +985,9 @@
     "subtitle": "Sign in to manage your business",
     "subtitleWithBusiness": "Sign in to {businessName}",
     "homepageLogin": "Admin Login",
+    "welcome": "Welcome",
     "welcomeBack": "Welcome Back! {name}",
+    "signInToGetStarted": "Sign in to get started",
     "login": "Login",
     "noUserYet": "If you have not user yet",
     "createNewBusiness": "Create new business",
@@ -1190,6 +1192,10 @@
         "title": "Bilingual & RTL ready",
         "desc": "Hebrew and English support. Works right-to-left and left-to-right.",
         "details": "Serve customers in their preferred language with full bilingual support. Switch seamlessly between Hebrew and English throughout the platform. Complete RTL (right-to-left) support for Hebrew text ensures natural reading experience. All interface elements, forms, and content automatically adapt to the selected language direction. Perfect for businesses serving diverse communities or operating in multilingual markets. Your booking pages, emails, and notifications all support multiple languages."
+      },
+      "cancelAppointments": {
+        "title": "One-Click Appointment Cancellation",
+        "desc": "Let customers cancel or reschedule appointments – no phone calls, no hassle. Customers can change or cancel appointments themselves through the link they received. Fewer calls, less confusion, and your calendar is always up to date."
       },
       "onlineBooking": {
         "title": "24/7 Online Booking",

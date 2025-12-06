@@ -477,14 +477,10 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
             {step === 'phone' && (
               <>
                 <DialogTitle className="text-lg font-medium text-center text-gray-700 mb-2">
-                  {t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}
+                  {t('adminLogin.welcome') || t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}
                 </DialogTitle>
                 <DialogDescription className="text-center text-sm text-gray-600">
-                  {isRTL 
-                    ? 'זה לוקח פחות מדקה :)'
-                    : locale === 'ar' ? 'يستغرق أقل من دقيقة :)'
-                    : locale === 'ru' ? 'Это займет меньше минуты :)'
-                    : "This takes less than a minute :)"}
+                  {t('adminLogin.signInToGetStarted') || 'Sign in to get started'}
                 </DialogDescription>
               </>
             )}
@@ -653,11 +649,41 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
 
             {/* Terms and Privacy Agreement */}
             <div className="mt-4 pt-4 border-t border-[#e2e2e2] text-center">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500" dir={dir}>
                 {(() => {
                   const agreementText = t('adminLogin.termsAgreement') || 'By logging in you agree to {terms} and {privacy}';
                   const termsText = t('adminLogin.termsOfUse') || 'terms of use';
                   const privacyText = t('adminLogin.privacyPolicy') || 'privacy policy';
+                  
+                  // Check if placeholders exist in the text
+                  if (!agreementText.includes('{terms}') || !agreementText.includes('{privacy}')) {
+                    // Fallback: render text with links at the end
+                    return (
+                      <>
+                        <span>{agreementText.replace(/\{terms\}/g, '').replace(/\{privacy\}/g, '').trim()}</span>
+                        {' '}
+                        <Link 
+                          href="/terms" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300"
+                        >
+                          {termsText}
+                        </Link>
+                        {' '}
+                        <span>{isRTL ? 'و' : 'and'}</span>
+                        {' '}
+                        <Link 
+                          href="/privacy" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300"
+                        >
+                          {privacyText}
+                        </Link>
+                      </>
+                    );
+                  }
                   
                   // Split by placeholders and insert links
                   const regex = /(\{terms\}|\{privacy\})/g;
@@ -666,19 +692,32 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                   return parts.map((part, index) => {
                     if (part === '{terms}') {
                       return (
-                        <Link key={`terms-${index}`} href="/terms" target="_blank" rel="noopener noreferrer" className="text-gray-500 underline">
+                        <Link 
+                          key={`terms-${index}`} 
+                          href="/terms" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 inline"
+                        >
                           {termsText}
                         </Link>
                       );
                     } else if (part === '{privacy}') {
                       return (
-                        <Link key={`privacy-${index}`} href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-500 underline">
+                        <Link 
+                          key={`privacy-${index}`} 
+                          href="/privacy" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 inline"
+                        >
                           {privacyText}
                         </Link>
                       );
                     }
-                    return part;
-                  });
+                    // Return text parts as React elements to ensure proper rendering
+                    return part ? <span key={`text-${index}`} className="inline">{part}</span> : null;
+                  }).filter(Boolean);
                 })()}
               </p>
             </div>

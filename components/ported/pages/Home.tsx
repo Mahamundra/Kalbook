@@ -10,7 +10,7 @@ import { Label } from '@/components/ported/ui/label';
 import { Textarea } from '@/components/ported/ui/textarea';
 import { useToast } from '@/components/ported/ui/use-toast';
 import Link from 'next/link';
-import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowLeft, ChevronDown, User, LogOut, LayoutDashboard, CalendarCheck, CalendarSync, Smartphone, FileText, Repeat, Mail, Phone } from 'lucide-react';
+import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowLeft, ChevronDown, User, LogOut, LayoutDashboard, CalendarCheck, CalendarSync, Smartphone, FileText, Repeat, Mail, Phone, XCircle } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
@@ -103,8 +103,26 @@ export default function Home() {
     custom?: { price: number; currency: string; symbol: string; metadata?: any };
   }>({});
   const [pricingLoading, setPricingLoading] = useState(true);
-  const pricingCacheRef = useRef<{ data: any; timestamp: number; lastUpdated: number } | null>(null);
+  const pricingCacheRef = useRef<{ data: any; timestamp: number; lastUpdated: number; locale?: string } | null>(null);
   const fetchingRef = useRef<boolean>(false);
+  const currentLocaleRef = useRef<string>(locale);
+
+  // Clear cache when locale changes
+  useEffect(() => {
+    if (currentLocaleRef.current !== locale) {
+      // Locale changed - clear cache to force fresh fetch
+      pricingCacheRef.current = null;
+      // Clear localStorage cache for all locales to avoid stale data
+      try {
+        ['en', 'he', 'ar', 'ru'].forEach(loc => {
+          localStorage.removeItem(`pricing_cache_${loc}`);
+        });
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+      currentLocaleRef.current = locale;
+    }
+  }, [locale]);
 
   // Fetch pricing once at parent level - prevents re-fetching on hover
   useEffect(() => {
@@ -115,22 +133,23 @@ export default function Home() {
 
     const cacheKey = `pricing_cache_${locale}`;
     
-    // Check if we have cached data in memory - use it immediately, no checks
+    // Check if we have cached data in memory - verify it's for the current locale
     const cached = pricingCacheRef.current;
-    if (cached && cached.data) {
+    if (cached && cached.data && cached.locale === locale) {
       setPricing(cached.data);
       setPricingLoading(false);
       return; // Use cached data, no API calls
     }
 
-    // Check localStorage as backup - use it immediately, no checks
+    // Check localStorage as backup - verify locale matches
     try {
       const stored = localStorage.getItem(cacheKey);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.data) {
+        // Only use cache if it has data and locale matches (or no locale stored for backward compatibility)
+        if (parsed.data && (!parsed.locale || parsed.locale === locale)) {
           setPricing(parsed.data);
-          pricingCacheRef.current = parsed;
+          pricingCacheRef.current = { ...parsed, locale };
           setPricingLoading(false);
           return; // Use cached data, no API calls
         }
@@ -139,7 +158,7 @@ export default function Home() {
       // Ignore localStorage errors
     }
 
-    // No cache exists, fetch from API once
+    // No cache exists or cache is for different locale, fetch from API
     fetchingRef.current = true;
     let cancelled = false;
     
@@ -160,6 +179,7 @@ export default function Home() {
             data: data.pricing,
             timestamp: Date.now(),
             lastUpdated: data.lastUpdated || Date.now(),
+            locale: locale, // Store locale with cache data
           };
           
           // Store in memory cache (persists for session)
@@ -222,6 +242,12 @@ export default function Home() {
     // If no details field, return the description with some enhancements
     const desc = getFeature(key, 'desc');
     return desc;
+  };
+  
+  // Helper function to truncate text for card preview
+  const truncateText = (text: string, maxLength: number = 120): string => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
   };
   const getPricing = (key: string) => getNested(homeData?.pricing, key) || '';
   const getPlan = (planKey: string, field: string) => getNested(homeData?.pricing?.plans, `${planKey}.${field}`) || '';
@@ -359,13 +385,11 @@ export default function Home() {
     setup3min: Calendar,
     professionalBooking: FileText,
     onlineBooking: CalendarCheck,
-    mobileOptimized: Smartphone,
     easyCalendar: Clock,
     reminders: MessageSquare,
     smartCustomers: Users,
-    recurringAppointments: Repeat,
-    googleCalendar: CalendarSync,
     bilingual: Globe,
+    cancelAppointments: XCircle,
   };
 
   // Helper to render description with bold terms
@@ -625,11 +649,20 @@ export default function Home() {
     // Get highlights from database metadata if available, otherwise use translations
     const getHighlightsFromDB = (planKey: string): string[] => {
       const planPricing = pricing[planKey as keyof typeof pricing];
-      if (planPricing?.metadata?.highlights && Array.isArray(planPricing.metadata.highlights) && planPricing.metadata.highlights.length > 0) {
-        return planPricing.metadata.highlights;
+      // Only use database highlights if they exist and are not empty
+      // Always prefer translations as they are guaranteed to be in the current locale
+      const dbHighlights = planPricing?.metadata?.highlights;
+      if (dbHighlights && Array.isArray(dbHighlights) && dbHighlights.length > 0) {
+        // Use database highlights if available
+        return dbHighlights;
       }
-      // Fallback to translations
-      return getPlanHighlights(planKey);
+      // Always fallback to translations which are guaranteed to be in the current locale
+      const translationHighlights = getPlanHighlights(planKey);
+      if (translationHighlights && translationHighlights.length > 0) {
+        return translationHighlights;
+      }
+      // Final fallback - return empty array
+      return [];
     };
 
     return (
@@ -742,7 +775,7 @@ export default function Home() {
                             style={{
                               backgroundColor: isExpanded ? 'rgb(247, 247, 248)' : undefined
                             }}
-                            className={`w-full py-2 px-1 flex items-center justify-between transition-all duration-200 ease-in-out rounded-md ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}`}
+                            className={`w-full py-2 px-1 flex items-center justify-between transition-all duration-200 ease-in-out rounded-md ${isRTL ? 'text-right' : 'text-left'}`}
                             onMouseEnter={(e) => {
                               if (!isExpanded) {
                                 e.currentTarget.style.backgroundColor = 'rgb(247, 247, 248)';
@@ -754,9 +787,9 @@ export default function Home() {
                               }
                             }}
                           >
-                            <div className={`flex items-start gap-2 flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <div className="flex items-start gap-2 flex-1">
                               <Check className="w-4 h-4 text-[#17a34a] mt-0.5 flex-shrink-0" />
-                              <div className={`flex-1 ${isRTL ? 'pl-4' : 'pr-4'}`}>
+                              <div className="flex-1 pr-4">
                                 <span className={`text-sm transition-colors duration-200 ${
                                   isExpanded ? 'text-[#030408] font-bold' : 'text-gray-600 font-semibold'
                                 }`}>{highlight}</span>
@@ -833,15 +866,18 @@ export default function Home() {
             
             {/* User menu / Login button */}
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              {!loadingUser && !user && (
+              {!user && (
                 <Button 
                   variant="outline" 
-                  size="icon"
-                  className="h-8 w-8 sm:h-10 sm:w-10"
+                  className={`h-8 sm:h-10 px-2 sm:px-3 ${isRTL ? 'flex-row-reverse' : ''}`}
                   onClick={() => setLoginModalOpen(true)}
+                  disabled={loadingUser}
                   aria-label={t('adminLogin.homepageLogin') || 'Admin Login'}
                 >
                   <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className={`text-xs sm:text-sm font-medium ${isRTL ? 'mr-1 sm:mr-2' : 'ml-1 sm:ml-2'}`}>
+                    {t('adminLogin.login') || t('auth.login') || 'Login'}
+                  </span>
                 </Button>
               )}
               {!loadingUser && user && (
@@ -891,11 +927,13 @@ export default function Home() {
           
           {/* Center - Logo (absolutely positioned for true centering) */}
           <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <img 
-              src="/kalbook-logo.svg" 
-              alt="KalBook.io" 
-              className="h-8 sm:h-12 w-auto"
-            />
+            <Link href="/">
+              <img 
+                src="/kalbook-logo.svg" 
+                alt="KalBook.io" 
+                className="h-8 sm:h-12 w-auto cursor-pointer"
+              />
+            </Link>
           </div>
         </div>
       </header>
@@ -1133,7 +1171,7 @@ export default function Home() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold mb-2 text-[#030408]">{getFeature(key, 'title')}</h3>
-                      <p className="text-gray-600">{getFeature(key, 'desc')}</p>
+                      <p className="text-gray-600 line-clamp-2">{getFeature(key, 'desc')}</p>
                     </div>
                   </div>
                 </Card>
@@ -1161,8 +1199,8 @@ export default function Home() {
               </DialogHeader>
               <DialogDescription asChild>
                 <div className="space-y-4">
-                  <p className="text-base text-gray-700 leading-relaxed">
-                    {getFeatureDetails(selectedFeature)}
+                  <p className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
+                    {getFeature(selectedFeature, 'desc')}
                   </p>
                 </div>
               </DialogDescription>
@@ -1187,7 +1225,7 @@ export default function Home() {
             {((getHome('whoIsItFor.categories') as string[]) || []).map((category: string, index: number) => (
               <div 
                 key={index}
-                className={`p-4 bg-[#f7f7f8] border border-[#e2e2e2] rounded-lg text-center ${index === 4 ? 'md:col-span-2' : ''}`}
+                className={`p-4 bg-[#f7f7f8] border border-[#e2e2e2] rounded-lg text-center ${index === 4 ? 'col-span-2 md:col-span-2' : ''}`}
               >
                 <p className="text-sm text-gray-700">{category}</p>
               </div>

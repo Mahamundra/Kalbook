@@ -28,7 +28,6 @@ const TimeInput = forwardRef<TTimeInputRef, TTimeInputProps>(
         shouldForceLeadingZeros
       >
         <DateInput
-          inputMode="none"
           className={cn(
             "peer inline-flex h-9 w-full items-center overflow-hidden whitespace-nowrap rounded-md border bg-background px-3 py-2 text-sm shadow-black",
             "data-[focus-within]:outline-none data-[focus-within]:ring-1 data-[focus-within]:ring-ring",
@@ -39,7 +38,6 @@ const TimeInput = forwardRef<TTimeInputRef, TTimeInputProps>(
           {segment => (
             <DateSegment
               segment={segment}
-              inputMode="none"
               className={cn(
                 "inline rounded p-0.5 caret-transparent outline outline-0",
                 "data-[focused]:bg-foreground/10 data-[focused]:text-foreground",
