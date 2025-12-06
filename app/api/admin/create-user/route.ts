@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { toE164Format } from '@/lib/customers/utils';
 import type { Database } from '@/lib/supabase/database.types';
 
+export const dynamic = 'force-dynamic';
+
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 
 /**
