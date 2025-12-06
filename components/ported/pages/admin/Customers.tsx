@@ -85,12 +85,14 @@ const TagsInput = ({
   onChange, 
   existingTags, 
   isRTL,
+  isMobile,
   t
 }: { 
   value: string[]; 
   onChange: (tags: string[]) => void; 
   existingTags: string[];
   isRTL: boolean;
+  isMobile: boolean;
   t: (key: string) => string | undefined;
 }) => {
   const [open, setOpen] = useState(false);
@@ -1478,6 +1480,7 @@ const Customers = () => {
                   onChange={(tags) => setFormData({ ...formData, tags })}
                   existingTags={existingTags}
                   isRTL={isRTL}
+                  isMobile={isMobile}
                   t={t}
                 />
               </div>
