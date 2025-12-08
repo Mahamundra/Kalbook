@@ -627,7 +627,7 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
             )}
 
             {/* Main Content with Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "businesses" | "profile")} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4 shadow-soft">
                 <TabsTrigger value="businesses" className="gap-2">
                   <Building2 className="w-4 h-4" />
