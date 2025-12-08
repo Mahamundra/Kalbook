@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -271,9 +273,18 @@ const Onboarding = () => {
       // Find all matches and their positions
       const matches: Array<{ term: string; index: number; length: number }> = [];
       boldTerms.forEach(term => {
-        const regex = new RegExp(term, 'gi');
+        // Escape special regex characters in the term
+        const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escapedTerm, 'gi');
         let match;
+        let lastIndex = 0;
         while ((match = regex.exec(description)) !== null) {
+          // Prevent infinite loop if regex doesn't advance
+          if (match.index === lastIndex) {
+            regex.lastIndex++;
+            continue;
+          }
+          lastIndex = match.index;
           matches.push({ term: match[0], index: match.index, length: match[0].length });
         }
       });
