@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { unsignCookie } from '@/lib/auth/cookie-sign';
+import { unsignCookie, signCookie } from '@/lib/auth/cookie-sign';
 import type { Database } from '@/lib/supabase/database.types';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
