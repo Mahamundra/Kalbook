@@ -1,4 +1,5 @@
-import * as crypto from 'crypto';
+// Server-only module - uses Node.js crypto
+import { createHmac, timingSafeEqual } from 'crypto';
 
 const SECRET_KEY = process.env.COOKIE_SECRET || process.env.NEXT_PUBLIC_SUPABASE_URL || 'fallback-secret-key-change-in-production';
 
@@ -6,7 +7,7 @@ const SECRET_KEY = process.env.COOKIE_SECRET || process.env.NEXT_PUBLIC_SUPABASE
  * Sign cookie data to prevent tampering
  */
 export function signCookie(data: string): string {
-  const hmac = crypto.createHmac('sha256', SECRET_KEY);
+  const hmac = createHmac('sha256', SECRET_KEY);
   hmac.update(data);
   const signature = hmac.digest('hex');
   return `${data}.${signature}`;
@@ -22,12 +23,12 @@ export function unsignCookie(signedData: string): string | null {
   }
 
   const [data, signature] = parts;
-  const hmac = crypto.createHmac('sha256', SECRET_KEY);
+  const hmac = createHmac('sha256', SECRET_KEY);
   hmac.update(data);
   const expectedSignature = hmac.digest('hex');
 
   // Use timing-safe comparison to prevent timing attacks
-  if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  if (timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
     return data;
   }
 
