@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createAdminClient();
+    const adminSupabase = createAdminClient();
 
     // Get current business to check subscription status
-    const { data: currentBusiness, error: businessError } = await supabase
+    const { data: currentBusiness, error: businessError } = await adminSupabase
       .from('businesses')
       .select('subscription_status, subscription_ends_at')
       .eq('id', businessId)
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cancel the subscription (keep subscription_ends_at unchanged)
-    const updateResult = await (supabase
+    const updateResult = await (adminSupabase
       .from('businesses') as any)
       .update({ subscription_status: 'cancelled' })
       .eq('id', businessId)
