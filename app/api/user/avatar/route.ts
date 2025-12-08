@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { unsignCookie } from '@/lib/auth/cookie-sign';
 
 const STORAGE_BUCKET = 'business-assets';
 
@@ -13,7 +14,14 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
   }
 
   try {
-    return JSON.parse(adminSessionCookie);
+    // Verify and unsign the cookie
+    const unsignedData = unsignCookie(adminSessionCookie);
+    if (!unsignedData) {
+      // Cookie signature invalid - possible tampering
+      return null;
+    }
+    
+    return JSON.parse(unsignedData);
   } catch (error) {
     return null;
   }
@@ -58,19 +66,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'File size too large. Maximum size is 5MB.' },
         { status: 400 }
-      );
-    }
-
-    const supabase = createAdminClient();
-
-    // Check if bucket exists
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(bucket => bucket.id === STORAGE_BUCKET);
-    
-    if (!bucketExists) {
-      return NextResponse.json(
-        { error: 'Storage bucket not found' },
-        { status: 500 }
       );
     }
 
