@@ -29,7 +29,8 @@ export function getOTPExpiration(): Date {
 export async function storeOTPCode(
   phone: string,
   code: string,
-  expiresAt: Date
+  expiresAt: Date,
+  ipAddress?: string
 ): Promise<void> {
   const supabase = createAdminClient();
 
@@ -40,12 +41,13 @@ export async function storeOTPCode(
     .eq('phone', phone)
     .eq('verified', false);
 
-  // Insert new OTP code
+  // Insert new OTP code with IP address
   const { error } = await supabase.from('otp_codes').insert({
     phone,
     code,
     expires_at: expiresAt.toISOString(),
     verified: false,
+    ip_address: ipAddress || null,
   } as any);
 
   if (error) {

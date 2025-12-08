@@ -5,6 +5,7 @@ import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { toE164Format } from '@/lib/customers/utils';
 import { BUSINESS_SLUG_COOKIE } from '@/lib/tenant';
+import { signCookie } from '@/lib/auth/cookie-sign';
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
@@ -456,7 +457,9 @@ export async function POST(request: NextRequest) {
         role: userData.role,
       });
 
-      response.cookies.set('admin_session', sessionData, {
+      // Sign the cookie data to prevent tampering
+      const signedSessionData = signCookie(sessionData);
+      response.cookies.set('admin_session', signedSessionData, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -464,8 +467,14 @@ export async function POST(request: NextRequest) {
         path: '/',
       });
       
-      // Also set a non-httpOnly cookie for client-side verification (optional)
-      // This helps with debugging but admin_session is the main one used by middleware
+      // Set non-httpOnly flag cookie for client-side check
+      response.cookies.set('is_logged_in', 'true', {
+        httpOnly: false, // Can be read by JavaScript
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/',
+      });
 
       // Also try to set Supabase Auth session if we have a link
       if (linkData?.properties?.hashed_token) {

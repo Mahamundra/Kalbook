@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { signCookie } from '@/lib/auth/cookie-sign';
 import type { Database } from '@/lib/supabase/database.types';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
@@ -118,8 +119,19 @@ export async function POST(request: NextRequest) {
       role: dbUser.role || 'owner',
     });
 
-    response.cookies.set('admin_session', sessionData, {
+    // Sign the cookie data to prevent tampering
+    const signedSessionData = signCookie(sessionData);
+    response.cookies.set('admin_session', signedSessionData, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    // Set non-httpOnly flag cookie for client-side check
+    response.cookies.set('is_logged_in', 'true', {
+      httpOnly: false, // Can be read by JavaScript
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: SESSION_MAX_AGE,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/database.types';
 
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
@@ -7,41 +8,18 @@ type BusinessRow = Database['public']['Tables']['businesses']['Row'];
 export const dynamic = 'force-dynamic';
 
 /**
- * Get admin session from cookie
- */
-function getAdminSession(request: NextRequest): { userId: string; businessId: string; email: string; phone: string; name: string; role: string } | null {
-  const adminSessionCookie = request.cookies.get('admin_session')?.value;
-  if (!adminSessionCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(adminSessionCookie);
-  } catch (error) {
-    return null;
-  }
-}
-
-/**
  * POST /api/user/plans/cancel
  * Cancel a business plan (owner only)
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = getAdminSession(request);
+    const supabase = await createClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (authError || !authUser) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
-      );
-    }
-
-    // Check if user is owner (only owners can cancel plans)
-    if (session.role !== 'owner') {
-      return NextResponse.json(
-        { error: 'Only business owners can cancel plans' },
-        { status: 403 }
       );
     }
 
@@ -56,22 +34,6 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
-
-    // Verify the user has access to this business (must be owner of this business)
-    const { data: userCheck, error: userCheckError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.userId)
-      .eq('business_id', businessId)
-      .eq('role', 'owner')
-      .maybeSingle();
-
-    if (userCheckError || !userCheck) {
-      return NextResponse.json(
-        { error: 'You do not have permission to cancel plans for this business' },
-        { status: 403 }
-      );
-    }
 
     // Get current business to check subscription status
     const { data: currentBusiness, error: businessError } = await supabase

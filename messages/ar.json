@@ -1117,7 +1117,8 @@
     "planNames": {
       "basic": "أساسي",
       "professional": "احترافي",
-      "business": "الأعمال"
+      "business": "الأعمال",
+      "custom": "مخصص"
     },
     "oneBusiness": "عمل واحد",
     "businesses": "أعمال",
@@ -1138,7 +1139,15 @@
     "noBusinesses": "لا توجد أعمال",
     "noBusinessesDesc": "ليس لديك أي أعمال بعد.",
     "createNewBusinessDesc": "إعداد حساب عمل جديد",
-    "profileDesc": "إدارة معلومات حسابك"
+    "profileDesc": "إدارة معلومات حسابك",
+    "uploadPhoto": "رفع صورة",
+    "uploading": "جاري الرفع...",
+    "avatarHint": "JPG أو PNG أو GIF أو WebP. الحد الأقصى 5MB.",
+    "avatarUpdated": "تم تحديث الصورة الشخصية بنجاح",
+    "avatarUpload": "رفع الصورة الشخصية",
+    "cropAvatar": "قص الصورة",
+    "applyCrop": "تطبيق القص",
+    "zoom": "تكبير"
   },
   "common": {
     "save": "حفظ",

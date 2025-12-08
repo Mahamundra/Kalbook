@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { unsignCookie } from '@/lib/auth/cookie-sign';
 import type { Database } from '@/lib/supabase/database.types';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
@@ -16,7 +17,14 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
   }
 
   try {
-    return JSON.parse(adminSessionCookie);
+    // Verify and unsign the cookie
+    const unsignedData = unsignCookie(adminSessionCookie);
+    if (!unsignedData) {
+      // Cookie signature invalid - possible tampering
+      return null;
+    }
+    
+    return JSON.parse(unsignedData);
   } catch (error) {
     return null;
   }
@@ -31,9 +39,10 @@ export async function GET(request: NextRequest) {
     const session = getAdminSession(request);
 
     if (!session) {
+      // Return 200 with success: false instead of 401 to avoid console errors
       return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
+        { success: false, error: 'Not authenticated' },
+        { status: 200 }
       );
     }
 
@@ -105,6 +114,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        avatar_url: (user as any).avatar_url || null,
       },
       businesses: businesses,
       // Keep business for backward compatibility (first business)
@@ -134,7 +144,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, phone } = body;
+    const { name, email, phone, avatar_url } = body;
 
     const supabase = createAdminClient();
 
@@ -143,6 +153,7 @@ export async function PATCH(request: NextRequest) {
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
+    if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -182,11 +193,13 @@ export async function PATCH(request: NextRequest) {
         email: updatedUser.email,
         phone: updatedUser.phone,
         role: updatedUser.role,
+        avatar_url: (updatedUser as any).avatar_url || null,
       },
     });
 
-    // Update admin_session cookie
-    response.cookies.set('admin_session', JSON.stringify(updatedSession), {
+    // Update admin_session cookie (sign it)
+    const signedUpdatedSession = signCookie(JSON.stringify(updatedSession));
+    response.cookies.set('admin_session', signedUpdatedSession, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

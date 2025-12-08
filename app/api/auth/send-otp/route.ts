@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateOTP, getOTPExpiration, storeOTPCode, hasRecentOTPRequest } from '@/lib/auth/otp';
+import { generateOTP, getOTPExpiration, storeOTPCode } from '@/lib/auth/otp';
 import { sendOTP } from '@/lib/auth/twilio';
 import { toE164Format } from '@/lib/customers/utils';
+import { getClientIP, checkRateLimit } from '@/lib/auth/rate-limit';
+
+type Locale = 'en' | 'he' | 'ar' | 'ru';
+
+const WAIT_MESSAGES: Record<Locale, string> = {
+  en: 'Please wait before requesting another code',
+  he: 'אנא המתן לפני בקשת קוד נוסף',
+  ar: 'يرجى الانتظار قبل طلب رمز آخر',
+  ru: 'Пожалуйста, подождите перед запросом другого кода',
+};
+
+const getLocale = (request: NextRequest): Locale => {
+  const cookieLocale = request.cookies.get('locale')?.value;
+  if (cookieLocale === 'he' || cookieLocale === 'ar' || cookieLocale === 'ru') {
+    return cookieLocale;
+  }
+  return 'en';
+};
 
 /**
  * POST /api/auth/send-otp
@@ -22,12 +40,17 @@ export async function POST(request: NextRequest) {
 
     // Convert to E.164 format (required by Twilio and Supabase Auth)
     const e164Phone = toE164Format(phone);
+    const clientIP = getClientIP(request);
 
-    // Rate limiting: check if there's a recent request
-    const hasRecent = await hasRecentOTPRequest(e164Phone);
-    if (hasRecent) {
+    // Combined rate limiting (phone + IP)
+    const rateLimitCheck = await checkRateLimit(e164Phone, clientIP);
+    if (!rateLimitCheck.allowed) {
+      const locale = getLocale(request);
+      const message = rateLimitCheck.reason === 'ip' 
+        ? (locale === 'he' ? 'יותר מדי בקשות מ-IP זה. אנא המתן.' : 'Too many requests from this IP. Please wait.')
+        : WAIT_MESSAGES[locale];
       return NextResponse.json(
-        { error: 'Please wait before requesting another code' },
+        { error: message },
         { status: 429 }
       );
     }
@@ -36,8 +59,8 @@ export async function POST(request: NextRequest) {
     const code = generateOTP();
     const expiresAt = getOTPExpiration();
 
-    // Store OTP in database (using E.164 format)
-    await storeOTPCode(e164Phone, code, expiresAt);
+    // Store OTP in database (using E.164 format) with IP address
+    await storeOTPCode(e164Phone, code, expiresAt, clientIP);
 
     // Send OTP via Twilio
     try {

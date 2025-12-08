@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyOTPCode } from '@/lib/auth/otp';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { toE164Format } from '@/lib/customers/utils';
+import { signCookie } from '@/lib/auth/cookie-sign';
 import type { Database } from '@/lib/supabase/database.types';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
@@ -130,33 +131,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If using test code and user doesn't exist, create a temporary session to allow onboarding
+    // If using test code and user doesn't exist, allow onboarding
     if (isTestCode && (!user || userError)) {
       // Return success with phone number only - user will register during onboarding
-      const response = NextResponse.json({
+      // No session needed - they'll create one during onboarding
+      return NextResponse.json({
         success: true,
         user: {
           phone: e164Phone,
         },
         isNewUser: true,
       });
-
-      // Set a temporary session cookie
-      const sessionData = JSON.stringify({
-        type: 'homepage_temp',
-        phone: e164Phone,
-        testMode: true,
-      });
-
-      response.cookies.set('admin_session', sessionData, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: SESSION_MAX_AGE,
-        path: '/',
-      });
-
-      return response;
     }
 
     // At this point, user must exist (early returns handled null cases)
@@ -191,6 +176,80 @@ export async function POST(request: NextRequest) {
       role: (user as any).role || 'admin',
     };
 
+    // Ensure user exists in Supabase Auth
+    const adminSupabaseAuth = createAdminClient();
+    const { data: authUser, error: getUserError } = await adminSupabaseAuth.auth.admin.getUserById(userData.id);
+    
+    // If user doesn't exist in Auth, create them
+    if (getUserError || !authUser) {
+      // Check if email or phone already exists before creating
+      const { data: existingUsers } = await adminSupabaseAuth.auth.admin.listUsers();
+      const existingUserByEmail = existingUsers?.users?.find(u => u.email === userData.email);
+      const existingUserByPhone = userData.phone ? existingUsers?.users?.find(u => u.phone === userData.phone) : null;
+      
+      // Check if email or phone belongs to this user (by ID)
+      if (existingUserByEmail && existingUserByEmail.id === userData.id) {
+        // User already exists in auth with this email - that's fine
+        console.log('User already exists in auth with this email and ID');
+      } else if (existingUserByPhone && existingUserByPhone.id === userData.id) {
+        // User already exists in auth with this phone and ID - that's fine
+        console.log('User already exists in auth with this phone and ID');
+      } else if (existingUserByEmail && existingUserByEmail.id !== userData.id) {
+        // Email exists but belongs to different user
+        return NextResponse.json(
+          { error: 'Email address already registered by another user' },
+          { status: 409 }
+        );
+      } else if (existingUserByPhone && existingUserByPhone.id !== userData.id) {
+        // Phone exists but belongs to different user - create without phone
+        console.log('Phone exists for different user, creating auth user without phone');
+        const { data: newUser, error: createError } = await adminSupabaseAuth.auth.admin.createUser({
+          email: userData.email,
+          // Skip phone since it already exists for another user
+          email_confirm: true,
+          user_metadata: {
+            name: userData.name,
+            business_id: userData.business_id,
+          },
+        });
+
+        if (createError || !newUser) {
+          console.error('Failed to create auth user (phone conflict):', createError);
+        }
+      } else {
+        // Neither exists - create with both
+        const { data: newUser, error: createError } = await adminSupabaseAuth.auth.admin.createUser({
+          email: userData.email,
+          phone: userData.phone || undefined,
+          email_confirm: true,
+          user_metadata: {
+            name: userData.name,
+            business_id: userData.business_id,
+          },
+        });
+
+        if (createError || !newUser) {
+          console.error('Failed to create auth user:', createError);
+          // Check if it's a phone or email conflict
+          const errorMsg = createError?.message?.toLowerCase() || '';
+          if (errorMsg.includes('phone') || (errorMsg.includes('already registered') && errorMsg.includes('phone'))) {
+            // Phone conflict - try again without phone
+            const { data: retryUser, error: retryError } = await adminSupabaseAuth.auth.admin.createUser({
+              email: userData.email,
+              email_confirm: true,
+              user_metadata: {
+                name: userData.name,
+                business_id: userData.business_id,
+              },
+            });
+            if (retryError || !retryUser) {
+              console.error('Failed to create auth user even without phone:', retryError);
+            }
+          }
+        }
+      }
+    }
+
     // Create response with user and business info
     const response = NextResponse.json({
       success: true,
@@ -208,19 +267,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set admin session cookie for middleware to check
+    // Set admin_session cookie so UI can detect logged-in user (for homepage)
     const sessionData = JSON.stringify({
       type: 'business_owner',
       userId: userData.id,
-      businessId: userData.business_id,
+      businessId: business.id,
       email: userData.email,
       phone: userData.phone,
       name: userData.name,
       role: userData.role,
     });
 
-    response.cookies.set('admin_session', sessionData, {
+    // Sign the cookie data to prevent tampering
+    const signedSessionData = signCookie(sessionData);
+
+    response.cookies.set('admin_session', signedSessionData, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    // Set non-httpOnly flag cookie for client-side check
+    response.cookies.set('is_logged_in', 'true', {
+      httpOnly: false, // Can be read by JavaScript
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: SESSION_MAX_AGE,

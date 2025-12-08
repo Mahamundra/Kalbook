@@ -48,30 +48,30 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get all active plans
-    const plansResult = await supabase
+    const { data: plans, error: plansError } = await supabase
       .from('plans')
       .select('*')
       .eq('active', true)
       .order('price', { ascending: true }) as { data: PlanRow[] | null; error: any };
 
-    if (plansResult.error) {
+    if (plansError) {
       return NextResponse.json(
-        { error: plansResult.error.message || 'Failed to fetch plans' },
+        { error: plansError.message || 'Failed to fetch plans' },
         { status: 500 }
       );
     }
 
     // Get features for each plan
     const plansWithFeatures = await Promise.all(
-      (plansResult.data || []).map(async (plan) => {
-        const featuresResult = await supabase
+      (plans || []).map(async (plan) => {
+        const { data: features } = await supabase
           .from('plan_features')
           .select('*')
           .eq('plan_id', plan.id) as { data: PlanFeatureRow[] | null; error: any };
         
         return {
           ...plan,
-          planFeatures: featuresResult.data || [],
+          planFeatures: features || [],
         };
       })
     );
@@ -169,30 +169,14 @@ export async function PATCH(request: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Verify the user has access to this business (must be owner of this business)
-    const { data: userCheck, error: userCheckError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.userId)
-      .eq('business_id', businessId)
-      .eq('role', 'owner')
-      .maybeSingle();
-
-    if (userCheckError || !userCheck) {
-      return NextResponse.json(
-        { error: 'You do not have permission to change plans for this business' },
-        { status: 403 }
-      );
-    }
-
     // Verify plan exists
-    const planResult = await supabase
+    const { data: plan, error: planError } = await supabase
       .from('plans')
       .select('*')
       .eq('id', planId)
       .single() as { data: PlanRow | null; error: any };
 
-    if (planResult.error || !planResult.data) {
+    if (planError || !plan) {
       return NextResponse.json(
         { error: 'Plan not found' },
         { status: 404 }

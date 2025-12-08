@@ -7,7 +7,6 @@ import { useDirection } from '@/components/providers/DirectionProvider';
 import { useLocale } from '@/hooks/useLocale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,12 +18,15 @@ import {
 import { LayoutDashboard, LogOut, Building2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
+import { UserAccountModal } from '@/components/admin/UserAccountModal';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 interface User {
   name: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 // Helper function to get user initials
@@ -74,6 +76,8 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
   const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [userAccountModalOpen, setUserAccountModalOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Detect business slug
   const slugMatch = pathname?.match(/^\/b\/([^/]+)\/admin/);
@@ -98,6 +102,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
             setUser({
               name: data.user.name || 'User',
               email: data.user.email || '',
+              avatar_url: data.user.avatar_url || null,
             });
             // Check if user is owner
             if (data.user.role === 'owner') {
@@ -113,10 +118,16 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
     };
 
     fetchUser();
-  }, [isLoginPage]);
+    
+    // Refresh user data when modal closes (in case avatar was updated)
+    if (!userAccountModalOpen && !isLoginPage) {
+      fetchUser();
+    }
+  }, [isLoginPage, userAccountModalOpen]);
 
   const handleGoToDashboard = () => {
-    window.location.href = '/user/dashboard';
+    setDropdownOpen(false);
+    setUserAccountModalOpen(true);
   };
 
   const handleLogout = async () => {
@@ -157,22 +168,26 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
         <AdminSidebar />
         
         <SidebarInset className="overflow-y-auto">
-            <header className="flex min-h-[69px] items-center gap-4 border-b bg-background px-4 md:px-6 relative py-6 w-full">
-              {/* Logo - centered */}
-              <div className="absolute left-1/2 transform -translate-x-1/2">
-                <KalBookLogo size="lg" variant="full" animated={false} />
+            <header className="flex min-h-[69px] items-center gap-4 bg-background px-4 md:px-6 relative py-0 w-full">
+              {/* Logo - centered on desktop, edge on mobile */}
+              <div className={`${isRTL ? 'ml-0 md:ml-0 md:absolute md:left-1/2 md:transform md:-translate-x-1/2' : 'mr-auto md:mr-0 md:absolute md:left-1/2 md:transform md:-translate-x-1/2'}`}>
+                <KalBookLogo size="md" variant="full" animated={false} />
               </div>
               
               {/* Right side - User menu */}
               <div className="flex-1" />
               {!loadingUser && user && (
                 <div>
-                  <DropdownMenu>
+                  <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                       <button 
                         className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
-                        <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
+                        {isRTL && <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />}
+                        <Avatar className="h-12 w-12 flex-shrink-0 border border-[#030408]">
+                          {user.avatar_url ? (
+                            <AvatarImage src={user.avatar_url} alt={user.name || 'User'} />
+                          ) : null}
                           <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
                             {getTimeBasedEmoji()}
                           </AvatarFallback>
@@ -180,7 +195,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
                         <span className="text-xs sm:text-sm text-muted-foreground">
                           {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
                         </span>
-                        <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                        {!isRTL && <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />}
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
@@ -197,18 +212,6 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
-                      {isOwner && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => window.location.href = '/user/dashboard'} 
-                            className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}
-                          >
-                            <Building2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                            {t('dashboard.goToOwnerDashboard')}
-                          </DropdownMenuItem>
-                        </>
-                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
@@ -257,6 +260,7 @@ export default function BusinessAdminLayout({ children }: { children: React.Reac
         </SidebarInset>
       </SidebarProvider>
       <MobileBottomNav />
+      <UserAccountModal open={userAccountModalOpen} onOpenChange={setUserAccountModalOpen} initialTab="profile" />
     </div>
   );
 }

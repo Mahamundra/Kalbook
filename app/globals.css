@@ -93,7 +93,7 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 10 100% 55.3%;
+    --ring: 217 70% 50%;
 
     --radius: 0.75rem;
 
@@ -113,7 +113,7 @@
     --sidebar-accent: 0 0% 1.2%; /* #030408 - black for hover states */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 10 100% 55.3%;
+    --sidebar-ring: 217 70% 50%;
   }
 
   .dark {
@@ -152,7 +152,7 @@
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 10 100% 65.3%;
+    --ring: 217 70% 60%;
 
     --gradient-hero: linear-gradient(to right, hsl(10 100% 60%), hsl(160 84% 40%), hsl(10 100% 60%));
     --gradient-bg: linear-gradient(to bottom, hsl(222 47% 14%), hsl(222 47% 11%));
@@ -169,7 +169,7 @@
     --sidebar-accent: 0 0% 98%; /* Light text for dark mode hover */
     --sidebar-accent-foreground: 0 0% 1.2%; /* #030408 - dark background */
     --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 10 100% 65.3%;
+    --sidebar-ring: 217 70% 60%;
   }
 }
 

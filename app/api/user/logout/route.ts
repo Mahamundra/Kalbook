@@ -20,6 +20,16 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
+    // Clear is_logged_in flag cookie
+    response.cookies.delete('is_logged_in');
+    response.cookies.set('is_logged_in', '', {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+    });
+
     return response;
   } catch (error: any) {
     return NextResponse.json(

@@ -1054,7 +1054,8 @@
     "planNames": {
       "basic": "Basic",
       "professional": "Professional",
-      "business": "Business"
+      "business": "Business",
+      "custom": "Custom"
     },
     "oneBusiness": "1 business",
     "businesses": "businesses",
@@ -1075,7 +1076,15 @@
     "noBusinesses": "No Businesses",
     "noBusinessesDesc": "You don't have any businesses yet.",
     "createNewBusinessDesc": "Set up a new business account",
-    "profileDesc": "Manage your account information"
+    "profileDesc": "Manage your account information",
+    "uploadPhoto": "Upload Photo",
+    "uploading": "Uploading...",
+    "avatarHint": "JPG, PNG, GIF or WebP. Max 5MB.",
+    "avatarUpdated": "Avatar updated successfully",
+    "avatarUpload": "Upload Avatar",
+    "cropAvatar": "Crop Avatar",
+    "applyCrop": "Apply Crop",
+    "zoom": "Zoom"
   },
   "common": {
     "save": "Save",

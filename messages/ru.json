@@ -1117,7 +1117,8 @@
     "planNames": {
       "basic": "Базовый",
       "professional": "Профессиональный",
-      "business": "Бизнес"
+      "business": "Бизнес",
+      "custom": "Индивидуальный"
     },
     "oneBusiness": "1 бизнес",
     "businesses": "бизнесов",
@@ -1138,7 +1139,15 @@
     "noBusinesses": "Нет бизнесов",
     "noBusinessesDesc": "У вас пока нет бизнесов.",
     "createNewBusinessDesc": "Настроить новый бизнес-аккаунт",
-    "profileDesc": "Управление информацией вашего аккаунта"
+    "profileDesc": "Управление информацией вашего аккаунта",
+    "uploadPhoto": "Загрузить фото",
+    "uploading": "Загрузка...",
+    "avatarHint": "JPG, PNG, GIF или WebP. Максимум 5MB.",
+    "avatarUpdated": "Аватар успешно обновлен",
+    "avatarUpload": "Загрузить аватар",
+    "cropAvatar": "Обрезать аватар",
+    "applyCrop": "Применить обрезку",
+    "zoom": "Масштаб"
   },
   "common": {
     "save": "Сохранить",

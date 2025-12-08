@@ -359,14 +359,9 @@ export default function AdminLoginPage() {
 
       setIsLoading(false);
 
-      // Success - redirect to dashboard
+      // Redirect to dashboard
       toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
-      
-      // Small delay to ensure cookie is set by browser and toast is visible
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Use window.location.href for full page reload to ensure cookie is read by middleware
-      // This forces a complete page reload which will properly read the Set-Cookie header
       window.location.href = `/b/${slug}/admin/dashboard`;
     } catch (error: any) {
       setIsLoading(false);

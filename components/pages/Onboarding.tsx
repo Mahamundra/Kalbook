@@ -202,6 +202,7 @@ const Onboarding = () => {
   };
 
   const handleGoToDashboard = () => {
+    // Redirect to user dashboard
     router.push('/user/dashboard');
   };
 
@@ -263,12 +264,52 @@ const Onboarding = () => {
     if (locale === 'he') {
       // Terms to bold in Hebrew
       const boldTerms = ['יומן חכם', 'תזכורות במייל', 'ניהול לקוחות', 'וואטסאפ', 'WhatsApp'];
-      let result = description;
+      const parts: (string | JSX.Element)[] = [];
+      let lastIndex = 0;
+      let key = 0;
+      
+      // Find all matches and their positions
+      const matches: Array<{ term: string; index: number; length: number }> = [];
       boldTerms.forEach(term => {
-        const regex = new RegExp(`(${term})`, 'gi');
-        result = result.replace(regex, '<strong>$1</strong>');
+        const regex = new RegExp(term, 'gi');
+        let match;
+        while ((match = regex.exec(description)) !== null) {
+          matches.push({ term: match[0], index: match.index, length: match[0].length });
+        }
       });
-      return <span dangerouslySetInnerHTML={{ __html: result }} />;
+      
+      // Sort matches by index
+      matches.sort((a, b) => a.index - b.index);
+      
+      // Remove overlapping matches (keep first occurrence)
+      const filteredMatches: Array<{ term: string; index: number; length: number }> = [];
+      matches.forEach(match => {
+        const overlaps = filteredMatches.some(existing => 
+          (match.index >= existing.index && match.index < existing.index + existing.length) ||
+          (existing.index >= match.index && existing.index < match.index + match.length)
+        );
+        if (!overlaps) {
+          filteredMatches.push(match);
+        }
+      });
+      
+      // Build parts array
+      filteredMatches.forEach(match => {
+        // Add text before match
+        if (match.index > lastIndex) {
+          parts.push(description.substring(lastIndex, match.index));
+        }
+        // Add bold match
+        parts.push(<strong key={key++}>{match.term}</strong>);
+        lastIndex = match.index + match.length;
+      });
+      
+      // Add remaining text
+      if (lastIndex < description.length) {
+        parts.push(description.substring(lastIndex));
+      }
+      
+      return <span>{parts}</span>;
     }
     return description;
   };
@@ -1605,11 +1646,60 @@ const Onboarding = () => {
 
         const result = await response.json();
         toast.success(t('onboarding.success.businessSetup'));
-        // Redirect to user dashboard
-        // Use window.location for full page reload to ensure cookie is picked up
-        setTimeout(() => {
-          window.location.href = '/user/dashboard';
-        }, 2000);
+        
+        // After business creation, automatically log in the user via OTP
+        // to establish Supabase Auth session
+        const businessSlug = result.slug || result.business?.slug;
+        if (businessSlug && phoneNumber) {
+          // User already verified OTP during onboarding, so we can use that
+          // to establish a session by calling the business admin verify-otp endpoint
+          const cleanPhone = phoneNumber.replace(/\D/g, '');
+          
+          // Get the OTP code from state (user already entered it)
+          // If we don't have it, redirect to login page
+          if (otpCode && otpCode.length === 6) {
+            try {
+              // Call verify-otp for the business admin to establish session
+              const loginResponse = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  phone: cleanPhone,
+                  code: otpCode,
+                  userType: 'business_owner',
+                  businessSlug: businessSlug,
+                }),
+              });
+              
+              if (loginResponse.ok) {
+                // Session established, redirect to dashboard
+                setTimeout(() => {
+                  window.location.href = `/b/${businessSlug}/admin/dashboard`;
+                }, 1000);
+              } else {
+                // If login fails, redirect to login page
+                setTimeout(() => {
+                  window.location.href = `/b/${businessSlug}/admin/login`;
+                }, 1000);
+              }
+            } catch (error) {
+              // If login fails, redirect to login page
+              setTimeout(() => {
+                window.location.href = `/b/${businessSlug}/admin/login`;
+              }, 1000);
+            }
+          } else {
+            // No OTP code available, redirect to login page
+            setTimeout(() => {
+              window.location.href = `/b/${businessSlug}/admin/login`;
+            }, 2000);
+          }
+        } else {
+          // Fallback to home if slug not available
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        }
       } catch (error: any) {
         // Check if error message matches phone number error and use translation
         const errorMessage = error.message || '';

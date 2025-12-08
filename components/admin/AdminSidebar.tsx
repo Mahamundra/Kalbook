@@ -10,12 +10,11 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, Calendar, Briefcase, Users, Mail, QrCode, Settings, UserCircle, LogOut, FileText } from 'lucide-react';
+import { LayoutDashboard, Calendar, Briefcase, Users, Mail, QrCode, Settings, UserCircle, FileText } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { useState, useEffect, useMemo } from 'react';
 import { getSettings } from '@/lib/mockData';
-import { toast } from 'sonner';
 
 const menuItemsBase = [
   { icon: Calendar, labelKey: 'nav.calendar', slug: 'calendar' },
@@ -163,38 +162,6 @@ export const AdminSidebar = () => {
             {t('nav.viewPublicSite')}
           </Button>
         </Link>
-        {businessSlug && (
-          <Button
-            variant="destructive"
-            className="w-full"
-            onClick={async () => {
-              try {
-                // Call logout endpoint - it will sign out and redirect
-                const response = await fetch(`/b/${businessSlug}/admin/logout`, {
-                  method: 'POST',
-                });
-                
-                // If response is a redirect (status 307/308), navigate to login
-                if (response.redirected || response.ok) {
-                  toast.success(t('auth.logoutSuccess') || 'Logged out successfully');
-                  // Navigate to login page
-                  window.location.href = `/b/${businessSlug}/admin/login`;
-                } else {
-                  toast.error('Failed to logout');
-                  // Still redirect to login page
-                  window.location.href = `/b/${businessSlug}/admin/login`;
-                }
-              } catch (error) {
-                console.error('Logout error:', error);
-                // Still redirect to login page even if there's an error
-                window.location.href = `/b/${businessSlug}/admin/login`;
-              }
-            }}
-          >
-            <LogOut className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-            {t('auth.logout') || 'Logout'}
-          </Button>
-        )}
       </SidebarFooter>
     </Sidebar>
   );

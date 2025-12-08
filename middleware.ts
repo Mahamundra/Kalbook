@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/middleware';
 import { extractBusinessSlug, BUSINESS_SLUG_COOKIE, TENANT_CONTEXT_HEADER } from '@/lib/tenant';
 import { getBusinessBySlug } from '@/lib/business';
+import { unsignCookie } from '@/lib/auth/cookie-sign';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
@@ -25,32 +26,7 @@ export async function middleware(request: NextRequest) {
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isOldAdminRoute = pathname.startsWith('/admin') && !pathname.startsWith('/b/');
   const isSlugAdminRoute = pathname.match(/^\/b\/[^/]+\/admin/);
-  const isUserDashboardRoute = pathname.startsWith('/user/dashboard');
   const isSuperAdminRoute = pathname.startsWith('/super-admin');
-  
-  // Redirect old login page to homepage
-  if (pathname.match(/^\/b\/[^/]+\/admin\/login$/)) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-  
-  // Handle user dashboard route
-  if (isUserDashboardRoute) {
-    // Check for admin_session cookie
-    const adminSessionCookie = request.cookies.get('admin_session')?.value;
-    if (!adminSessionCookie) {
-      // Not authenticated - redirect to homepage
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-    
-    try {
-      const adminSession = JSON.parse(adminSessionCookie);
-      // Allow access to user dashboard
-      return response;
-    } catch (error) {
-      // Invalid session - redirect to homepage
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  }
   
   // For API routes, try to get business context from cookie or Referer header
   if (isApiRoute) {
@@ -125,10 +101,14 @@ export async function middleware(request: NextRequest) {
           const adminSessionCookie = request.cookies.get('admin_session')?.value;
           if (adminSessionCookie) {
             try {
-              adminSessionUser = JSON.parse(adminSessionCookie);
-              // Verify the session user has access to this business
-              if (adminSessionUser && adminSessionUser.businessId !== business.id) {
-                adminSessionUser = null; // Business mismatch, invalidate session
+              // Verify and unsign the cookie
+              const unsignedData = unsignCookie(adminSessionCookie);
+              if (unsignedData) {
+                adminSessionUser = JSON.parse(unsignedData);
+                // Verify the session user has access to this business
+                if (adminSessionUser && adminSessionUser.businessId !== business.id) {
+                  adminSessionUser = null; // Business mismatch, invalidate session
+                }
               }
             } catch (error) {
               adminSessionUser = null;

@@ -6,7 +6,6 @@ import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { TrialStatusBanner } from '@/components/admin/TrialStatusBanner';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,13 +19,16 @@ import { LayoutDashboard, LogOut, Building2, User, ChevronDown } from 'lucide-re
 import { toast } from 'sonner';
 import { useLocale } from '@/hooks/useLocale';
 import Link from 'next/link';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
+import { UserAccountModal } from '@/components/admin/UserAccountModal';
+import { KalBookLogo } from '@/components/ui/KalBookLogo';
 
 interface User {
   name: string;
   email: string;
   role?: string;
+  avatar_url?: string | null;
 }
 
 // Helper function to get user initials
@@ -76,6 +78,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [userAccountModalOpen, setUserAccountModalOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Fetch user data
   useEffect(() => {
@@ -89,6 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               name: data.user.name || 'User',
               email: data.user.email || '',
               role: data.user.role,
+              avatar_url: data.user.avatar_url || null,
             });
             if (data.user.role === 'owner') {
               setIsOwner(true);
@@ -106,7 +111,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   const handleGoToDashboard = () => {
-    window.location.href = '/user/dashboard';
+    setDropdownOpen(false);
+    setUserAccountModalOpen(true);
   };
 
   const handleLogout = async () => {
@@ -135,7 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminSidebar />
           
           <main className="flex-1 overflow-y-auto">
-            <header className="sticky top-0 z-10 grid grid-cols-3 h-14 items-center gap-4 border-b bg-background px-6">
+            <header className="sticky top-0 z-10 grid grid-cols-3 h-14 items-center gap-4 bg-background px-6 py-0">
               {/* Left side - Login/User profile */}
               <div className={`flex items-center gap-2 ${isRTL ? 'justify-end order-3' : 'justify-start order-1'}`}>
                 <SidebarTrigger className="md:hidden" />
@@ -148,12 +154,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </Link>
                 )}
                 {!loadingUser && user && (
-                  <DropdownMenu>
+                  <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                       <button 
                         className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
-                        <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
+                        {isRTL && <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />}
+                        <Avatar className="h-12 w-12 flex-shrink-0 border border-[#030408]">
+                          {user.avatar_url ? (
+                            <AvatarImage src={user.avatar_url} alt={user.name || 'User'} />
+                          ) : null}
                           <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
                             {getTimeBasedEmoji()}
                           </AvatarFallback>
@@ -161,7 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <span className="text-xs sm:text-sm text-muted-foreground">
                           {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
                         </span>
-                        <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                        {!isRTL && <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />}
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
@@ -178,18 +188,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                         {t('userDashboard.title') || 'My Account'}
                       </DropdownMenuItem>
-                      {isOwner && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => window.location.href = '/user/dashboard'} 
-                            className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}
-                          >
-                            <Building2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                            {t('dashboard.goToOwnerDashboard')}
-                          </DropdownMenuItem>
-                        </>
-                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
@@ -202,7 +200,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
               {/* Center - Logo */}
               <div className="flex justify-center items-center order-2">
-                <KalBookLogo size="lg" variant="full" animated={false} />
+                <div className={`${isRTL ? 'ml-auto md:ml-0 md:absolute md:left-1/2 md:transform md:-translate-x-1/2' : 'mr-auto md:mr-0 md:absolute md:left-1/2 md:transform md:-translate-x-1/2'}`}>
+                  <KalBookLogo size="md" variant="full" animated={false} />
+                </div>
               </div>
 
               {/* Right side - Language Toggle */}
@@ -257,6 +257,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </main>
         </div>
       </SidebarProvider>
+      <UserAccountModal open={userAccountModalOpen} onOpenChange={setUserAccountModalOpen} initialTab="profile" />
     </div>
   );
 }

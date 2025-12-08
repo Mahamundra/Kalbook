@@ -353,6 +353,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       // Call verify-otp-homepage API
       const response = await fetch('/api/auth/verify-otp-homepage', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

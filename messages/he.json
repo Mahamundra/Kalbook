@@ -1117,7 +1117,8 @@
     "planNames": {
       "basic": "בסיסי",
       "professional": "מקצועי",
-      "business": "עסקי"
+      "business": "עסקי",
+      "custom": "מותאם אישית"
     },
     "oneBusiness": "עסק אחד",
     "businesses": "עסקים",
@@ -1138,7 +1139,15 @@
     "noBusinesses": "אין עסקים",
     "noBusinessesDesc": "אין לך עסקים עדיין.",
     "createNewBusinessDesc": "הגדר חשבון עסק חדש",
-    "profileDesc": "נהל את פרטי החשבון שלך"
+    "profileDesc": "נהל את פרטי החשבון שלך",
+    "uploadPhoto": "העלה תמונה",
+    "uploading": "מעלה...",
+    "avatarHint": "JPG, PNG, GIF או WebP. מקסימום 5MB.",
+    "avatarUpdated": "התמונה עודכנה בהצלחה",
+    "avatarUpload": "העלה תמונת פרופיל",
+    "cropAvatar": "חתוך תמונה",
+    "applyCrop": "החל חיתוך",
+    "zoom": "זום"
   },
   "common": {
     "save": "שמור",

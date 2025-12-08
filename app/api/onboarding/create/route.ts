@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { generateUniqueSlugFromBusinessType, getDefaultServices, getDefaultTimezone, getDefaultCurrency, getDefaultThemeColor } from '@/lib/onboarding/utils';
 import { uploadDefaultBannerImage } from '@/lib/storage/upload-server';
 import { toE164Format } from '@/lib/customers/utils';
 import { isSuperAdminFromRequest } from '@/lib/super-admin/auth';
+import { signCookie } from '@/lib/auth/cookie-sign';
 import type { BusinessType } from '@/lib/supabase/database.types';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -17,21 +19,6 @@ type WorkerRow = Database['public']['Tables']['workers']['Row'];
  * POST /api/onboarding/create
  * Create a new business with default services, settings, and admin user
  */
-/**
- * Get admin session from cookie
- */
-function getAdminSession(request: NextRequest): { userId: string; businessId: string; email: string; phone: string; name: string; role: string } | null {
-  const adminSessionCookie = request.cookies.get('admin_session')?.value;
-  if (!adminSessionCookie) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(adminSessionCookie);
-  } catch (error) {
-    return null;
-  }
-}
 
 export async function POST(request: NextRequest) {
   let body: any = null;
@@ -43,9 +30,17 @@ export async function POST(request: NextRequest) {
     // Super-admins should not be used for business creation
     const isSuperAdmin = await isSuperAdminFromRequest(request);
     
-    // Check if user is logged in (but ignore if they're a super-admin)
-    const session = isSuperAdmin ? null : getAdminSession(request);
-    const isLoggedIn = !!session && !isSuperAdmin;
+    // Check if user is logged in via Supabase Auth (but ignore if they're a super-admin)
+    let isLoggedIn = false;
+    let existingAuthUserId: string | null = null;
+    if (!isSuperAdmin) {
+      const supabaseServer = await createClient();
+      const { data: { user: authUser } } = await supabaseServer.auth.getUser();
+      if (authUser) {
+        isLoggedIn = true;
+        existingAuthUserId = authUser.id;
+      }
+    }
 
     // Validate required fields
     const validBusinessTypes = ['barbershop', 'nail_salon', 'gym_trainer', 'beauty_salon', 'makeup_artist', 'spa', 'pilates_studio', 'physiotherapy', 'life_coach', 'dietitian', 'other'];
@@ -70,10 +65,12 @@ export async function POST(request: NextRequest) {
       ? adminUser.email.trim() 
       : null;
 
-    // Name - use business name (required by database)
-    const finalOwnerName = businessInfo.name && typeof businessInfo.name === 'string'
-      ? businessInfo.name.trim()
-      : 'Business Owner';
+    // Name - use ownerName from step 2 if provided, otherwise fallback to business name
+    const finalOwnerName = ownerName && typeof ownerName === 'string' && ownerName.trim()
+      ? ownerName.trim()
+      : (businessInfo.name && typeof businessInfo.name === 'string'
+          ? businessInfo.name.trim()
+          : 'Business Owner');
 
     const supabase = createAdminClient();
 
@@ -319,18 +316,23 @@ export async function POST(request: NextRequest) {
       try {
         // Check if user is logged in and using same account
         // Skip this check if user is a super-admin (super-admins should never reuse their account)
-        if (!isSuperAdmin && isLoggedIn && session && e164Phone && !useAnotherAccount) {
-          // Check if phone and email match logged-in user's info
-          const sessionPhone = session.phone;
-          const sessionEmail = session.email;
-          if (sessionPhone && toE164Format(sessionPhone) === e164Phone) {
-            // If email is provided, check it matches; otherwise just match phone
-            if (!adminEmail || sessionEmail === adminEmail) {
-              // Same phone (and email if provided) as logged-in user - reuse existing auth user
-              // This allows the business to appear in user dashboard
-              shouldReuseAccount = true;
-              if (session.userId) {
-                authUserId = session.userId;
+        if (!isSuperAdmin && isLoggedIn && existingAuthUserId && e164Phone && !useAnotherAccount) {
+          // Check if the logged-in user has the same phone
+          const userResult = await supabase
+            .from('users')
+            .select('phone, email')
+            .eq('id', existingAuthUserId)
+            .maybeSingle() as { data: { phone: string | null; email: string | null } | null; error: any };
+          
+          if (userResult.data) {
+            const existingPhone = userResult.data.phone ? toE164Format(userResult.data.phone) : null;
+            if (existingPhone === e164Phone) {
+              // If email is provided, check it matches; otherwise just match phone
+              if (!adminEmail || userResult.data.email === adminEmail) {
+                // Same phone (and email if provided) as logged-in user - reuse existing auth user
+                // This allows the business to appear in user dashboard
+                shouldReuseAccount = true;
+                authUserId = existingAuthUserId;
               }
             }
           }
@@ -573,7 +575,7 @@ export async function POST(request: NextRequest) {
             hasPhone: !!e164Phone,
             isLoggedIn,
             shouldReuseAccount,
-            sessionUserId: session?.userId || null,
+            existingAuthUserId: existingAuthUserId || null,
             adminEmail: adminEmail || null,
             e164Phone: e164Phone || null
           }
@@ -750,8 +752,19 @@ export async function POST(request: NextRequest) {
       role: (newUser as any).role || 'owner',
     });
 
-    response.cookies.set('admin_session', sessionData, {
+    // Sign the cookie data to prevent tampering
+    const signedSessionData = signCookie(sessionData);
+    response.cookies.set('admin_session', signedSessionData, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
+
+    // Set non-httpOnly flag cookie for client-side check
+    response.cookies.set('is_logged_in', 'true', {
+      httpOnly: false, // Can be read by JavaScript
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: SESSION_MAX_AGE,

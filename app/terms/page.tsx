@@ -109,6 +109,7 @@ export default function TermsPage() {
   };
 
   const handleGoToDashboard = () => {
+    // Redirect to user dashboard
     router.push('/user/dashboard');
   };
 

@@ -14,6 +14,7 @@ import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowL
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
+import { UserAccountModal } from '@/components/admin/UserAccountModal';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -87,6 +88,8 @@ export default function Home() {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string; business: { slug: string } } | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const hasCheckedUserRef = useRef(false);
+  const isCheckingRef = useRef(false);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [hoveredFeature, setHoveredFeature] = useState<{ planKey: string; featureIndex: number } | null>(null);
@@ -94,6 +97,8 @@ export default function Home() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({ name: '', email: '', message: '' });
   const [submittingContact, setSubmittingContact] = useState(false);
+  const [userAccountModalOpen, setUserAccountModalOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { toast } = useToast();
 
   // Pricing state - moved to parent to prevent re-fetching on hover
@@ -309,29 +314,55 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Helper to check if logged in cookie exists
+  const isLoggedInCookie = () => {
+    if (typeof document === 'undefined') return false;
+    return document.cookie.split(';').some(cookie => 
+      cookie.trim().startsWith('is_logged_in=true')
+    );
+  };
+
   // Check if user is logged in
-  const checkUser = async () => {
+  const checkUser = async (force = false) => {
+    // Prevent duplicate calls on initial mount (React Strict Mode causes double mount in dev)
+    // But allow forced calls (e.g., after login)
+    if (!force && hasCheckedUserRef.current) return;
+    if (!force) hasCheckedUserRef.current = true;
+
+    // Prevent concurrent checks
+    if (isCheckingRef.current) return;
+    isCheckingRef.current = true;
+
     try {
       setLoadingUser(true);
+      
+      // Skip fetch if not logged in (unless forced)
+      if (!force && !isLoggedInCookie()) {
+        setUser(null);
+        setLoadingUser(false);
+        isCheckingRef.current = false;
+        return;
+      }
+
       const response = await fetch('/api/user/profile');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setUser({
-            name: data.user.name,
-            email: data.user.email,
-            business: data.business,
-          });
-        } else {
-          setUser(null);
-        }
+      const data = await response.json();
+      
+      if (data.success) {
+        setUser({
+          name: data.user.name,
+          email: data.user.email,
+          business: data.business,
+        });
       } else {
+        // Not logged in - handle silently
         setUser(null);
       }
     } catch (error) {
+      // Network errors - handle silently
       setUser(null);
     } finally {
       setLoadingUser(false);
+      isCheckingRef.current = false;
     }
   };
 
@@ -361,7 +392,9 @@ export default function Home() {
   };
 
   const handleGoToDashboard = () => {
-    router.push('/user/dashboard');
+    // Close dropdown and open user account modal
+    setDropdownOpen(false);
+    setUserAccountModalOpen(true);
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -871,7 +904,6 @@ export default function Home() {
                   variant="outline" 
                   className={`h-8 sm:h-10 px-2 sm:px-3 ${isRTL ? 'flex-row-reverse' : ''}`}
                   onClick={() => setLoginModalOpen(true)}
-                  disabled={loadingUser}
                   aria-label={t('adminLogin.homepageLogin') || 'Admin Login'}
                 >
                   <User className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -883,7 +915,7 @@ export default function Home() {
               {!loadingUser && user && (
                 <>
                   <div className="w-2 sm:w-3" />
-                  <DropdownMenu>
+                  <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                       <button 
                         className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -1528,7 +1560,14 @@ export default function Home() {
       <AdminLoginModal 
         open={loginModalOpen} 
         onOpenChange={setLoginModalOpen}
-        onLoginSuccess={checkUser}
+        onLoginSuccess={() => checkUser(true)}
+      />
+
+      {/* User Account Modal */}
+      <UserAccountModal 
+        open={userAccountModalOpen} 
+        onOpenChange={setUserAccountModalOpen}
+        initialTab="profile"
       />
     </div>
   );
