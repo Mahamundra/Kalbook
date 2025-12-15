@@ -96,6 +96,7 @@ const Onboarding = () => {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({ name: '', email: '', message: '' });
   const [submittingContact, setSubmittingContact] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [expandedFeature, setExpandedFeature] = useState<{ planKey: string; featureIndex: number } | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
@@ -1837,7 +1838,6 @@ const Onboarding = () => {
                   <Button 
                     variant="outline" 
                     className={`h-8 sm:h-10 px-2 sm:px-3 ${isRTL ? 'flex-row-reverse' : ''}`}
-                    onClick={() => setLoginModalOpen(true)}
                     aria-label={t('adminLogin.homepageLogin') || 'Admin Login'}
                     style={{ display: 'none' }}
                   >
