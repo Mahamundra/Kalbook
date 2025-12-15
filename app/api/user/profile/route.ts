@@ -35,16 +35,44 @@ function getAdminSession(request: NextRequest): { userId: string; businessId: st
  * Get current user profile from admin_session
  */
 export async function GET(request: NextRequest) {
+  console.error('=== profile GET CALLED ===');
   try {
+    const adminSessionCookie = request.cookies.get('admin_session')?.value;
+    console.error('Profile request - admin_session cookie:', {
+      exists: !!adminSessionCookie,
+      length: adminSessionCookie?.length || 0,
+    });
+
     const session = getAdminSession(request);
 
     if (!session) {
+      console.error('Profile request - no valid session found', {
+        cookieExists: !!adminSessionCookie,
+        cookieValue: adminSessionCookie ? adminSessionCookie.substring(0, 50) + '...' : null,
+      });
       // Return 200 with success: false instead of 401 to avoid console errors
       return NextResponse.json(
-        { success: false, error: 'Not authenticated' },
+        { 
+          success: false, 
+          error: 'Not authenticated',
+          // Temporary debug info
+          _debug: {
+            cookieExists: !!adminSessionCookie,
+            cookieLength: adminSessionCookie?.length || 0,
+            cookiePreview: adminSessionCookie ? adminSessionCookie.substring(0, 100) + '...' : null,
+          },
+        },
         { status: 200 }
       );
     }
+
+    console.error('Profile request - session found:', {
+      userId: session.userId,
+      businessId: session.businessId,
+      hasEmail: !!session.email,
+      hasPhone: !!session.phone,
+      role: session.role,
+    });
 
     const supabase = createAdminClient();
 

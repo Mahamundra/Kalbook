@@ -1,21 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
-import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -25,13 +26,39 @@ export default function AdminLoginPage() {
   const { dir } = useDirection();
   const isMobile = useIsMobile();
 
-  const [step, setStep] = useState<'phone' | 'verify'>('phone');
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const oauthCallbackHandled = useRef(false);
+
+  // Format phone number with dashes (050-000-0000)
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    
+    // Format as XXX-XXX-XXXX (always maintain dashes)
+    if (limited.length === 0) {
+      return '';
+    } else if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
 
   // Get business data for display
   useEffect(() => {
@@ -67,14 +94,20 @@ export default function AdminLoginPage() {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
       const type = urlParams.get('type');
-      const businessSlugParam = urlParams.get('businessSlug');
+      const oauthSuccess = urlParams.get('oauth_success');
       
       // Check if this is an OAuth callback for business admin
-      if (code && type === 'business_admin' && businessSlugParam === slug) {
+      if (type === 'business_admin' && oauthSuccess === 'true') {
+        // Prevent multiple executions
+        if (oauthCallbackHandled.current) {
+          return;
+        }
+        oauthCallbackHandled.current = true;
+
         try {
           setIsLoading(true);
+          setError(null); // Clear any previous errors
           
           // Wait a bit for session to be set
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -100,18 +133,30 @@ export default function AdminLoginPage() {
             window.location.href = `/b/${slug}/admin/dashboard`;
           } else {
             setIsLoading(false);
-            setError(data.error || 'Authentication failed');
-            toast.error(data.error || 'Authentication failed');
-            // Clean URL
+            // Check if error matches the no admin account message and translate it
+            const errorMessage = data.error || 'Authentication failed';
+            const isNoAdminAccountError = errorMessage.includes('No admin account found with this email for this business');
+            const translatedError = isNoAdminAccountError 
+              ? (t('adminLogin.noAdminAccountFound') || errorMessage)
+              : errorMessage;
+            setError(translatedError);
+            // Show toast only once
+            toast.error(translatedError);
+            // Clean URL immediately to prevent re-triggering
             window.history.replaceState({}, '', `/b/${slug}/admin/login`);
           }
         } catch (error: any) {
           setIsLoading(false);
-          setError(error.message || 'Failed to complete login');
-          toast.error(error.message || 'Failed to complete login');
-          // Clean URL
+          const errorMsg = error.message || 'Failed to complete login';
+          setError(errorMsg);
+          // Show toast only once
+          toast.error(errorMsg);
+          // Clean URL immediately to prevent re-triggering
           window.history.replaceState({}, '', `/b/${slug}/admin/login`);
         }
+      } else {
+        // Reset the flag if not an OAuth callback
+        oauthCallbackHandled.current = false;
       }
     };
 
@@ -119,7 +164,10 @@ export default function AdminLoginPage() {
   }, [slug, t]);
 
   const handlePhoneSubmit = async () => {
-    if (!phone || phone.trim() === '') {
+    // Remove dashes for API call
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    if (!cleanPhone || cleanPhone.length < 10) {
       setError(t('adminLogin.phoneRequired') || 'Phone number is required');
       return;
     }
@@ -128,13 +176,44 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
+      // Convert to E.164 format if needed (add +972 for Israel if starts with 0)
+      let phoneForApi = cleanPhone;
+      if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+        phoneForApi = '+972' + cleanPhone.substring(1);
+      } else if (!cleanPhone.startsWith('+')) {
+        phoneForApi = '+' + cleanPhone;
+      }
+
+      // Check if phone belongs to worker or owner of this business
+      const accessCheckResponse = await fetch('/api/auth/check-business-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: phoneForApi,
+          businessSlug: slug,
+        }),
+      });
+
+      const accessCheckData = await accessCheckResponse.json();
+
+      if (!accessCheckData.hasAccess) {
+        setIsLoading(false);
+        const errorMessage = t('adminLogin.noBusinessAccess') || 'Seems you don\'t have access to this business admin panel';
+        setError(errorMessage);
+        toast.error(errorMessage);
+        return;
+      }
+
+      // Phone has access, proceed with sending OTP
       const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone: phone,
+          phone: phoneForApi,
           method: 'whatsapp',
           userType: 'business_owner',
         }),
@@ -147,8 +226,19 @@ export default function AdminLoginPage() {
       }
 
       setIsLoading(false);
-      setStep('verify');
-      toast.success(t('adminLogin.codeSent') || 'Code sent successfully');
+      setShowOtpModal(true);
+      setOtpCountdown(30);
+      setOtpDigits(['', '', '', '', '', '']);
+      setCode('');
+      toast.success(
+        loginMethod === 'phone' 
+          ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
+          : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+      );
+      // Focus first OTP input after modal opens
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
     } catch (error: any) {
       setIsLoading(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
@@ -156,173 +246,153 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Handle Google OAuth with popup
+  // Handle Google OAuth - use redirect flow (same page)
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       
-      // Get the OAuth URL
+      // Use redirect flow (same page)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&popup=true`,
-          skipBrowserRedirect: true,
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
         },
       });
 
       if (error) throw error;
-      if (!data?.url) throw new Error('Failed to get OAuth URL');
-
-      // Open popup window
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        data.url,
-        'google-auth',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
-
-      if (!popup) {
-        throw new Error('Popup blocked. Please allow popups for this site.');
-      }
-
-      // Listen for message from popup
-      let checkClosedInterval: NodeJS.Timeout | null = null;
-      const messageListener = async (event: MessageEvent) => {
-        // Verify origin for security
-        if (event.origin !== window.location.origin) return;
-
-        if (event.data.type === 'OAUTH_SUCCESS') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setIsLoading(false);
-
-          // Wait a bit for cookies to sync between popup and parent window
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          // Wait a bit for cookies to sync between popup and parent window
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          // Get Supabase Auth session
-          let session = null;
-          let sessionError = null;
-          const maxRetries = 5;
-          
-          for (let i = 0; i < maxRetries; i++) {
-            const { data, error } = await supabase.auth.getSession();
-            session = data?.session;
-            sessionError = error;
-            
-            if (session?.user) {
-              break;
-            }
-            
-            // If not found, try getUser() which might force a refresh
-            if (i === 2) {
-              const { data: userData } = await supabase.auth.getUser();
-              if (userData?.user) {
-                const { data: refreshedSession } = await supabase.auth.getSession();
-                session = refreshedSession?.session;
-                if (session?.user) break;
-              }
-            }
-            
-            // Wait before retrying (exponential backoff)
-            if (i < maxRetries - 1) {
-              await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
-            }
-          }
-          
-          if (sessionError || !session?.user) {
-            // If we still don't have a session, reload the page to ensure cookies are read
-            toast.info('Completing login...');
-            window.location.reload();
-            return;
-          }
-
-          // Verify user belongs to this business and create admin_session cookie
-          try {
-            const response = await fetch('/api/auth/oauth-session-business', {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                businessSlug: slug,
-              }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-              throw new Error(data.error || 'Authentication failed');
-            }
-
-            if (!data.success) {
-              throw new Error(data.error || 'Authentication failed');
-            }
-
-            // Success - redirect to dashboard
-            toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            window.location.href = `/b/${slug}/admin/dashboard`;
-          } catch (error: any) {
-            setIsLoading(false);
-            setError(error.message || 'Failed to complete login');
-            toast.error(error.message || 'Failed to complete login');
-          }
-        } else if (event.data.type === 'OAUTH_ERROR') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setIsLoading(false);
-          toast.error(event.data.error || 'Authentication failed');
-        }
-      };
-
-      window.addEventListener('message', messageListener);
-
-      // Check if popup is closed manually
-      checkClosedInterval = setInterval(() => {
-        if (popup.closed) {
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          window.removeEventListener('message', messageListener);
-          setIsLoading(false);
-        }
-      }, 1000);
-
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
       toast.error(error.message || 'Failed to initiate Google login');
       setIsLoading(false);
     }
   };
 
-  // Handle Apple OAuth
-  const handleAppleLogin = async () => {
+  // Handle Facebook OAuth
+  const handleFacebookLogin = async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
+        provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login`,
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
         },
       });
 
       if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Apple login');
+      toast.error(error.message || 'Failed to initiate Facebook login');
       setIsLoading(false);
     }
   };
 
-  const handleVerifyCode = async () => {
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      setError(t('adminLogin.emailRequired') || 'Email is required');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Use Supabase signInWithOtp for email OTP
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
+        },
+      });
+
+      if (error) throw error;
+
+      setIsLoading(false);
+      setShowOtpModal(true);
+      setOtpCountdown(30);
+      setOtpDigits(['', '', '', '', '', '']);
+      setCode('');
+      toast.success(
+        loginMethod === 'phone' 
+          ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
+          : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+      );
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    } catch (error: any) {
+      setIsLoading(false);
+      setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
+      toast.error(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
+    }
+  };
+
+  // Handle OTP digit change
+  const handleOtpDigitChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d$/.test(value)) return;
+
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+
+    // Update otpCode for API
+    const code = newDigits.join('');
+    setCode(code);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all 6 digits are entered
+    if (code.length === 6) {
+      handleVerifyCode(code);
+    }
+  };
+
+  // Handle OTP key down (backspace)
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle OTP paste
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pastedData[i] || '';
+    }
+    setOtpDigits(newDigits);
+    const code = pastedData;
+    setCode(code);
+    if (pastedData.length === 6) {
+      handleVerifyCode(code);
+    } else {
+      otpInputRefs.current[Math.min(pastedData.length, 5)]?.focus();
+    }
+  };
+
+  // Handle resend OTP
+  const handleResendOtp = async () => {
+    if (otpCountdown > 0) return;
+    await handlePhoneSubmit();
+  };
+
+  // Handle enter other number
+  const handleEnterOtherNumber = () => {
+    setShowOtpModal(false);
+    setOtpDigits(['', '', '', '', '', '']);
+    setCode('');
+    setOtpCountdown(0);
+  };
+
+  const handleVerifyCode = async (codeToVerify?: string) => {
+    const codeToUse = codeToVerify || code;
     // Accept both 4-digit test code (1234) and 6-digit real codes
-    if (!code || (code.length !== 4 && code.length !== 6)) {
+    if (!codeToUse || (codeToUse.length !== 4 && codeToUse.length !== 6)) {
       setError(t('adminLogin.invalidCode') || 'Invalid code format');
       toast.error(t('adminLogin.invalidCode') || 'Invalid code format');
       return;
@@ -332,265 +402,431 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      // Call verify-otp API with business slug
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phone,
-          code: code,
-          userType: 'business_owner',
-          businessSlug: slug,
-        }),
-      });
+      if (loginMethod === 'email') {
+        // Verify email OTP using Supabase
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: email,
+          token: codeToUse,
+          type: 'email',
+        });
 
-      const data = await response.json();
+        if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(data.error || t('adminLogin.invalidCode') || 'Invalid code');
+        // Create business admin session from OAuth session
+        const response = await fetch('/api/auth/oauth-session-business', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            businessSlug: slug,
+          }),
+        });
+
+        const sessionData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(sessionData.error || 'Authentication failed');
+        }
+
+        if (!sessionData.success) {
+          throw new Error(sessionData.error || 'Authentication failed');
+        }
+
+        setIsLoading(false);
+        setShowOtpModal(false);
+
+        toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        window.location.href = `/b/${slug}/admin/dashboard`;
+      } else {
+        // Phone OTP verification (existing flow)
+        const cleanPhone = phone.replace(/\D/g, '');
+        // Convert to E.164 format if needed
+        let phoneForApi = cleanPhone;
+        if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+          phoneForApi = '+972' + cleanPhone.substring(1);
+        } else if (!cleanPhone.startsWith('+')) {
+          phoneForApi = '+' + cleanPhone;
+        }
+
+        // Call verify-otp API with business slug
+        const response = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: phoneForApi,
+            code: codeToUse,
+            userType: 'business_owner',
+            businessSlug: slug,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // Check if error is "Invalid or expired code" and use translation
+          const errorMessage = data.error || '';
+          const lowerErrorMessage = errorMessage.toLowerCase();
+          if (lowerErrorMessage.includes('invalid') && lowerErrorMessage.includes('expired')) {
+            throw new Error(t('adminLogin.invalidOrExpiredCode') || 'Invalid or expired code');
+          }
+          throw new Error(data.error || t('adminLogin.invalidCode') || 'Invalid code');
+        }
+
+        // Verify response indicates success
+        if (!data.success) {
+          throw new Error(data.error || 'Authentication failed');
+        }
+
+        setIsLoading(false);
+        setShowOtpModal(false);
+
+        // Redirect to dashboard
+        toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        window.location.href = `/b/${slug}/admin/dashboard`;
       }
-
-      // Verify response indicates success
-      if (!data.success) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      setIsLoading(false);
-
-      // Redirect to dashboard
-      toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      window.location.href = `/b/${slug}/admin/dashboard`;
     } catch (error: any) {
       setIsLoading(false);
-      setError(error.message || t('adminLogin.invalidCode') || 'Invalid code');
-      toast.error(error.message || t('adminLogin.invalidCode') || 'Invalid code');
+      // Check if error message contains "invalid" and "expired" to use proper translation
+      const errorMessage = error.message || '';
+      const lowerErrorMessage = errorMessage.toLowerCase();
+      let displayError = errorMessage;
+      if (lowerErrorMessage.includes('invalid') && lowerErrorMessage.includes('expired')) {
+        displayError = t('adminLogin.invalidOrExpiredCode') || 'Invalid or expired code';
+      } else if (lowerErrorMessage.includes('invalid')) {
+        displayError = t('adminLogin.invalidCode') || 'Invalid code';
+      } else if (errorMessage.includes('No admin account found with this email for this business')) {
+        displayError = t('adminLogin.noAdminAccountFound') || errorMessage;
+      }
+      setError(displayError);
+      toast.error(displayError);
+      // Clear OTP on error
+      setOtpDigits(['', '', '', '', '', '']);
+      setCode('');
+      otpInputRefs.current[0]?.focus();
     }
   };
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => {
+        setOtpCountdown(otpCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
+
+  // Focus first OTP input when modal opens
+  useEffect(() => {
+    if (showOtpModal && otpInputRefs.current[0]) {
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [showOtpModal]);
+
   return (
-    <div dir={dir} className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          {/* System Name and Logo */}
-          <div className={`flex flex-col items-center justify-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            {logoUrl && (
-              <img 
-                src={logoUrl} 
-                alt={businessName || 'Business logo'} 
-                className="h-12 w-auto object-contain"
-              />
-            )}
-            <KalBookLogo size="lg" variant="full" animated={false} />
+    <div dir={dir} className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
+      {/* Header - Same as onboarding and homepage */}
+      <header className="bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
+          <div className="flex items-center justify-between gap-2">
+            {/* Language Toggle */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <LanguageToggle />
+            </div>
+            
+            {/* Empty space for right side (can add user menu later if needed) */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            </div>
           </div>
           
-          <CardTitle className={`text-2xl font-bold text-center text-[#030408] ${isRTL ? 'text-right' : 'text-left'}`}>
-            {t('adminLogin.title') || 'Admin Login'}
-          </CardTitle>
-          <CardDescription className={`text-center text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {businessName 
-              ? (t('adminLogin.subtitleWithBusiness') || 'Sign in to {businessName}').replace('{businessName}', businessName)
-              : (t('adminLogin.subtitle') || 'Sign in to manage your business')
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === 'phone' ? (
-            <div className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+          {/* Center - Logo (absolutely positioned for true centering) */}
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <Link href="/">
+              <img 
+                src="/kalbook-logo.svg" 
+                alt="KalBook.io" 
+                className="h-8 sm:h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </Link>
+          </div>
+        </div>
+      </header>
+      
+      <div className="flex-1 flex items-center justify-center pt-20 sm:pt-16 md:pt-24">
+        <div className="w-full max-w-4xl px-6">
 
-              <div className="space-y-2">
-                <Label htmlFor="phone" className={`flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <Phone className="w-4 h-4" />
-                  {t('adminLogin.phone') || 'Phone Number'}
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder={t('adminLogin.phonePlaceholder') || '+1234567890'}
-                  value={phone}
-                  onChange={(e) => {
-                    let value = e.target.value;
-                    // If there's a + anywhere, move it to the beginning
-                    if (value.includes('+')) {
-                      value = '+' + value.replace(/\+/g, '');
-                    }
-                    setPhone(value);
-                  }}
-                  required
-                  disabled={isLoading}
-                  autoComplete="tel"
-                  dir="ltr"
-                  className="w-full"
-                />
-              </div>
-
-              <Button
-                type="button"
-                onClick={handlePhoneSubmit}
-                className="w-full"
-                disabled={isLoading || !phone.trim()}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'} animate-spin`} />
-                    {t('adminLogin.sending') || 'Sending...'}
-                  </>
-                ) : (
-                  t('adminLogin.sendCode') || 'Send Code'
+          {/* Login Card - Same styling as onboarding */}
+          <Card className="w-full max-w-md mx-auto shadow-lg border-gray-200 bg-white rounded-2xl p-6 sm:p-8">
+            <div className="animate-fade-in">
+              {/* Welcome Message */}
+              <div className="text-center mb-6">
+                {businessName && (
+                  <h1 className="text-xl font-bold mb-3 text-gray-900">{businessName}</h1>
                 )}
-              </Button>
+                <h2 className="text-lg font-medium text-gray-700">{t('adminLogin.title') || 'Admin Login'}</h2>
+              </div>
+              
+              <div className="space-y-6 max-w-md mx-auto">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-              {/* Divider */}
-              <div className="relative py-4">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                {/* Email/Phone Tabs */}
+                <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'phone' | 'email')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="phone">{t('auth.phone') || 'Phone'}</TabsTrigger>
+                    <TabsTrigger value="email">{t('auth.email') || 'Email'}</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="phone" className="space-y-4 mt-4">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder={t('adminLogin.phonePlaceholder') || t('onboarding.auth.phonePlaceholder') || 'enter phone number'}
+                        value={phone}
+                        onChange={(e) => {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          setPhone(formatted);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && phone.replace(/\D/g, '').length >= 10 && !isLoading) {
+                            handlePhoneSubmit();
+                          }
+                        }}
+                        required
+                        disabled={isLoading}
+                        autoComplete="tel"
+                        dir="ltr"
+                        maxLength={12}
+                        className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
+                      />
+                    </div>
+
+                    <LoadingButton
+                      onClick={handlePhoneSubmit}
+                      loading={isLoading}
+                      disabled={!phone.trim() || phone.replace(/\D/g, '').length < 10}
+                      className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
+                    </LoadingButton>
+                  </TabsContent>
+                  
+                  <TabsContent value="email" className="space-y-4 mt-4">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder={t('auth.emailPlaceholder') || 'Enter your email'}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && email.trim() && !isLoading) {
+                            handleEmailSubmit();
+                          }
+                        }}
+                        required
+                        disabled={isLoading}
+                        autoComplete="email"
+                        dir="ltr"
+                        className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
+                      />
+                    </div>
+
+                    <LoadingButton
+                      onClick={handleEmailSubmit}
+                      loading={isLoading}
+                      disabled={!email.trim()}
+                      className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
+                    </LoadingButton>
+                  </TabsContent>
+                </Tabs>
+
+                {/* Divider */}
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-background px-4 text-sm text-muted-foreground">
+                      {t('onboarding.auth.additionalOptions') || t('onboarding.auth.or') || 'Additional login options'}
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-background px-4 text-sm text-muted-foreground">
-                    {t('onboarding.auth.additionalOptions') || t('onboarding.auth.or') || 'Additional login options'}
-                  </span>
-                </div>
-              </div>
 
-              {/* OAuth Buttons */}
-              <div className="space-y-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-12 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 font-medium"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                >
-                  <svg className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`} viewBox="0 0 24 24">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                  {t('onboarding.auth.signInWithGoogle') || 'Sign in with Google'}
-                </Button>
-                <Button
-                  type="button"
-                  className="w-full h-12 bg-black hover:bg-gray-900 text-white font-medium"
-                  onClick={handleAppleLogin}
-                  disabled={isLoading}
-                >
-                  <svg 
-                    aria-hidden="true" 
-                    focusable="false" 
-                    data-prefix="fab" 
-                    data-icon="apple" 
-                    className={`svg-inline--fa fa-apple text-white text-xl ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}
-                    role="img" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 384 512"
-                  >
-                    <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"></path>
-                  </svg>
-                  {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
-                </Button>
-              </div>
-
-              <div className={`mt-4 text-center text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                <p>{t('adminLogin.testCodeHint') || 'For testing, use code: 1234'}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label className={`block ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('adminLogin.enterCode') || 'Enter verification code'}
-                </Label>
-                <div className="flex justify-center w-full">
-                  <InputOTP
-                    maxLength={6}
-                    value={code}
-                    onChange={(value) => setCode(value)}
+                {/* OAuth Buttons */}
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-12 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 hover:text-gray-900 font-medium"
+                    onClick={handleGoogleLogin}
                     disabled={isLoading}
-                    className="w-full justify-center"
-                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
-                    <InputOTPGroup className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
+                    <svg className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`} viewBox="0 0 24 24">
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      />
+                    </svg>
+                    {t('onboarding.auth.signInWithGoogle') || 'Sign in with Google'}
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full h-12 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium"
+                    onClick={handleFacebookLogin}
+                    disabled={isLoading}
+                  >
+                    <svg 
+                      className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`}
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+                    </svg>
+                    {t('onboarding.auth.signInWithFacebook') || 'Sign in with Facebook'}
+                  </Button>
                 </div>
-                <p className={`text-xs text-center text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('adminLogin.codeHint') || 'Enter the 6-digit code sent to your phone, or use 1234 for testing'}
+              </div>
+
+              <div className={`mt-6 pt-4 border-t text-center text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <p>{t('adminLogin.noAccount') || 'Don\'t have an account?'}</p>
+                <p className="mt-1">
+                  {t('adminLogin.contactOwner') || 'Contact your business owner to create an admin account.'}
                 </p>
               </div>
+            </div>
+          </Card>
+        </div>
+      </div>
 
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setStep('phone');
-                    setCode('');
-                    setError(null);
-                  }}
-                  className="flex-1"
-                  disabled={isLoading}
-                >
-                  {t('adminLogin.back') || 'Back'}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleVerifyCode}
-                  className="flex-1"
-                  disabled={isLoading || code.length < 4}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'} animate-spin`} />
-                      {t('adminLogin.verifying') || 'Verifying...'}
-                    </>
-                  ) : (
-                    t('adminLogin.verify') || 'Verify'
-                  )}
-                </Button>
+      {/* OTP Verification Modal */}
+      <Dialog open={showOtpModal} onOpenChange={setShowOtpModal}>
+        <DialogContent className="sm:max-w-md" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>{t('adminLogin.enterCode') || t('onboarding.auth.enterOtp') || 'Enter OTP Code'}</DialogTitle>
+            <DialogDescription>
+              {loginMethod === 'phone' 
+                ? (t('onboarding.auth.otpSentTo')?.replace('{phone}', phone) || `We sent a verification code to ${phone}`)
+                : (t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `We sent a verification code to ${email}`)
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Success message with email/phone */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {loginMethod === 'phone' 
+                  ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
+                  : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+                }
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="otp-code-modal" className="block mb-3 text-center">
+                {t('onboarding.auth.otpCode') || 'OTP Code'}
+              </Label>
+              <div className="flex gap-1 sm:gap-2 justify-center px-2" dir="ltr">
+                {otpDigits.map((digit, index) => (
+                  <Input
+                    key={index}
+                    ref={(el) => { otpInputRefs.current[index] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={index === 0 ? handleOtpPaste : undefined}
+                    disabled={isLoading}
+                    className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
+                    autoFocus={index === 0}
+                  />
+                ))}
               </div>
             </div>
-          )}
-
-          <div className={`mt-6 pt-4 border-t text-center text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-            <p>{t('adminLogin.noAccount') || 'Don\'t have an account?'}</p>
-            <p className="mt-1">
-              {t('adminLogin.contactOwner') || 'Contact your business owner to create an admin account.'}
-            </p>
+            <div className="flex flex-col gap-2">
+              <LoadingButton
+                onClick={() => handleVerifyCode()}
+                loading={isLoading}
+                disabled={code.length !== 6 && code.length !== 4}
+                className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+              >
+                {t('adminLogin.verify') || t('onboarding.auth.verify') || 'Verify'}
+              </LoadingButton>
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <span className="text-muted-foreground">
+                  {t('onboarding.auth.didntReceiveCode') || "Didn't receive code?"}
+                </span>
+                <Button
+                  variant="link"
+                  onClick={handleResendOtp}
+                  disabled={otpCountdown > 0 || isLoading}
+                  className="h-auto p-0 text-green-600 hover:text-green-700"
+                >
+                  {otpCountdown > 0 
+                    ? t('onboarding.auth.sendAgainIn')?.replace('{seconds}', otpCountdown.toString()) || `Send again in ${otpCountdown}s`
+                    : t('onboarding.auth.sendAgain') || 'Send again'}
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleEnterOtherNumber}
+                className="w-full h-12 text-base"
+                disabled={isLoading}
+              >
+                {loginMethod === 'phone' 
+                  ? (t('onboarding.auth.enterOtherNumber') || 'Enter other number')
+                  : (t('onboarding.auth.enterOtherEmail') || 'Enter other email')
+                }
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Toaster as Sonner } from "sonner";
 
 export function Toaster() {
-  return <Sonner />;
+  return <Sonner position="top-center" style={{ top: '20%' }} />;
 }

@@ -905,6 +905,7 @@ export default function Home() {
                   className={`h-8 sm:h-10 px-2 sm:px-3 ${isRTL ? 'flex-row-reverse' : ''}`}
                   onClick={() => setLoginModalOpen(true)}
                   aria-label={t('adminLogin.homepageLogin') || 'Admin Login'}
+                  style={{ display: 'none' }}
                 >
                   <User className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span className={`text-xs sm:text-sm font-medium ${isRTL ? 'mr-1 sm:mr-2' : 'ml-1 sm:ml-2'}`}>
@@ -1079,12 +1080,9 @@ export default function Home() {
             <div className={`flex gap-3 sm:gap-4 justify-center flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
               <Button 
                 size="lg" 
-                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto bg-[#ff411b] hover:bg-[#e23a16] text-white shadow-md"
+                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto bg-[#ff411b] hover:bg-[#e23a16] text-white shadow-md flex items-center justify-center"
                 onClick={() => {
-                  const pricingSection = document.getElementById('pricing');
-                  if (pricingSection) {
-                    pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
+                  router.push('/onboarding');
                 }}
               >
                 {getHome('startNow')}
@@ -1097,7 +1095,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto border border-[#ff411b] text-[#ff411b] bg-white hover:bg-orange-50"
+                className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto border border-[#ff411b] text-[#ff411b] bg-white hover:bg-orange-50 flex items-center justify-center"
                 onClick={() => {
                   const featuresSection = document.getElementById('features');
                   if (featuresSection) {

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check, User, LogOut, LayoutDashboard, ChevronDown, Mail, Phone, MessageSquare } from "lucide-react";
+import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check, User, LogOut, LayoutDashboard, ChevronDown, Mail, Phone, MessageSquare, ArrowRight, ArrowLeft, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLocale } from "@/hooks/useLocale";
@@ -24,12 +24,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTimeBasedGreeting } from "@/lib/utils/greetings";
 import { Footer } from "@/components/ui/Footer";
 import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import en from "@/messages/en.json";
@@ -66,7 +73,9 @@ const Onboarding = () => {
   const [useAnotherAccount, setUseAnotherAccount] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<{email: string, phone: string, name: string} | null>(null);
   // Authentication state
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [otpSent, setOtpSent] = useState(false);
@@ -76,6 +85,7 @@ const Onboarding = () => {
   const [authenticatedUser, setAuthenticatedUser] = useState<{phone?: string, email?: string, name?: string} | null>(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
@@ -108,6 +118,27 @@ const Onboarding = () => {
   const isMobile = useIsMobile();
   const lastBusinessTypeRef = useRef<BusinessType | null>(null);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Countdown timer effect for rate limiting
+  useEffect(() => {
+    if (rateLimitCountdown === null || rateLimitCountdown <= 0) {
+      if (rateLimitCountdown === 0) {
+        setRateLimitCountdown(null);
+      }
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRateLimitCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [rateLimitCountdown]);
   
   // Total steps - 10 steps (excluding authentication step 1)
   const TOTAL_STEPS = 10;
@@ -578,7 +609,16 @@ const Onboarding = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send OTP');
+        // Handle rate limiting with countdown
+        if (response.status === 429 && data.retryAfter) {
+          setRateLimitCountdown(data.retryAfter);
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          toast.error(errorMessage);
+          setSendingOtp(false);
+          return;
+        } else {
+          throw new Error(data.error || 'Failed to send OTP');
+        }
       }
 
       setOtpSent(true);
@@ -586,7 +626,12 @@ const Onboarding = () => {
       setOtpCountdown(30);
       setOtpCode('');
       setOtpDigits(['', '', '', '', '', '']);
-      toast.success(t('onboarding.auth.otpSent') || 'OTP code sent successfully');
+      setRateLimitCountdown(null);
+      toast.success(
+        loginMethod === 'phone' 
+          ? (t('onboarding.auth.otpSentToPhone')?.replace('{phone}', phoneNumber) || `Verification code sent successfully to ${phoneNumber}`)
+          : (t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+      );
       // Focus first OTP input after modal opens
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -678,56 +723,114 @@ const Onboarding = () => {
       return;
     }
 
-    // Remove dashes for API call
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-
     setVerifyingOtp(true);
     try {
-      const response = await fetch('/api/auth/verify-otp-homepage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          code: code,
-          userType: 'homepage_admin',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid OTP code');
-      }
-
-      setOtpVerified(true);
-      // Handle both existing user and new user cases
-      if (data.isNewUser) {
-        // New user - just set phone, they'll register during onboarding
-        // Format phone for display (remove country code, add dashes)
-        const displayPhone = formatPhoneForDisplay(phoneNumber);
-        setAuthenticatedUser({ phone: phoneNumber });
-        setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
-      } else {
-        // Existing user - set all user data
-        const userPhone = data.user?.phone || phoneNumber;
-        setAuthenticatedUser({ 
-          phone: userPhone,
-          email: data.user?.email,
-          name: data.user?.name,
+      if (loginMethod === 'email') {
+        // Verify email OTP using Supabase
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: email,
+          token: code,
+          type: 'email',
         });
-        // Format phone for display (remove country code, add dashes)
-        const displayPhone = formatPhoneForDisplay(userPhone);
-        setBusinessInfo(prev => ({ 
-          ...prev, 
-          phone: displayPhone,
-          email: data.user?.email || prev.email,
-        }));
-        if (data.user?.name) {
-          setOwnerName(data.user.name);
+
+        if (error) throw error;
+
+        // Get user info from Supabase session
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('Failed to get user information');
+        }
+
+        // Create admin session from OAuth session
+        const response = await fetch('/api/auth/oauth-session', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const sessionData = await response.json();
+
+        if (!response.ok) {
+          // New user - proceed with onboarding
+          setOtpVerified(true);
+          setAuthenticatedUser({ email: email });
+          setBusinessInfo(prev => ({ ...prev, email: email }));
+        } else if (sessionData.success && sessionData.user) {
+          // Existing user
+          setOtpVerified(true);
+          setAuthenticatedUser({ 
+            email: sessionData.user.email,
+            name: sessionData.user.name,
+          });
+          setBusinessInfo(prev => ({ 
+            ...prev, 
+            email: sessionData.user.email || prev.email,
+          }));
+          if (sessionData.user.name) {
+            setOwnerName(sessionData.user.name);
+          }
+        } else {
+          // New user
+          setOtpVerified(true);
+          setAuthenticatedUser({ email: email });
+          setBusinessInfo(prev => ({ ...prev, email: email }));
+        }
+      } else {
+        // Phone OTP verification (existing flow)
+        const cleanPhone = phoneNumber.replace(/\D/g, '');
+
+        const response = await fetch('/api/auth/verify-otp-homepage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            code: code,
+            userType: 'homepage_admin',
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Invalid OTP code');
+        }
+
+        setOtpVerified(true);
+        // Handle both existing user and new user cases
+        if (data.isNewUser) {
+          // New user - just set phone, they'll register during onboarding
+          // Format phone for display (remove country code, add dashes)
+          const displayPhone = formatPhoneForDisplay(phoneNumber);
+          setAuthenticatedUser({ phone: phoneNumber });
+          setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
+        } else {
+          // Existing user - set all user data
+          const userPhone = data.user?.phone || phoneNumber;
+          setAuthenticatedUser({ 
+            phone: userPhone,
+            email: data.user?.email,
+            name: data.user?.name,
+          });
+          // Format phone for display (remove country code, add dashes)
+          const displayPhone = formatPhoneForDisplay(userPhone);
+          setBusinessInfo(prev => ({ 
+            ...prev, 
+            phone: displayPhone,
+            email: data.user?.email || prev.email,
+          }));
+          if (data.user?.name) {
+            setOwnerName(data.user.name);
+          }
         }
       }
       setShowOtpModal(false);
-      toast.success(t('onboarding.auth.verified') || 'Phone number verified');
+      toast.success(loginMethod === 'phone' 
+        ? (t('onboarding.auth.verified') || 'Phone number verified')
+        : (t('onboarding.auth.emailVerified') || 'Email verified')
+      );
       // Automatically move to step 2 after successful authentication
       setTimeout(() => {
         setStep(2);
@@ -762,179 +865,78 @@ const Onboarding = () => {
     }
   }, [showOtpModal]);
 
-  // Handle Google OAuth - use redirect on mobile, popup on desktop
+  // Handle Google OAuth - use redirect flow (same page)
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
       
-      if (isMobile) {
-        // Mobile: Use redirect flow (same page)
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&type=onboarding`,
-          },
-        });
+      // Use redirect flow (same page)
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&type=onboarding`,
+        },
+      });
 
-        if (error) throw error;
-        // Redirect will happen automatically - no need to handle response
-        return;
-      } else {
-        // Desktop: Use popup flow
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&popup=true`,
-            skipBrowserRedirect: true,
-          },
-        });
-
-        if (error) throw error;
-        if (!data?.url) throw new Error('Failed to get OAuth URL');
-
-        // Open popup window
-        const width = 500;
-        const height = 600;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        const popup = window.open(
-          data.url,
-          'google-auth',
-          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-        );
-
-        if (!popup) {
-          throw new Error('Popup blocked. Please allow popups for this site.');
-        }
-
-        // Listen for message from popup
-        let checkClosedInterval: NodeJS.Timeout | null = null;
-        const messageListener = async (event: MessageEvent) => {
-          // Verify origin for security
-          if (event.origin !== window.location.origin) return;
-
-          if (event.data.type === 'OAUTH_SUCCESS') {
-            window.removeEventListener('message', messageListener);
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            popup.close();
-            setLoading(false);
-
-            // Wait a bit for cookies to sync between popup and parent window
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Get Supabase Auth session to extract user info
-            try {
-              // Retry getting session with exponential backoff
-              let session = null;
-              let sessionError = null;
-              const maxRetries = 5;
-              
-              for (let i = 0; i < maxRetries; i++) {
-                const { data, error } = await supabase.auth.getSession();
-                session = data?.session;
-                sessionError = error;
-                
-                if (session?.user) {
-                  break;
-                }
-                
-                // If not found, try getUser() which might force a refresh
-                if (i === 2) {
-                  const { data: userData } = await supabase.auth.getUser();
-                  if (userData?.user) {
-                    // If getUser works but getSession doesn't, refresh the session
-                    const { data: refreshedSession } = await supabase.auth.getSession();
-                    session = refreshedSession?.session;
-                    if (session?.user) break;
-                  }
-                }
-                
-                // Wait before retrying (exponential backoff)
-                if (i < maxRetries - 1) {
-                  await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
-                }
-              }
-              
-              if (sessionError || !session?.user) {
-                // If we still don't have a session, reload the page to ensure cookies are read
-                toast.info('Completing login...');
-                window.location.reload();
-                return;
-              }
-
-              // Set authenticated user data from Supabase Auth session
-              const userEmail = session.user.email || '';
-              const userPhone = session.user.phone || '';
-              const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-              
-              setAuthenticatedUser({
-                email: userEmail,
-                phone: userPhone,
-                name: userName,
-              });
-              
-              if (userPhone) {
-                const displayPhone = formatPhoneForDisplay(userPhone);
-                setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
-              }
-              if (userEmail) {
-                setBusinessInfo(prev => ({ ...prev, email: userEmail }));
-              }
-              if (userName) {
-                setOwnerName(userName);
-              }
-              setOtpVerified(true);
-              toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
-              
-              // Continue to step 2
-              setTimeout(() => {
-                setStep(2);
-              }, 500);
-            } catch (error: any) {
-              setLoading(false);
-              toast.error(error.message || 'Failed to get user information');
-            }
-          } else if (event.data.type === 'OAUTH_ERROR') {
-            window.removeEventListener('message', messageListener);
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            popup.close();
-            setLoading(false);
-            toast.error(event.data.error || 'Authentication failed');
-          }
-        };
-
-        window.addEventListener('message', messageListener);
-
-        // Check if popup is closed manually
-        checkClosedInterval = setInterval(() => {
-          if (popup.closed) {
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            window.removeEventListener('message', messageListener);
-            setLoading(false);
-          }
-        }, 1000);
-      }
-
+      if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
       toast.error(error.message || 'Failed to initiate Google login');
       setLoading(false);
     }
   };
 
-  // Handle Apple OAuth
-  const handleAppleLogin = async () => {
+  // Handle Facebook OAuth
+  const handleFacebookLogin = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
+        provider: 'facebook',
         options: {
           redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
         },
       });
 
       if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Apple login');
+      toast.error(error.message || 'Failed to initiate Facebook login');
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      toast.error(t('auth.emailRequired') || 'Email is required');
+      return;
+    }
+
+    setSendingOtp(true);
+
+    try {
+      // Use Supabase signInWithOtp for email OTP
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+        },
+      });
+
+      if (error) throw error;
+
+      setSendingOtp(false);
+      setOtpSent(true);
+      setShowOtpModal(true);
+      setOtpCountdown(30);
+      setOtpDigits(['', '', '', '', '', '']);
+      setOtpCode('');
+      toast.success(t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`);
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    } catch (error: any) {
+      setSendingOtp(false);
+      toast.error(error.message || t('auth.sendCodeError') || 'Failed to send code');
     }
   };
 
@@ -1024,10 +1026,10 @@ const Onboarding = () => {
           return;
         }
 
-        // Check for OAuth callback (redirect flow for mobile)
-        const code = searchParams.get('code');
+        // Check for OAuth callback (redirect flow)
         const type = searchParams.get('type');
-        if (code && type === 'onboarding') {
+        const oauthSuccess = searchParams.get('oauth_success');
+        if (type === 'onboarding' && oauthSuccess === 'true') {
           // Wait a bit for session to be set
           await new Promise(resolve => setTimeout(resolve, 500));
           
@@ -1819,30 +1821,47 @@ const Onboarding = () => {
   };
 
   return (
-    <div dir={dir} className="min-h-screen bg-background flex flex-col p-6">
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-4xl">
-        {/* Header - Same as main page */}
-        <header className="bg-white border-b mb-8 rounded-lg shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
+    <div dir={dir} className="min-h-screen bg-background flex flex-col">
+      {/* Header - Same as main page */}
+      <header className="bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
             <div className="flex items-center justify-between gap-2">
               {/* Language Toggle */}
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <LanguageToggle />
               </div>
               
-              {/* User menu / Greetings */}
+              {/* User menu / Login button */}
               <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                {!user && (
+                  <Button 
+                    variant="outline" 
+                    className={`h-8 sm:h-10 px-2 sm:px-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    onClick={() => setLoginModalOpen(true)}
+                    aria-label={t('adminLogin.homepageLogin') || 'Admin Login'}
+                    style={{ display: 'none' }}
+                  >
+                    <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className={`text-xs sm:text-sm font-medium ${isRTL ? 'mr-1 sm:mr-2' : 'ml-1 sm:ml-2'}`}>
+                      {t('adminLogin.login') || t('auth.login') || 'Login'}
+                    </span>
+                  </Button>
+                )}
                 {!loadingUser && user && (
                   <>
                     <div className="w-2 sm:w-3" />
-                    <DropdownMenu>
+                    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                       <DropdownMenuTrigger asChild>
                         <button 
                           className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
                         >
+                          <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
+                            <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
+                              {getTimeBasedEmoji()}
+                            </AvatarFallback>
+                          </Avatar>
                           <span className="text-xs sm:text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{user.name}</span>
+                            {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
                           </span>
                           <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                         </button>
@@ -1879,12 +1898,16 @@ const Onboarding = () => {
                 <img 
                   src="/kalbook-logo.svg" 
                   alt="KalBook.io" 
-                  className="h-8 sm:h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+                  className="h-8 sm:h-12 w-auto cursor-pointer"
                 />
               </Link>
             </div>
           </div>
         </header>
+        
+        {/* Content Container */}
+        <div className="flex-1 flex items-center justify-center pt-20 sm:pt-16 md:pt-24 p-6">
+          <div className="w-full max-w-4xl">
         
         {/* Plan Banner - Softer */}
         {planDetails && step < 10 && step > 1 && (
@@ -1970,42 +1993,83 @@ const Onboarding = () => {
               
               {!otpVerified && !authenticatedUser ? (
                 <div className="space-y-6 max-w-md mx-auto">
-                  {/* Phone Input Section */}
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
+                  {/* Email/Phone Tabs */}
+                  <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'phone' | 'email')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="phone">{t('auth.phone') || 'Phone'}</TabsTrigger>
+                      <TabsTrigger value="email">{t('auth.email') || 'Email'}</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="phone" className="space-y-4 mt-4">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </div>
+                        <Input
+                          ref={phoneInputRef}
+                          id="phone-number"
+                          type="tel"
+                          placeholder={t('onboarding.auth.phonePlaceholder') || t('onboarding.auth.phoneNumber') || 'Phone Number'}
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && phoneNumber.replace(/\D/g, '').length >= 10 && !sendingOtp) {
+                              handleSendOtp();
+                            }
+                          }}
+                          maxLength={12}
+                          disabled={otpSent}
+                          className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
+                          dir={dir}
+                        />
                       </div>
-                      <Input
-                        ref={phoneInputRef}
-                        id="phone-number"
-                        type="tel"
-                        placeholder={t('onboarding.auth.phonePlaceholder') || t('onboarding.auth.phoneNumber') || 'Phone Number'}
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && phoneNumber.replace(/\D/g, '').length >= 10 && !sendingOtp) {
-                            handleSendOtp();
-                          }
-                        }}
-                        maxLength={12}
-                        disabled={otpSent}
-                        className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
-                        dir={dir}
-                      />
-                    </div>
 
-                    <LoadingButton
-                      onClick={handleSendOtp}
-                      loading={sendingOtp}
-                      disabled={!phoneNumber.trim() || phoneNumber.replace(/\D/g, '').length < 10}
-                      className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {t('onboarding.auth.login') || t('onboarding.auth.sendOtp') || 'Login'}
-                    </LoadingButton>
-                  </div>
+                      <LoadingButton
+                        onClick={handleSendOtp}
+                        loading={sendingOtp}
+                        disabled={!phoneNumber.trim() || phoneNumber.replace(/\D/g, '').length < 10}
+                        className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {t('onboarding.auth.login') || t('onboarding.auth.sendOtp') || 'Login'}
+                      </LoadingButton>
+                    </TabsContent>
+                    
+                    <TabsContent value="email" className="space-y-4 mt-4">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder={t('auth.emailPlaceholder') || 'Enter your email'}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && email.trim() && !sendingOtp) {
+                              handleEmailSubmit();
+                            }
+                          }}
+                          disabled={otpSent}
+                          className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
+                          dir="ltr"
+                        />
+                      </div>
+
+                      <LoadingButton
+                        onClick={handleEmailSubmit}
+                        loading={sendingOtp}
+                        disabled={!email.trim()}
+                        className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {t('onboarding.auth.login') || t('onboarding.auth.sendOtp') || 'Login'}
+                      </LoadingButton>
+                    </TabsContent>
+                  </Tabs>
 
                   {/* Divider */}
                   <div className="relative py-4">
@@ -2049,22 +2113,18 @@ const Onboarding = () => {
                     </Button>
                     <Button
                       type="button"
-                      className="w-full h-12 bg-black hover:bg-gray-900 text-white font-medium"
-                      onClick={handleAppleLogin}
+                      className="w-full h-12 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium"
+                      onClick={handleFacebookLogin}
                     >
                       <svg 
-                        aria-hidden="true" 
-                        focusable="false" 
-                        data-prefix="fab" 
-                        data-icon="apple" 
-                        className={`svg-inline--fa fa-apple text-white text-xl ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}
-                        role="img" 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 384 512"
+                        className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`}
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
                       >
-                        <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"></path>
+                        <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
                       </svg>
-                      {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
+                      {t('onboarding.auth.signInWithFacebook') || 'Sign in with Facebook'}
                     </Button>
                   </div>
 
@@ -2161,20 +2221,32 @@ const Onboarding = () => {
                      locale === 'ru' ? 'Название бизнеса' :
                      'Business Name'}
                   </Label>
-                  <Input
-                    id="name"
-                    placeholder={locale === 'he' ? 'לדוגמה: סטודיו חן פיטנס' : (t('onboarding.businessInfo.namePlaceholder') || 'e.g., Dima\'s Barbershop')}
-                    value={businessInfo.name}
-                    onChange={(e) => handleFieldChange('name', e.target.value)}
-                    onBlur={() => handleBlur('name')}
-                    dir={dir}
-                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.name ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
-                    autoFocus={!isMobile}
-                  />
-                  {/* Explanation under field - removed as it's in subtitle */}
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
-                  )}
+                  <TooltipProvider>
+                    <Tooltip open={errors.name ? true : undefined}>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Input
+                            id="name"
+                            placeholder={locale === 'he' ? 'לדוגמה: סטודיו חן פיטנס' : (t('onboarding.businessInfo.namePlaceholder') || 'e.g., Dima\'s Barbershop')}
+                            value={businessInfo.name}
+                            onChange={(e) => handleFieldChange('name', e.target.value)}
+                            onBlur={() => handleBlur('name')}
+                            dir={dir}
+                            className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.name ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
+                            autoFocus={!isMobile}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      {errors.name && (
+                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                          <p>{locale === 'he' ? 'שדה זה נדרש' :
+                              locale === 'ar' ? 'هذا الحقل مطلوب' :
+                              locale === 'ru' ? 'Это поле обязательно' :
+                              'This field is required'}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 
                 {/* Preview - softer design */}
@@ -2198,16 +2270,6 @@ const Onboarding = () => {
                     <Check className="w-4 h-4" />
                     <span className="font-medium">{getStepFeedback(2)}</span>
                   </div>
-                )}
-                
-                {/* Error message - softer */}
-                {errors.name && (
-                  <p className="mt-2 text-sm text-slate-500">
-                    {locale === 'he' ? 'צריך רק למלא את שם העסק כדי להמשיך :)' :
-                     locale === 'ar' ? 'تحتاج فقط لملء اسم العمل للمتابعة :)' :
-                     locale === 'ru' ? 'Нужно просто заполнить название бизнеса, чтобы продолжить :)' :
-                     'Just need to fill in the business name to continue :)'}
-                  </p>
                 )}
               </div>
             </div>
@@ -2245,24 +2307,37 @@ const Onboarding = () => {
                      locale === 'ru' ? 'Имя владельца' :
                      'Owner Name'}
                   </Label>
-                  <Input
-                    id="ownerName"
-                    placeholder={locale === 'he' ? 'מי בעל הבית!?' : (t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter your name')}
-                    value={ownerName}
-                    onChange={(e) => {
-                      setOwnerName(e.target.value);
-                      if (touched.ownerName) {
-                        validateField('ownerName', e.target.value);
-                      }
-                    }}
-                    onBlur={() => handleBlur('ownerName')}
-                    dir={dir}
-                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.ownerName ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
-                    autoFocus={!isMobile}
-                  />
-                  {errors.ownerName && (
-                    <p className="mt-1 text-sm text-red-500">{errors.ownerName}</p>
-                  )}
+                  <TooltipProvider>
+                    <Tooltip open={errors.ownerName ? true : undefined}>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Input
+                            id="ownerName"
+                            placeholder={locale === 'he' ? 'מי בעל הבית!?' : (t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter your name')}
+                            value={ownerName}
+                            onChange={(e) => {
+                              setOwnerName(e.target.value);
+                              if (touched.ownerName) {
+                                validateField('ownerName', e.target.value);
+                              }
+                            }}
+                            onBlur={() => handleBlur('ownerName')}
+                            dir={dir}
+                            className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.ownerName ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
+                            autoFocus={!isMobile}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      {errors.ownerName && (
+                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                          <p>{locale === 'he' ? 'שדה זה נדרש' :
+                              locale === 'ar' ? 'هذا الحقل مطلوب' :
+                              locale === 'ru' ? 'Это поле обязательно' :
+                              'This field is required'}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 
                 {ownerName && !errors.ownerName && (
@@ -2308,29 +2383,42 @@ const Onboarding = () => {
                      locale === 'ru' ? 'Номер телефона' :
                      'Phone Number'}
                   </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder={t('onboarding.businessInfo.phonePlaceholder') || '050-000-0000'}
-                    value={businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '')}
-                    onChange={(e) => {
-                      if (!authenticatedUser?.phone) {
-                        const formatted = formatPhoneNumber(e.target.value);
-                        handleFieldChange('phone', formatted);
-                      }
-                    }}
-                    onBlur={() => handleBlur('phone')}
-                    disabled={!!authenticatedUser?.phone}
-                    dir="ltr"
-                    maxLength={12}
-                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.phone ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.phone ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                    autoFocus={!authenticatedUser?.phone && !isMobile}
-                  />
+                  <TooltipProvider>
+                    <Tooltip open={errors.phone ? true : undefined}>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder={t('onboarding.businessInfo.phonePlaceholder') || '050-000-0000'}
+                            value={businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '')}
+                            onChange={(e) => {
+                              if (!authenticatedUser?.phone) {
+                                const formatted = formatPhoneNumber(e.target.value);
+                                handleFieldChange('phone', formatted);
+                              }
+                            }}
+                            onBlur={() => handleBlur('phone')}
+                            disabled={!!authenticatedUser?.phone}
+                            dir="ltr"
+                            maxLength={12}
+                            className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.phone ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.phone ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            autoFocus={!authenticatedUser?.phone && !isMobile}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      {errors.phone && (
+                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                          <p>{locale === 'he' ? 'שדה זה נדרש' :
+                              locale === 'ar' ? 'هذا الحقل مطلوب' :
+                              locale === 'ru' ? 'Это поле обязательно' :
+                              'This field is required'}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   {authenticatedUser?.phone && (
                     <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
-                  )}
-                  {errors.phone && (
-                    <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
                   )}
                 </div>
                 
@@ -2342,27 +2430,37 @@ const Onboarding = () => {
                      locale === 'ru' ? 'Email (необязательно)' :
                      'Email (optional)'}
                   </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder={t('onboarding.businessInfo.emailPlaceholder') || 'Enter email address'}
-                    value={businessInfo.email || authenticatedUser?.email || ''}
-                    onChange={(e) => {
-                      if (!authenticatedUser?.email) {
-                        handleFieldChange('email', e.target.value);
-                      }
-                    }}
-                    onBlur={() => handleBlur('email')}
-                    disabled={!!authenticatedUser?.email}
-                    dir="ltr"
-                    className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                    autoFocus={!!(authenticatedUser?.phone && !authenticatedUser?.email) && !isMobile}
-                  />
+                  <TooltipProvider>
+                    <Tooltip open={errors.email ? true : undefined}>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder={t('onboarding.businessInfo.emailPlaceholder') || 'Enter email address'}
+                            value={businessInfo.email || authenticatedUser?.email || ''}
+                            onChange={(e) => {
+                              if (!authenticatedUser?.email) {
+                                handleFieldChange('email', e.target.value);
+                              }
+                            }}
+                            onBlur={() => handleBlur('email')}
+                            disabled={!!authenticatedUser?.email}
+                            dir="ltr"
+                            className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            autoFocus={!!(authenticatedUser?.phone && !authenticatedUser?.email) && !isMobile}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      {errors.email && (
+                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                          <p>{errors.email}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   {authenticatedUser?.email && (
                     <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
-                  )}
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                   )}
                 </div>
                 
@@ -3182,10 +3280,22 @@ const Onboarding = () => {
           <DialogHeader>
             <DialogTitle>{t('onboarding.auth.enterOtp') || 'Enter OTP Code'}</DialogTitle>
             <DialogDescription>
-              {t('onboarding.auth.otpSentTo')?.replace('{phone}', phoneNumber) || `We sent a verification code to ${phoneNumber}`}
+              {loginMethod === 'phone' 
+                ? (t('onboarding.auth.otpSentTo')?.replace('{phone}', phoneNumber) || `We sent a verification code to ${phoneNumber}`)
+                : (t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `We sent a verification code to ${email}`)
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Success message with email/phone */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {loginMethod === 'phone' 
+                  ? (t('onboarding.auth.otpSentToPhone')?.replace('{phone}', phoneNumber) || `Verification code sent successfully to ${phoneNumber}`)
+                  : (t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+                }
+              </p>
+            </div>
             <div>
               <Label htmlFor="otp-code-modal" className="block mb-3 text-center">
                 {t('onboarding.auth.otpCode') || 'OTP Code'}
@@ -3237,7 +3347,10 @@ const Onboarding = () => {
                 onClick={handleEnterOtherNumber}
                 className="w-full h-12 text-base"
               >
-                {t('onboarding.auth.enterOtherNumber') || 'Enter other number'}
+                {loginMethod === 'phone' 
+                  ? (t('onboarding.auth.enterOtherNumber') || 'Enter other number')
+                  : (t('onboarding.auth.enterOtherEmail') || 'Enter other email')
+                }
               </Button>
             </div>
           </div>

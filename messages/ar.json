@@ -14,7 +14,8 @@
         "settings": "الإعدادات",
         "viewPublicSite": "عرض الموقع العام",
         "viewMyBookingPage": "عرض صفحة الحجز الخاصة بي",
-        "more": "المزيد"
+        "more": "المزيد",
+        "back": "رجوع"
     },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -1011,7 +1012,10 @@
     "sendCode": "إرسال الكود",
     "sending": "جاري الإرسال...",
     "verificationCode": "رمز التحقق",
-    "codeSentTo": "تم إرسال الكود إلى",
+    "codeSentTo": "تم إرسال الكود إلى {phone}",
+    "codeSentToEmail": "تم إرسال رمز التحقق إلى {email}",
+    "emailRequired": "البريد الإلكتروني مطلوب",
+    "phone": "الهاتف",
     "verify": "تحقق",
     "verifying": "جاري التحقق...",
     "fullName": "الاسم الكامل",
@@ -1042,7 +1046,7 @@
     "logout": "تسجيل الخروج",
     "logoutSuccess": "تم تسجيل الخروج بنجاح",
     "verifiedPhone": "الهاتف المؤكد:",
-    "waitBeforeRequestingCode": "يرجى الانتظار قبل طلب رمز آخر"
+    "rateLimitMessage": "يرجى الانتظار {seconds} ثانية قبل طلب رمز آخر"
   },
   "adminLogin": {
     "title": "تسجيل دخول المدير",
@@ -1061,13 +1065,20 @@
     "sendCode": "إرسال الكود",
     "sending": "جاري الإرسال...",
     "sendCodeError": "فشل إرسال الكود",
+    "noBusinessAccess": "يبدو أنه ليس لديك حق الوصول إلى لوحة إدارة هذا العمل",
     "codeSent": "تم إرسال الكود بنجاح",
+    "codeSentToPhone": "تم إرسال رمز التحقق بنجاح إلى {phone}",
+    "codeSentToEmail": "تم إرسال رمز التحقق بنجاح إلى {email}",
     "enterCode": "أدخل رمز التحقق",
     "codeHint": "أدخل الرمز المكون من 6 أرقام المرسل إلى هاتفك، أو استخدم 1234 للاختبار",
+    "emailCodeHint": "أدخل الرمز المرسل إلى بريدك الإلكتروني",
+    "emailRequired": "البريد الإلكتروني مطلوب",
     "testCodeHint": "للاختبار، استخدم الكود: 1234",
     "verify": "تحقق",
     "verifying": "جاري التحقق...",
     "invalidCode": "رمز غير صحيح",
+    "invalidOrExpiredCode": "رمز غير صحيح أو منتهي الصلاحية",
+    "noAdminAccountFound": "لم يتم العثور على حساب مدير بهذا البريد الإلكتروني لهذا العمل. يرجى الاتصال بصاحب العمل لإضافتك كمدير.",
     "notRegistered": {
       "title": "غير مسجل",
       "message": "يبدو أنك غير مسجل كصاحب عمل.",
@@ -1235,7 +1246,7 @@
   "home": {
     "title": "KalBook",
     "subtitle": "كل ما يحتاجه عملك الخدمي – في مكان واحد.\n\nنظام إدارة ذكي يركّز جميع العمليات المهمة:\n\nالحجوزات عبر الإنترنت\n\nجدول ديناميكي ومحدث\n\nإدارة العملاء والموظفين\n\nإرسال التذكيرات والرسائل التلقائية\n\nسهل التشغيل، سريع الإعداد، بالعربية",
-    "startNow": "لنبدأ",
+    "startNow": "ابدأ التجربة المجانية",
     "seeFeatures": "ماذا يوجد بالداخل؟",
     "pricingLabel": "الأسعار",
     "freeTrial": "تجربة مجانية",
@@ -1488,6 +1499,7 @@
     "invalidEmail": "البريد الإلكتروني غير صالح",
     "codeSent": "تم إرسال الرمز إلى بريدك الإلكتروني",
     "invalidCode": "رمز التحقق غير صالح",
+    "invalidOrExpiredCode": "رمز غير صحيح أو منتهي الصلاحية",
     "loginSuccess": "تم تسجيل الدخول بنجاح",
     "loginError": "حدث خطأ أثناء تسجيل الدخول",
     "sendingCode": "جاري إرسال الرمز...",
@@ -1514,11 +1526,14 @@
       "verify": "تحقق",
       "or": "أو",
       "signInWithGoogle": "تسجيل الدخول باستخدام Google",
-      "signInWithApple": "تسجيل الدخول باستخدام Apple",
+      "signInWithFacebook": "تسجيل الدخول باستخدام Facebook",
+      "otpSentToEmail": "أرسلنا رمز التحقق إلى {email}",
       "phoneRequired": "رقم الهاتف مطلوب",
       "invalidPhone": "يرجى إدخال رقم هاتف صحيح",
       "otpRequired": "رمز التحقق مطلوب",
       "otpSent": "تم إرسال رمز التحقق بنجاح",
+      "otpSentToPhone": "تم إرسال رمز التحقق بنגاح إلى {phone}",
+      "otpSentToEmail": "تم إرسال رمز التحقق بنجاح إلى {email}",
       "verified": "تم التحقق من رقم الهاتف",
       "authenticated": "تم التحقق!",
       "phoneVerified": "تم التحقق من رقم الهاتف {phone}",
@@ -1528,7 +1543,24 @@
       "oauthError": "فشل التحقق. يرجى المحاولة مرة أخرى.",
       "otpSentTo": "أرسلنا رمز التحقق إلى {phone}",
       "otpCode": "رمز التحقق",
-      "didntReceiveCode": "لم تستلم الرمز؟"
+      "didntReceiveCode": "لم تستلم الرمز؟",
+      "sendAgain": "إرسال مرة أخرى",
+      "sendAgainIn": "إرسال مرة أخرى خلال {seconds} ثانية",
+      "enterOtherNumber": "أدخل رقم آخر",
+      "enterOtherEmail": "أدخل بريد إلكتروني آخر"
+    },
+    "errors": {
+      "selectBusinessType": "يرجى اختيار نوع العمل للمتابعة.",
+      "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة.",
+      "invalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح.",
+      "unableToValidateEmail": "تعذر التحقق من عنوان البريد الإلكتروني: تنسيق غير صالح",
+      "invalidPhone": "يرجى إدخال رقم هاتف صحيح.",
+      "invalidEnglishName": "يجب أن يحتوي الاسم الإنجليزي على الأحرف الإنجليزية والأرقام والمسافات والشرطات والشرطات السفلية فقط.",
+      "ownerNameRequired": "اسم المالك مطلوب",
+      "atLeastOneService": "يرجى إضافة خدمة واحدة على الأقل للمتابعة.",
+      "invalidService": "يرجى التأكد من أن جميع الخدمات لها اسم ومدة صالحة (>0) وسعر صالح (≥0).",
+      "setupFailed": "فشل في إعداد عملك. يرجى المحاولة مرة أخرى.",
+      "phoneAlreadyRegistered": "رقم الهاتف مسجل بالفعل من قبل مستخدم آخر"
     }
   },
   "terms": {

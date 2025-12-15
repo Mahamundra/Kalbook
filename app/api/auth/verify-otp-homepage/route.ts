@@ -14,9 +14,11 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
  * Verify OTP code and find user across all businesses (for homepage login)
  */
 export async function POST(request: NextRequest) {
+  console.error('=== verify-otp-homepage CALLED ===');
   try {
     const body = await request.json();
     const { phone, code, userType = 'homepage_admin' } = body;
+    console.error('verify-otp-homepage - received:', { phone, code, userType });
 
     // Validate inputs
     if (!phone || !code) {
@@ -121,6 +123,114 @@ export async function POST(request: NextRequest) {
       // Only owners can login, so skip workers check
     }
 
+    // If user not found, check if a business exists with this phone number
+    // This handles cases where business was created but user record wasn't created
+    if (!user && !userError) {
+      // Try to find business by phone number
+      let businessByPhone: { id: string; slug: string; name: string; phone: string } | null = null;
+      const { data: businessData, error: businessError } = await supabase
+        .from('businesses')
+        .select('id, slug, name, phone')
+        .eq('phone', normalizedPhone)
+        .maybeSingle();
+
+      if (businessData) {
+        businessByPhone = businessData;
+      }
+
+      // If not found with exact match, try alternative formats
+      if (!businessByPhone && !businessError) {
+        const phoneWithoutPlus = normalizedPhone.startsWith('+') ? normalizedPhone.slice(1) : normalizedPhone;
+        const phoneWithPlus = normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`;
+        
+        const formats = [phoneWithoutPlus, phoneWithPlus];
+        for (const phoneFormat of formats) {
+          if (phoneFormat === normalizedPhone) continue;
+          
+          const { data: businessAlt } = await supabase
+            .from('businesses')
+            .select('id, slug, name, phone')
+            .eq('phone', phoneFormat.trim())
+            .maybeSingle();
+          
+          if (businessAlt) {
+            businessByPhone = businessAlt;
+            break;
+          }
+        }
+      }
+
+      // If still not found, try manual matching with normalized comparison
+      if (!businessByPhone) {
+        const { data: allBusinesses } = await supabase
+          .from('businesses')
+          .select('id, slug, name, phone');
+        
+        if (allBusinesses) {
+          const normalizedSearched = normalizedPhone.replace(/\s/g, '').toLowerCase();
+          for (const dbBusiness of allBusinesses) {
+            if (!dbBusiness.phone) continue;
+            const dbPhone = toE164Format(dbBusiness.phone).trim().replace(/\s/g, '').toLowerCase();
+            if (dbPhone === normalizedSearched) {
+              businessByPhone = dbBusiness;
+              break;
+            }
+          }
+        }
+      }
+
+      // If business found, create or find user record
+      if (businessByPhone) {
+        console.log('Business found by phone, checking for user record:', {
+          businessId: businessByPhone.id,
+          businessSlug: businessByPhone.slug,
+          phone: normalizedPhone,
+        });
+
+        // Check if user already exists for this business (maybe with different phone format)
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('business_id', businessByPhone.id)
+          .eq('role', 'owner')
+          .maybeSingle() as { data: UserRow | null; error: any };
+
+        if (existingUser) {
+          // User exists, use it
+          user = existingUser;
+          userError = null;
+          console.log('Found existing user for business:', existingUser.id);
+        } else {
+          // Create user record for this business
+          const newUserId = crypto.randomUUID();
+          const userData = {
+            id: newUserId,
+            business_id: businessByPhone.id,
+            phone: normalizedPhone,
+            email: null,
+            name: businessByPhone.name || 'Business Owner',
+            role: 'owner' as const,
+            is_main_admin: true,
+          };
+
+          const { data: newUser, error: createUserError } = await supabase
+            .from('users')
+            .insert(userData as any)
+            .select()
+            .single() as { data: UserRow | null; error: any };
+
+          if (createUserError || !newUser) {
+            console.error('Failed to create user record:', createUserError);
+            // Continue anyway - we'll handle it below
+          } else {
+            user = newUser;
+            userError = null;
+            console.log('Created new user record for business:', newUser.id);
+          }
+        }
+      }
+    }
+
     // If user not found and using test code, allow them to proceed (they'll register during onboarding)
     if ((userError || !user) && !isTestCode) {
       return NextResponse.json(
@@ -171,9 +281,9 @@ export async function POST(request: NextRequest) {
       id: user.id,
       business_id: business.id,
       email: (user as any).email || '',
-      phone: (user as any).phone || null,
-      name: (user as any).name,
-      role: (user as any).role || 'admin',
+      phone: (user as any).phone || '', // Ensure phone is always a string, not null
+      name: (user as any).name || 'Business Owner',
+      role: (user as any).role || 'owner', // Default to 'owner' for homepage login
     };
 
     // Ensure user exists in Supabase Auth
@@ -265,17 +375,26 @@ export async function POST(request: NextRequest) {
         slug: business.slug,
         name: business.name,
       },
+      // Temporary debug info
+      _debug: {
+        cookieSet: true,
+        userId: userData.id,
+        businessId: userData.business_id,
+        hasPhone: !!userData.phone,
+        phoneLength: userData.phone?.length || 0,
+      },
     });
 
     // Set admin_session cookie so UI can detect logged-in user (for homepage)
+    // Ensure all fields are strings (not null) for consistency
     const sessionData = JSON.stringify({
       type: 'business_owner',
       userId: userData.id,
-      businessId: business.id,
-      email: userData.email,
-      phone: userData.phone,
-      name: userData.name,
-      role: userData.role,
+      businessId: userData.business_id, // Use userData.business_id for consistency
+      email: userData.email || '', // Ensure email is always a string
+      phone: userData.phone || '', // Ensure phone is always a string (not null)
+      name: userData.name || 'Business Owner',
+      role: userData.role || 'owner', // Ensure role is always set
     });
 
     // Sign the cookie data to prevent tampering
@@ -296,6 +415,16 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       maxAge: SESSION_MAX_AGE,
       path: '/',
+    });
+
+    // Debug logging
+    console.error('Setting admin_session cookie:', {
+      userId: userData.id,
+      businessId: userData.business_id,
+      hasEmail: !!userData.email,
+      hasPhone: !!userData.phone,
+      role: userData.role,
+      cookieLength: signedSessionData.length,
     });
 
     return response;

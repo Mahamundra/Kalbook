@@ -145,11 +145,11 @@ function BookingPageContent() {
   // Handle OAuth callback for customer login (redirect flow)
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      const code = searchParams.get('code');
       const type = searchParams.get('type');
+      const oauthSuccess = searchParams.get('oauth_success');
       
       // Check if this is an OAuth callback for customer
-      if (code && type === 'customer') {
+      if (type === 'customer' && oauthSuccess === 'true') {
         try {
           // Wait a bit for session to be set
           await new Promise(resolve => setTimeout(resolve, 500));

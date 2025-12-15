@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
     const slug = await generateUniqueSlugFromBusinessType(businessType as BusinessType);
 
     // Convert phone to E.164 format if provided
+    // Try businessInfo.phone first, then fallback to adminUser.phone
+    // This ensures both business and user tables use the same normalized phone
     let e164Phone: string | null = null;
     if (businessInfo.phone) {
       try {
@@ -94,6 +96,19 @@ export async function POST(request: NextRequest) {
           { error: 'Invalid phone number format. Please use E.164 format (e.g., +972542636737)' },
           { status: 400 }
         );
+      }
+    } else if (adminUser?.phone) {
+      // If businessInfo.phone is not provided, try to normalize adminUser.phone
+      // This ensures consistency - both business and user will use the same normalized value
+      try {
+        e164Phone = toE164Format(adminUser.phone);
+        // Validate E.164 format
+        if (!e164Phone.startsWith('+') || e164Phone.length < 10) {
+          e164Phone = null; // Invalid format, set to null
+        }
+      } catch (error) {
+        // If conversion fails, set to null
+        e164Phone = null;
       }
     }
 
@@ -585,17 +600,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user record in users table
-    // Use e164Phone (from businessInfo.phone) - it's already in E.164 format
-    // If e164Phone is null, try to convert adminUser.phone
-    let phoneForUser = e164Phone;
-    if (!phoneForUser && adminUser?.phone) {
-      try {
-        phoneForUser = toE164Format(adminUser.phone);
-      } catch (error) {
-        // Continue without phone if conversion fails
-      }
-    }
-    
+    // Use e164Phone - it's already normalized to E.164 format
+    // This ensures consistency with the business table (both use the same normalized phone)
     const userIdForRecord = shouldReuseAccount 
       ? crypto.randomUUID() // Generate new UUID for new business
       : authUserId; // Use auth user ID for new account
@@ -604,7 +610,7 @@ export async function POST(request: NextRequest) {
       id: userIdForRecord,
       business_id: businessId,
       email: adminEmail || null,
-      phone: phoneForUser,
+      phone: e164Phone, // Always use the normalized e164Phone for consistency
       name: finalOwnerName,
       role: 'owner' as const,
       is_main_admin: true, // Mark as main admin - cannot be deleted

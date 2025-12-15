@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface AdminLoginModalProps {
   open: boolean;
@@ -36,15 +37,45 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
   const isMobile = useIsMobile();
 
   const [step, setStep] = useState<'phone' | 'verify' | 'welcome' | 'notRegistered'>('phone');
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (rateLimitCountdown === null || rateLimitCountdown <= 0) {
+      if (rateLimitCountdown === 0) {
+        setError(null);
+        setRateLimitCountdown(null);
+      }
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRateLimitCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          setError(null);
+          return null;
+        }
+        const newCountdown = prev - 1;
+        const updatedMessage = t('auth.rateLimitMessage')?.replace('{seconds}', newCountdown.toString()) || 
+          `Too many requests. Please try again in ${newCountdown} seconds.`;
+        setError(updatedMessage);
+        return newCountdown;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [rateLimitCountdown, t]);
 
   // Format phone number with dashes (050-000-0000)
   const formatPhoneNumber = (value: string): string => {
@@ -97,14 +128,29 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || t('adminLogin.sendCodeError') || 'Failed to send code');
+        // Handle rate limiting with countdown
+        if (response.status === 429 && data.retryAfter) {
+          setRateLimitCountdown(data.retryAfter);
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          setError(errorMessage);
+          toast.error(errorMessage);
+          setSendingOtp(false);
+          return;
+        } else {
+          throw new Error(data.error || t('adminLogin.sendCodeError') || 'Failed to send code');
+        }
       }
 
       setSendingOtp(false);
       setStep('verify');
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
-      toast.success(t('adminLogin.codeSent') || 'Code sent successfully');
+      setRateLimitCountdown(null);
+      toast.success(
+        loginMethod === 'phone' 
+          ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
+          : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+      );
       // Focus first OTP input after modal opens
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -165,170 +211,83 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     }
   };
 
-  // Handle Google OAuth - use redirect on mobile, popup on desktop
+  // Handle Google OAuth - use redirect flow (same page)
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       
-      if (isMobile) {
-        // Mobile: Use redirect flow (same page)
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
-          },
-        });
+      // Use redirect flow (same page)
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
+        },
+      });
 
-        if (error) throw error;
-        // Redirect will happen automatically - no need to handle response
-        return;
-      } else {
-        // Desktop: Use popup flow
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/api/auth/callback?next=/&popup=true`,
-            skipBrowserRedirect: true,
-          },
-        });
-
-        if (error) throw error;
-        if (!data?.url) throw new Error('Failed to get OAuth URL');
-
-        // Open popup window
-        const width = 500;
-        const height = 600;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        const popup = window.open(
-          data.url,
-          'google-auth',
-          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-        );
-
-        if (!popup) {
-          throw new Error('Popup blocked. Please allow popups for this site.');
-        }
-
-        // Listen for message from popup
-        let checkClosedInterval: NodeJS.Timeout | null = null;
-        const messageListener = async (event: MessageEvent) => {
-          // Verify origin for security
-          if (event.origin !== window.location.origin) return;
-
-          if (event.data.type === 'OAUTH_SUCCESS') {
-            window.removeEventListener('message', messageListener);
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            popup.close();
-            setIsLoading(false);
-
-            // Wait a bit for cookies to sync between popup and parent window
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Create admin_session cookie by calling our API
-            try {
-              const response = await fetch('/api/auth/oauth-session', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-              });
-
-              const data = await response.json();
-
-              if (!response.ok) {
-                // Check if user is not registered (404 status)
-                if (response.status === 404) {
-                  setIsLoading(false);
-                  setStep('notRegistered');
-                  return;
-                }
-                throw new Error(data.error || 'Failed to create session');
-              }
-
-              // Verify response indicates success
-              if (!data.success) {
-                throw new Error(data.error || 'Authentication failed');
-              }
-
-              // Check if user exists
-              if (!data.user || !data.user.id) {
-                setIsLoading(false);
-                setStep('notRegistered');
-                return;
-              }
-
-              setIsLoading(false);
-              setUserName(data.user?.name || '');
-              setStep('welcome');
-
-              // Show welcome message
-              toast.success(
-                (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
-              );
-              
-              // Small delay to show welcome message
-              await new Promise(resolve => setTimeout(resolve, 1000));
-
-              // Close modal
-              onOpenChange(false);
-              
-              // Call onLoginSuccess callback if provided, otherwise reload page
-              if (onLoginSuccess) {
-                onLoginSuccess();
-              } else {
-                // Reload to ensure all components see the new session
-                window.location.reload();
-              }
-            } catch (error: any) {
-              setIsLoading(false);
-              setError(error.message || 'Failed to complete login');
-              toast.error(error.message || 'Failed to complete login');
-            }
-          } else if (event.data.type === 'OAUTH_ERROR') {
-            window.removeEventListener('message', messageListener);
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            popup.close();
-            setIsLoading(false);
-            toast.error(event.data.error || 'Authentication failed');
-          }
-        };
-
-        window.addEventListener('message', messageListener);
-
-        // Check if popup is closed manually
-        checkClosedInterval = setInterval(() => {
-          if (popup.closed) {
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            window.removeEventListener('message', messageListener);
-            setIsLoading(false);
-          }
-        }, 1000);
-      }
-
+      if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
       toast.error(error.message || 'Failed to initiate Google login');
       setIsLoading(false);
     }
   };
 
-  // Handle Apple OAuth
-  const handleAppleLogin = async () => {
+  // Handle Facebook OAuth
+  const handleFacebookLogin = async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
+        provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/`,
+          redirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
         },
       });
 
       if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Apple login');
+      toast.error(error.message || 'Failed to initiate Facebook login');
       setIsLoading(false);
+    }
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      toast.error(t('adminLogin.emailRequired') || 'Email is required');
+      return;
+    }
+
+    setSendingOtp(true);
+    setError(null);
+
+    try {
+      // Use Supabase signInWithOtp for email OTP
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
+        },
+      });
+
+      if (error) throw error;
+
+      setSendingOtp(false);
+      setStep('verify');
+      setOtpDigits(['', '', '', '', '', '']);
+      setCode('');
+      setRateLimitCountdown(null);
+      toast.success(
+        loginMethod === 'phone' 
+          ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
+          : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+      );
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    } catch (error: any) {
+      setSendingOtp(false);
+      setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
+      toast.error(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
     }
   };
 
@@ -347,67 +306,129 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     setError(null);
 
     try {
-      // Remove dashes for API call
-      const cleanPhone = phone.replace(/\D/g, '');
-      
-      // Call verify-otp-homepage API
-      const response = await fetch('/api/auth/verify-otp-homepage', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          code: codeToUse,
-          userType: 'homepage_admin',
-        }),
-      });
+      if (loginMethod === 'email') {
+        // Verify email OTP using Supabase
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: email,
+          token: codeToUse,
+          type: 'email',
+        });
 
-      const data = await response.json();
+        if (error) throw error;
 
-      if (!response.ok) {
-        // Check if user is not registered (404 status)
-        if (response.status === 404) {
+        // Get user info from Supabase session
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('Failed to get user information');
+        }
+
+        // Create admin session from OAuth session
+        const response = await fetch('/api/auth/oauth-session', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const sessionData = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setIsLoading(false);
+            setStep('notRegistered');
+            return;
+          }
+          throw new Error(sessionData.error || 'Authentication failed');
+        }
+
+        if (!sessionData.success || !sessionData.user) {
           setIsLoading(false);
           setStep('notRegistered');
           return;
         }
-        throw new Error(data.error || t('adminLogin.invalidCode') || 'Invalid code');
-      }
 
-      // Verify response indicates success
-      if (!data.success) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      // Check if user exists
-      if (!data.user || !data.user.id) {
         setIsLoading(false);
-        setStep('notRegistered');
-        return;
-      }
+        setUserName(sessionData.user?.name || '');
+        setStep('welcome');
 
-      setIsLoading(false);
-      setUserName(data.user?.name || '');
-      setStep('welcome');
+        toast.success(
+          (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', sessionData.user?.name || '')
+        );
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Show welcome message
-      toast.success(
-        (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
-      );
-      
-      // Small delay to show welcome message
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Close modal
-      onOpenChange(false);
-      
-      // Call onLoginSuccess callback if provided, otherwise reload page
-      if (onLoginSuccess) {
-        onLoginSuccess();
+        onOpenChange(false);
+        
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          window.location.href = '/';
+        }
       } else {
-        window.location.href = '/';
+        // Phone OTP verification (existing flow)
+        const cleanPhone = phone.replace(/\D/g, '');
+        
+        // Call verify-otp-homepage API
+        const response = await fetch('/api/auth/verify-otp-homepage', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            code: codeToUse,
+            userType: 'homepage_admin',
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // Check if user is not registered (404 status)
+          if (response.status === 404) {
+            setIsLoading(false);
+            setStep('notRegistered');
+            return;
+          }
+          throw new Error(data.error || t('adminLogin.invalidCode') || 'Invalid code');
+        }
+
+        // Verify response indicates success
+        if (!data.success) {
+          throw new Error(data.error || 'Authentication failed');
+        }
+
+        // Check if user exists
+        if (!data.user || !data.user.id) {
+          setIsLoading(false);
+          setStep('notRegistered');
+          return;
+        }
+
+        setIsLoading(false);
+        setUserName(data.user?.name || '');
+        setStep('welcome');
+
+        // Show welcome message
+        toast.success(
+          (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
+        );
+        
+        // Small delay to show welcome message
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Close modal
+        onOpenChange(false);
+        
+        // Call onLoginSuccess callback if provided, otherwise reload page
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          window.location.href = '/';
+        }
       }
     } catch (error: any) {
       setIsLoading(false);
@@ -423,7 +444,9 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
   const handleClose = () => {
     if (!isLoading) {
       setStep('phone');
+      setLoginMethod('phone');
       setPhone('');
+      setEmail('');
       setCode('');
       setOtpDigits(['', '', '', '', '', '']);
       setError(null);
@@ -547,43 +570,85 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               </Alert>
             )}
 
-            {/* Phone Input Section */}
-            <div className="space-y-4">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
+            {/* Email/Phone Tabs */}
+            <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'phone' | 'email')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="phone">{t('auth.phone') || 'Phone'}</TabsTrigger>
+                <TabsTrigger value="email">{t('auth.email') || 'Email'}</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="phone" className="space-y-4 mt-4">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <Input
+                    ref={phoneInputRef}
+                    id="phone"
+                    type="tel"
+                    placeholder={t('adminLogin.phonePlaceholder') || t('onboarding.auth.phonePlaceholder') || 'enter phone number'}
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && phone.replace(/\D/g, '').length >= 10 && !sendingOtp) {
+                        handlePhoneSubmit();
+                      }
+                    }}
+                    maxLength={12}
+                    disabled={sendingOtp}
+                    autoComplete="tel"
+                    className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
+                    dir={dir}
+                  />
                 </div>
-                <Input
-                  ref={phoneInputRef}
-                  id="phone"
-                  type="tel"
-                  placeholder={t('adminLogin.phonePlaceholder') || t('onboarding.auth.phonePlaceholder') || 'enter phone number'}
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && phone.replace(/\D/g, '').length >= 10 && !sendingOtp) {
-                      handlePhoneSubmit();
-                    }
-                  }}
-                  maxLength={12}
-                  disabled={sendingOtp}
-                  autoComplete="tel"
-                  className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
-                  dir={dir}
-                />
-              </div>
 
-              <LoadingButton
-                onClick={handlePhoneSubmit}
-                loading={sendingOtp}
-                disabled={!phone.trim() || phone.replace(/\D/g, '').length < 10}
-                className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
-              >
-                {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
-              </LoadingButton>
-            </div>
+                <LoadingButton
+                  onClick={handlePhoneSubmit}
+                  loading={sendingOtp}
+                  disabled={!phone.trim() || phone.replace(/\D/g, '').length < 10}
+                  className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
+                </LoadingButton>
+              </TabsContent>
+              
+              <TabsContent value="email" className="space-y-4 mt-4">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder={t('auth.emailPlaceholder') || 'Enter your email'}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && email.trim() && !sendingOtp) {
+                        handleEmailSubmit();
+                      }
+                    }}
+                    disabled={sendingOtp}
+                    autoComplete="email"
+                    className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
+                    dir="ltr"
+                  />
+                </div>
+
+                <LoadingButton
+                  onClick={handleEmailSubmit}
+                  loading={sendingOtp}
+                  disabled={!email.trim()}
+                  className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
+                </LoadingButton>
+              </TabsContent>
+            </Tabs>
 
             {/* Divider */}
             <div className="relative py-4">
@@ -628,23 +693,19 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               </Button>
               <Button
                 type="button"
-                className="w-full h-12 bg-[#030408] hover:bg-[#030408]/90 text-white font-medium"
-                onClick={handleAppleLogin}
+                className="w-full h-12 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium"
+                onClick={handleFacebookLogin}
                 disabled={isLoading}
               >
                 <svg 
-                  aria-hidden="true" 
-                  focusable="false" 
-                  data-prefix="fab" 
-                  data-icon="apple" 
-                  className={`svg-inline--fa fa-apple text-white text-xl ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}
-                  role="img" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 384 512"
+                  className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`}
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
-                  <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"></path>
+                  <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
                 </svg>
-                {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
+                {t('onboarding.auth.signInWithFacebook') || 'Sign in with Facebook'}
               </Button>
             </div>
 
@@ -731,6 +792,16 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
               </Alert>
             )}
 
+            {/* Success message with email/phone */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {loginMethod === 'phone' 
+                  ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
+                  : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
+                }
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label className="block mb-3 text-center">
                 {t('adminLogin.enterCode') || 'Enter verification code'}
@@ -754,7 +825,10 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                 ))}
               </div>
               <p className="text-xs text-center text-muted-foreground">
-                {t('adminLogin.codeHint') || 'Enter the 6-digit code sent to your phone, or use 1234 for testing'}
+                {loginMethod === 'phone' 
+                  ? (t('adminLogin.codeHint') || 'Enter the 6-digit code sent to your phone, or use 1234 for testing')
+                  : (t('adminLogin.emailCodeHint') || 'Enter the code sent to your email')
+                }
               </p>
             </div>
 

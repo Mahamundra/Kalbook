@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Footer } from '@/components/ui/Footer';
 import { useLocale } from '@/hooks/useLocale';
@@ -16,12 +16,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
-import { LogOut, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { LogOut, LayoutDashboard, ChevronDown, User, ArrowLeft } from 'lucide-react';
 
 export default function PrivacyPage() {
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const router = useRouter();
+  const pathname = usePathname();
   
   // User state for header
   const [user, setUser] = useState<{ name: string; email: string; business: { slug: string } } | null>(null);
@@ -115,73 +116,124 @@ export default function PrivacyPage() {
 
   return (
     <div dir={dir} className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
-      <div className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header - Same as onboarding */}
-          <header className="bg-white border-b mb-8 rounded-lg shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
-              <div className="flex items-center justify-between gap-2">
-                {/* Language Toggle */}
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                  <LanguageToggle />
-                </div>
-                
-                {/* User menu / Greetings */}
-                <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                  {!loadingUser && user && (
-                    <>
-                      <div className="w-2 sm:w-3" />
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button 
-                            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
-                          >
-                            <span className="text-xs sm:text-sm text-muted-foreground">
-                              <span className="font-medium text-foreground">{user.name}</span>
-                            </span>
-                            <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent 
-                          align={isRTL ? "end" : "end"} 
-                          className={isRTL ? "text-right [&>*]:text-right" : ""}
-                          style={isRTL ? { direction: 'rtl' } : { direction: 'ltr' }}
-                        >
-                          <div className="px-2 py-1.5">
-                            <p className="text-sm font-medium">{user.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                          </div>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={handleGoToDashboard} className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                            {t('userDashboard.title') || 'My Account'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                            {t('userDashboard.logout') || 'Logout'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {/* Center - Logo (absolutely positioned for true centering) */}
-              <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <Link href="/">
-                  <img 
-                    src="/kalbook-logo.svg" 
-                    alt="KalBook.io" 
-                    className="h-8 sm:h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-                  />
+      {/* Header - Same as onboarding and homepage */}
+      <header className="bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
+          <div className="flex items-center justify-between gap-2">
+            {/* Language Toggle */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <LanguageToggle />
+            </div>
+            
+            {/* User menu / Greetings */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              {!loadingUser && user && (
+                <>
+                  <div className="w-2 sm:w-3" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button 
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 welcome-back-button ${isRTL ? 'flex-row-reverse' : ''}`}
+                      >
+                        <Avatar className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0">
+                          <AvatarFallback className={`${getTimeBasedAvatarStyle()} text-xs sm:text-sm`}>
+                            {getTimeBasedEmoji()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {getTimeBasedGreeting(locale as 'en' | 'he' | 'ar' | 'ru')}, <span className="font-medium text-foreground">{user.name}</span>
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      align={isRTL ? "end" : "end"} 
+                      className={isRTL ? "text-right [&>*]:text-right" : ""}
+                      style={isRTL ? { direction: 'rtl' } : { direction: 'ltr' }}
+                    >
+                      <div className="px-2 py-1.5">
+                        <p className="text-sm font-medium">{user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleGoToDashboard} className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                        {t('userDashboard.title') || 'My Account'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                        {t('userDashboard.logout') || 'Logout'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {/* Center - Logo (absolutely positioned for true centering) */}
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <Link href="/">
+              <img 
+                src="/kalbook-logo.svg" 
+                alt="KalBook.io" 
+                className="h-8 sm:h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </Link>
+          </div>
+        </div>
+        
+        {/* Navigation Bookmarks */}
+        <div className="border-t bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center gap-4 py-3">
+              <div className="flex items-center gap-4">
+                <Link 
+                  href="/terms" 
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    pathname === '/terms' ? 'text-primary' : 'text-muted-foreground'
+                  } relative inline-block group`}
+                >
+                  {t('home.footer.terms') || 'Terms'}
+                  <span className={`absolute bottom-0 ${isRTL ? 'right-0' : 'left-0'} h-[1.5px] bg-primary transition-all duration-300 ${
+                    pathname === '/terms' ? 'w-full' : 'w-0 group-hover:w-full'
+                  }`}></span>
+                </Link>
+                <Link 
+                  href="/privacy" 
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    pathname === '/privacy' ? 'text-primary' : 'text-muted-foreground'
+                  } relative inline-block group`}
+                >
+                  {t('home.footer.privacy') || 'Privacy'}
+                  <span className={`absolute bottom-0 ${isRTL ? 'right-0' : 'left-0'} h-[1.5px] bg-primary transition-all duration-300 ${
+                    pathname === '/privacy' ? 'w-full' : 'w-0 group-hover:w-full'
+                  }`}></span>
                 </Link>
               </div>
             </div>
-          </header>
-          
+          </div>
+        </div>
+      </header>
+      
+      <div className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-28 md:pt-36 pb-8">
           <div className="prose prose-lg max-w-none">
+            {/* Back Button */}
+            <div className="mb-6 flex w-full justify-start">
+              <button
+                onClick={() => router.back()}
+                className="group flex items-center gap-2 text-muted-foreground hover:!text-black hover:!bg-transparent transition-colors relative"
+              >
+                <ArrowLeft className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} />
+                <span className="relative">
+                  {t('nav.back') || t('userDashboard.back') || 'Back'}
+                  <span className={`absolute bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-0 h-[1.5px] bg-black transition-all duration-300 group-hover:w-full`}></span>
+                </span>
+              </button>
+            </div>
+            
             <h1 className="text-4xl font-bold mb-2 text-center">{t('privacy.title')}</h1>
             <p className="text-muted-foreground mb-8 text-center">{t('privacy.lastUpdated')}</p>
             

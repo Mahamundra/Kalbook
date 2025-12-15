@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import type { CustomField, RegistrationSettings } from '@/types/admin';
 // Removed mock data imports - now using API
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { getCustomerByPhone } from '@/lib/api/services';
 import { supabase } from '@/lib/supabase/client';
 
@@ -36,11 +37,14 @@ export function LoginRegisterDialog({
   const { dir } = useDirection();
   const isMobile = useIsMobile();
   const [step, setStep] = useState<LoginStep>('phone');
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const otpInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -53,14 +57,38 @@ export function LoginRegisterDialog({
     customFields: {} as Record<string, any>,
   });
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (rateLimitCountdown === null || rateLimitCountdown <= 0) {
+      if (rateLimitCountdown === 0) {
+        setRateLimitCountdown(null);
+      }
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRateLimitCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [rateLimitCountdown]);
+
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
       setStep('phone');
+      setLoginMethod('phone');
       setPhone('');
+      setEmail('');
       setCode('');
       setIsVerifying(false);
       setIsRegistering(false);
+      setRateLimitCountdown(null);
       setFormData({
         name: '',
         email: '',
@@ -120,17 +148,52 @@ export function LoginRegisterDialog({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send OTP');
+        // Handle rate limiting with countdown
+        if (response.status === 429 && data.retryAfter) {
+          setRateLimitCountdown(data.retryAfter);
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          toast.error(errorMessage);
+          setIsVerifying(false);
+          return;
+        } else {
+          throw new Error(data.error || 'Failed to send OTP');
+        }
       }
 
       setIsVerifying(false);
       setStep('verify');
+      setRateLimitCountdown(null);
       toast.success(t('auth.codeSentViaWhatsApp'));
       
       // In development, show the code for testing
       if (data.code && process.env.NODE_ENV === 'development') {
         console.log(`[DEV] OTP Code: ${data.code}`);
       }
+    } catch (error: any) {
+      setIsVerifying(false);
+      toast.error(error.message || t('auth.sendCodeError') || 'Failed to send code');
+    }
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!email) return;
+    
+    setIsVerifying(true);
+    
+    try {
+      // Use Supabase signInWithOtp for email OTP
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
+        },
+      });
+
+      if (error) throw error;
+
+      setIsVerifying(false);
+      setStep('verify');
+      toast.success(t('auth.codeSentToEmail')?.replace('{email}', email) || `Verification code sent to ${email}`);
     } catch (error: any) {
       setIsVerifying(false);
       toast.error(error.message || t('auth.sendCodeError') || 'Failed to send code');
@@ -153,64 +216,124 @@ export function LoginRegisterDialog({
     setIsVerifying(true);
 
     try {
-      // Call verify-otp API
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phone,
-          code: code,
-          userType: 'customer',
-        }),
-      });
+      if (loginMethod === 'email') {
+        // Verify email OTP using Supabase
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: email,
+          token: code,
+          type: 'email',
+        });
 
-      const data = await response.json();
+        if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to verify code');
-      }
-
-      setIsVerifying(false);
-
-      // Session is automatically created and stored in cookie
-      // The API returns the customer session
-      const session = data.session;
-
-      // Check if customer exists in the database by phone number
-      try {
-        const existingCustomer = await getCustomerByPhone(phone);
+        // Get user info from Supabase session
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (existingCustomer) {
-          // Existing customer - log them in directly and proceed to booking
-          const welcomeMessage = t('auth.welcomeBack')?.replace('{{name}}', existingCustomer.name) || `Welcome back, ${existingCustomer.name}!`;
-          toast.success(welcomeMessage);
-          onSuccess({
-            phone: existingCustomer.phone,
-            name: existingCustomer.name,
-            email: existingCustomer.email || '',
-            customerId: existingCustomer.id,
-            businessId: session.businessId,
-          });
-          onClose();
-        } else {
-          // New customer - proceed to registration to collect additional info
-          // Pre-fill phone number and any data from session
-          setFormData({
-            ...formData,
-            email: session.email || formData.email,
-            // Keep phone number available for display/reference
-          });
+        if (!user) {
+          throw new Error('Failed to get user information');
+        }
+
+        // For email login, we need to create/update customer session
+        // Check if customer exists by email
+        try {
+          const sessionResponse = await fetch('/api/auth/session');
+          const sessionData = await sessionResponse.json();
+          
+          if (sessionData.success && sessionData.session) {
+            const session = sessionData.session;
+            // Try to find customer by email
+            const customerResponse = await fetch(`/api/customers?email=${encodeURIComponent(email)}`);
+            const customerData = await customerResponse.json();
+            
+            if (customerData.success && customerData.customer) {
+              const existingCustomer = customerData.customer;
+              const welcomeMessage = t('auth.welcomeBack')?.replace('{{name}}', existingCustomer.name) || `Welcome back, ${existingCustomer.name}!`;
+              toast.success(welcomeMessage);
+              onSuccess({
+                phone: existingCustomer.phone || '',
+                name: existingCustomer.name,
+                email: existingCustomer.email || email,
+                customerId: existingCustomer.id,
+                businessId: session.businessId,
+              });
+              onClose();
+            } else {
+              // New customer - proceed to registration
+              setFormData({
+                ...formData,
+                email: email,
+              });
+              toast.info(t('auth.customerNotFound') || 'Please complete your registration');
+              setStep('register');
+            }
+          } else {
+            throw new Error('Session not found');
+          }
+        } catch (error) {
+          console.error('Error checking customer:', error);
           toast.info(t('auth.customerNotFound') || 'Please complete your registration');
           setStep('register');
         }
-      } catch (error) {
-        // If checking customer fails, assume new customer and show registration
-        console.error('Error checking customer:', error);
-        toast.info(t('auth.customerNotFound') || 'Please complete your registration');
-        setStep('register');
+      } else {
+        // Phone OTP verification (existing flow)
+        const response = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: phone,
+            code: code,
+            userType: 'customer',
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to verify code');
+        }
+
+        // Session is automatically created and stored in cookie
+        // The API returns the customer session
+        const session = data.session;
+
+        // Check if customer exists in the database by phone number
+        try {
+          const existingCustomer = await getCustomerByPhone(phone);
+          
+          if (existingCustomer) {
+            // Existing customer - log them in directly and proceed to booking
+            const welcomeMessage = t('auth.welcomeBack')?.replace('{{name}}', existingCustomer.name) || `Welcome back, ${existingCustomer.name}!`;
+            toast.success(welcomeMessage);
+            onSuccess({
+              phone: existingCustomer.phone,
+              name: existingCustomer.name,
+              email: existingCustomer.email || '',
+              customerId: existingCustomer.id,
+              businessId: session.businessId,
+            });
+            onClose();
+          } else {
+            // New customer - proceed to registration to collect additional info
+            // Pre-fill phone number and any data from session
+            setFormData({
+              ...formData,
+              email: session.email || formData.email,
+              // Keep phone number available for display/reference
+            });
+            toast.info(t('auth.customerNotFound') || 'Please complete your registration');
+            setStep('register');
+          }
+        } catch (error) {
+          // If checking customer fails, assume new customer and show registration
+          console.error('Error checking customer:', error);
+          toast.info(t('auth.customerNotFound') || 'Please complete your registration');
+          setStep('register');
+        }
       }
+
+      setIsVerifying(false);
     } catch (error: any) {
       setIsVerifying(false);
       // Check if error message contains "Invalid or expired code" and use translation
@@ -223,194 +346,42 @@ export function LoginRegisterDialog({
     }
   };
 
-  // Handle Google OAuth
+  // Handle Google OAuth - use redirect flow (same page)
   const handleGoogleLogin = async () => {
     try {
       setIsOAuthLoading(true);
       
-      // Get the OAuth URL
+      // Use redirect flow (same page)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&popup=true&type=customer`,
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) throw error;
-      if (!data?.url) throw new Error('Failed to get OAuth URL');
-
-      // Open popup window
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        data.url,
-        'google-auth',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
-
-      if (!popup) {
-        throw new Error('Popup blocked. Please allow popups for this site.');
-      }
-
-      // Listen for message from popup
-      let checkClosedInterval: NodeJS.Timeout | null = null;
-      const messageListener = async (event: MessageEvent) => {
-        // Verify origin for security
-        if (event.origin !== window.location.origin) return;
-
-        if (event.data.type === 'OAUTH_SUCCESS') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setIsOAuthLoading(false);
-
-          // Wait a bit for cookies to sync
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          // Get Supabase Auth session
-          let session = null;
-          const maxRetries = 5;
-          
-          for (let i = 0; i < maxRetries; i++) {
-            const { data, error } = await supabase.auth.getSession();
-            session = data?.session;
-            
-            if (session?.user) {
-              break;
-            }
-            
-            if (i === 2) {
-              const { data: userData } = await supabase.auth.getUser();
-              if (userData?.user) {
-                const { data: refreshedSession } = await supabase.auth.getSession();
-                session = refreshedSession?.session;
-                if (session?.user) break;
-              }
-            }
-            
-            if (i < maxRetries - 1) {
-              await new Promise(resolve => setTimeout(resolve, 300 * (i + 1)));
-            }
-          }
-          
-          if (!session?.user) {
-            toast.info('Completing login...');
-            window.location.reload();
-            return;
-          }
-
-          // Pre-fill form with OAuth data
-          const userEmail = session.user.email || '';
-          const userPhone = session.user.phone || '';
-          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-
-          if (userPhone) {
-            setPhone(userPhone);
-          }
-          if (userEmail) {
-            setFormData(prev => ({ ...prev, email: userEmail }));
-          }
-          if (userName) {
-            setFormData(prev => ({ ...prev, name: userName }));
-          }
-
-          // Create customer session from OAuth
-          try {
-            const sessionResponse = await fetch('/api/auth/oauth-session-customer', {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-
-            const sessionData = await sessionResponse.json();
-
-            if (!sessionResponse.ok) {
-              throw new Error(sessionData.error || 'Failed to create session');
-            }
-
-            if (!sessionData.success || !sessionData.session) {
-              throw new Error('Failed to create customer session');
-            }
-
-            const customerSession = sessionData.session;
-
-            // Check if customer has complete profile (name, etc.)
-            if (customerSession.name && customerSession.name !== customerSession.phone) {
-              // Customer exists with complete profile - log them in
-              toast.success(t('auth.welcomeBack')?.replace('{{name}}', customerSession.name) || `Welcome back, ${customerSession.name}!`);
-              onSuccess({
-                phone: customerSession.phone,
-                name: customerSession.name,
-                email: customerSession.email || userEmail,
-                customerId: customerSession.customerId,
-                businessId: customerSession.businessId,
-              });
-              onClose();
-            } else {
-              // Customer needs to complete registration
-              if (userPhone) setPhone(userPhone);
-              if (userEmail) setFormData(prev => ({ ...prev, email: userEmail }));
-              if (userName) setFormData(prev => ({ ...prev, name: userName }));
-              
-              toast.info(t('auth.completeRegistration') || 'Please complete your registration');
-              setStep('register');
-            }
-          } catch (error: any) {
-            console.error('Error creating customer session:', error);
-            // Pre-fill form and proceed to registration
-            if (userPhone) setPhone(userPhone);
-            if (userEmail) setFormData(prev => ({ ...prev, email: userEmail }));
-            if (userName) setFormData(prev => ({ ...prev, name: userName }));
-            
-            toast.info(t('auth.completeRegistration') || 'Please complete your registration');
-            setStep('register');
-          }
-        } else if (event.data.type === 'OAUTH_ERROR') {
-          window.removeEventListener('message', messageListener);
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          popup.close();
-          setIsOAuthLoading(false);
-          toast.error(event.data.error || 'Authentication failed');
-        }
-      };
-
-      window.addEventListener('message', messageListener);
-
-      // Check if popup is closed manually
-      checkClosedInterval = setInterval(() => {
-        if (popup.closed) {
-          if (checkClosedInterval) clearInterval(checkClosedInterval);
-          window.removeEventListener('message', messageListener);
-          setIsOAuthLoading(false);
-        }
-      }, 1000);
-
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Google login');
-      setIsOAuthLoading(false);
-    }
-  };
-
-  // Handle Apple OAuth
-  const handleAppleLogin = async () => {
-    try {
-      setIsOAuthLoading(true);
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
         options: {
           redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
         },
       });
 
       if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Apple login');
+      toast.error(error.message || 'Failed to initiate Google login');
+      setIsOAuthLoading(false);
+    }
+  };
+
+  // Handle Facebook OAuth
+  const handleFacebookLogin = async () => {
+    try {
+      setIsOAuthLoading(true);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
+        },
+      });
+
+      if (error) throw error;
+      // Redirect will happen automatically - no need to handle response
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to initiate Facebook login');
       setIsOAuthLoading(false);
     }
   };
@@ -506,33 +477,65 @@ export function LoginRegisterDialog({
               exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
               className="space-y-4"
             >
-              <div>
-                <Label htmlFor="phone" className={isRTL ? 'text-right' : 'text-left'}>
-                  {t('auth.phoneNumber')}
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => {
-                    let value = e.target.value;
-                    if (value.includes('+')) {
-                      value = '+' + value.replace(/\+/g, '');
-                    }
-                    setPhone(value);
-                  }}
-                  placeholder={t('auth.phonePlaceholder')}
-                  dir="ltr"
-                  className="mt-2"
-                />
-              </div>
-              <Button
-                onClick={handlePhoneSubmit}
-                disabled={!phone || isVerifying || isOAuthLoading}
-                className="w-full"
-              >
-                {isVerifying ? t('auth.sending') : t('auth.sendCode')}
-              </Button>
+              {/* Email/Phone Tabs */}
+              <Tabs value={loginMethod} onValueChange={(value) => setLoginMethod(value as 'phone' | 'email')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="phone">{t('auth.phone') || 'Phone'}</TabsTrigger>
+                  <TabsTrigger value="email">{t('auth.email') || 'Email'}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="phone" className="space-y-4 mt-4">
+                  <div>
+                    <Label htmlFor="phone" className={isRTL ? 'text-right' : 'text-left'}>
+                      {t('auth.phoneNumber')}
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        if (value.includes('+')) {
+                          value = '+' + value.replace(/\+/g, '');
+                        }
+                        setPhone(value);
+                      }}
+                      placeholder={t('auth.phonePlaceholder')}
+                      dir="ltr"
+                      className="mt-2"
+                    />
+                  </div>
+                  <Button
+                    onClick={handlePhoneSubmit}
+                    disabled={!phone || isVerifying || isOAuthLoading}
+                    className="w-full"
+                  >
+                    {isVerifying ? t('auth.sending') : t('auth.sendCode')}
+                  </Button>
+                </TabsContent>
+                <TabsContent value="email" className="space-y-4 mt-4">
+                  <div>
+                    <Label htmlFor="email" className={isRTL ? 'text-right' : 'text-left'}>
+                      {t('auth.email')}
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('auth.emailPlaceholder') || 'Enter your email'}
+                      dir="ltr"
+                      className="mt-2"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleEmailSubmit}
+                    disabled={!email || isVerifying || isOAuthLoading}
+                    className="w-full"
+                  >
+                    {isVerifying ? t('auth.sending') : t('auth.sendCode')}
+                  </Button>
+                </TabsContent>
+              </Tabs>
 
               {/* Divider */}
               <div className="relative py-4">
@@ -577,23 +580,19 @@ export function LoginRegisterDialog({
                 </Button>
                 <Button
                   type="button"
-                  className="w-full h-12 bg-black hover:bg-gray-900 text-white font-medium"
-                  onClick={handleAppleLogin}
+                  className="w-full h-12 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium"
+                  onClick={handleFacebookLogin}
                   disabled={isOAuthLoading || isVerifying}
                 >
                   <svg 
-                    aria-hidden="true" 
-                    focusable="false" 
-                    data-prefix="fab" 
-                    data-icon="apple" 
-                    className={`svg-inline--fa fa-apple text-white text-xl ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}
-                    role="img" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 384 512"
+                    className={`${dir === 'rtl' ? 'ml-2' : 'mr-2'} h-5 w-5`}
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"></path>
+                    <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
                   </svg>
-                  {t('onboarding.auth.signInWithApple') || 'Sign in with Apple'}
+                  {t('onboarding.auth.signInWithFacebook') || 'Sign in with Facebook'}
                 </Button>
               </div>
             </motion.div>
@@ -626,6 +625,16 @@ export function LoginRegisterDialog({
               }}
               className="space-y-4"
             >
+              {/* Success message with email/phone */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  {loginMethod === 'phone' 
+                    ? (t('auth.codeSentTo')?.replace('{phone}', phone) || `Code sent to ${phone}`)
+                    : (t('auth.codeSentToEmail')?.replace('{email}', email) || `Verification code sent to ${email}`)
+                  }
+                </p>
+              </div>
+              
               <div>
                 <Label className={`block mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {t('auth.verificationCode')}
@@ -650,7 +659,7 @@ export function LoginRegisterDialog({
                   </InputOTP>
                 </div>
                 <p className={`text-xs text-muted-foreground mt-2 text-center ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('auth.codeSentTo')} {phone}
+                  {t('auth.codeSentTo')} {loginMethod === 'phone' ? phone : email}
                 </p>
               </div>
                   <Button

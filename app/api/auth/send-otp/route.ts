@@ -6,11 +6,11 @@ import { getClientIP, checkRateLimit } from '@/lib/auth/rate-limit';
 
 type Locale = 'en' | 'he' | 'ar' | 'ru';
 
-const WAIT_MESSAGES: Record<Locale, string> = {
-  en: 'Please wait before requesting another code',
-  he: 'אנא המתן לפני בקשת קוד נוסף',
-  ar: 'يرجى الانتظار قبل طلب رمز آخر',
-  ru: 'Пожалуйста, подождите перед запросом другого кода',
+const RATE_LIMIT_MESSAGES: Record<Locale, string> = {
+  en: 'Please wait {seconds} seconds before requesting another code',
+  he: 'אנא המתן {seconds} שניות לפני בקשת קוד נוסף',
+  ar: 'يرجى الانتظار {seconds} ثانية قبل طلب رمز آخر',
+  ru: 'Пожалуйста, подождите {seconds} секунд перед запросом другого кода',
 };
 
 const getLocale = (request: NextRequest): Locale => {
@@ -46,11 +46,13 @@ export async function POST(request: NextRequest) {
     const rateLimitCheck = await checkRateLimit(e164Phone, clientIP);
     if (!rateLimitCheck.allowed) {
       const locale = getLocale(request);
-      const message = rateLimitCheck.reason === 'ip' 
-        ? (locale === 'he' ? 'יותר מדי בקשות מ-IP זה. אנא המתן.' : 'Too many requests from this IP. Please wait.')
-        : WAIT_MESSAGES[locale];
+      const retryAfter = rateLimitCheck.retryAfter || 30;
+      const message = RATE_LIMIT_MESSAGES[locale].replace('{seconds}', retryAfter.toString());
       return NextResponse.json(
-        { error: message },
+        { 
+          error: message,
+          retryAfter: retryAfter
+        },
         { status: 429 }
       );
     }

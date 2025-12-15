@@ -595,7 +595,8 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         dir={dir}
-        className="!w-[90vw] sm:!w-[85vw] md:!w-[800px] !max-w-[800px] max-h-[90vh] overflow-y-auto p-5"
+        className="!w-[90vw] sm:!w-[85vw] md:!w-[800px] !max-w-[800px] max-h-[90vh] overflow-y-auto overflow-x-hidden overscroll-contain p-5"
+        style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         <DialogHeader className="pb-3">
           <DialogTitle className="text-xl font-bold text-[#030408] dark:text-text-strong">
@@ -618,7 +619,7 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
             </Alert>
           </div>
         ) : user ? (
-          <div className="space-y-4" style={{ width: '100%' }}>
+          <div className="space-y-4 overflow-x-hidden" style={{ width: '100%', minHeight: 0, maxWidth: '100%' }}>
             {error && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -639,6 +640,7 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
                 </TabsTrigger>
               </TabsList>
 
+              <div className="h-[60vh] overflow-y-auto">
               {/* Businesses Tab */}
               <TabsContent value="businesses" className="space-y-4">
                 {businesses.length === 0 ? (
@@ -662,7 +664,7 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 overflow-x-hidden" style={{ maxWidth: '100%' }}>
                     {businesses.map((business) => {
                       const planStatus = getPlanStatus(business);
                       const endDate = business.subscriptionEndsAt || business.trialEndsAt;
@@ -709,15 +711,15 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
                                   </div>
                                 )}
                               </div>
-                              <div className={`flex flex-row gap-2 w-full sm:w-auto justify-center ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
-                                <Link href={`/b/${business.slug}/admin/dashboard`} className="flex-1 sm:flex-initial" onClick={() => onOpenChange(false)}>
-                                  <Button className={`w-full sm:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white shadow-soft transition-shadow ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <div className={`flex flex-col sm:flex-row gap-2 w-full sm:w-auto justify-center overflow-x-hidden ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
+                                <Link href={`/b/${business.slug}/admin/dashboard`} className="flex-1 sm:flex-initial min-w-0" onClick={() => onOpenChange(false)}>
+                                  <Button className={`w-full gap-2 bg-green-600 hover:bg-green-700 text-white shadow-soft transition-shadow ${isRTL ? 'flex-row-reverse' : ''} whitespace-normal sm:whitespace-nowrap`}>
                                     {t('userDashboard.goToAdmin') || 'Go to Admin Panel'}
                                     <ExternalLink className="w-4 h-4" />
                                   </Button>
                                 </Link>
-                                <Link href={`/b/${business.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial">
-                                  <Button variant="outline" className={`w-full sm:w-auto gap-2 hover:bg-custom hover:text-white transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <Link href={`/b/${business.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial min-w-0">
+                                  <Button variant="outline" className={`w-full gap-2 hover:bg-custom hover:text-white transition-colors ${isRTL ? 'flex-row-reverse' : ''} whitespace-normal sm:whitespace-nowrap`}>
                                     <Globe className="w-4 h-4" />
                                     {t('userDashboard.viewPublicSite')}
                                   </Button>
@@ -1088,20 +1090,20 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
                         
                         <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${isRTL ? 'md:grid-flow-col-dense' : ''}`}>
                           {user.phone && (
-                            <div className={`space-y-2 text-left ${isRTL ? 'md:text-right md:order-1' : ''}`}>
-                              <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+                            <div className={`space-y-2 ${isRTL ? 'text-right md:order-1' : 'text-left'}`}>
+                              <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : 'justify-start'}`}>
                                 <Phone className="w-4 h-4" />
                                 {t('userDashboard.phone') || 'Phone'}
                               </Label>
-                              <p className={`text-lg font-medium text-left ${isRTL ? 'md:text-right' : ''}`} dir="ltr">{formatPhoneForDisplay(user.phone)}</p>
+                              <p className={`text-lg font-medium ${isRTL ? 'text-right' : 'text-left'}`} dir="ltr">{formatPhoneForDisplay(user.phone)}</p>
                             </div>
                           )}
-                          <div className={`space-y-2 text-left ${isRTL ? 'md:text-right md:order-2' : ''}`}>
-                            <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+                          <div className={`space-y-2 ${isRTL ? 'text-right md:order-2' : 'text-left'}`}>
+                            <Label className={`text-muted-foreground flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : 'justify-start'}`}>
                               <Mail className="w-4 h-4" />
                               {t('userDashboard.email') || 'Email'}
                             </Label>
-                            <p className={`text-lg font-medium text-left ${isRTL ? 'md:text-right' : ''}`}>{user.email}</p>
+                            <p className={`text-lg font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{user.email}</p>
                           </div>
                         </div>
                       </div>
@@ -1109,6 +1111,7 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
                   </CardContent>
                 </Card>
               </TabsContent>
+              </div>
             </Tabs>
           </div>
         ) : null}

@@ -14,7 +14,8 @@
         "settings": "Settings",
         "viewPublicSite": "View Public Site",
         "viewMyBookingPage": "View My Booking Page",
-        "more": "More"
+        "more": "More",
+        "back": "Back"
     },
   "dashboard": {
     "title": "Dashboard",
@@ -948,7 +949,10 @@
     "sendCode": "Send Code",
     "sending": "Sending...",
     "verificationCode": "Verification Code",
-    "codeSentTo": "Code sent to",
+    "codeSentTo": "Code sent to {phone}",
+    "codeSentToEmail": "Verification code sent to {email}",
+    "emailRequired": "Email is required",
+    "phone": "Phone",
     "verify": "Verify",
     "verifying": "Verifying...",
     "fullName": "Full Name",
@@ -979,7 +983,7 @@
     "logout": "Logout",
     "logoutSuccess": "Logged out successfully",
     "verifiedPhone": "Verified Phone:",
-    "waitBeforeRequestingCode": "Please wait before requesting another code"
+    "rateLimitMessage": "Please wait {seconds} seconds before requesting another code"
   },
   "adminLogin": {
     "title": "Admin Login",
@@ -998,13 +1002,20 @@
     "sendCode": "Send Code",
     "sending": "Sending...",
     "sendCodeError": "Failed to send code",
+    "noBusinessAccess": "Seems you don't have access to this business admin panel",
     "codeSent": "Code sent successfully",
+    "codeSentToPhone": "Verification code sent successfully to {phone}",
+    "codeSentToEmail": "Verification code sent successfully to {email}",
     "enterCode": "Enter verification code",
     "codeHint": "Enter the 6-digit code sent to your phone, or use 1234 for testing",
+    "emailCodeHint": "Enter the code sent to your email",
+    "emailRequired": "Email is required",
     "testCodeHint": "For testing, use code: 1234",
     "verify": "Verify",
     "verifying": "Verifying...",
     "invalidCode": "Invalid code",
+    "invalidOrExpiredCode": "Invalid or expired code",
+    "noAdminAccountFound": "No admin account found with this email for this business. Please contact the business owner to add you as an admin.",
     "notRegistered": {
       "title": "Not Registered",
       "message": "It seems that you are not registered as a business owner.",
@@ -1169,7 +1180,7 @@
   "home": {
     "title": "KalBook",
     "subtitle": "Everything your service business needs – all in one place.\n\nA smart management system that centralizes all important operations:\n\nOnline bookings\n\nDynamic and updating schedule\n\nCustomer and employee management\n\nSending automatic reminders and messages\n\nEasy to operate, quick to set up, in English",
-    "startNow": "Let's Start",
+    "startNow": "Start Free Trial",
     "seeFeatures": "What's Inside?",
     "pricingLabel": "Pricing",
     "freeTrial": "Free Trial",
@@ -1474,11 +1485,14 @@
       "verify": "Verify",
       "or": "Or",
       "signInWithGoogle": "Sign in with Google",
-      "signInWithApple": "Sign in with Apple",
+      "signInWithFacebook": "Sign in with Facebook",
+      "otpSentToEmail": "We sent a verification code to {email}",
       "phoneRequired": "Phone number is required",
       "invalidPhone": "Please enter a valid phone number",
       "otpRequired": "OTP code is required",
-      "otpSent": "OTP code sent successfully",
+      "otpSent": "Verification code sent successfully",
+      "otpSentToPhone": "Verification code sent successfully to {phone}",
+      "otpSentToEmail": "Verification code sent successfully to {email}",
       "verified": "Phone number verified",
       "authenticated": "Authenticated!",
       "phoneVerified": "Phone {phone} verified",
@@ -1491,7 +1505,8 @@
       "didntReceiveCode": "Didn't receive code?",
       "sendAgain": "Send again",
       "sendAgainIn": "Send again in {seconds}s",
-      "enterOtherNumber": "Enter other number"
+      "enterOtherNumber": "Enter other number",
+      "enterOtherEmail": "Enter other email"
     },
     "planConfirmation": {
       "title": "Plan Confirmation",
@@ -1831,6 +1846,7 @@
       "selectBusinessType": "Please select a business type to continue.",
       "fillRequiredFields": "Please fill in all required fields.",
       "invalidEmail": "Please enter a valid email address.",
+      "unableToValidateEmail": "Unable to validate email address: invalid format",
       "invalidPhone": "Please enter a valid phone number.",
       "invalidEnglishName": "English name must contain only English letters, numbers, spaces, hyphens, and underscores.",
       "ownerNameRequired": "Owner name is required",

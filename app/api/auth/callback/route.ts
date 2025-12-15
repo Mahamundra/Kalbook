@@ -87,25 +87,38 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // For redirect flow (mobile), handle session creation and redirect
+  // For redirect flow, handle session creation and redirect
+  // Preserve type parameter so client knows to handle OAuth callback
   if (type === 'homepage_admin') {
     // Redirect to homepage - session will be created client-side
-    return NextResponse.redirect(new URL('/', requestUrl.origin).toString());
+    const redirectUrl = new URL('/', requestUrl.origin);
+    redirectUrl.searchParams.set('type', 'homepage_admin');
+    redirectUrl.searchParams.set('oauth_success', 'true');
+    return NextResponse.redirect(redirectUrl.toString());
   }
 
   if (type === 'business_admin') {
     // Redirect back to business admin login - session will be created client-side
-    return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
+    const redirectUrl = new URL(next, requestUrl.origin);
+    redirectUrl.searchParams.set('type', 'business_admin');
+    redirectUrl.searchParams.set('oauth_success', 'true');
+    return NextResponse.redirect(redirectUrl.toString());
   }
 
   if (type === 'customer') {
     // Redirect back to booking page - session will be created client-side
-    return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
+    const redirectUrl = new URL(next, requestUrl.origin);
+    redirectUrl.searchParams.set('type', 'customer');
+    redirectUrl.searchParams.set('oauth_success', 'true');
+    return NextResponse.redirect(redirectUrl.toString());
   }
 
   if (type === 'onboarding') {
     // Redirect back to onboarding - session will be handled client-side
-    return NextResponse.redirect(new URL(next, requestUrl.origin).toString());
+    const redirectUrl = new URL(next, requestUrl.origin);
+    redirectUrl.searchParams.set('type', 'onboarding');
+    redirectUrl.searchParams.set('oauth_success', 'true');
+    return NextResponse.redirect(redirectUrl.toString());
   }
 
   // Default: Redirect to the next URL (onboarding page)
