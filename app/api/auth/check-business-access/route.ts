@@ -26,11 +26,13 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Get business by slug (include phone for owner check)
-    const { data: business, error: businessError } = await supabase
+    const businessResult = await supabase
       .from('businesses')
       .select('id, slug, phone')
       .eq('slug', businessSlug)
-      .maybeSingle();
+      .maybeSingle() as { data: { id: string; slug: string; phone: string | null } | null; error: any };
+    
+    const { data: business, error: businessError } = businessResult;
 
     if (businessError || !business) {
       return NextResponse.json(
