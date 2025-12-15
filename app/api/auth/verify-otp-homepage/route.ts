@@ -127,12 +127,14 @@ export async function POST(request: NextRequest) {
     // This handles cases where business was created but user record wasn't created
     if (!user && !userError) {
       // Try to find business by phone number
-      let businessByPhone: { id: string; slug: string; name: string; phone: string } | null = null;
-      const { data: businessData, error: businessError } = await supabase
+      let businessByPhone: { id: string; slug: string; name: string; phone: string | null } | null = null;
+      const businessResult = await supabase
         .from('businesses')
         .select('id, slug, name, phone')
         .eq('phone', normalizedPhone)
-        .maybeSingle();
+        .maybeSingle() as { data: { id: string; slug: string; name: string; phone: string | null } | null; error: any };
+      
+      const { data: businessData, error: businessError } = businessResult;
 
       if (businessData) {
         businessByPhone = businessData;
@@ -147,11 +149,13 @@ export async function POST(request: NextRequest) {
         for (const phoneFormat of formats) {
           if (phoneFormat === normalizedPhone) continue;
           
-          const { data: businessAlt } = await supabase
+          const businessAltResult = await supabase
             .from('businesses')
             .select('id, slug, name, phone')
             .eq('phone', phoneFormat.trim())
-            .maybeSingle();
+            .maybeSingle() as { data: { id: string; slug: string; name: string; phone: string | null } | null; error: any };
+          
+          const { data: businessAlt } = businessAltResult;
           
           if (businessAlt) {
             businessByPhone = businessAlt;
@@ -162,9 +166,11 @@ export async function POST(request: NextRequest) {
 
       // If still not found, try manual matching with normalized comparison
       if (!businessByPhone) {
-        const { data: allBusinesses } = await supabase
+        const allBusinessesResult = await supabase
           .from('businesses')
-          .select('id, slug, name, phone');
+          .select('id, slug, name, phone') as { data: Array<{ id: string; slug: string; name: string; phone: string | null }> | null; error: any };
+        
+        const { data: allBusinesses } = allBusinessesResult;
         
         if (allBusinesses) {
           const normalizedSearched = normalizedPhone.replace(/\s/g, '').toLowerCase();
