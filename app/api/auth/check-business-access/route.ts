@@ -45,13 +45,15 @@ export async function POST(request: NextRequest) {
     const businessPhone = business.phone;
 
     // Check users table for owner or admin with this phone
-    let { data: user, error: userError } = await supabase
+    const userResult = await supabase
       .from('users')
       .select('id, phone, role')
       .eq('phone', normalizedPhone)
       .eq('business_id', businessId)
       .in('role', ['admin', 'owner'])
-      .maybeSingle();
+      .maybeSingle() as { data: { id: string; phone: string | null; role: string } | null; error: any };
+    
+    let { data: user, error: userError } = userResult;
 
     // If not found, try alternative phone formats
     if (userError || !user) {
@@ -62,13 +64,15 @@ export async function POST(request: NextRequest) {
       for (const phoneFormat of formats) {
         if (phoneFormat === normalizedPhone) continue;
 
-        const { data: userAlt } = await supabase
+        const userAltResult = await supabase
           .from('users')
           .select('id, phone, role')
           .eq('phone', phoneFormat.trim())
           .eq('business_id', businessId)
           .in('role', ['admin', 'owner'])
-          .maybeSingle();
+          .maybeSingle() as { data: { id: string; phone: string | null; role: string } | null; error: any };
+        
+        const { data: userAlt } = userAltResult;
 
         if (userAlt) {
           user = userAlt;
@@ -79,11 +83,13 @@ export async function POST(request: NextRequest) {
 
     // If still not found, try manual matching (case-insensitive, whitespace-agnostic)
     if (!user) {
-      const { data: allUsers } = await supabase
+      const allUsersResult = await supabase
         .from('users')
         .select('id, phone, role')
         .eq('business_id', businessId)
-        .in('role', ['admin', 'owner']);
+        .in('role', ['admin', 'owner']) as { data: Array<{ id: string; phone: string | null; role: string }> | null; error: any };
+      
+      const { data: allUsers } = allUsersResult;
 
       if (allUsers) {
         const normalizedSearched = normalizedPhone.replace(/\s/g, '').toLowerCase();
@@ -108,22 +114,26 @@ export async function POST(request: NextRequest) {
 
     // Check workers table - workers with admin access are in users table
     // So if not found in users, check if worker exists and has admin access
-    const { data: worker } = await supabase
+    const workerResult = await supabase
       .from('workers')
       .select('id, phone, email')
       .eq('phone', normalizedPhone)
       .eq('business_id', businessId)
-      .maybeSingle();
+      .maybeSingle() as { data: { id: string; phone: string | null; email: string | null } | null; error: any };
+    
+    const { data: worker } = workerResult;
 
     if (worker) {
       // Check if this worker has admin access (exists in users table)
-      const { data: workerUser } = await supabase
+      const workerUserResult = await supabase
         .from('users')
         .select('id, role')
         .eq('business_id', businessId)
         .or(`email.eq.${worker.email || ''},phone.eq.${worker.phone || ''}`)
         .in('role', ['admin', 'owner'])
-        .maybeSingle();
+        .maybeSingle() as { data: { id: string; role: string } | null; error: any };
+      
+      const { data: workerUser } = workerUserResult;
 
       if (workerUser) {
         console.log('Access granted - found worker with admin access:', { phone: normalizedPhone, role: workerUser.role });
@@ -180,15 +190,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Debug: Log all users and workers for this business
-    const { data: allUsers } = await supabase
+    const allUsersResult = await supabase
       .from('users')
       .select('id, phone, email, name, role')
-      .eq('business_id', businessId);
+      .eq('business_id', businessId) as { data: Array<{ id: string; phone: string | null; email: string | null; name: string | null; role: string }> | null; error: any };
     
-    const { data: allWorkers } = await supabase
+    const { data: allUsers } = allUsersResult;
+    
+    const allWorkersResult = await supabase
       .from('workers')
       .select('id, phone, email, name')
-      .eq('business_id', businessId);
+      .eq('business_id', businessId) as { data: Array<{ id: string; phone: string | null; email: string | null; name: string | null }> | null; error: any };
+    
+    const { data: allWorkers } = allWorkersResult;
 
     console.log('Access denied - debug info:', {
       searchedPhone: normalizedPhone,
