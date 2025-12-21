@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
       if (usersByPhone && usersByPhone.length > 0) {
         // Merge with existing users, avoiding duplicates
         const existingBusinessIds = new Set(existingUsers.map(u => u.business_id));
-        usersByPhone.forEach(user => {
+        const typedUsersByPhone: Array<{ business_id: string; role: string }> = usersByPhone;
+        typedUsersByPhone.forEach(user => {
           if (!existingBusinessIds.has(user.business_id)) {
             existingUsers.push(user);
           }
