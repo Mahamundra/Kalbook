@@ -179,6 +179,9 @@ export interface Database {
           phone: string | null;
           active: boolean;
           color: string;
+          invite_token: string | null;
+          invite_expires_at: string | null;
+          last_invite_sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -190,6 +193,9 @@ export interface Database {
           phone?: string | null;
           active?: boolean;
           color?: string;
+          invite_token?: string | null;
+          invite_expires_at?: string | null;
+          last_invite_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -201,6 +207,9 @@ export interface Database {
           phone?: string | null;
           active?: boolean;
           color?: string;
+          invite_token?: string | null;
+          invite_expires_at?: string | null;
+          last_invite_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { getWorkers, deleteWorker, createWorker, updateWorker } from '@/lib/api/services';
 import { getServices } from '@/lib/api/services';
-import { Pencil, Trash2, Plus, Shield } from 'lucide-react';
+import { Pencil, Trash2, Plus, Shield, Mail, Loader2, AlertTriangle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Worker, Service } from '@/types/admin';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,10 @@ const Workers = () => {
   const [currentPlanName, setCurrentPlanName] = useState<string>('');
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [workerToDelete, setWorkerToDelete] = useState<Worker | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [businessType, setBusinessType] = useState<string | null>(null);
   const isGymTrainer = businessType === 'gym_trainer';
@@ -188,7 +193,7 @@ const Workers = () => {
     fetchPlanName();
   }, []);
   
-  const { localeReady } = useDirection();
+  const { localeReady, dir } = useDirection();
   
   // Don't render until mounted and locale is ready to avoid hydration mismatch
   if (!mounted || !localeReady) {
@@ -203,25 +208,31 @@ const Workers = () => {
     );
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteClick = (worker: Worker) => {
     if (!canManageWorkers) {
       toast.error('Your plan doesn\'t allow deleting workers. Please upgrade to continue.');
       return;
     }
+    setWorkerToDelete(worker);
+    setShowDeleteDialog(true);
+  };
 
-    if (confirm(t('workers.confirmDelete'))) {
-      try {
-        setLoading(true);
-        await deleteWorker(id);
-        const data = await getWorkers();
-        setWorkers(data);
-        toast.success(t('workers.workerDeleted'));
-      } catch (error) {
-        console.error('Failed to delete worker:', error);
-        toast.error('Failed to delete worker');
-      } finally {
-        setLoading(false);
-      }
+  const handleDeleteConfirm = async () => {
+    if (!workerToDelete) return;
+
+    try {
+      setDeleting(true);
+      await deleteWorker(workerToDelete.id);
+      const data = await getWorkers();
+      setWorkers(data);
+      toast.success(t('workers.workerDeleted'));
+      setShowDeleteDialog(false);
+      setWorkerToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete worker:', error);
+      toast.error('Failed to delete worker');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -239,7 +250,14 @@ const Workers = () => {
 
     setEditingWorkerId(null);
     setEditingWorkerName('');
-    setFormData(defaultFormData);
+    // For new invites, only email is needed - clear name and other fields
+    setFormData({
+      ...defaultFormData,
+      name: '', // Empty name for invite-only flow
+      email: '',
+      phone: '',
+      services: [],
+    });
     setIsDialogOpen(true);
   };
 
@@ -293,14 +311,24 @@ const Workers = () => {
       // Continue if check fails (don't block user due to API error)
     }
     
-    if (!formData.name.trim()) {
-      toast.error(t('workers.required'));
-      return;
-    }
+    // For new invites (not editing), only email is required
+    if (!editingWorkerId) {
+      // Invite-only requires email
+      if (!formData.email || !formData.email.trim()) {
+        toast.error('Email is required to send invite');
+        return;
+      }
+    } else {
+      // Editing requires name and services
+      if (!formData.name.trim()) {
+        toast.error(t('workers.required'));
+        return;
+      }
 
-    if (formData.services.length === 0) {
-      toast.error(t('workers.atLeastOneService'));
-      return;
+      if (formData.services.length === 0) {
+        toast.error(t('workers.atLeastOneService'));
+        return;
+      }
     }
 
     try {
@@ -308,8 +336,13 @@ const Workers = () => {
         await updateWorker(editingWorkerId, formData);
         toast.success(t('workers.workerUpdated'));
       } else {
-        await createWorker(formData);
-        toast.success(t('workers.workerCreated'));
+        const result = await createWorker(formData);
+        // Check if there was an email error
+        if (result.emailError) {
+          toast.error(t('workers.emailSendError') || 'Error sending invite, please contact system administrator');
+        } else {
+          toast.success(t('workers.inviteSent') || 'Invite sent successfully! The worker will receive an email to set up their account.');
+        }
       }
       
       // Refresh workers list
@@ -356,7 +389,56 @@ const Workers = () => {
     }
   };
 
+  const handleResendInvite = async (workerId: string) => {
+    setResendingInviteId(workerId);
+    try {
+      const response = await fetch(`/api/workers/${workerId}/resend-invite`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          // Rate limited
+          const errorMessage = data.hoursRemaining 
+            ? (t('workers.rateLimitedHours') || 'Please wait {hours} hour(s) before resending the invite').replace('{hours}', data.hoursRemaining.toString())
+            : (data.error || t('workers.rateLimited') || 'Please wait 24 hours before resending the invite');
+          toast.error(errorMessage);
+        } else {
+          toast.error(data.error || t('workers.resendInviteError') || 'Failed to resend invite');
+        }
+        return;
+      }
+
+      toast.success(t('workers.inviteResent') || 'Invite resent successfully!');
+    } catch (error) {
+      console.error('Error resending invite:', error);
+      toast.error(t('workers.resendInviteError') || 'Failed to resend invite');
+    } finally {
+      setResendingInviteId(null);
+    }
+  };
+
   const columns = [
+    {
+      key: 'status',
+      label: t('workers.status') || 'Status',
+      render: (worker: Worker) => {
+        // Show pending status if worker is not active
+        if (!worker.active) {
+          return (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-orange-100 text-orange-800 border-orange-300 w-fit px-2 py-0.5">
+              {t('workers.pending') || 'Pending'}
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-green-100 text-green-800 border-green-300 w-fit px-2 py-0.5">
+            {t('workers.active') || 'Active'}
+          </Badge>
+        );
+      },
+    },
     {
       key: 'role',
       label: t('workers.role'),
@@ -375,7 +457,7 @@ const Workers = () => {
         const role = worker.role || (worker.isAdmin ? 'admin' : 'worker');
         if (role === 'admin') {
           return (
-            <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-yellow-100 text-yellow-800 border-yellow-300">
+            <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-yellow-100 text-yellow-800 border-yellow-300 w-fit px-2 py-0.5">
               <Shield className="w-3 h-3" />
               {t('workers.admin')}
             </Badge>
@@ -383,7 +465,7 @@ const Workers = () => {
         }
         
         return (
-          <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-green-100 text-green-800 border-green-300">
+          <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-blue-100 text-blue-800 border-blue-300 w-fit px-2 py-0.5">
             <Shield className="w-3 h-3" />
             {t('workers.worker')}
           </Badge>
@@ -460,9 +542,42 @@ const Workers = () => {
         // 1. Worker is not a main admin (regular worker/admin), OR
         // 2. Current user is main admin (owner) - owners can edit everyone including themselves
         const canEdit = !worker.isMainAdmin || currentUserIsMainAdmin;
+        
+        // Check if worker is pending and has email (show resend invite button)
+        const isPending = !worker.active;
+        const hasEmail = !!worker.email;
+        const isResending = resendingInviteId === worker.id;
+        
         return (
           <div className="flex items-center gap-2 justify-end">
-            {canEdit && (
+            {/* Show Resend Invite button for pending workers with email */}
+            {isPending && hasEmail && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleResendInvite(worker.id);
+                }}
+                disabled={!canManageWorkers || isResending}
+                title={!canManageWorkers ? (t('workers.noPermission') || 'Your plan doesn\'t allow managing workers.') : (t('workers.resendInvite') || 'Resend invite email')}
+              >
+                {isResending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('workers.resending') || 'Resending...'}
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    {t('workers.resendInvite') || 'Resend Invite'}
+                  </>
+                )}
+              </Button>
+            )}
+            
+            {/* Hide edit button for pending workers */}
+            {canEdit && !isPending && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -482,7 +597,7 @@ const Workers = () => {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(worker.id);
+                  handleDeleteClick(worker);
                 }}
                 disabled={!canManageWorkers}
                 title={!canManageWorkers ? 'Your plan doesn\'t allow deleting workers. Please upgrade to continue.' : ''}
@@ -490,12 +605,15 @@ const Workers = () => {
                 <Trash2 className="w-4 h-4" />
               </Button>
             )}
-            <Switch
-              checked={worker.active}
-              onCheckedChange={() => handleToggleActive(worker.id, worker.active)}
-              onClick={(e) => e.stopPropagation()}
-              disabled={!canManageWorkers}
-            />
+            {/* Hide toggle switch for pending workers */}
+            {!isPending && (
+              <Switch
+                checked={worker.active}
+                onCheckedChange={() => handleToggleActive(worker.id, worker.active)}
+                onClick={(e) => e.stopPropagation()}
+                disabled={!canManageWorkers}
+              />
+            )}
           </div>
         );
       },
@@ -553,41 +671,64 @@ const Workers = () => {
           
           <form ref={formRef} id="worker-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Label htmlFor="name">{t('workers.name')} *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  placeholder={t('workers.name')}
-                />
-              </div>
+              {/* For new invites, only show email. For editing, show all fields */}
+              {!editingWorkerId ? (
+                <div className="md:col-span-2">
+                  <Label htmlFor="email">{t('workers.email')} *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    placeholder={t('workers.email')}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('workers.inviteEmailDescription') || 'Enter the worker\'s email address. They will receive an invite to set up their account.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="name">{t('workers.name')} *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      placeholder={t('workers.name')}
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="email">{t('workers.email')}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder={t('workers.email')}
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="email">{t('workers.email')}</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder={t('workers.email')}
+                    />
+                  </div>
+                </>
+              )}
 
-              <div>
-                <Label htmlFor="phone">{t('workers.phone')}</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder={t('workers.phone')}
-                />
-              </div>
+              {editingWorkerId && (
+                <div>
+                  <Label htmlFor="phone">{t('workers.phone')}</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder={t('workers.phone')}
+                  />
+                </div>
+              )}
 
-              <div className="md:col-span-2">
-                <Label>{t('workers.selectServices')} *</Label>
+              {editingWorkerId && (
+                <div className="md:col-span-2">
+                  <Label>{t('workers.selectServices')} *</Label>
                 <div className="mt-2 border rounded-lg p-4 max-h-48 overflow-y-auto space-y-2">
                   {services.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('workers.noServicesSelected')}</p>
@@ -614,25 +755,28 @@ const Workers = () => {
                     {formData.services.length} {t('workers.assignedServices')}
                   </p>
                 )}
-              </div>
+                </div>
+              )}
 
-              <div className="md:col-span-2 flex items-center gap-2">
-                <Switch
-                  id="isAdmin"
-                  checked={formData.isAdmin}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isAdmin: checked })}
-                />
-                <Label htmlFor="isAdmin" className="cursor-pointer">
-                  {t('workers.isAdmin') || 'Is Admin (can login with OTP)'}
-                </Label>
-                {formData.isAdmin && (!formData.email || !formData.phone) && (
-                  <p className="text-xs text-yellow-600">
-                    {t('workers.adminRequiresEmailPhone') || 'Admin requires email and phone'}
-                  </p>
-                )}
-              </div>
+              {editingWorkerId && (
+                <div className="md:col-span-2 flex items-center gap-2">
+                  <Switch
+                    id="isAdmin"
+                    checked={formData.isAdmin}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isAdmin: checked })}
+                  />
+                  <Label htmlFor="isAdmin" className="cursor-pointer">
+                    {t('workers.isAdmin') || 'Is Admin (can login with OTP)'}
+                  </Label>
+                  {formData.isAdmin && (!formData.email || !formData.phone) && (
+                    <p className="text-xs text-yellow-600">
+                      {t('workers.adminRequiresEmailPhone') || 'Admin requires email and phone'}
+                    </p>
+                  )}
+                </div>
+              )}
 
-              {isGymTrainer && (
+              {editingWorkerId && isGymTrainer && (
                 <div className="md:col-span-2">
                   <Label>Specializations</Label>
                   <Input
@@ -645,7 +789,7 @@ const Workers = () => {
                 </div>
               )}
               
-              {isGymTrainer && (
+              {editingWorkerId && isGymTrainer && (
                 <div className="md:col-span-2">
                   <Label>Google Calendar</Label>
                   <Button
@@ -665,8 +809,9 @@ const Workers = () => {
                 </div>
               )}
 
-              <div className="md:col-span-2">
-                <Label>{t('workers.pickColorForDisplay') || 'Pick a color for worker display'}</Label>
+              {editingWorkerId && (
+                <div className="md:col-span-2">
+                  <Label>{t('workers.pickColorForDisplay') || 'Pick a color for worker display'}</Label>
                 <div className="mt-2 space-y-3">
                   {/* Color suggestion bubbles */}
                   <div className="flex flex-wrap gap-2">
@@ -734,20 +879,23 @@ const Workers = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
             </div>
           </form>
 
           <DialogFooter className="p-6 pt-4 border-t sticky bottom-0 bg-background z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0">
-            <div className="flex items-center gap-2 order-2 sm:order-1">
-              <Label htmlFor="active" className="cursor-pointer text-sm">{t('workers.active')}</Label>
-              <Switch
-                id="active"
-                checked={formData.active}
-                onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-              />
-            </div>
-            <div className="flex gap-2 order-1 sm:order-2">
+            {editingWorkerId && (
+              <div className="flex items-center gap-2 order-2 sm:order-1">
+                <Label htmlFor="active" className="cursor-pointer text-sm">{t('workers.active')}</Label>
+                <Switch
+                  id="active"
+                  checked={formData.active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                />
+              </div>
+            )}
+            <div className={`flex gap-2 ${editingWorkerId ? 'order-1 sm:order-2' : 'w-full justify-end'}`}>
               <Button type="button" variant="outline" onClick={handleClose} className="flex-1 sm:flex-initial">
                 {t('workers.cancel')}
               </Button>
@@ -760,7 +908,7 @@ const Workers = () => {
                 }}
                 className="flex-1 sm:flex-initial"
               >
-                {editingWorkerId ? t('workers.updateWorker') : t('workers.addWorker')}
+                {editingWorkerId ? t('workers.updateWorker') : (t('workers.sendInvite') || 'Send Invite')}
               </Button>
             </div>
           </DialogFooter>
@@ -828,6 +976,63 @@ const Workers = () => {
         onOpenChange={setShowUpgradeModal}
         currentPlanName={currentPlanName}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className={`sm:max-w-[425px] ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
+          <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <DialogTitle className="text-xl">
+                {t('workers.deleteConfirmTitle') || 'Delete Worker'}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-base pt-2">
+              {t('workers.deleteConfirmMessage')?.replace('{name}', workerToDelete?.name || '') || 
+                `Are you sure you want to delete "${workerToDelete?.name}"? This action cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className={`text-sm text-amber-800 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <strong>{t('workers.deleteWarning') || 'Warning:'}</strong>{' '}
+                {t('workers.deleteWarningMessage') || 'Deleting this worker will remove them from all future appointments. Existing appointments will remain, but the worker details will be lost.'}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setWorkerToDelete(null);
+              }}
+              disabled={deleting}
+            >
+              {t('workers.cancel') || 'Cancel'}
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className={`w-4 h-4 animate-spin ${isRTL ? 'ms-2' : 'mr-2'}`} />
+                  {t('workers.deleting') || 'Deleting...'}
+                </>
+              ) : (
+                <>
+                  <Trash2 className={`w-4 h-4 ${isRTL ? 'ms-2' : 'mr-2'}`} />
+                  {t('workers.deleteConfirm') || 'Delete Worker'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

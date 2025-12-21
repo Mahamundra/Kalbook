@@ -128,7 +128,7 @@ export default function TermsPage() {
             {/* User menu / Greetings */}
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {!loadingUser && user && (
-                <>
+                <div style={{ display: 'none' }}>
                   <div className="w-2 sm:w-3" />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -167,7 +167,7 @@ export default function TermsPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </>
+                </div>
               )}
             </div>
           </div>

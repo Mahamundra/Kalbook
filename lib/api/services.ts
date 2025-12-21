@@ -450,8 +450,8 @@ export const getWorkers = async (): Promise<Worker[]> => {
 
 export const createWorker = async (
   data: Omit<Worker, 'id'>
-): Promise<Worker> => {
-  const response = await apiRequest<{ success: boolean; worker: Worker }>(
+): Promise<Worker & { emailError?: string }> => {
+  const response = await apiRequest<{ success: boolean; worker: Worker; emailError?: string }>(
     '/api/workers',
     {
       method: 'POST',
@@ -465,7 +465,7 @@ export const createWorker = async (
       }),
     }
   );
-  return response.worker;
+  return { ...response.worker, emailError: response.emailError };
 };
 
 export const updateWorker = async (

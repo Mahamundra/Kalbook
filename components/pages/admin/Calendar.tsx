@@ -31,19 +31,13 @@ import type { Appointment, Worker, Service, Customer } from '@/types/admin';
 import { useAppointments } from '@/lib/calendar/use-appointments';
 import { getCustomers, createCustomer, getCustomerByPhone } from '@/lib/api/services';
 import { getSettings } from '@/lib/api/services';
-import { CalendarProvider, useCalendar } from '@/calendar/contexts/calendar-context';
-import { ClientContainer } from '@/calendar/components/client-container';
-import { appointmentsToBigCalendarEvents, workersToBigCalendarUsers, getAppointmentIdFromEventId, clearEventIdMapping } from '@/lib/calendar/big-calendar-mapper';
-import { CalendarContextAdapter } from '@/lib/calendar/calendar-context-adapter';
-import { AppointmentProvider } from '@/lib/calendar/appointment-context';
+import { FullCalendarWrapper } from './FullCalendarWrapper';
+import { appointmentsToFullCalendarEvents, getAppointmentIdFromFullCalendarEvent } from '@/lib/calendar/fullcalendar-mapper';
+import type { EventInput } from '@fullcalendar/core';
 import { Columns, List, Grid2x2 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { he, ar, ru } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
-import { rangeText, navigateDate as navigateCalendarDate } from '@/calendar/helpers';
-import type { IEvent } from '@/calendar/interfaces';
-import type { TCalendarView } from '@/calendar/types';
-import type { ExtendedSchedulerEvent } from '@/lib/calendar/event-mapper';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -51,7 +45,7 @@ type ViewMode = 'day' | 'week' | 'month';
 function CalendarContent() {
   const { t, isRTL, locale } = useLocale();
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedWorker, setSelectedWorker] = useState<string>('all');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [settings, setSettings] = useState<any>(null);
@@ -64,7 +58,7 @@ function CalendarContent() {
     phone: '',
     email: '',
   });
-  const [selectedEvent, setSelectedEvent] = useState<ExtendedSchedulerEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventInput | null>(null);
   const [formData, setFormData] = useState({
     serviceId: '',
     customerId: '',
@@ -76,7 +70,6 @@ function CalendarContent() {
   const [allowManualEndTime, setAllowManualEndTime] = useState(false);
   const [canCreateAppointments, setCanCreateAppointments] = useState(true);
   const [trialExpired, setTrialExpired] = useState(false);
-  const [bigCalendarView, setBigCalendarView] = useState<TCalendarView>('week');
 
   // Calculate date range for fetching appointments - memoized to prevent infinite loops
   const dateRange = useMemo(() => {
@@ -124,16 +117,21 @@ function CalendarContent() {
     workerId: selectedWorker !== 'all' ? selectedWorker : undefined,
   });
 
-  // Convert appointments to big-calendar format
-  const bigCalendarEvents = useMemo(() => {
-    clearEventIdMapping(); // Clear previous mappings
-    return appointmentsToBigCalendarEvents(appointments, workers);
+  // Convert appointments to FullCalendar format
+  const fullCalendarEvents = useMemo(() => {
+    return appointmentsToFullCalendarEvents(appointments, workers);
   }, [appointments, workers]);
 
-  // Convert workers to big-calendar users
-  const bigCalendarUsers = useMemo(() => {
-    return workersToBigCalendarUsers(workers);
-  }, [workers]);
+  // Filter events by selected worker if not 'all'
+  const filteredEvents = useMemo(() => {
+    if (selectedWorker === 'all') {
+      return fullCalendarEvents;
+    }
+    return fullCalendarEvents.filter(event => {
+      const workerId = event.extendedProps?.workerId as string | undefined;
+      return workerId === selectedWorker;
+    });
+  }, [fullCalendarEvents, selectedWorker]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -214,19 +212,8 @@ function CalendarContent() {
     return appointmentEndTime <= workingEndTime;
   };
 
-  const formatDate = (date: Date, currentLocale: string = locale) => {
-    const localeMap: Record<string, string> = {
-      en: 'en-US',
-      he: 'he-IL',
-      ar: 'ar-SA',
-      ru: 'ru-RU'
-    };
-    const localeString = localeMap[currentLocale] || 'en-US';
-    return date.toLocaleDateString(localeString, { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const handleEventClick = (event: IEvent) => {
-    const appointmentId = getAppointmentIdFromEventId(event.id);
+  const handleEventClick = (event: EventInput) => {
+    const appointmentId = getAppointmentIdFromFullCalendarEvent(event);
     if (!appointmentId) {
       console.error('Could not find appointment ID for event:', event.id);
       return;
@@ -234,28 +221,7 @@ function CalendarContent() {
     
     const appointment = appointments.find(a => a.id === appointmentId);
     if (appointment) {
-      // Create ExtendedSchedulerEvent for compatibility
-      const extendedEvent: ExtendedSchedulerEvent = {
-        id: appointment.id,
-        title: event.title,
-        description: event.description,
-        startDate: new Date(event.startDate),
-        endDate: new Date(event.endDate),
-        appointmentId: appointment.id,
-        serviceId: appointment.serviceId,
-        customerId: appointment.customerId,
-        workerId: appointment.workerId || appointment.staffId,
-        service: appointment.service,
-        customer: appointment.customer,
-        worker: event.user.name,
-        status: appointment.status,
-        isGroupAppointment: appointment.isGroupAppointment,
-        currentParticipants: appointment.currentParticipants,
-        maxCapacity: appointment.maxCapacity,
-        color: event.color === 'blue' ? '#3B82F6' : event.color === 'green' ? '#10B981' : event.color === 'red' ? '#EF4444' : event.color === 'yellow' ? '#F59E0B' : event.color === 'purple' ? '#8B5CF6' : event.color === 'orange' ? '#F97316' : '#9CA3AF',
-      };
-      
-      setSelectedEvent(extendedEvent);
+      setSelectedEvent(event);
       setFormData({
         serviceId: appointment.serviceId || '',
         customerId: appointment.customerId || '',
@@ -266,6 +232,50 @@ function CalendarContent() {
       });
       setIsDialogOpen(true);
     }
+  };
+
+  const handleDateClick = (date: Date) => {
+    // If in month or week view, switch to day view and navigate to the clicked date
+    if (viewMode === 'month' || viewMode === 'week') {
+      setCurrentDate(date);
+      setViewMode('day');
+      return;
+    }
+
+    // If already in day view, open create appointment dialog
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow creating appointments. Please upgrade to continue.');
+      return;
+    }
+
+    if (!isWorkingDay(date)) {
+      toast.error(t('calendar.notWorkingDay') || 'This day is not a working day');
+      return;
+    }
+    
+    const defaultHour = 9;
+    const defaultStart = new Date(date);
+    defaultStart.setHours(defaultHour, 0, 0, 0);
+    
+    if (!isWithinWorkingHours(defaultStart)) {
+      toast.error(t('calendar.outsideWorkingHours') || 'This time is outside working hours');
+      return;
+    }
+    
+    const defaultEnd = new Date(defaultStart);
+    defaultEnd.setHours(defaultHour + 1, 0, 0, 0);
+
+    setFormData({
+      serviceId: '',
+      customerId: '',
+      workerId: workers[0]?.id || '',
+      start: defaultStart.toISOString(),
+      end: defaultEnd.toISOString(),
+      status: 'confirmed',
+    });
+    setAllowManualEndTime(false);
+    setSelectedEvent(null);
+    setIsCreateDialogOpen(true);
   };
 
   const handleCreateClick = () => {
@@ -424,11 +434,14 @@ function CalendarContent() {
     };
 
     if (selectedEvent) {
-      const updated = await update(selectedEvent.appointmentId || selectedEvent.id, appointmentData);
-      if (updated) {
-        toast.success(t('calendar.appointmentUpdated'));
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+      const appointmentId = getAppointmentIdFromFullCalendarEvent(selectedEvent);
+      if (appointmentId) {
+        const updated = await update(appointmentId, appointmentData);
+        if (updated) {
+          toast.success(t('calendar.appointmentUpdated'));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+          }
         }
       }
     } else {
@@ -453,14 +466,17 @@ function CalendarContent() {
     }
 
     if (selectedEvent) {
-      const success = await remove(selectedEvent.appointmentId || selectedEvent.id);
-      if (success) {
-        toast.success(t('calendar.appointmentDeleted'));
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('appointmentDeleted'));
+      const appointmentId = getAppointmentIdFromFullCalendarEvent(selectedEvent);
+      if (appointmentId) {
+        const success = await remove(appointmentId);
+        if (success) {
+          toast.success(t('calendar.appointmentDeleted'));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('appointmentDeleted'));
+          }
+          setIsDialogOpen(false);
+          setSelectedEvent(null);
         }
-        setIsDialogOpen(false);
-        setSelectedEvent(null);
       }
     }
   };
@@ -472,18 +488,91 @@ function CalendarContent() {
     }
 
     if (selectedEvent) {
-      const updated = await update(selectedEvent.appointmentId || selectedEvent.id, {
-        workerId: newWorkerId,
-        staffId: newWorkerId,
+      const appointmentId = getAppointmentIdFromFullCalendarEvent(selectedEvent);
+      if (appointmentId) {
+        const updated = await update(appointmentId, {
+          workerId: newWorkerId,
+          staffId: newWorkerId,
+        });
+        if (updated) {
+          toast.success(t('calendar.appointmentUpdated'));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+          }
+          setIsDialogOpen(false);
+          setSelectedEvent(null);
+        }
+      }
+    }
+  };
+
+  const handleEventDrop = async (eventId: string, newStart: Date, newEnd: Date) => {
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow managing appointments. Please upgrade to continue.');
+      return;
+    }
+
+    if (!isWorkingDay(newStart)) {
+      toast.error(t('calendar.notWorkingDay') || 'Appointments cannot be scheduled on non-working days');
+      await refresh();
+      return;
+    }
+
+    if (!isWithinWorkingHours(newStart)) {
+      toast.error(t('calendar.outsideWorkingHours') || 'Start time is outside working hours');
+      await refresh();
+      return;
+    }
+
+    if (!isEndTimeWithinWorkingHours(newStart, newEnd)) {
+      toast.error(t('calendar.endTimeOutsideWorkingHours') || 'End time is outside working hours');
+      await refresh();
+      return;
+    }
+
+    try {
+      const updated = await update(eventId, {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
       });
       if (updated) {
         toast.success(t('calendar.appointmentUpdated'));
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('appointmentUpdated'));
         }
-        setIsDialogOpen(false);
-        setSelectedEvent(null);
       }
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      await refresh();
+    }
+  };
+
+  const handleEventResize = async (eventId: string, newStart: Date, newEnd: Date) => {
+    if (!canCreateAppointments) {
+      toast.error('Your plan doesn\'t allow managing appointments. Please upgrade to continue.');
+      return;
+    }
+
+    if (!isEndTimeWithinWorkingHours(newStart, newEnd)) {
+      toast.error(t('calendar.endTimeOutsideWorkingHours') || 'End time is outside working hours');
+      await refresh();
+      return;
+    }
+
+    try {
+      const updated = await update(eventId, {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
+      });
+      if (updated) {
+        toast.success(t('calendar.appointmentUpdated'));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('appointmentUpdated'));
+        }
+      }
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      await refresh();
     }
   };
 
@@ -497,10 +586,6 @@ function CalendarContent() {
       newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
     }
     setCurrentDate(newDate);
-  };
-
-  const goToToday = () => {
-    setCurrentDate(new Date());
   };
 
   // Block calendar if trial expired
@@ -554,259 +639,188 @@ function CalendarContent() {
     );
   }
 
-  // Sync viewMode with big-calendar view
-  useEffect(() => {
-    if (viewMode === 'day') setBigCalendarView('day');
-    else if (viewMode === 'week') setBigCalendarView('week');
-    else setBigCalendarView('month');
-  }, [viewMode]);
+  // Get selected appointment details for display
+  const selectedAppointment = selectedEvent 
+    ? appointments.find(a => a.id === getAppointmentIdFromFullCalendarEvent(selectedEvent))
+    : null;
 
   return (
     <div className="w-full bg-white">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between pb-4 border-b">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
-                <Bell className="w-5 h-5 text-gray-700" />
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between pb-4 border-b">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
+            <Bell className="w-5 h-5 text-gray-700" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Calendar Controls - Worker filter, create button, and calendar navigation */}
+      <Card className="p-4 mb-4 shadow-card">
+        <div className={`flex flex-col gap-3 sm:gap-4 ${isRTL ? 'sm:flex-row-reverse' : 'sm:flex-row'} items-start sm:items-center ${isRTL ? 'sm:justify-between' : 'sm:justify-between'}`}>
+          <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+            <Select value={selectedWorker} onValueChange={setSelectedWorker}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder={t('calendar.staffFilter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('calendar.allStaff')}</SelectItem>
+                {workers.map((worker) => (
+                  <SelectItem key={worker.id} value={worker.id}>
+                    {worker.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={handleCreateClick} 
+              size="sm"
+              className="w-full sm:w-auto"
+              disabled={!canCreateAppointments}
+            >
+              <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
+              {t('calendar.createBooking')}
+            </Button>
+          </div>
+          
+          {/* Calendar navigation controls */}
+          <div className={`flex items-center gap-2 flex-wrap w-full sm:w-auto ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
+            {/* Today button */}
+            {(() => {
+              const today = new Date();
+              const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
+              const dateFnsLocale = localeMap[locale || 'en'];
+              return (
+                <button
+                  key="today-button"
+                  className="flex size-14 flex-col items-start overflow-hidden rounded-lg border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  onClick={() => setCurrentDate(new Date())}
+                >
+                  <p className="flex h-6 w-full items-center justify-center bg-primary text-center text-xs font-semibold text-primary-foreground">
+                    {format(today, "MMM", { locale: dateFnsLocale }).toUpperCase()}
+                  </p>
+                  <p className="flex w-full items-center justify-center text-lg font-bold">{today.getDate()}</p>
+                </button>
+              );
+            })()}
+            
+            {/* Date Navigator */}
+            {(() => {
+              const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
+              const dateFnsLocale = localeMap[locale || 'en'];
+              const month = format(currentDate, "MMMM", { locale: dateFnsLocale });
+              const year = currentDate.getFullYear();
+              
+              // For RTL, swap the navigation logic
+              const handlePrevious = () => {
+                navigateDate(isRTL ? 'next' : 'prev');
+              };
+              
+              const handleNext = () => {
+                navigateDate(isRTL ? 'prev' : 'next');
+              };
+
+              return (
+                <div key="date-navigator" className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">
+                      {month} {year}
+                    </span>
+                    <Badge variant="outline" className="px-1.5 text-xs">
+                      {filteredEvents.length} {t('calendar.events')}
+                    </Badge>
+                  </div>
+
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <Button 
+                      variant="outline" 
+                      className="size-6.5 px-0 [&_svg]:size-4.5" 
+                      onClick={handlePrevious}
+                    >
+                      {isRTL ? <ChevronRight /> : <ChevronLeft />}
+                    </Button>
+
+                    <p className="text-xs text-muted-foreground">
+                      {viewMode === 'day' ? format(currentDate, "EEEE, MMMM d", { locale: dateFnsLocale }) :
+                       viewMode === 'week' ? `${format(currentDate, "MMM d", { locale: dateFnsLocale })} - ${format(new Date(currentDate.getTime() + 6 * 24 * 60 * 60 * 1000), "MMM d", { locale: dateFnsLocale })}` :
+                       format(currentDate, "MMMM yyyy", { locale: dateFnsLocale })}
+                    </p>
+
+                    <Button 
+                      variant="outline" 
+                      className="size-6.5 px-0 [&_svg]:size-4.5" 
+                      onClick={handleNext}
+                    >
+                      {isRTL ? <ChevronLeft /> : <ChevronRight />}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {/* View buttons */}
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              <Button 
+                aria-label={t('calendar.viewByDay')} 
+                size="sm" 
+                variant={viewMode === "day" ? "default" : "ghost"} 
+                className="rounded-none border-0 border-r border-border last:border-r-0" 
+                onClick={() => setViewMode('day')}
+              >
+                {locale === 'he' ? 'יום' : locale === 'ar' ? 'يوم' : locale === 'ru' ? 'День' : 'Day'}
+              </Button>
+
+              <Button
+                aria-label={t('calendar.viewByWeek')}
+                size="sm"
+                variant={viewMode === "week" ? "default" : "ghost"}
+                className="rounded-none border-0 border-r border-border last:border-r-0"
+                onClick={() => setViewMode('week')}
+              >
+                {locale === 'he' ? 'שבוע' : locale === 'ar' ? 'أسبوع' : locale === 'ru' ? 'Неделя' : 'Week'}
+              </Button>
+
+              <Button
+                aria-label={t('calendar.viewByMonth')}
+                size="sm"
+                variant={viewMode === "month" ? "default" : "ghost"}
+                className="rounded-none border-0 last:border-r-0"
+                onClick={() => setViewMode('month')}
+              >
+                {locale === 'he' ? 'חודש' : locale === 'ar' ? 'شهر' : locale === 'ru' ? 'Месяц' : 'Month'}
               </Button>
             </div>
           </div>
+        </div>
+      </Card>
 
-          {/* Calendar Controls - Worker filter, create button, and calendar navigation */}
-          <Card className="p-4 mb-4 shadow-card">
-            <div className={`flex flex-col gap-3 sm:gap-4 ${isRTL ? 'sm:flex-row-reverse' : 'sm:flex-row'} items-start sm:items-center ${isRTL ? 'sm:justify-between' : 'sm:justify-between'}`}>
-              <div className="flex gap-2 flex-wrap w-full sm:w-auto">
-                <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder={t('calendar.staffFilter')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('calendar.allStaff')}</SelectItem>
-                    {workers.map((worker) => (
-                      <SelectItem key={worker.id} value={worker.id}>
-                        {worker.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button 
-                  onClick={handleCreateClick} 
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  disabled={!canCreateAppointments}
-                >
-                  <Plus className={`w-4 h-4 ${isRTL ? 'ms-2' : 'me-2'}`} />
-                  {t('calendar.createBooking')}
-                </Button>
-              </div>
-              
-              {/* Calendar navigation controls */}
-              <div className={`flex items-center gap-2 flex-wrap w-full sm:w-auto ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
-                {/* Today button */}
-                {(() => {
-                  const today = new Date();
-                  const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
-                  const dateFnsLocale = localeMap[locale || 'en'];
-                  return (
-                    <button
-                      key="today-button"
-                      className="flex size-14 flex-col items-start overflow-hidden rounded-lg border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      onClick={() => setCurrentDate(new Date())}
-                    >
-                      <p className="flex h-6 w-full items-center justify-center bg-primary text-center text-xs font-semibold text-primary-foreground">
-                        {format(today, "MMM", { locale: dateFnsLocale }).toUpperCase()}
-                      </p>
-                      <p className="flex w-full items-center justify-center text-lg font-bold">{today.getDate()}</p>
-                    </button>
-                  );
-                })()}
-                
-                {/* Date Navigator */}
-                {(() => {
-                  const localeMap: Record<string, Locale> = { he: he, ar: ar, ru: ru };
-                  const dateFnsLocale = localeMap[locale || 'en'];
-                  const month = format(currentDate, "MMMM", { locale: dateFnsLocale });
-                  const year = currentDate.getFullYear();
-                  
-                  // For RTL, swap the navigation logic: left arrow goes forward, right arrow goes backward
-                  const handlePrevious = () => {
-                    const newDate = (isRTL 
-                      ? navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "next")
-                      : navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "previous")) as Date;
-                    setCurrentDate(newDate);
-                  };
-                  
-                  const handleNext = () => {
-                    const newDate = (isRTL 
-                      ? navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "previous")
-                      : navigateCalendarDate(currentDate, bigCalendarView as TCalendarView, "next")) as Date;
-                    setCurrentDate(newDate);
-                  };
-
-                  return (
-                    <div key="date-navigator" className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-semibold">
-                          {month} {year}
-                        </span>
-                        <Badge variant="outline" className="px-1.5 text-xs">
-                          {bigCalendarEvents.length} {t('calendar.events')}
-                        </Badge>
-                      </div>
-
-                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Button 
-                          variant="outline" 
-                          className="size-6.5 px-0 [&_svg]:size-4.5" 
-                          onClick={handlePrevious}
-                        >
-                          {isRTL ? <ChevronRight /> : <ChevronLeft />}
-                        </Button>
-
-                        <p className="text-xs text-muted-foreground">{rangeText(bigCalendarView, currentDate, locale)}</p>
-
-                        <Button 
-                          variant="outline" 
-                          className="size-6.5 px-0 [&_svg]:size-4.5" 
-                          onClick={handleNext}
-                        >
-                          {isRTL ? <ChevronLeft /> : <ChevronRight />}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })()}
-                
-                {/* View buttons */}
-                <div className="inline-flex first:rounded-r-none last:rounded-l-none [&:not(:first-child):not(:last-child)]:rounded-none">
-                  <Button 
-                    aria-label={t('calendar.viewByDay')} 
-                    size="icon" 
-                    variant={bigCalendarView === "day" ? "default" : "outline"} 
-                    className="rounded-r-none [&_svg]:size-4" 
-                    onClick={() => {
-                      setBigCalendarView("day");
-                      setViewMode('day');
-                    }}
-                  >
-                    <List strokeWidth={1.8} />
-                  </Button>
-
-                  <Button
-                    aria-label={t('calendar.viewByWeek')}
-                    size="icon"
-                    variant={bigCalendarView === "week" ? "default" : "outline"}
-                    className="-ml-px rounded-none [&_svg]:size-4"
-                    onClick={() => {
-                      setBigCalendarView("week");
-                      setViewMode('week');
-                    }}
-                  >
-                    <Columns strokeWidth={1.8} />
-                  </Button>
-
-                  <Button
-                    aria-label={t('calendar.viewByMonth')}
-                    size="icon"
-                    variant={bigCalendarView === "month" ? "default" : "outline"}
-                    className="-ml-px rounded-l-none [&_svg]:size-4"
-                    onClick={() => {
-                      setBigCalendarView("month");
-                      setViewMode('month');
-                    }}
-                  >
-                    <Grid2x2 strokeWidth={1.8} />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-      {/* Big Calendar */}
+      {/* FullCalendar */}
       {loading ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">Loading calendar...</p>
         </Card>
       ) : (
-        <AppointmentProvider
-          services={services}
-          workers={workers}
-          customers={customers}
-          appointments={appointments}
-          onCreateAppointment={async (appointmentData) => {
-            const service = services.find(s => s.id === appointmentData.serviceId);
-            const customer = customers.find(c => c.id === appointmentData.customerId);
-            const worker = workers.find(w => w.id === appointmentData.workerId);
-
-            if (!service || !customer || !worker) {
-              throw new Error('Invalid selection');
-            }
-
-            const appointment: Omit<Appointment, 'id'> = {
-              service: service.name,
-              serviceId: appointmentData.serviceId,
-              customer: customer.name,
-              customerId: appointmentData.customerId,
-              workerId: appointmentData.workerId,
-              staffId: appointmentData.workerId,
-              start: appointmentData.start,
-              end: appointmentData.end,
-              status: appointmentData.status,
-            };
-
-            const created = await create(appointment);
-            if (created) {
-              toast.success('Appointment created successfully');
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('appointmentUpdated'));
-              }
-            }
-          }}
-          onUpdateAppointment={async (appointmentId, appointmentData) => {
-            const updated = await update(appointmentId, appointmentData);
-            if (updated) {
-              toast.success(t('calendar.appointmentUpdated'));
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('appointmentUpdated'));
-              }
-            }
-          }}
-          onDeleteAppointment={async (appointmentId) => {
-            const success = await remove(appointmentId);
-            if (success) {
-              toast.success(t('calendar.appointmentDeleted'));
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('appointmentDeleted'));
-              }
-            }
-          }}
-          onQuickCreateCustomer={() => setIsQuickCustomerDialogOpen(true)}
-        >
-          <CalendarProvider users={bigCalendarUsers} events={bigCalendarEvents}>
-            <CalendarContextAdapter
-              selectedDate={currentDate}
-              onDateChange={setCurrentDate}
-              selectedWorkerId={selectedWorker}
-              onWorkerChange={setSelectedWorker}
-              events={bigCalendarEvents}
-              onEventClick={handleEventClick}
-            />
-            <div className="w-full bg-white">
-              <ClientContainer 
-                view={bigCalendarView} 
-                onViewChange={(newView) => {
-                  setBigCalendarView(newView);
-                  if (newView === 'day') setViewMode('day');
-                  else if (newView === 'week') setViewMode('week');
-                  else if (newView === 'month') setViewMode('month');
-                }}
-              />
-            </div>
-          </CalendarProvider>
-        </AppointmentProvider>
+        <Card className="p-4 shadow-card">
+          <FullCalendarWrapper
+            events={filteredEvents}
+            currentDate={currentDate}
+            view={viewMode}
+            locale={locale}
+            isRTL={isRTL}
+            onDateChange={setCurrentDate}
+            onViewChange={setViewMode}
+            onEventClick={handleEventClick}
+            onDateClick={handleDateClick}
+            onEventDrop={canCreateAppointments ? handleEventDrop : undefined}
+            onEventResize={canCreateAppointments ? handleEventResize : undefined}
+            workingHours={settings?.calendar?.workingHours}
+            weekStartDay={settings?.calendar?.weekStartDay ?? 0}
+            height="auto"
+          />
+        </Card>
       )}
 
       {/* Edit Appointment Dialog */}
@@ -852,7 +866,7 @@ function CalendarContent() {
             </div>
             <div>
               <Label>{t('calendar.customer')}</Label>
-              <p className="text-sm font-medium">{selectedEvent?.customer || appointments.find(a => a.id === selectedEvent?.appointmentId)?.customer}</p>
+              <p className="text-sm font-medium">{selectedAppointment?.customer || selectedEvent?.extendedProps?.customer as string}</p>
             </div>
             <div>
               <Label>{t('calendar.worker')}</Label>

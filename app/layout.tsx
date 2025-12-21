@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BackToTop } from "@/components/ui/BackToTop";
+import { FullCalendarStyles } from "@/components/FullCalendarStyles";
 import { Work_Sans, Noto_Sans_Hebrew } from "next/font/google";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html className={`${workSans.variable} ${notoSansHebrew.variable}`} dir={dir} lang={initialLocale}>
       <body className="min-h-dvh bg-background text-foreground overflow-x-hidden touch-pan-y">
+        <FullCalendarStyles />
         <DirectionProvider initialLocale={initialLocale}>
           <ThemeProvider>
             <TooltipProvider>

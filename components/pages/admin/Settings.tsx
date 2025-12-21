@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { usePathname } from 'next/navigation';
@@ -66,7 +67,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2, Mail, Send, RefreshCw } from 'lucide-react';
+import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2, Mail, Send, RefreshCw, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +82,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { BusinessProfile } from '@/types/admin';
+import { HomepageEditor } from './HomepageEditor';
 
 // Banner Image Preview Component with Video Support
 function BannerImagePreview({ 
@@ -220,6 +222,7 @@ const Settings = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState<string>('');
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
+  const [showHomepageEditor, setShowHomepageEditor] = useState(false);
   
   // Function to refresh the preview iframe
   const refreshPreview = () => {
@@ -1051,6 +1054,18 @@ const Settings = () => {
                   >
                     <Image className="w-4 h-4" />
                     {t('settings.openPreview') || 'Open Preview'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHomepageEditor(true)}
+                    className="gap-2"
+                    disabled={!canCustomBranding}
+                    title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
+                  >
+                    <Edit className="w-4 h-4" />
+                    {t('settings.editHomepage') || 'Edit Homepage'}
                   </Button>
                 </div>
               </div>
@@ -2776,6 +2791,24 @@ const Settings = () => {
 
       {/* Fixed Save Button - Always visible at bottom */}
       <FixedSaveButton />
+
+      {/* Homepage Editor */}
+      {showHomepageEditor && businessSlug && (
+        <HomepageEditor
+          open={showHomepageEditor}
+          onOpenChange={setShowHomepageEditor}
+          initialSettings={settings}
+          businessSlug={businessSlug}
+          onSave={async (updatedSettings) => {
+            await updateSettings(updatedSettings);
+            setSettings(updatedSettings);
+            // Trigger settings update event
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('settingsUpdated'));
+            }
+          }}
+        />
+      )}
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>

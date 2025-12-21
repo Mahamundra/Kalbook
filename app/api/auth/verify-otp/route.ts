@@ -447,14 +447,15 @@ export async function POST(request: NextRequest) {
       });
 
       // Set admin session cookie for middleware to check
+      // Ensure all fields are strings (not null) for consistency
       const sessionData = JSON.stringify({
         type: 'business_owner',
         userId: userData.id,
         businessId: userData.business_id,
-        email: userData.email,
-        phone: userData.phone,
-        name: userData.name,
-        role: userData.role,
+        email: userData.email || '', // Ensure email is always a string
+        phone: userData.phone || '', // Ensure phone is always a string (not null)
+        name: userData.name || 'Business Owner',
+        role: userData.role || 'owner', // Ensure role is always set
       });
 
       // Sign the cookie data to prevent tampering
@@ -474,6 +475,16 @@ export async function POST(request: NextRequest) {
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 30, // 30 days
         path: '/',
+      });
+
+      // Debug logging
+      console.log('[VERIFY-OTP] Setting admin_session cookie:', {
+        userId: userData.id,
+        businessId: userData.business_id,
+        hasEmail: !!userData.email,
+        hasPhone: !!userData.phone,
+        role: userData.role,
+        cookieLength: signedSessionData.length,
       });
 
       // Also try to set Supabase Auth session if we have a link

@@ -89,6 +89,8 @@ const Onboarding = () => {
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
+  const hasCheckedExistingBusiness = useRef<boolean>(false);
+  const isRedirecting = useRef<boolean>(false);
   const [planDetails, setPlanDetails] = useState<{name: string, price: number, symbol: string, metadata?: any} | null>(null);
   const [loadingPlanDetails, setLoadingPlanDetails] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -186,11 +188,17 @@ const Onboarding = () => {
 
   // Check if user is logged in
   const checkUser = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:checkUser',message:'checkUser called',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     try {
       setLoadingUser(true);
       const response = await fetch('/api/user/profile');
       if (response.ok) {
         const data = await response.json();
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:checkUser:result',message:'profile fetch result',data:{success:data.success,hasUser:!!data.user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+        // #endregion
         if (data.success) {
           setUser({
             name: data.user.name,
@@ -1007,11 +1015,17 @@ const Onboarding = () => {
   // Check if user is authenticated via OAuth or existing session
   useEffect(() => {
     const checkAuth = async () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:checkAuth',message:'checkAuth started',data:{step,otpVerified},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
       try {
         // Check for verified phone from homepage login (notRegistered flow)
         // Stored in sessionStorage to avoid URL params
         const verifiedPhone = sessionStorage.getItem('homepage_verified_phone');
-        if (verifiedPhone && step === 1 && !otpVerified) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:verifiedPhone',message:'homepage_verified_phone check',data:{verifiedPhone:!!verifiedPhone,step,otpVerified},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        if (verifiedPhone && step === 1 && !otpVerified && !hasCheckedExistingBusiness.current && !isRedirecting.current) {
           // User came from homepage login - phone already verified
           const displayPhone = formatPhoneForDisplay(verifiedPhone);
           setPhoneNumber(displayPhone);
@@ -1020,6 +1034,28 @@ const Onboarding = () => {
           setOtpVerified(true);
           // Clear the sessionStorage after using it
           sessionStorage.removeItem('homepage_verified_phone');
+          
+          // Mark that we're checking
+          hasCheckedExistingBusiness.current = true;
+          
+          // Check if user already has a business before proceeding
+          const phoneForCheck = convertPhoneToE164(verifiedPhone);
+          const existingBusiness = await checkExistingBusiness(undefined, phoneForCheck);
+          
+          if (existingBusiness.hasBusiness && existingBusiness.business?.slug) {
+            isRedirecting.current = true;
+            toast.error(
+              locale === 'he' ? 'יש לך כבר עסק רשום. אנא התחבר לעסק הקיים.' :
+              locale === 'ar' ? 'لديك بالفعل عمل مسجل. يرجى تسجيل الدخول إلى عملك الحالي.' :
+              locale === 'ru' ? 'У вас уже есть зарегистрированный бизнес. Пожалуйста, войдите в свой текущий бизнес.' :
+              'You already have a registered business. Please log in to your existing business.'
+            );
+            setTimeout(() => {
+              window.location.href = `/b/${existingBusiness.business!.slug}/admin/login`;
+            }, 2000);
+            return;
+          }
+          
           // Automatically move to step 2
           setTimeout(() => {
             setStep(2);
@@ -1030,7 +1066,7 @@ const Onboarding = () => {
         // Check for OAuth callback (redirect flow)
         const type = searchParams.get('type');
         const oauthSuccess = searchParams.get('oauth_success');
-        if (type === 'onboarding' && oauthSuccess === 'true') {
+        if (type === 'onboarding' && oauthSuccess === 'true' && !hasCheckedExistingBusiness.current && !isRedirecting.current) {
           // Wait a bit for session to be set
           await new Promise(resolve => setTimeout(resolve, 500));
           
@@ -1083,6 +1119,31 @@ const Onboarding = () => {
                 setOwnerName(userName);
               }
               setOtpVerified(true);
+              
+              // Mark that we're checking
+              hasCheckedExistingBusiness.current = true;
+              
+              // Check if user already has a business before proceeding
+              const phoneForCheck = userPhone ? convertPhoneToE164(userPhone) : undefined;
+              const existingBusiness = await checkExistingBusiness(userEmail, phoneForCheck);
+              
+              if (existingBusiness.hasBusiness && existingBusiness.business?.slug) {
+                isRedirecting.current = true;
+                toast.error(
+                  locale === 'he' ? 'יש לך כבר עסק רשום. אנא התחבר לעסק הקיים.' :
+                  locale === 'ar' ? 'لديك بالفعل عمل مسجل. يرجى تسجيل الدخول إلى عملك الحالي.' :
+                  locale === 'ru' ? 'У вас כבר есть зарегистрированный бизнес. Пожалуйста, войдите в свой текущий бизнес.' :
+                  'You already have a registered business. Please log in to your existing business.'
+                );
+                // Clean URL
+                window.history.replaceState({}, '', '/onboarding');
+                // Redirect to login page for their business
+                setTimeout(() => {
+                  window.location.href = `/b/${existingBusiness.business!.slug}/admin/login`;
+                }, 2000);
+                return;
+              }
+              
               toast.success(t('onboarding.auth.verified') || 'Successfully authenticated with Google');
               
               // Clean URL
@@ -1123,77 +1184,12 @@ const Onboarding = () => {
           // If check fails, assume not super-admin
         }
 
-        // Only use session if user is not a super-admin
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session?.user && !otpVerified && !isSuperAdminUser) {
-          // User authenticated via OAuth (and not a super-admin)
-          const userEmail = session.user.email || '';
-          const userPhone = session.user.phone || '';
-          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-          
-          setAuthenticatedUser({
-            email: userEmail,
-            phone: userPhone,
-            name: userName,
-          });
-          
-          if (userPhone) {
-            // Format phone for display (remove country code, add dashes)
-            const displayPhone = formatPhoneForDisplay(userPhone);
-            setBusinessInfo(prev => ({ ...prev, phone: displayPhone }));
-          }
-          if (userEmail) {
-            setBusinessInfo(prev => ({ ...prev, email: userEmail }));
-          }
-          if (userName) {
-            setOwnerName(userName);
-          }
-          setOtpVerified(true);
-          // Automatically move to step 2 after OAuth authentication
-          if (step === 1) {
-            setTimeout(() => {
-              setStep(2);
-            }, 500);
-          }
-        }
-
-        // Also check existing user profile API (but skip if super-admin)
-        if (!isSuperAdminUser) {
-          const response = await fetch('/api/user/profile');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.user) {
-              setIsLoggedIn(true);
-              setLoggedInUser({
-                email: data.user.email,
-                phone: data.user.phone || '',
-                name: data.user.name,
-              });
-              if (!authenticatedUser) {
-                const userPhone = data.user.phone || '';
-                const displayPhone = userPhone ? formatPhoneForDisplay(userPhone) : '';
-                setAuthenticatedUser({
-                  email: data.user.email,
-                  phone: userPhone,
-                  name: data.user.name,
-                });
-                setBusinessInfo(prev => ({
-                  ...prev,
-                  email: data.user.email,
-                  phone: displayPhone,
-                }));
-                setOwnerName(data.user.name);
-                setOtpVerified(true);
-                // Automatically move to step 2 after authentication
-                if (step === 1) {
-                  setTimeout(() => {
-                    setStep(2);
-                  }, 500);
-                }
-              }
-            }
-          }
-        }
+        // DISABLED: Don't auto-login on onboarding page - always start fresh for new business registration
+        // const { data: { session }, error } = await supabase.auth.getSession();
+        // if (session?.user && !otpVerified && !isSuperAdminUser) { ... }
+        
+        // DISABLED: Don't auto-fill from existing user profile on onboarding
+        // if (!isSuperAdminUser) { const response = await fetch('/api/user/profile'); ... }
       } catch (error) {
         // User is not logged in, continue normally
       }
@@ -1249,17 +1245,16 @@ const Onboarding = () => {
 
   // Load default services when business type is selected and moving to step 7
   useEffect(() => {
-    if (businessType && step === 7 && services.length === 0) {
-      // Always reload services when business type changes or when locale changes
+    if (businessType && step === 7) {
       // Get translations for default services
       const servicesTranslations = getTranslation(`onboarding.services.defaultServices.${businessType}`);
       const defaultServices = getDefaultServices(businessType, servicesTranslations ? {
         [businessType]: servicesTranslations
       } : undefined);
       
-      // Update if business type changed, services are empty, or locale changed
+      // Reload services when business type changes
       if (lastBusinessTypeRef.current !== businessType || services.length === 0) {
-        // Initial load - set all default services
+        // Set all default services for the new business type
         setServices(
           defaultServices.map((service, index) => ({
             id: `default-${index}`,
@@ -1267,37 +1262,9 @@ const Onboarding = () => {
           }))
         );
         lastBusinessTypeRef.current = businessType;
-      } else if (lastBusinessTypeRef.current === businessType && services.length > 0) {
-        // Locale changed - update services that match default structure with new translations
-        // Preserve user edits by checking if service still matches default structure
-        const updatedServices = services.map((existingService, index) => {
-          const defaultService = defaultServices[index];
-          if (!defaultService) return existingService;
-          
-          // Check if service matches default structure (user hasn't edited it)
-          // Compare by checking if it's still one of the default services
-          const matchesDefault = services.length === defaultServices.length && 
-            existingService.duration === defaultService.duration &&
-            existingService.price === defaultService.price;
-          
-          if (matchesDefault) {
-            // Service matches default - update with new translation
-            return {
-              ...existingService,
-              name: defaultService.name,
-              description: defaultService.description,
-              category: defaultService.category,
-            };
-          }
-          
-          // Service has been edited - keep user's version
-          return existingService;
-        });
-        
-        setServices(updatedServices);
       }
     }
-  }, [businessType, step, locale]);
+  }, [businessType, step]);
 
   // Handle Enter key press to trigger Continue button on desktop
   useEffect(() => {
@@ -1501,13 +1468,103 @@ const Onboarding = () => {
     });
   };
 
+  // Check if email/phone is already registered
+  const checkEmailPhoneAvailability = async (email?: string, phone?: string): Promise<{ available: boolean; field?: string; error?: string }> => {
+    try {
+      const response = await fetch('/api/onboarding/check-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // On error, assume available to not block users
+      return { available: true };
+    }
+  };
+
+  // Check if user already has a registered business
+  const checkExistingBusiness = async (email?: string, phone?: string): Promise<{ hasBusiness: boolean; business?: { slug: string; name: string }; businesses?: Array<{ slug: string; name: string }> }> => {
+    try {
+      const response = await fetch('/api/onboarding/check-existing-business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // On error, assume no business to not block users
+      return { hasBusiness: false };
+    }
+  };
+
+  // Convert phone to E.164 format for API
+  const convertPhoneToE164 = (phone: string): string => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 9) {
+      return '+972' + digits;
+    } else if (digits.length === 10 && digits.startsWith('0')) {
+      return '+972' + digits.substring(1);
+    } else if (digits.length === 10 && !digits.startsWith('0')) {
+      return '+972' + digits;
+    } else if (!phone.startsWith('+')) {
+      return '+972' + digits;
+    }
+    return phone;
+  };
+
   // Handle field blur
-  const handleBlur = (field: 'name' | 'englishName' | 'email' | 'phone' | 'ownerName') => {
+  const handleBlur = async (field: 'name' | 'englishName' | 'email' | 'phone' | 'ownerName') => {
     setTouched({ ...touched, [field]: true });
     if (field === 'ownerName') {
       validateField('ownerName', ownerName);
     } else {
       validateField(field, businessInfo[field]);
+    }
+
+    // Real-time availability check for email/phone in step 4
+    if (step === 4 && (field === 'email' || field === 'phone')) {
+      const emailToCheck = field === 'email' ? businessInfo.email : (authenticatedUser?.email || '');
+      const phoneToCheck = field === 'phone' ? businessInfo.phone : (authenticatedUser?.phone || '');
+      
+      // Only check if field has a value and is valid
+      if (field === 'email' && emailToCheck && validateEmail(emailToCheck)) {
+        const availability = await checkEmailPhoneAvailability(emailToCheck, undefined);
+        if (!availability.available) {
+          const errorMessage = availability.error || 'Email address already registered by another user';
+          setErrors(prev => ({ ...prev, email: errorMessage }));
+        } else {
+          // Clear email error if available
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            if (newErrors.email && newErrors.email.includes('already registered')) {
+              delete newErrors.email;
+            }
+            return newErrors;
+          });
+        }
+      } else if (field === 'phone' && phoneToCheck && validatePhone(phoneToCheck)) {
+        const phoneForCheck = convertPhoneToE164(phoneToCheck);
+        const availability = await checkEmailPhoneAvailability(undefined, phoneForCheck);
+        if (!availability.available) {
+          const errorMessage = availability.error || 'Phone number already registered by another user';
+          setErrors(prev => ({ ...prev, phone: errorMessage }));
+        } else {
+          // Clear phone error if available
+          setErrors(prev => {
+            const newErrors = { ...prev };
+            if (newErrors.phone && newErrors.phone.includes('already registered')) {
+              delete newErrors.phone;
+            }
+            return newErrors;
+          });
+        }
+      }
     }
   };
 
@@ -1552,7 +1609,7 @@ const Onboarding = () => {
     }
     // Step 4: Contact Info (Phone + Email) - validate
     if (step === 4) {
-      setTouched({ phone: true });
+      setTouched({ phone: true, email: true });
       // Check phone from businessInfo or authenticatedUser
       const phoneToValidate = businessInfo.phone || (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '');
       const phoneError = getFieldError('phone', phoneToValidate);
@@ -1561,7 +1618,45 @@ const Onboarding = () => {
         toast.error(phoneError);
         return;
       }
-      // Email is optional - no validation needed
+
+      // Validate email format if provided
+      const emailToValidate = businessInfo.email || authenticatedUser?.email || '';
+      if (emailToValidate && !validateEmail(emailToValidate)) {
+        const emailError = t('onboarding.errors.invalidEmail') || 'Invalid email format';
+        setErrors({ email: emailError });
+        toast.error(emailError);
+        return;
+      }
+
+      // Check if email/phone is already registered
+      setLoading(true);
+      try {
+        const emailToCheck = businessInfo.email || authenticatedUser?.email;
+        const phoneToCheck = phoneToValidate;
+        
+        // Convert phone to E.164 format for checking
+        const phoneForCheck = phoneToCheck ? convertPhoneToE164(phoneToCheck) : undefined;
+
+        const availability = await checkEmailPhoneAvailability(emailToCheck, phoneForCheck);
+        
+        if (!availability.available) {
+          const errorField = availability.field === 'email' ? 'email' : 'phone';
+          const errorMessage = availability.error || 
+            (availability.field === 'email' 
+              ? 'Email address already registered by another user'
+              : 'Phone number already registered by another user');
+          
+          setErrors({ [errorField]: errorMessage });
+          toast.error(errorMessage);
+          setLoading(false);
+          return;
+        }
+      } catch (error: any) {
+        // If check fails, log but don't block - let the final API call handle it
+        console.error('Failed to check availability:', error);
+      }
+      setLoading(false);
+      
       setErrors({});
     }
     // Step 5: Address - optional, no validation needed
@@ -1847,8 +1942,9 @@ const Onboarding = () => {
                     </span>
                   </Button>
                 )}
+                {/* #region agent log */ (() => { fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:userDropdown',message:'user dropdown render',data:{loadingUser,hasUser:!!user,userName:user?.name},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{}); return null; })() /* #endregion */}
                 {!loadingUser && user && (
-                  <>
+                  <div style={{ display: 'none' }}>
                     <div className="w-2 sm:w-3" />
                     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                       <DropdownMenuTrigger asChild>
@@ -1887,7 +1983,7 @@ const Onboarding = () => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -2238,7 +2334,7 @@ const Onboarding = () => {
                         </div>
                       </TooltipTrigger>
                       {errors.name && (
-                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                        <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
                           <p>{locale === 'he' ? 'שדה זה נדרש' :
                               locale === 'ar' ? 'هذا الحقل مطلوب' :
                               locale === 'ru' ? 'Это поле обязательно' :
@@ -2329,7 +2425,7 @@ const Onboarding = () => {
                         </div>
                       </TooltipTrigger>
                       {errors.ownerName && (
-                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                        <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
                           <p>{locale === 'he' ? 'שדה זה נדרש' :
                               locale === 'ar' ? 'هذا الحقل مطلوب' :
                               locale === 'ru' ? 'Это поле обязательно' :
@@ -2408,7 +2504,7 @@ const Onboarding = () => {
                         </div>
                       </TooltipTrigger>
                       {errors.phone && (
-                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                        <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
                           <p>{locale === 'he' ? 'שדה זה נדרש' :
                               locale === 'ar' ? 'هذا الحقل مطلوب' :
                               locale === 'ru' ? 'Это поле обязательно' :
@@ -2453,7 +2549,7 @@ const Onboarding = () => {
                         </div>
                       </TooltipTrigger>
                       {errors.email && (
-                        <TooltipContent side="top" className="bg-red-500 text-white border-red-600">
+                        <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
                           <p>{errors.email}</p>
                         </TooltipContent>
                       )}

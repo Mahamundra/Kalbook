@@ -60,6 +60,36 @@ export default function AdminLoginPage() {
     }
   };
 
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Check if user is already logged in by checking the profile endpoint
+        const profileResponse = await fetch('/api/user/profile', {
+          credentials: 'include',
+        });
+        
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          // If user is authenticated and has a businessId, redirect to dashboard
+          if (profileData.user?.businessId) {
+            // Get return URL from query params or default to dashboard
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnUrl = urlParams.get('return');
+            const redirectPath = returnUrl 
+              ? decodeURIComponent(returnUrl)
+              : `/b/${slug}/admin/dashboard`;
+            router.push(redirectPath);
+          }
+        }
+      } catch (error) {
+        // Not authenticated, continue with login page
+      }
+    };
+    
+    checkAuth();
+  }, [slug, router]);
+
   // Get business data for display
   useEffect(() => {
     async function fetchBusiness() {
@@ -415,7 +445,7 @@ export default function AdminLoginPage() {
         // Create business admin session from OAuth session
         const response = await fetch('/api/auth/oauth-session-business', {
           method: 'POST',
-          credentials: 'include',
+          credentials: 'include', // Ensure cookies are sent and received
           headers: {
             'Content-Type': 'application/json',
           },
@@ -438,8 +468,19 @@ export default function AdminLoginPage() {
         setShowOtpModal(false);
 
         toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        window.location.href = `/b/${slug}/admin/dashboard`;
+        
+        // Wait a bit to ensure cookie is set, then redirect with full page reload
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Get return URL from query params or default to dashboard
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return');
+        const redirectPath = returnUrl 
+          ? decodeURIComponent(returnUrl)
+          : `/b/${slug}/admin/dashboard`;
+        
+        // Use window.location.href for full page reload to ensure cookie is sent
+        window.location.href = redirectPath;
       } else {
         // Phone OTP verification (existing flow)
         const cleanPhone = phone.replace(/\D/g, '');
@@ -454,6 +495,7 @@ export default function AdminLoginPage() {
         // Call verify-otp API with business slug
         const response = await fetch('/api/auth/verify-otp', {
           method: 'POST',
+          credentials: 'include', // Ensure cookies are sent and received
           headers: {
             'Content-Type': 'application/json',
           },
@@ -487,8 +529,19 @@ export default function AdminLoginPage() {
 
         // Redirect to dashboard
         toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        window.location.href = `/b/${slug}/admin/dashboard`;
+        
+        // Wait a bit to ensure cookie is set, then redirect with full page reload
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Get return URL from query params or default to dashboard
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return');
+        const redirectPath = returnUrl 
+          ? decodeURIComponent(returnUrl)
+          : `/b/${slug}/admin/dashboard`;
+        
+        // Use window.location.href for full page reload to ensure cookie is sent
+        window.location.href = redirectPath;
       }
     } catch (error: any) {
       setIsLoading(false);

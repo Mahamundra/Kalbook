@@ -45,7 +45,11 @@ type BookingStep = 1 | 2 | 3 | 4;
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-function BookingPageContent() {
+interface BookingPageContentProps {
+  editMode?: boolean;
+}
+
+function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) {
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const params = useParams();
@@ -1246,13 +1250,29 @@ function BookingPageContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {logoUrl ? (
-                <img src={logoUrl} alt={businessName} className="h-10 w-auto object-contain" />
+                <img 
+                  src={logoUrl} 
+                  alt={businessName} 
+                  className="h-10 w-auto object-contain"
+                  data-edit-id="logo"
+                  data-edit-type="image"
+                />
               ) : (
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div 
+                  className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"
+                  data-edit-id="logo"
+                  data-edit-type="image"
+                >
                   <CalendarIcon className="w-6 h-6 text-primary" />
                 </div>
               )}
-              <h1 className="text-xl font-bold">{businessName || t('booking.title')}</h1>
+              <h1 
+                className="text-xl font-bold"
+                data-edit-id="business-name"
+                data-edit-type="text"
+              >
+                {businessName || t('booking.title')}
+              </h1>
             </div>
             <LanguageToggle />
           </div>
@@ -1289,6 +1309,8 @@ function BookingPageContent() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 sm:mt-0"
+            data-edit-id="banner"
+            data-edit-type="image"
           >
             <div className="relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-none sm:rounded-lg">
               {settings.branding.bannerCover?.type === 'upload' && settings.branding.bannerCover?.uploadUrl ? (
@@ -1376,7 +1398,11 @@ function BookingPageContent() {
                 )}
               </div>
               <div className="flex-1">
-                <p className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
+                <p 
+                  className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}
+                  data-edit-id={isLoggedIn && currentUser ? "logged-in-message" : "guest-message"}
+                  data-edit-type="text"
+                >
                   {isLoggedIn && currentUser
                     ? (settings.branding?.loggedInMessage || 'שלום {name}, ברוך הבא!').replace('{name}', currentUser.name || '')
                     : settings.branding?.guestMessage || 'שלום אורח, ברוך הבא!'}
@@ -1678,7 +1704,7 @@ function BookingPageContent() {
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
                     {services.map((service, index) => (
-                      <motion.button
+                      <motion.div
                         key={service.id}
                         onClick={() => handleServiceSelect(service)}
                         initial={{ opacity: 0, y: 20 }}
@@ -1686,7 +1712,7 @@ function BookingPageContent() {
                         transition={{ delay: index * 0.1, duration: 0.3 }}
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`p-4 rounded-lg border-2 transition-all hover:border-primary/50 hover:shadow-md ${
+                        className={`group p-4 rounded-lg border-2 transition-all hover:border-primary/50 hover:shadow-md flex flex-col cursor-pointer ${
                           selectedService?.id === service.id
                             ? 'border-primary bg-primary/5 shadow-md'
                             : 'border-border'
@@ -1702,7 +1728,7 @@ function BookingPageContent() {
                           )}
                         </div>
                         <div className="text-sm text-muted-foreground mb-2">{service.description}</div>
-                        <div className={`flex items-center gap-4 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className={`flex items-center gap-4 text-sm mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             {service.duration} {t('services.minutes') || 'min'}
@@ -1714,7 +1740,17 @@ function BookingPageContent() {
                             </span>
                           )}
                         </div>
-                      </motion.button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleServiceSelect(service);
+                          }}
+                          className={`w-full mt-auto group-hover:bg-primary group-hover:text-primary-foreground transition-colors ${isRTL ? 'text-right' : 'text-left'}`}
+                          variant={selectedService?.id === service.id ? 'default' : 'outline'}
+                        >
+                          בחר
+                        </Button>
+                      </motion.div>
                     ))}
                   </div>
                 )}
@@ -1920,8 +1956,12 @@ function BookingPageContent() {
                     dir={isRTL ? 'rtl' : 'ltr'}
                   >
                     <div className={`text-sm text-blue-900 dark:text-blue-100 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      <p className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {t('booking.didNotFindDate') || 'Did not find your specific date? Contact us and we will try our best to fit you in.'}
+                      <p 
+                        className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}
+                        data-edit-id="contact-message"
+                        data-edit-type="text"
+                      >
+                        {settings.calendar?.contactMessage?.message || t('booking.didNotFindDate') || 'Did not find your specific date? Contact us and we will try our best to fit you in.'}
                       </p>
                       <div className={`flex flex-col gap-3 ${isRTL ? 'items-start' : 'items-start'}`}>
                         {phone && (

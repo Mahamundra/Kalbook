@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth/authorization';
 import { toE164Format } from '@/lib/customers/utils';
 import type { Worker } from '@/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
+import { generateInviteToken, sendWorkerInviteEmail } from '@/lib/workers/invites';
 
 type WorkerRow = Database['public']['Tables']['workers']['Row'];
 type UserRow = Database['public']['Tables']['users']['Row'];
@@ -179,24 +180,52 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    // Check if this is an invite-only flow (only email provided)
+    const isInviteOnly = body.email && !body.name?.trim() && !body.phone;
+
     // Validate required fields
-    if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
-      return NextResponse.json(
-        { error: 'Worker name is required' },
-        { status: 400 }
-      );
+    if (isInviteOnly) {
+      // For invite-only, only email is required
+      if (!body.email || typeof body.email !== 'string' || body.email.trim() === '') {
+        return NextResponse.json(
+          { error: 'Email is required to send invite' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // For regular creation, name is required
+      if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+        return NextResponse.json(
+          { error: 'Worker name is required' },
+          { status: 400 }
+        );
+      }
     }
 
     const supabase = createAdminClient();
 
+    // Generate invite token if worker has email
+    let inviteToken: string | null = null;
+    let inviteExpiresAt: Date | null = null;
+    if (body.email) {
+      inviteToken = generateInviteToken();
+      inviteExpiresAt = new Date();
+      inviteExpiresAt.setDate(inviteExpiresAt.getDate() + 7); // 7 days from now
+    }
+
     // Prepare worker data
+    // For invite-only: use email as temporary name, set active=false (pending)
+    // For regular: use provided name, set active based on body.active
     const workerData = {
       business_id: tenantInfo.businessId,
-      name: body.name.trim(),
+      name: isInviteOnly ? body.email.split('@')[0] : body.name.trim(), // Use email prefix as temp name
       email: body.email || null,
       phone: body.phone || null,
-      active: body.active !== undefined ? body.active : true,
+      active: isInviteOnly ? false : (body.active !== undefined ? body.active : true), // Pending if invite-only
       color: body.color || '#3B82F6', // Default color
+      invite_token: inviteToken,
+      invite_expires_at: inviteExpiresAt?.toISOString() || null,
+      last_invite_sent_at: body.email ? new Date().toISOString() : null, // Track when invite was sent
     };
 
     // Create worker
@@ -208,6 +237,14 @@ export async function POST(request: NextRequest) {
     const { data: newWorker, error } = workerResult;
 
     if (error) {
+      console.error('Error creating worker:', error);
+      // Check if error is due to missing column (migration not run)
+      if (error.message && error.message.includes('last_invite_sent_at')) {
+        return NextResponse.json(
+          { error: 'Database migration required. Please run migration 023_add_worker_invite_tracking.sql' },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
         { error: error.message || 'Failed to create worker' },
         { status: 500 }
@@ -348,8 +385,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Assign services if provided
-    if (body.services && Array.isArray(body.services) && body.services.length > 0) {
+    // Assign services if provided (skip for invite-only, they'll set it up later)
+    if (!isInviteOnly && body.services && Array.isArray(body.services) && body.services.length > 0) {
       // Verify all services belong to the business
       const servicesResult = await supabase
         .from('services')
@@ -412,10 +449,34 @@ export async function POST(request: NextRequest) {
     // Map to Worker interface
     const mappedWorker = await mapWorkerToInterface(newWorker as any, serviceIds, supabase, tenantInfo.businessId);
 
+    // Send invite email if worker has email and token was generated
+    let emailError: string | null = null;
+    if (body.email && inviteToken && tenantInfo.businessSlug) {
+      try {
+        const emailResult = await sendWorkerInviteEmail(
+          (newWorker as any).id,
+          tenantInfo.businessId,
+          tenantInfo.businessSlug,
+          (newWorker as any).name || body.email.split('@')[0], // Use worker's name from DB, fallback to email prefix
+          body.email,
+          inviteToken
+        );
+        
+        if (!emailResult.success) {
+          emailError = emailResult.error || 'Failed to send invite email';
+          console.error('Failed to send worker invite email:', emailResult.error);
+        }
+      } catch (error: any) {
+        emailError = error.message || 'Failed to send invite email';
+        console.error('Failed to send worker invite email:', error);
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,
         worker: mappedWorker,
+        emailError: emailError, // Include email error in response if it failed
       },
       { status: 201 }
     );

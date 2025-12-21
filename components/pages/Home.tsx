@@ -914,7 +914,7 @@ export default function Home() {
                 </Button>
               )}
               {!loadingUser && user && (
-                <>
+                <div style={{ display: 'none' }}>
                   <div className="w-2 sm:w-3" />
                   <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                     <DropdownMenuTrigger asChild>
@@ -953,7 +953,7 @@ export default function Home() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </>
+                </div>
               )}
             </div>
           </div>

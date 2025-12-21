@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/middleware';
 import { extractBusinessSlug, BUSINESS_SLUG_COOKIE, TENANT_CONTEXT_HEADER } from '@/lib/tenant';
 import { getBusinessBySlug } from '@/lib/business';
-import { unsignCookie } from '@/lib/auth/cookie-sign';
+import { unsignCookieEdge } from '@/lib/auth/cookie-sign-edge';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
@@ -101,18 +101,33 @@ export async function middleware(request: NextRequest) {
           const adminSessionCookie = request.cookies.get('admin_session')?.value;
           if (adminSessionCookie) {
             try {
-              // Verify and unsign the cookie
-              const unsignedData = unsignCookie(adminSessionCookie);
+              // Verify and unsign the cookie (using Edge-compatible function)
+              const unsignedData = await unsignCookieEdge(adminSessionCookie);
               if (unsignedData) {
                 adminSessionUser = JSON.parse(unsignedData);
                 // Verify the session user has access to this business
                 if (adminSessionUser && adminSessionUser.businessId !== business.id) {
+                  console.log('[MIDDLEWARE] Business mismatch:', {
+                    sessionBusinessId: adminSessionUser.businessId,
+                    routeBusinessId: business.id,
+                  });
                   adminSessionUser = null; // Business mismatch, invalidate session
+                } else {
+                  console.log('[MIDDLEWARE] Admin session validated:', {
+                    userId: adminSessionUser?.userId,
+                    businessId: adminSessionUser?.businessId,
+                    role: adminSessionUser?.role,
+                  });
                 }
+              } else {
+                console.log('[MIDDLEWARE] Failed to unsign admin_session cookie');
               }
             } catch (error) {
+              console.error('[MIDDLEWARE] Error parsing admin_session cookie:', error);
               adminSessionUser = null;
             }
+          } else {
+            console.log('[MIDDLEWARE] No admin_session cookie found');
           }
         }
 

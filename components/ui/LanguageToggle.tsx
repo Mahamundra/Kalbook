@@ -35,8 +35,14 @@ export const LanguageToggle = () => {
       // Use DirectionProvider's setLocale which handles transitions and updates
       await setLocale(newLocale);
       
-      // Show success toast
-      toast.success(`Language changed to ${localeNames[newLocale]}`, {
+      // Show success toast in the new language
+      const messages: Record<Locale, string> = {
+        en: `Language changed to ${localeNames[newLocale]}`,
+        he: `השפה שונתה ל${localeNames[newLocale]}`,
+        ar: `تم تغيير اللغة إلى ${localeNames[newLocale]}`,
+        ru: `Язык изменён на ${localeNames[newLocale]}`
+      };
+      toast.success(messages[newLocale], {
         duration: 2000,
       });
     } catch (error) {
