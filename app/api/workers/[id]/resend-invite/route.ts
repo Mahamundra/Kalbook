@@ -83,15 +83,16 @@ export async function POST(
     inviteExpiresAt.setDate(inviteExpiresAt.getDate() + 7); // 7 days from now
 
     // Update worker with new invite token and timestamp
-    const { error: updateError } = await supabase
-      .from('workers')
+    const updateResult = await (supabase
+      .from('workers') as any)
       .update({
         invite_token: inviteToken,
         invite_expires_at: inviteExpiresAt.toISOString(),
         last_invite_sent_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      } as any)
-      .eq('id', workerId);
+      })
+      .eq('id', workerId) as { error: any };
+    const { error: updateError } = updateResult;
 
     if (updateError) {
       return NextResponse.json(
