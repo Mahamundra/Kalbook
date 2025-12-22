@@ -5,7 +5,6 @@ import { generateInviteToken, sendWorkerInviteEmail } from '@/lib/workers/invite
 import type { Database } from '@/lib/supabase/database.types';
 
 type WorkerRow = Database['public']['Tables']['workers']['Row'];
-type WorkerUpdate = Database['public']['Tables']['workers']['Update'];
 
 /**
  * POST /api/workers/[id]/resend-invite
@@ -84,16 +83,14 @@ export async function POST(
     inviteExpiresAt.setDate(inviteExpiresAt.getDate() + 7); // 7 days from now
 
     // Update worker with new invite token and timestamp
-    const updateData: WorkerUpdate = {
-      invite_token: inviteToken,
-      invite_expires_at: inviteExpiresAt.toISOString(),
-      last_invite_sent_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    
     const { error: updateError } = await supabase
       .from('workers')
-      .update(updateData)
+      .update({
+        invite_token: inviteToken,
+        invite_expires_at: inviteExpiresAt.toISOString(),
+        last_invite_sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any)
       .eq('id', workerId);
 
     if (updateError) {
