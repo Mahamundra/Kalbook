@@ -196,12 +196,12 @@ export async function invalidateWorkerInvite(
   try {
     const supabase = createAdminClient();
 
-    const { error } = await supabase
-      .from('workers')
+    const { error } = await (supabase
+      .from('workers') as any)
       .update({
         invite_token: null,
         invite_expires_at: null,
-      } as any)
+      })
       .eq('id', workerId);
 
     if (error) {

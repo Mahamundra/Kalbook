@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -144,9 +145,12 @@ export function ImageEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md z-[10001]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            Upload or remove {fileType === 'banner-video' ? 'a video' : 'an image'} for your {fileType === 'logo' ? 'logo' : fileType === 'banner-video' ? 'banner video' : 'banner image'}.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

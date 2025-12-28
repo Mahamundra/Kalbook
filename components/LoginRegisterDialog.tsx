@@ -13,7 +13,6 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CustomField, RegistrationSettings } from '@/types/admin';
 // Removed mock data imports - now using API
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { getCustomerByPhone } from '@/lib/api/services';
 import { supabase } from '@/lib/supabase/client';
@@ -36,6 +35,23 @@ export function LoginRegisterDialog({
   const { t, isRTL, locale } = useLocale();
   const { dir } = useDirection();
   const isMobile = useIsMobile();
+
+  // Helper function to format loading text with correct RTL ellipsis
+  const formatLoadingText = (text: string): string => {
+    if (!isRTL) return text;
+    // In RTL, to show ellipsis on the right side visually,
+    // we need to use a left-to-right mark before the ellipsis
+    // This keeps the dots on the right side even in RTL context
+    if (text.endsWith('...')) {
+      // Use Unicode Left-to-Right Mark (U+200E) before ellipsis to keep it on right
+      return text.slice(0, -3) + '\u200E...';
+    }
+    if (text.startsWith('...')) {
+      // If ellipsis is at start, move to end with LRM
+      return text.slice(3) + '\u200E...';
+    }
+    return text;
+  };
   const [step, setStep] = useState<LoginStep>('phone');
   const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
@@ -44,8 +60,44 @@ export function LoginRegisterDialog({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [codeSentViaWhatsApp, setCodeSentViaWhatsApp] = useState(false);
   const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
+  const [primaryColor, setPrimaryColor] = useState<string | null>(null);
   const otpInputRef = useRef<HTMLInputElement>(null);
+
+  // Format phone number with dashes (050-000-0000)
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10);
+    
+    // Format as XXX-XXX-XXXX (always maintain dashes)
+    if (limited.length === 0) {
+      return '';
+    } else if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
+
+  // Helper function to darken color for hover state
+  const darkenColor = (color: string, amount: number = 0.1): string => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    const newR = Math.max(0, Math.min(255, Math.floor(r * (1 - amount))));
+    const newG = Math.max(0, Math.min(255, Math.floor(g * (1 - amount))));
+    const newB = Math.max(0, Math.min(255, Math.floor(b * (1 - amount))));
+    
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  };
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -78,6 +130,34 @@ export function LoginRegisterDialog({
     return () => clearInterval(interval);
   }, [rateLimitCountdown]);
 
+  // Fetch business primary color when dialog opens
+  useEffect(() => {
+    if (open) {
+      const fetchPrimaryColor = async () => {
+        try {
+          // Get slug from URL
+          const pathname = window.location.pathname;
+          const slugMatch = pathname.match(/\/b\/([^\/]+)/);
+          const slug = slugMatch ? slugMatch[1] : null;
+          
+          if (slug) {
+            const response = await fetch(`/api/settings?businessSlug=${slug}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.settings?.branding?.themeColor) {
+                setPrimaryColor(data.settings.branding.themeColor);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching primary color:', error);
+        }
+      };
+      
+      fetchPrimaryColor();
+    }
+  }, [open]);
+
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
@@ -89,6 +169,7 @@ export function LoginRegisterDialog({
       setIsVerifying(false);
       setIsRegistering(false);
       setRateLimitCountdown(null);
+      setCodeSentViaWhatsApp(false);
       setFormData({
         name: '',
         email: '',
@@ -129,6 +210,13 @@ export function LoginRegisterDialog({
   const handlePhoneSubmit = async () => {
     if (!phone) return;
     
+    // Remove dashes for API call (keep only digits)
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      toast.error(t('auth.invalidPhone') || 'Please enter a valid phone number');
+      return;
+    }
+    
     setIsVerifying(true);
     
     try {
@@ -139,7 +227,7 @@ export function LoginRegisterDialog({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone: phone,
+          phone: cleanPhone,
           method: 'whatsapp', // or 'sms'
           userType: 'customer',
         }),
@@ -163,6 +251,7 @@ export function LoginRegisterDialog({
       setIsVerifying(false);
       setStep('verify');
       setRateLimitCountdown(null);
+      setCodeSentViaWhatsApp(true);
       toast.success(t('auth.codeSentViaWhatsApp'));
       
       // In development, show the code for testing
@@ -193,6 +282,7 @@ export function LoginRegisterDialog({
 
       setIsVerifying(false);
       setStep('verify');
+      setCodeSentViaWhatsApp(false);
       toast.success(t('auth.codeSentToEmail')?.replace('{email}', email) || `Verification code sent to ${email}`);
     } catch (error: any) {
       setIsVerifying(false);
@@ -276,13 +366,15 @@ export function LoginRegisterDialog({
         }
       } else {
         // Phone OTP verification (existing flow)
+        // Remove dashes for API call (keep only digits)
+        const cleanPhone = phone.replace(/\D/g, '');
         const response = await fetch('/api/auth/verify-otp', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            phone: phone,
+            phone: cleanPhone,
             code: code,
             userType: 'customer',
           }),
@@ -300,7 +392,7 @@ export function LoginRegisterDialog({
 
         // Check if customer exists in the database by phone number
         try {
-          const existingCustomer = await getCustomerByPhone(phone);
+          const existingCustomer = await getCustomerByPhone(cleanPhone);
           
           if (existingCustomer) {
             // Existing customer - log them in directly and proceed to booking
@@ -485,7 +577,7 @@ export function LoginRegisterDialog({
                 </TabsList>
                 <TabsContent value="phone" className="space-y-4 mt-4">
                   <div>
-                    <Label htmlFor="phone" className={isRTL ? 'text-right' : 'text-left'}>
+                    <Label htmlFor="phone" className={isRTL ? 'text-right block' : 'text-left block'}>
                       {t('auth.phoneNumber')}
                     </Label>
                     <Input
@@ -493,28 +585,42 @@ export function LoginRegisterDialog({
                       type="tel"
                       value={phone}
                       onChange={(e) => {
-                        let value = e.target.value;
-                        if (value.includes('+')) {
-                          value = '+' + value.replace(/\+/g, '');
-                        }
-                        setPhone(value);
+                        const formatted = formatPhoneNumber(e.target.value);
+                        setPhone(formatted);
                       }}
-                      placeholder={t('auth.phonePlaceholder')}
+                      placeholder={t('auth.phonePlaceholder') || '050-123-4567'}
                       dir="ltr"
                       className="mt-2"
+                      maxLength={12}
                     />
                   </div>
                   <Button
                     onClick={handlePhoneSubmit}
                     disabled={!phone || isVerifying || isOAuthLoading}
                     className="w-full"
+                    style={primaryColor ? {
+                      backgroundColor: primaryColor,
+                      color: '#ffffff',
+                    } : undefined}
+                    onMouseEnter={(e) => {
+                      if (primaryColor && !e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (primaryColor) {
+                        e.currentTarget.style.backgroundColor = primaryColor;
+                      }
+                    }}
                   >
-                    {isVerifying ? t('auth.sending') : t('auth.sendCode')}
+                    <span dir={isRTL ? 'rtl' : 'ltr'}>
+                      {isVerifying ? formatLoadingText(t('auth.sending')) : t('auth.sendCode')}
+                    </span>
                   </Button>
                 </TabsContent>
                 <TabsContent value="email" className="space-y-4 mt-4">
                   <div>
-                    <Label htmlFor="email" className={isRTL ? 'text-right' : 'text-left'}>
+                    <Label htmlFor="email" className={isRTL ? 'text-right block' : 'text-left block'}>
                       {t('auth.email')}
                     </Label>
                     <Input
@@ -531,8 +637,24 @@ export function LoginRegisterDialog({
                     onClick={handleEmailSubmit}
                     disabled={!email || isVerifying || isOAuthLoading}
                     className="w-full"
+                    style={primaryColor ? {
+                      backgroundColor: primaryColor,
+                      color: '#ffffff',
+                    } : undefined}
+                    onMouseEnter={(e) => {
+                      if (primaryColor && !e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (primaryColor) {
+                        e.currentTarget.style.backgroundColor = primaryColor;
+                      }
+                    }}
                   >
-                    {isVerifying ? t('auth.sending') : t('auth.sendCode')}
+                    <span dir={isRTL ? 'rtl' : 'ltr'}>
+                      {isVerifying ? formatLoadingText(t('auth.sending')) : t('auth.sendCode')}
+                    </span>
                   </Button>
                 </TabsContent>
               </Tabs>
@@ -627,9 +749,15 @@ export function LoginRegisterDialog({
             >
               {/* Success message with email/phone */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+                <p className="text-sm text-blue-700 dark:text-blue-300" dir={isRTL ? 'rtl' : 'ltr'}>
                   {loginMethod === 'phone' 
-                    ? (t('auth.codeSentTo')?.replace('{phone}', phone) || `Code sent to ${phone}`)
+                    ? (codeSentViaWhatsApp 
+                        ? (locale === 'he' 
+                            ? `קוד נשלח אל ${phone} ב-WhatsApp`
+                            : locale === 'ar'
+                            ? `تم إرسال الكود إلى ${phone} عبر WhatsApp`
+                            : `Code sent to ${phone} via WhatsApp`)
+                        : (t('auth.codeSentTo')?.replace('{phone}', phone) || `Code sent to ${phone}`))
                     : (t('auth.codeSentToEmail')?.replace('{email}', email) || `Verification code sent to ${email}`)
                   }
                 </p>
@@ -658,16 +786,38 @@ export function LoginRegisterDialog({
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
-                <p className={`text-xs text-muted-foreground mt-2 text-center ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('auth.codeSentTo')} {loginMethod === 'phone' ? phone : email}
-                </p>
+                {loginMethod === 'phone' && codeSentViaWhatsApp && (
+                  <p className={`text-xs text-muted-foreground mt-2 text-center ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                    {locale === 'he' 
+                      ? 'הזן את הקוד שקיבלת ב-WhatsApp'
+                      : locale === 'ar'
+                      ? 'أدخل الرمز الذي استلمته على WhatsApp'
+                      : 'Enter the code you received on WhatsApp'}
+                  </p>
+                )}
               </div>
                   <Button
                     onClick={handleVerifyCode}
                     disabled={(code.length !== 4 && code.length !== 6) || isVerifying}
                     className="w-full"
+                    style={primaryColor ? {
+                      backgroundColor: primaryColor,
+                      color: '#ffffff',
+                    } : undefined}
+                    onMouseEnter={(e) => {
+                      if (primaryColor && !e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (primaryColor) {
+                        e.currentTarget.style.backgroundColor = primaryColor;
+                      }
+                    }}
                   >
-                    {isVerifying ? t('auth.verifying') : t('auth.verify')}
+                    <span dir={isRTL ? 'rtl' : 'ltr'}>
+                      {isVerifying ? formatLoadingText(t('auth.verifying')) : t('auth.verify')}
+                    </span>
                   </Button>
             </motion.div>
           )}
@@ -705,11 +855,13 @@ export function LoginRegisterDialog({
                 <Label htmlFor="dateOfBirth" className={isRTL ? 'text-right' : 'text-left'}>
                   {t('auth.dateOfBirth') || 'Date of Birth'} *
                 </Label>
-                <div className={`flex gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex flex-col sm:flex-row gap-2 mt-2 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                   {/* Year Select */}
-                  <Select
+                  <select
+                    id="birthYear"
                     value={formData.birthYear}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       // Update date if month and day are already selected
                       if (formData.birthMonth && formData.birthDay) {
                         const year = parseInt(value);
@@ -724,26 +876,26 @@ export function LoginRegisterDialog({
                         setFormData({ ...formData, birthYear: value });
                       }
                     }}
+                    className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
-                    <SelectTrigger className="flex-1" dir="ltr">
-                      <SelectValue placeholder={t('auth.year') || 'Year'} />
-                    </SelectTrigger>
-                    <SelectContent dir="ltr">
-                      {Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => {
-                        const year = new Date().getFullYear() - i;
-                        return (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                    <option value="">{t('auth.year') || 'Year'}</option>
+                    {Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => {
+                      const year = new Date().getFullYear() - i;
+                      return (
+                        <option key={year} value={year.toString()}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
 
                   {/* Month Select */}
-                  <Select
+                  <select
+                    id="birthMonth"
                     value={formData.birthMonth}
-                    onValueChange={(value) => {
+                    onChange={(e) => {
+                      const value = e.target.value;
                       // Update date if year and day are already selected
                       if (formData.birthYear && formData.birthDay) {
                         const year = parseInt(formData.birthYear);
@@ -758,28 +910,30 @@ export function LoginRegisterDialog({
                         setFormData({ ...formData, birthMonth: value });
                       }
                     }}
+                    className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
-                    <SelectTrigger className="flex-1" dir="ltr">
-                      <SelectValue placeholder={t('auth.month') || 'Month'} />
-                    </SelectTrigger>
-                    <SelectContent dir="ltr">
-                      {Array.from({ length: 12 }, (_, i) => {
-                        const month = i + 1;
-                        const monthName = new Date(2000, month - 1, 1).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { month: 'long' });
-                        return (
-                          <SelectItem key={month} value={month.toString().padStart(2, '0')}>
-                            {monthName}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                    <option value="">{t('auth.month') || 'Month'}</option>
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = i + 1;
+                      let localeString = 'en-US';
+                      if (locale === 'he') localeString = 'he-IL';
+                      else if (locale === 'ar') localeString = 'ar-SA';
+                      const monthName = new Date(2000, month - 1, 1).toLocaleDateString(localeString, { month: 'long' });
+                      return (
+                        <option key={month} value={month.toString().padStart(2, '0')}>
+                          {monthName}
+                        </option>
+                      );
+                    })}
+                  </select>
 
                   {/* Day Select */}
-                  <Select
+                  <select
+                    id="birthDay"
                     value={formData.birthDay}
-                    onValueChange={(value) => {
-                      const day = value;
+                    onChange={(e) => {
+                      const day = e.target.value;
                       // Only create date if all three are selected
                       if (formData.birthYear && formData.birthMonth) {
                         const year = parseInt(formData.birthYear);
@@ -790,39 +944,37 @@ export function LoginRegisterDialog({
                         setFormData({ ...formData, birthDay: day });
                       }
                     }}
+                    className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
-                    <SelectTrigger className="flex-1" dir="ltr">
-                      <SelectValue placeholder={t('auth.day') || 'Day'} />
-                    </SelectTrigger>
-                    <SelectContent dir="ltr">
-                      {(() => {
-                        // If year and month are selected, show correct days for that month
-                        if (formData.birthYear && formData.birthMonth) {
-                          const year = parseInt(formData.birthYear);
-                          const month = parseInt(formData.birthMonth);
-                          const daysInMonth = new Date(year, month, 0).getDate();
-                          return Array.from({ length: daysInMonth }, (_, i) => {
-                            const day = i + 1;
-                            return (
-                              <SelectItem key={day} value={day.toString().padStart(2, '0')}>
-                                {day}
-                              </SelectItem>
-                            );
-                          });
-                        } else {
-                          // If year/month not selected, show 1-31 as default
-                          return Array.from({ length: 31 }, (_, i) => {
-                            const day = i + 1;
-                            return (
-                              <SelectItem key={day} value={day.toString().padStart(2, '0')}>
-                                {day}
-                              </SelectItem>
-                            );
-                          });
-                        }
-                      })()}
-                    </SelectContent>
-                  </Select>
+                    <option value="">{t('auth.day') || 'Day'}</option>
+                    {(() => {
+                      // If year and month are selected, show correct days for that month
+                      if (formData.birthYear && formData.birthMonth) {
+                        const year = parseInt(formData.birthYear);
+                        const month = parseInt(formData.birthMonth);
+                        const daysInMonth = new Date(year, month, 0).getDate();
+                        return Array.from({ length: daysInMonth }, (_, i) => {
+                          const day = i + 1;
+                          return (
+                            <option key={day} value={day.toString().padStart(2, '0')}>
+                              {day}
+                            </option>
+                          );
+                        });
+                      } else {
+                        // If year/month not selected, show 1-31 as default
+                        return Array.from({ length: 31 }, (_, i) => {
+                          const day = i + 1;
+                          return (
+                            <option key={day} value={day.toString().padStart(2, '0')}>
+                              {day}
+                            </option>
+                          );
+                        });
+                      }
+                    })()}
+                  </select>
                 </div>
               </div>
 
@@ -844,20 +996,23 @@ export function LoginRegisterDialog({
                 </select>
               </div>
 
-              <div>
-                <Label htmlFor="email" className={isRTL ? 'text-right' : 'text-left'}>
-                  {t('auth.email')}
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder={t('auth.emailPlaceholder')}
-                  dir="ltr"
-                  className="mt-2"
-                />
-              </div>
+              {/* Only show email field if user logged in with email method */}
+              {loginMethod === 'email' && (
+                <div>
+                  <Label htmlFor="email" className={isRTL ? 'text-right' : 'text-left'}>
+                    {t('auth.email')}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder={t('auth.emailPlaceholder')}
+                    dir="ltr"
+                    className="mt-2"
+                  />
+                </div>
+              )}
 
               {/* Custom Fields */}
               {registrationSettings?.customFields?.map((field) => (
@@ -923,8 +1078,24 @@ export function LoginRegisterDialog({
                 onClick={handleRegister}
                 disabled={!formData.name || !formData.birthYear || !formData.birthMonth || !formData.birthDay || isRegistering}
                 className="w-full"
+                style={primaryColor ? {
+                  backgroundColor: primaryColor,
+                  color: '#ffffff',
+                } : undefined}
+                onMouseEnter={(e) => {
+                  if (primaryColor && !e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = darkenColor(primaryColor);
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (primaryColor) {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                  }
+                }}
               >
-                {isRegistering ? t('auth.registering') : t('auth.completeRegistration')}
+                <span dir={isRTL ? 'rtl' : 'ltr'}>
+                  {isRegistering ? formatLoadingText(t('auth.registering')) : t('auth.completeRegistration')}
+                </span>
               </Button>
             </motion.div>
           )}

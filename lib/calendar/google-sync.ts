@@ -5,6 +5,35 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Database } from '@/lib/supabase/database.types';
+import enMessages from '@/messages/en.json';
+import heMessages from '@/messages/he.json';
+import arMessages from '@/messages/ar.json';
+import ruMessages from '@/messages/ru.json';
+
+type Locale = 'en' | 'he' | 'ar' | 'ru';
+
+// Server-side translation helper
+function getCalendarLabels(locale: Locale = 'en'): {
+  service: string;
+  worker: string;
+  customer: string;
+  phone: string;
+} {
+  const messagesMap: Record<Locale, any> = {
+    en: enMessages,
+    he: heMessages,
+    ar: arMessages,
+    ru: ruMessages,
+  };
+
+  const messages = messagesMap[locale] || messagesMap.en;
+  return messages?.booking?.calendarLabels || {
+    service: 'Service',
+    worker: 'Worker',
+    customer: 'Customer',
+    phone: 'Phone'
+  };
+}
 
 type GoogleCalendarTokenRow = Database['public']['Tables']['google_calendar_tokens']['Row'];
 type GoogleCalendarTokenInsert = Database['public']['Tables']['google_calendar_tokens']['Insert'];
@@ -258,9 +287,14 @@ export async function syncAppointmentToGoogle(
     const startDate = new Date(appointment.start);
     const endDate = new Date(appointment.end);
 
+    // Get customer locale (default to 'en' if not available)
+    // For now, we'll use 'en' as default, but this could be enhanced to get from customer preferences
+    const customerLocale: Locale = 'en'; // TODO: Get from customer preferences if available
+    const labels = getCalendarLabels(customerLocale);
+
     const event = {
       summary: `${service?.name || 'Appointment'} - ${customer?.name || 'Customer'}`,
-      description: `Service: ${service?.name || 'N/A'}\nCustomer: ${customer?.name || 'N/A'}\nWorker: ${worker?.name || 'N/A'}\nPhone: ${customer?.phone || 'N/A'}`,
+      description: `${labels.service}: ${service?.name || 'N/A'}\n${labels.customer}: ${customer?.name || 'N/A'}\n${labels.worker}: ${worker?.name || 'N/A'}\n${labels.phone}: ${customer?.phone || 'N/A'}`,
       start: {
         dateTime: startDate.toISOString(),
         timeZone: business?.timezone || 'UTC',

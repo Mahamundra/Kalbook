@@ -171,6 +171,7 @@
     --sidebar-border: 217 33% 17%;
     --sidebar-ring: 217 70% 60%;
   }
+
 }
 
 @layer base {
@@ -211,6 +212,28 @@
     --primary-foreground: var(--booking-primary-foreground, 0 0% 100%);
     --primary-glow: var(--booking-primary-glow, var(--primary-glow));
     --ring: var(--booking-ring, var(--ring));
+    /* Apply text color to foreground variables */
+    --foreground: var(--booking-text-color, var(--foreground));
+    --muted-foreground: var(--booking-text-color, var(--muted-foreground));
+    --card-foreground: var(--booking-text-color, var(--card-foreground));
+  }
+  
+  /* Apply text color to all text content when --booking-text-color is set */
+  [data-booking-page="true"] {
+    color: hsl(var(--booking-text-color, var(--foreground)));
+  }
+  
+  /* Ensure text elements without explicit color classes use the text color */
+  [data-booking-page="true"] h1:not([class*="text-"]),
+  [data-booking-page="true"] h2:not([class*="text-"]),
+  [data-booking-page="true"] h3:not([class*="text-"]),
+  [data-booking-page="true"] h4:not([class*="text-"]),
+  [data-booking-page="true"] h5:not([class*="text-"]),
+  [data-booking-page="true"] h6:not([class*="text-"]),
+  [data-booking-page="true"] p:not([class*="text-"]),
+  [data-booking-page="true"] div:not([class*="text-"]):not([class*="bg-"]):not(button):not(a),
+  [data-booking-page="true"] span:not([class*="text-"]):not([class*="bg-"]) {
+    color: hsl(var(--booking-text-color, var(--foreground)));
   }
   
   /* Better mobile scrolling */
@@ -271,7 +294,73 @@ html[lang="he"] * {
     background-color: transparent !important;
     color: inherit !important;
   }
+
+  /* Override hover effect for booking confirm button - use opacity instead of color change */
+  .booking-confirm-button:hover:not(:disabled) {
+    background-color: hsl(var(--primary)) !important;
+    opacity: 0.9 !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
+  /* Override hover effect for booking picker buttons (date and time) - prevent black background */
+  .booking-picker-button:hover:not(:disabled) {
+    background-color: inherit !important;
+    color: inherit !important;
+  }
+
+  /* Override hover effect for thank you page buttons - make text white on hover */
+  /* Override the global black background rule for these specific buttons */
+  button.thank-you-button:hover:not(:disabled) {
+    color: white !important;
+  }
+
+  /* Override for cancel appointment button - use black background */
+  button.cancel-appointment-button,
+  [role="button"].cancel-appointment-button,
+  button[class*="cancel-appointment-button"],
+  [data-radix-collection-item].cancel-appointment-button,
+  button[data-radix-alert-dialog-action].cancel-appointment-button,
+  [data-radix-alert-dialog-action].cancel-appointment-button {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+  }
+
+  button.cancel-appointment-button:hover,
+  [role="button"].cancel-appointment-button:hover,
+  button[class*="cancel-appointment-button"]:hover,
+  [data-radix-collection-item].cancel-appointment-button:hover,
+  button[data-radix-alert-dialog-action].cancel-appointment-button:hover,
+  [data-radix-alert-dialog-action].cancel-appointment-button:hover {
+    background-color: #000000 !important;
+    opacity: 0.9 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+  }
   
+  /* Also override any destructive variant classes that might be applied */
+  button.cancel-appointment-button.bg-destructive,
+  button.cancel-appointment-button[class*="bg-destructive"],
+  button.cancel-appointment-button[class*="destructive"],
+  [data-radix-alert-dialog-action].cancel-appointment-button.bg-destructive {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+  }
+  
+  /* Default variant (make another appointment) - keep primary background */
+  button.thank-you-button.bg-primary:hover:not(:disabled) {
+    background-color: hsl(var(--primary)) !important;
+    color: white !important;
+  }
+  
+  /* Outline variant (go to homepage) - change to primary background on hover */
+  button.thank-you-button.border-input:hover:not(:disabled) {
+    background-color: hsl(var(--primary)) !important;
+    border-color: hsl(var(--primary)) !important;
+    color: white !important;
+  }
+
   /* Thin scrollbar for modals */
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -728,4 +817,43 @@ html[lang="he"] * {
 /* Hide FullCalendar header when using custom controls */
 .fc-header-toolbar.fc-header-toolbar-hidden {
   display: none;
+}
+
+/* Rich text editor styles for rendered HTML content */
+[data-edit-id="guest-message"],
+[data-edit-id="logged-in-message"],
+[data-edit-id="contact-message"] {
+  line-height: 1.6;
+}
+
+[data-edit-id="guest-message"] a,
+[data-edit-id="logged-in-message"] a,
+[data-edit-id="contact-message"] a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+[data-edit-id="guest-message"] a:hover,
+[data-edit-id="logged-in-message"] a:hover,
+[data-edit-id="contact-message"] a:hover {
+  opacity: 0.8;
+}
+
+[data-edit-id="guest-message"] strong,
+[data-edit-id="logged-in-message"] strong,
+[data-edit-id="contact-message"] strong {
+  font-weight: 700;
+}
+
+[data-edit-id="guest-message"] em,
+[data-edit-id="logged-in-message"] em,
+[data-edit-id="contact-message"] em {
+  font-style: italic;
+}
+
+[data-edit-id="guest-message"] u,
+[data-edit-id="logged-in-message"] u,
+[data-edit-id="contact-message"] u {
+  text-decoration: underline;
 }

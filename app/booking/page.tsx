@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
@@ -22,12 +22,15 @@ import {
   updateAppointment,
 } from '@/lib/api/services';
 import { toast } from 'sonner';
-import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, ChevronDown, Check, CheckCircle2, Phone, LogIn, LogOut, Users, Edit, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, X, ChevronRight, ChevronLeft, ChevronDown, Check, CheckCircle2, Phone, LogIn, LogOut, Users, Edit, Trash2, Mail, MapPin, Sparkles, UserCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Service, Appointment, Worker } from '@/types/admin';
 import Link from 'next/link';
 import { LoginRegisterDialog } from '@/components/LoginRegisterDialog';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
+import { ClassicLayout } from '@/components/booking/layouts/ClassicLayout';
+import { SidebarLayout } from '@/components/booking/layouts/SidebarLayout';
+import { HeroLayout } from '@/components/booking/layouts/HeroLayout';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,11 +48,23 @@ type BookingStep = 1 | 2 | 3 | 4;
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
+// Helper function to convert hex color to RGB
+const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 14, g: 165, b: 233 }; // Default to #0EA5E9
+};
+
 interface BookingPageContentProps {
   editMode?: boolean;
+  editorSettings?: any; // Settings passed from HomepageEditor
+  editorViewAsGuest?: boolean; // Override isLoggedIn state in edit mode
 }
 
-function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) {
+export function BookingPageContent({ editMode = false, editorSettings, editorViewAsGuest = true }: BookingPageContentProps = {}) {
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const params = useParams();
@@ -74,6 +89,11 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
   const [isBooking, setIsBooking] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // Override isLoggedIn in edit mode
+  const effectiveIsLoggedIn = editMode ? !editorViewAsGuest : isLoggedIn;
+  const effectiveCurrentUser = editMode ? (editorViewAsGuest ? null : { name: 'John Doe', email: 'john@example.com', phone: '+1234567890', customerId: 'mock-customer-id' }) : currentUser;
+  
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [trialExpired, setTrialExpired] = useState(false);
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
@@ -249,7 +269,105 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
     }
   }, []);
 
+  // Update settings when editorSettings changes (for real-time preview)
   useEffect(() => {
+    if (editMode && editorSettings) {
+      setSettings(editorSettings);
+      
+      // Apply theme color in real-time
+      if (editorSettings.branding?.themeColor) {
+        const hexToHsl = (hex: string): string => {
+          hex = hex.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16) / 255;
+          const g = parseInt(hex.substring(2, 4), 16) / 255;
+          const b = parseInt(hex.substring(4, 6), 16) / 255;
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          let h: number, s: number, l: number;
+          l = (max + min) / 2;
+          if (max === min) {
+            h = s = 0;
+          } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+              case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+              case g: h = ((b - r) / d + 2) / 6; break;
+              case b: h = ((r - g) / d + 4) / 6; break;
+              default: h = 0;
+            }
+          }
+          h = Math.round(h * 360);
+          s = Math.round(s * 100);
+          l = Math.round(l * 100);
+          return `${h} ${s}% ${l}%`;
+        };
+        
+        const root = document.documentElement;
+        const hsl = hexToHsl(editorSettings.branding.themeColor);
+        const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
+        root.style.setProperty('--booking-primary', hsl);
+        root.style.setProperty('--booking-primary-foreground', '0 0% 100%');
+        root.style.setProperty('--booking-primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
+        root.style.setProperty('--booking-ring', hsl);
+      }
+      
+      // Apply text color in real-time
+      if (editorSettings.branding?.textColor) {
+        const root = document.documentElement;
+        if (editorSettings.branding.textColor === 'white') {
+          root.style.setProperty('--booking-text-color', '0 0% 100%');
+        } else {
+          root.style.setProperty('--booking-text-color', '0 0% 0%');
+        }
+      }
+    }
+  }, [editMode, editorSettings]);
+
+  useEffect(() => {
+    // If in edit mode with provided settings, use them directly
+    if (editMode && editorSettings) {
+      // Still fetch services and workers for full functionality
+      const fetchServicesAndWorkers = async () => {
+        try {
+          setLoading(true);
+          const [servicesResult, workersResult] = await Promise.allSettled([
+            getServices().catch(err => {
+              console.error('Error fetching services:', err);
+              return [];
+            }),
+            getWorkers().catch(err => {
+              console.error('Error fetching workers:', err);
+              return [];
+            }),
+          ]);
+          
+          if (servicesResult.status === 'fulfilled') {
+            setServices(servicesResult.value.filter((s: Service) => s.active));
+          } else {
+            setServices([]);
+          }
+          
+          if (workersResult.status === 'fulfilled') {
+            setWorkers(workersResult.value.filter((w: Worker) => w.active));
+          } else {
+            setWorkers([]);
+          }
+          
+          setAppointments([]);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching services/workers:', error);
+          setServices([]);
+          setWorkers([]);
+          setAppointments([]);
+          setLoading(false);
+        }
+      };
+      fetchServicesAndWorkers();
+      return;
+    }
+
     const loadData = async () => {
       setLoading(true);
       
@@ -324,8 +442,12 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
 
     loadData();
 
-    // Listen for settings updates
+    // Listen for settings updates (only if not in edit mode)
     const handleSettingsUpdate = async () => {
+      if (editMode && editorSettings) {
+        // In edit mode, settings are controlled by parent
+        return;
+      }
       if (slug) {
         // Reload all data from API in parallel if we have a slug
         try {
@@ -374,8 +496,83 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
   const workingDays = settings?.calendar?.workingDays || [0, 1, 2, 3, 4];
   const businessName = settings?.businessProfile?.name || '';
   const logoUrl = settings?.branding?.logoUrl || '';
+  const logoShape = settings?.branding?.logoShape || 'square';
   const whatsapp = settings?.businessProfile?.whatsapp || '';
   const phone = settings?.businessProfile?.phone || '';
+  const address = settings?.businessProfile?.address || '';
+
+  // Helper function to format operating hours
+  const formatOperatingHours = (): string => {
+    if (!workingDays || workingDays.length === 0) {
+      return t('booking.closed');
+    }
+
+    const dayNames = [
+      t('settings.sunday'),
+      t('settings.monday'),
+      t('settings.tuesday'),
+      t('settings.wednesday'),
+      t('settings.thursday'),
+      t('settings.friday'),
+      t('settings.saturday'),
+    ];
+
+    const sortedDays = [...workingDays].sort((a, b) => a - b);
+    const startTime = workingHours.start || '09:00';
+    const endTime = workingHours.end || '18:00';
+
+    // Group consecutive days
+    const groups: Array<{ start: number; end: number }> = [];
+    let currentGroup: { start: number; end: number } | null = null;
+
+    for (const day of sortedDays) {
+      if (!currentGroup) {
+        currentGroup = { start: day, end: day };
+      } else if (day === currentGroup.end + 1) {
+        currentGroup.end = day;
+      } else {
+        groups.push(currentGroup);
+        currentGroup = { start: day, end: day };
+      }
+    }
+    if (currentGroup) {
+      groups.push(currentGroup);
+    }
+
+    // Format groups
+    const formattedGroups = groups.map((group) => {
+      if (group.start === group.end) {
+        return dayNames[group.start];
+      } else {
+        return `${dayNames[group.start]} - ${dayNames[group.end]}`;
+      }
+    });
+
+    return `${formattedGroups.join(', ')}: ${startTime} - ${endTime}`;
+  };
+
+  // Helper function to format phone for WhatsApp link
+  const formatPhoneForWhatsApp = (phoneNumber: string): string => {
+    if (!phoneNumber) return '';
+    // Remove all non-digit characters except +
+    let cleaned = phoneNumber.replace(/[^\d+]/g, '');
+    // If no + prefix, assume Israeli number and add +972
+    if (!cleaned.startsWith('+')) {
+      // Remove leading 0 if present
+      if (cleaned.startsWith('0')) {
+        cleaned = cleaned.substring(1);
+      }
+      cleaned = '+972' + cleaned;
+    }
+    return cleaned;
+  };
+
+  // Helper function to format Waze URL
+  const formatWazeURL = (address: string): string => {
+    if (!address) return '';
+    const encodedAddress = encodeURIComponent(address);
+    return `https://waze.com/ul?q=${encodedAddress}`;
+  };
 
   // Helper functions
   const isWorkingDay = (date: Date): boolean => {
@@ -654,6 +851,59 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
     return workers.filter(w => w.services.includes(selectedService.id));
   };
 
+  // Generate calendar URLs
+  const generateAppleCalendarUrl = (apt: Appointment) => {
+    const startDate = new Date(apt.start);
+    const endDate = new Date(apt.end);
+    
+    // Format dates for Apple Calendar (YYYYMMDDTHHmmssZ)
+    const formatDate = (date: Date) => {
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    };
+    
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
+    const title = encodeURIComponent(apt.service || 'Appointment');
+    const description = encodeURIComponent(
+      `${apt.service}${apt.workerId ? ` - ${workers.find(w => w.id === apt.workerId || w.id === apt.staffId)?.name || ''}` : ''}`
+    );
+    const location = encodeURIComponent(settings?.businessProfile?.address || '');
+    
+    return `data:text/calendar;charset=utf8,BEGIN:VCALENDAR%0AVERSION:2.0%0ABEGIN:VEVENT%0ADTSTART:${start}%0ADTEND:${end}%0ASUMMARY:${title}%0ADESCRIPTION:${description}%0ALOCATION:${location}%0AEND:VEVENT%0AEND:VCALENDAR`;
+  };
+
+  const generateGoogleCalendarUrl = (apt: Appointment) => {
+    const startDate = new Date(apt.start);
+    const endDate = new Date(apt.end);
+    
+    // Format dates for Google Calendar (YYYYMMDDTHHmmssZ)
+    const formatDate = (date: Date) => {
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    };
+    
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
+    const title = encodeURIComponent(apt.service || 'Appointment');
+    const description = encodeURIComponent(
+      `${apt.service}${apt.workerId ? ` - ${workers.find(w => w.id === apt.workerId || w.id === apt.staffId)?.name || ''}` : ''}`
+    );
+    const location = encodeURIComponent(settings?.businessProfile?.address || '');
+    
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${description}&location=${location}`;
+  };
+
   // Handle cancel appointment
   const handleCancelAppointment = (appointmentId: string) => {
     setAppointmentToCancel(appointmentId);
@@ -857,6 +1107,10 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
 
   // Show loading state until settings are loaded (AFTER all hooks)
   if (loading || !settings) {
+    // Get theme color from settings or editorSettings, fallback to default
+    const themeColor = settings?.branding?.themeColor || editorSettings?.branding?.themeColor || '#0EA5E9';
+    const rgb = hexToRgb(themeColor);
+    
     return (
       <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in">
         <div className="text-center space-y-6 px-4">
@@ -866,9 +1120,9 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
           </div>
           {/* Modern animated spinner with smooth gradient */}
           <div className="relative mx-auto w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
-            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-primary/40 border-l-primary/40 animate-spin" style={{ animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` }}></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: themeColor, borderRightColor: themeColor, animationDuration: '0.8s' }}></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent animate-spin" style={{ borderBottomColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, borderLeftColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
           </div>
           {/* Friendly loading message with pulse animation */}
           <div className="space-y-2">
@@ -877,9 +1131,9 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
             </p>
             {/* Subtle dots animation */}
             <div className="flex justify-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0s', animationDuration: '1.4s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0s', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
             </div>
           </div>
         </div>
@@ -997,7 +1251,8 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
       return;
     }
 
-    if (!selectedService || !selectedDate || !selectedTime || !customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+    // Email is optional, so we don't check for it
+    if (!selectedService || !selectedDate || !selectedTime || !customerInfo.name || !customerInfo.phone) {
       toast.error(t('booking.fillAllFields'));
       return;
     }
@@ -1133,8 +1388,46 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
           console.error('Error refreshing customer appointments:', error);
         }
       }
-    } catch (error) {
-      toast.error(t('booking.bookingError'));
+    } catch (error: any) {
+      console.error('Error booking appointment:', error);
+      
+      // Extract more specific error message if available
+      let errorMessage = t('booking.bookingError');
+      
+      if (error instanceof Error) {
+        // Check if it's an API error with a specific message
+        if (error.message && error.message !== 'Network error') {
+          // Try to show a more specific error
+          const apiError = error as any;
+          if (apiError.response?.error) {
+            errorMessage = apiError.response.error;
+          } else if (error.message.includes('Trial period has expired')) {
+            errorMessage = 'Trial period has expired. Please contact the business to upgrade.';
+          } else if (error.message.includes('plan does not allow')) {
+            errorMessage = 'Your plan does not allow creating appointments. Please upgrade.';
+          } else if (error.message.includes('maximum number of appointments')) {
+            errorMessage = error.message;
+          } else if (error.message.includes('Time slot is already booked')) {
+            errorMessage = t('booking.timeSlotBooked') || 'This time slot is already booked. Please select another time.';
+          } else if (error.message.includes('outside working hours')) {
+            errorMessage = t('booking.outsideWorkingHours') || 'This time is outside working hours. Please select another time.';
+          } else if (error.message.includes('Customer not found')) {
+            errorMessage = 'Customer information error. Please try again.';
+          } else if (error.message.includes('Service not found') || error.message.includes('Worker not found')) {
+            errorMessage = 'Service or worker is no longer available. Please refresh and try again.';
+          } else {
+            // Log the full error for debugging
+            console.error('Full error details:', {
+              message: error.message,
+              stack: error.stack,
+              response: (error as any).response,
+              status: (error as any).status,
+            });
+          }
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsBooking(false);
     }
@@ -1158,6 +1451,11 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
     const businessName = settings.businessProfile?.name || 'Business';
     const businessAddress = settings.businessProfile?.address || '';
     
+    // Get translated labels
+    const serviceLabel = t('booking.calendarLabels.service');
+    const workerLabel = t('booking.calendarLabels.worker');
+    const customerLabel = t('booking.calendarLabels.customer');
+    
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -1166,7 +1464,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
       `DTSTART:${formatICSDate(startDate)}`,
       `DTEND:${formatICSDate(endDate)}`,
       `SUMMARY:${selectedService.name} - ${businessName}`,
-      `DESCRIPTION:${selectedService.description}\\nWorker: ${confirmedAppointment.worker}\\nCustomer: ${customerInfo.name}`,
+      `DESCRIPTION:${selectedService.description || ''}\\n${serviceLabel}: ${selectedService.name}\\n${workerLabel}: ${confirmedAppointment.worker}\\n${customerLabel}: ${customerInfo.name}`,
       `LOCATION:${businessAddress}`,
       'STATUS:CONFIRMED',
       'END:VEVENT',
@@ -1195,8 +1493,13 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
     const businessAddress = settings.businessProfile?.address || '';
     const workerName = confirmedAppointment?.worker || '';
     
+    // Get translated labels
+    const serviceLabel = t('booking.calendarLabels.service');
+    const workerLabel = t('booking.calendarLabels.worker');
+    const customerLabel = t('booking.calendarLabels.customer');
+    
     const title = encodeURIComponent(`${selectedService.name} - ${businessName}`);
-    const details = encodeURIComponent(`${selectedService.description}\nWorker: ${workerName}\nCustomer: ${customerInfo.name}`);
+    const details = encodeURIComponent(`${selectedService.description || ''}\n${serviceLabel}: ${selectedService.name}\n${workerLabel}: ${workerName}\n${customerLabel}: ${customerInfo.name}`);
     const location = encodeURIComponent(businessAddress);
     const dates = `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`;
     
@@ -1242,10 +1545,12 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
     });
   };
 
-  return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white" data-booking-page="true">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-50">
+  // Get layout type (default to 'classic')
+  const layoutType = (settings?.branding?.layout || 'classic') as 'classic' | 'sidebar' | 'hero';
+
+  // Extract header
+  const header = (
+    <header className="bg-white border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1253,13 +1558,13 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                 <img 
                   src={logoUrl} 
                   alt={businessName} 
-                  className="h-10 w-auto object-contain"
+                  className={`h-10 ${logoShape === 'circle' ? 'w-10 rounded-[100%]' : 'w-auto rounded-[25%]'} object-contain`}
                   data-edit-id="logo"
                   data-edit-type="image"
                 />
               ) : (
                 <div 
-                  className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"
+                  className={`h-10 w-10 ${logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'} bg-primary/10 flex items-center justify-center`}
                   data-edit-id="logo"
                   data-edit-type="image"
                 >
@@ -1278,88 +1583,197 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
           </div>
         </div>
       </header>
+    );
 
-      {/* Trial Expired Banner */}
-      {trialExpired && (
-        <div className="bg-yellow-50 border-b border-yellow-200">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <X className="w-5 h-5 text-yellow-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-yellow-800">
-                    Trial Period Expired
-                  </h3>
-                  <p className="text-sm text-yellow-700">
-                    This business's trial period has ended. Please contact them to upgrade their plan.
-                  </p>
-                </div>
-              </div>
+  // Extract trial banner
+  const trialBanner = trialExpired ? (
+    <div className="bg-yellow-50 border-b border-yellow-200">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <X className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-yellow-800">
+                Trial Period Expired
+              </h3>
+              <p className="text-sm text-yellow-700">
+                This business's trial period has ended. Please contact them to upgrade their plan.
+              </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  ) : null;
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Banner Cover */}
-        {settings.branding?.bannerCover && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 sm:mt-0"
-            data-edit-id="banner"
-            data-edit-type="image"
-          >
-            <div className="relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-none sm:rounded-lg">
-              {settings.branding.bannerCover?.type === 'upload' && settings.branding.bannerCover?.uploadUrl ? (
-                <>
-                  {settings.branding.bannerCover.videoUrl ? (
-                    <video
-                      src={settings.branding.bannerCover.videoUrl}
-                      className="w-full h-full object-cover"
-                      style={{
-                        objectPosition: settings.branding.bannerCover.position
-                          ? `${settings.branding.bannerCover.position.x}% ${settings.branding.bannerCover.position.y}%`
-                          : '50% 50%',
-                      }}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={settings.branding.bannerCover.uploadUrl}
-                      alt="Banner"
-                      className="w-full h-full object-cover"
-                      style={{
-                        objectPosition: settings.branding.bannerCover.position
-                          ? `${settings.branding.bannerCover.position.x}% ${settings.branding.bannerCover.position.y}%`
-                          : '50% 50%',
-                      }}
-                    />
-                  )}
-                </>
-              ) : (
-                <div
-                  className="w-full h-full"
-                  style={{
-                    background: settings.branding.bannerCover.patternId === 'pattern1' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
-                               settings.branding.bannerCover.patternId === 'pattern2' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
-                               settings.branding.bannerCover.patternId === 'pattern3' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' :
-                               settings.branding.bannerCover.patternId === 'pattern4' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' :
-                               'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                  }}
-                />
-              )}
-            </div>
-          </motion.div>
+  // Extract banner cover
+  const bannerCover = settings.branding?.bannerCover ? (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-0 md:mb-6 -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 sm:mt-0 relative"
+      data-edit-id="banner"
+      data-edit-type="image"
+    >
+      <div className="relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-none sm:rounded-lg">
+        {settings.branding.bannerCover?.type === 'upload' && settings.branding.bannerCover?.uploadUrl ? (
+          <>
+            {settings.branding.bannerCover.videoUrl ? (
+              <video
+                src={settings.branding.bannerCover.videoUrl}
+                className="w-full h-full object-cover"
+                style={{
+                  objectPosition: settings.branding.bannerCover.position
+                    ? `${settings.branding.bannerCover.position.x}% ${settings.branding.bannerCover.position.y}%`
+                    : '50% 50%',
+                }}
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <img
+                src={settings.branding.bannerCover.uploadUrl}
+                alt="Banner"
+                className="w-full h-full object-cover"
+                style={{
+                  objectPosition: settings.branding.bannerCover.position
+                    ? `${settings.branding.bannerCover.position.x}% ${settings.branding.bannerCover.position.y}%`
+                    : '50% 50%',
+                }}
+              />
+            )}
+          </>
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{
+              background: settings.branding.bannerCover.patternId === 'pattern1' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                         settings.branding.bannerCover.patternId === 'pattern2' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
+                         settings.branding.bannerCover.patternId === 'pattern3' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' :
+                         settings.branding.bannerCover.patternId === 'pattern4' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' :
+                         'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            }}
+          />
         )}
+      </div>
+    </motion.div>
+  ) : null;
 
-        {/* Guest/Logged-in Message */}
-        <motion.div
+  // Extract business information section
+  const businessInfo = (phone || whatsapp || address || (workingDays && workingDays.length > 0)) ? (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 md:mb-6"
+    >
+      <Card className="p-6">
+              <div className="space-y-6 text-center">
+                {/* Operating Hours */}
+                {workingDays && workingDays.length > 0 && (
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <Clock className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {t('booking.operatingHours')}
+                      </div>
+                    </div>
+                    <div className="text-base font-semibold">
+                      {formatOperatingHours()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Address */}
+                {address && (
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {t('booking.address')}
+                      </div>
+                    </div>
+                    <div className="text-base font-semibold">{address}</div>
+                  </div>
+                )}
+
+                {/* Contact Icons */}
+                {(phone || whatsapp || address) && (
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <Mail className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {t('booking.contactUs')}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-4 flex-wrap">
+                      {/* Phone */}
+                      {phone && (
+                        <motion.a
+                          href={`tel:${phone.replace(/\s/g, '')}`}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white hover:bg-primary/90 transition-colors shadow-lg"
+                          aria-label={t('booking.callUs')}
+                          title={t('booking.callUs')}
+                        >
+                          <Phone className="w-6 h-6" />
+                        </motion.a>
+                      )}
+
+                      {/* WhatsApp */}
+                      {whatsapp && (
+                        <motion.a
+                          href={`https://wa.me/${formatPhoneForWhatsApp(whatsapp).replace(/\+/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center text-white hover:bg-[#20BA5A] transition-colors shadow-lg"
+                          aria-label={t('booking.whatsappUs')}
+                          title={t('booking.whatsappUs')}
+                        >
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                          </svg>
+                        </motion.a>
+                      )}
+
+                      {/* Waze */}
+                      {address && (
+                        <motion.a
+                          href={formatWazeURL(address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="w-12 h-12 rounded-full bg-[#33CCFF] flex items-center justify-center text-white hover:bg-[#29B8E6] transition-colors shadow-lg"
+                          aria-label={t('booking.getDirections')}
+                          title={t('booking.getDirections')}
+                        >
+                          <svg className="w-6 h-6" viewBox="0 0 122.71 122.88" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#FFFFFF" d="M55.14,104.21c4.22,0,8.44,0.19,12.66-0.09c3.84-0.19,7.88-0.56,11.63-1.5c29.82-7.31,45.76-40.23,32.72-68.07 C104.27,17.76,90.77,8.19,72.3,6.22c-14.16-1.5-26.82,2.72-37.51,12.28c-10.5,9.47-15.94,21.28-16.31,35.44 c-0.09,3.28,0,6.66,0,9.94C18.38,71.02,14.35,76.55,7.5,78.7c-0.09,0-0.28,0.19-0.38,0.19c2.63,6.94,13.31,17.16,19.97,19.69 C35.45,87.14,52.32,91.18,55.14,104.21L55.14,104.21z"/>
+                            <path fill="#000000" d="M54.95,110.49c-1.03,4.69-3.56,8.16-7.69,10.31c-5.25,2.72-10.6,2.63-15.57-0.56c-5.16-3.28-7.41-8.25-7.03-14.35 c0.09-1.03-0.19-1.41-1.03-1.88c-9.1-4.78-16.31-11.44-21.28-20.44c-0.94-1.78-1.69-3.66-2.16-5.63c-0.66-2.72,0.38-4.03,3.19-4.31 c3.38-0.38,6.38-1.69,7.88-4.88c0.66-1.41,1.03-3.09,1.03-4.69c0.19-4.03,0-8.06,0.19-12.1c1.03-15.57,7.5-28.5,19.32-38.63 C42.67,3.97,55.42-0.43,69.76,0.03c25.04,0.94,46.51,18.57,51.57,43.23c4.59,22.32-2.34,40.98-20.07,55.51 c-1.03,0.84-2.16,1.69-3.38,2.44c-0.66,0.47-0.84,0.84-0.56,1.59c2.34,7.13-0.94,15-7.5,18.38c-8.91,4.41-19.22-0.09-21.94-9.66 c-0.09-0.38-0.56-0.84-0.84-0.84C63.11,110.4,59.07,110.49,54.95,110.49L54.95,110.49z M55.14,104.21c4.22,0,8.44,0.19,12.66-0.09 c3.84-0.19,7.88-0.56,11.63-1.5c29.82-7.31,45.76-40.23,32.72-68.07C104.27,17.76,90.77,8.19,72.3,6.22 c-14.16-1.5-26.82,2.72-37.51,12.28c-10.5,9.47-15.94,21.28-16.31,35.44c-0.09,3.28,0,6.66,0,9.94 C18.38,71.02,14.35,76.55,7.5,78.7c-0.09,0-0.28,0.19-0.38,0.19c2.63,6.94,13.31,17.16,19.97,19.69 C35.45,87.14,52.32,91.18,55.14,104.21L55.14,104.21z"/>
+                            <path fill="#000000" d="M74.92,79.74c-11.07-0.56-18.38-4.97-23.07-13.78c-1.13-2.16-0.09-4.31,2.06-4.78c1.31-0.28,2.53,0.66,3.47,2.16 c1.22,1.88,2.44,3.75,4.03,5.25c8.81,8.34,23.25,5.72,28.79-5.06c0.66-1.31,1.5-2.34,3.09-2.34c2.34,0.09,3.66,2.44,2.63,4.59 c-2.91,5.91-7.5,10.22-13.69,12.28C79.51,78.99,76.7,79.36,74.92,79.74L74.92,79.74z"/>
+                            <path fill="#000000" d="M55.32,48.98c-3.38,0-6.09-2.72-6.09-6.09s2.72-6.09,6.09-6.09s6.09,2.72,6.09,6.09C61.42,46.17,58.7,48.98,55.32,48.98 L55.32,48.98z"/>
+                            <path fill="#000000" d="M98.27,42.79c0,3.38-2.72,6.09-6,6.19c-3.38,0-6.09-2.63-6.09-6.09c0-3.38,2.63-6.09,6-6.19 C95.46,36.7,98.17,39.42,98.27,42.79L98.27,42.79z"/>
+                          </svg>
+                        </motion.a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </motion.div>
+      ) : null;
+
+  // Extract guest/logged-in message section
+  const guestMessage = (
+    <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
@@ -1367,7 +1781,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
           <Card className="p-4">
             <div className="flex flex-col items-center text-center gap-4">
               <div className={`flex gap-3 w-full sm:w-auto justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                {!isLoggedIn ? (
+                {!effectiveIsLoggedIn ? (
                   <Button
                     variant="default"
                     size="lg"
@@ -1398,22 +1812,39 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                 )}
               </div>
               <div className="flex-1">
-                <p 
+                <div 
                   className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}
-                  data-edit-id={isLoggedIn && currentUser ? "logged-in-message" : "guest-message"}
+                  data-edit-id={effectiveIsLoggedIn && effectiveCurrentUser ? "logged-in-message" : "guest-message"}
                   data-edit-type="text"
-                >
-                  {isLoggedIn && currentUser
-                    ? (settings.branding?.loggedInMessage || 'שלום {name}, ברוך הבא!').replace('{name}', currentUser.name || '')
-                    : settings.branding?.guestMessage || 'שלום אורח, ברוך הבא!'}
-                </p>
+                  dangerouslySetInnerHTML={{
+                    __html: effectiveIsLoggedIn && effectiveCurrentUser
+                      ? (settings.branding?.loggedInMessage || 'שלום {name}, ברוך הבא!').replace('{name}', effectiveCurrentUser.name || '')
+                      : settings.branding?.guestMessage || 'שלום אורח, ברוך הבא!'
+                  }}
+                />
               </div>
             </div>
           </Card>
         </motion.div>
+  );
 
-        {/* Customer Appointments - Show when logged in */}
-        {isLoggedIn && customerAppointments.length > 0 && (
+  // Due to the complexity of extracting all sections, let's use a simpler approach:
+  // Keep the current structure for ClassicLayout and create wrapper components for others
+  // For now, render ClassicLayout with the extracted sections we have
+  // We'll need to extract the rest of the content (appointments, booking section, dialogs)
+  // into a single "mainContent" render function
+
+  // For Classic layout, we can use the current structure
+  // For Sidebar and Hero, we'll need to restructure
+  
+  // Extract the rest of the content - we'll create a render function
+  // Note: guestMessage is passed separately to layouts, not included here
+  const renderMainContent = () => {
+    return (
+      <>
+
+        {/* Customer Appointments - Hide when user is booking a new appointment */}
+        {effectiveIsLoggedIn && customerAppointments.length > 0 && step === 1 && !selectedService && !confirmedAppointment && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1542,7 +1973,67 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                             </div>
                           )}
                           {!isPast && apt.status !== 'cancelled' && (
-                            <div className={`flex gap-2 mt-3 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                            <div className={`flex gap-1.5 sm:gap-2 mt-3 flex-nowrap sm:flex-wrap ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                              {/* Calendar Buttons */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = generateAppleCalendarUrl(apt);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = 'appointment.ics';
+                                  link.click();
+                                }}
+                                className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap ${isRTL ? 'flex-row-reverse' : ''}`}
+                              >
+                                <svg 
+                                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRTL ? 'ml-1.5 sm:ml-2' : 'mr-1.5 sm:mr-2'}`}
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                  <path d="M3 10h18" stroke="currentColor" strokeWidth="1.5"/>
+                                  <path d="M8 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                  <path d="M16 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                  <circle cx="12" cy="15" r="1" fill="currentColor"/>
+                                  <circle cx="9" cy="15" r="1" fill="currentColor"/>
+                                  <circle cx="15" cy="15" r="1" fill="currentColor"/>
+                                  <circle cx="12" cy="18" r="1" fill="currentColor"/>
+                                </svg>
+                                {t('booking.addToAppleCalendar') || 'Add to Apple Calendar'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const url = generateGoogleCalendarUrl(apt);
+                                  window.open(url, '_blank');
+                                }}
+                                className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap ${isRTL ? 'flex-row-reverse' : ''}`}
+                              >
+                                <svg 
+                                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRTL ? 'ml-1.5 sm:ml-2' : 'mr-1.5 sm:mr-2'}`}
+                                  viewBox="0 0 200 200"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <g transform="translate(3.75 3.75)">
+                                    <path d="M148.882,43.618l-47.368-5.263l-57.895,5.263L38.355,96.25l5.263,52.632l52.632,6.579l52.632-6.579l5.263-53.947L148.882,43.618z" fill="#FFFFFF"/>
+                                    <path d="M65.211,125.276c-3.934-2.658-6.658-6.539-8.145-11.671l9.132-3.763c0.829,3.158,2.276,5.605,4.342,7.342c2.053,1.737,4.553,2.592,7.474,2.592c2.987,0,5.553-0.908,7.697-2.724s3.224-4.132,3.224-6.934c0-2.868-1.132-5.211-3.395-7.026s-5.105-2.724-8.5-2.724h-5.276v-9.039H76.5c2.921,0,5.382-0.789,7.382-2.368c2-1.579,3-3.737,3-6.48c0-2.987-1.237-5.237-3.711-6.75c-2.474-1.513-5.816-2.276-10.026-2.276c-4.421,0-7.816,0.776-10.184,2.329c-2.368,1.553-3.947,3.816-4.737,6.789l-9.132-2.724c1.237-4.105,3.632-7.421,7.184-9.947c3.553-2.526,8.026-3.789,13.421-3.789c6.316,0,11.421,1.237,15.316,3.711c3.895,2.474,6.553,5.947,7.974,10.421c0.776,2.421C73.408,129.263,69.145,127.934,65.211,125.276z" fill="#1A73E8"/>
+                                    <path d="M121.25,79.961l-9.974,7.25l-5.013-7.605l17.987-12.974h6.895v61.197h-9.895L121.25,79.961z" fill="#1A73E8"/>
+                                    <path d="M148.882,196.25l47.368-47.368l-23.684-10.526l-23.684,10.526l-10.526,23.684L148.882,196.25z" fill="#EA4335"/>
+                                    <path d="M33.092,172.566l10.526,23.684h105.263v-47.368H43.618L33.092,172.566z" fill="#34A853"/>
+                                    <path d="M12.039-3.75C3.316-3.75-3.75,3.316-3.75,12.039v136.842l23.684,10.526l23.684-10.526V43.618h105.263l10.526-23.684L148.882-3.75H12.039z" fill="#4285F4"/>
+                                    <path d="M-3.75,148.882v31.579c0,8.724,7.066,15.789,15.789,15.789h31.579v-47.368H-3.75z" fill="#188038"/>
+                                    <path d="M148.882,43.618v105.263h47.368V43.618l-23.684-10.526L148.882,43.618z" fill="#FBBC04"/>
+                                    <path d="M196.25,43.618V12.039c0-8.724-7.066-15.789-15.789-15.789h-31.579v47.368H196.25z" fill="#1967D2"/>
+                                  </g>
+                                </svg>
+                                {t('booking.addToGoogleCalendar') || 'Add to Google Calendar'}
+                              </Button>
+                              {/* Reschedule Button */}
                               {settings?.calendar?.reschedule?.allowCustomerReschedule && (
                                 <Button
                                   variant="outline"
@@ -1555,34 +2046,45 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                                     setRescheduleAvailableSlots([]);
                                   }}
                                   disabled={cancellingAppointmentId === apt.id}
-                                  className={isRTL ? 'flex-row-reverse' : ''}
+                                  className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap ${isRTL ? 'flex-row-reverse' : ''}`}
                                 >
-                                  <Edit className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                  <Edit className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRTL ? 'ml-1.5 sm:ml-2' : 'mr-1.5 sm:mr-2'}`} />
                                   {t('booking.reschedule')}
                                 </Button>
                               )}
+                              {/* Cancel Button */}
                               <Button
-                                variant="destructive"
+                                variant="default"
                                 size="sm"
                                 onClick={() => handleCancelAppointment(apt.id)}
                                 disabled={cancellingAppointmentId === apt.id}
-                                className={isRTL ? 'flex-row-reverse' : ''}
+                                className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap"
                               >
                                 {cancellingAppointmentId === apt.id ? (
                                   <>
                                     <motion.span
                                       animate={{ rotate: 360 }}
                                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                      className={isRTL ? 'ml-2' : 'mr-2'}
+                                      className={isRTL ? 'ml-1.5 sm:ml-2' : 'mr-1.5 sm:mr-2'}
                                     >
                                       ⏳
                                     </motion.span>
-                                    {t('common.loading')}
+                                    <span className="hidden sm:inline">{t('common.loading')}</span>
+                                    <span className="sm:hidden">...</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                                    {t('booking.cancel')}
+                                    {isRTL ? (
+                                      <>
+                                        {t('booking.cancel')}
+                                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                                        {t('booking.cancel')}
+                                      </>
+                                    )}
                                   </>
                                 )}
                               </Button>
@@ -1601,7 +2103,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
         )}
 
         {/* Customer Appointments Button - Show when logged in but no appointments or appointments hidden */}
-        {isLoggedIn && customerAppointments.length === 0 && (
+        {effectiveIsLoggedIn && customerAppointments.length === 0 && step === 1 && !selectedService && !confirmedAppointment && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1618,27 +2120,26 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
         )}
 
         {/* Booking Section - Only show if logged in */}
-        {isLoggedIn ? (
+        {effectiveIsLoggedIn ? (
           <>
           {/* Step Indicator */}
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-8 flex justify-center items-center px-2 sm:px-0 overflow-hidden"
+            className="mb-8 flex justify-center items-center px-4 sm:px-6"
           >
-          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-8 w-full max-w-full">
+          <div className="flex items-center justify-center w-full max-w-2xl">
             {[1, 2, 3].map((s) => (
-              <motion.div 
-                key={s} 
-                className="flex items-center flex-1 min-w-0"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: s * 0.1, duration: 0.3 }}
-              >
-                <div className="flex flex-col items-center justify-center w-full min-w-0">
+              <React.Fragment key={s}>
+                <motion.div 
+                  className="flex flex-col items-center justify-center flex-1"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: s * 0.1, duration: 0.3 }}
+                >
                   <motion.div
-                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-base sm:text-lg flex-shrink-0 cursor-pointer transition-colors ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-base sm:text-lg flex-shrink-0 cursor-pointer transition-colors mx-auto ${
                       step >= s
                         ? 'bg-primary text-primary-foreground shadow-lg'
                         : 'bg-muted text-muted-foreground'
@@ -1660,26 +2161,29 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{ duration: 0.3 }}
+                        className="flex items-center justify-center"
                       >
                         <Check className="w-5 h-5 sm:w-6 sm:h-6" />
                       </motion.div>
                     ) : (
-                      <span className="text-sm sm:text-base">{s === 1 ? '🎯' : s === 2 ? '📅' : '✍️'}</span>
+                      <div className="flex items-center justify-center">
+                        {s === 1 ? <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" /> : s === 2 ? <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" /> : <UserCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
+                      </div>
                     )}
                   </motion.div>
-                  <div className={`mt-1.5 sm:mt-2 text-[10px] sm:text-xs md:text-sm text-center px-0.5 sm:px-1 max-w-full overflow-hidden ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
-                    <span className="block truncate">{t(`booking.step${s}`)}</span>
+                  <div className={`mt-2 sm:mt-2.5 text-[10px] sm:text-xs md:text-sm text-center w-full ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
+                    <span className="block whitespace-nowrap">{t(`booking.step${s}`)}</span>
                   </div>
-                </div>
+                </motion.div>
                 {s < 3 && (
                   <motion.div 
-                    className={`w-4 sm:w-8 md:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0 ${step > s ? 'bg-primary' : 'bg-muted'}`}
+                    className={`flex-1 h-0.5 mx-2 sm:mx-4 flex-shrink-0 max-w-[60px] sm:max-w-[80px] ${step > s ? 'bg-primary' : 'bg-muted'}`}
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: step > s ? 1 : 0 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
                   />
                 )}
-              </motion.div>
+              </React.Fragment>
             ))}
           </div>
         </motion.div>
@@ -1696,7 +2200,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
             >
               <Card className="p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-2xl">🎯</span>
+                  <Sparkles className="w-6 h-6" />
                   <h2 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('booking.step1')}</h2>
                 </div>
                 {services.length === 0 ? (
@@ -1773,7 +2277,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">📅</span>
+                    <CalendarIcon className="w-6 h-6" />
                     <h2 className="text-lg font-semibold">{t('booking.step2')}</h2>
                   </div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -1928,7 +2432,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                         transition={{ delay: index * 0.01, duration: 0.15 }}
                         whileHover={isAvailable && isCurrentMonth ? { scale: 1.05, y: -2 } : {}}
                         whileTap={isAvailable && isCurrentMonth ? { scale: 0.95 } : {}}
-                        className={`p-3 rounded-lg border-2 transition-all text-sm flex items-center justify-center ${
+                        className={`booking-picker-button p-3 rounded-lg border-2 transition-all text-sm flex items-center justify-center ${
                           isSelected && isCurrentMonth
                             ? 'border-primary bg-primary text-primary-foreground shadow-md'
                             : !isCurrentMonth
@@ -1946,63 +2450,6 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                   })}
                 </div>
                 
-                {/* Contact Message - Did not find your specific date */}
-                {(phone || whatsapp) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className={`mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                  >
-                    <div className={`text-sm text-blue-900 dark:text-blue-100 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      <p 
-                        className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}
-                        data-edit-id="contact-message"
-                        data-edit-type="text"
-                      >
-                        {settings.calendar?.contactMessage?.message || t('booking.didNotFindDate') || 'Did not find your specific date? Contact us and we will try our best to fit you in.'}
-                      </p>
-                      <div className={`flex flex-col gap-3 ${isRTL ? 'items-start' : 'items-start'}`}>
-                        {phone && (
-                          <motion.a
-                            href={`tel:${phone}`}
-                            className={`flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 font-medium underline transition-colors ${
-                              isRTL ? 'flex-row-reverse' : ''
-                            }`}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            dir="ltr"
-                          >
-                            <Phone className="w-4 h-4 flex-shrink-0" />
-                            <span>{phone}</span>
-                          </motion.a>
-                        )}
-                        {whatsapp && (
-                          <motion.a
-                            href={getWhatsAppLink(whatsapp)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 font-medium underline transition-colors ${
-                              isRTL ? 'flex-row-reverse' : ''
-                            }`}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            dir="ltr"
-                          >
-                            <img 
-                              src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
-                              alt="WhatsApp" 
-                              className="w-4 h-4 flex-shrink-0"
-                              style={{ width: '16px', height: '16px' }}
-                            />
-                            <span>{whatsapp}</span>
-                          </motion.a>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
               </div>
 
               {/* Time Selection */}
@@ -2090,7 +2537,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                           transition={{ delay: index * 0.02, duration: 0.2 }}
                           whileHover={isAvailable && (!isBooked || canJoinGroup) && !isGroupFull ? { scale: 1.05, y: -2 } : {}}
                           whileTap={isAvailable && (!isBooked || canJoinGroup) && !isGroupFull ? { scale: 0.95 } : {}}
-                          className={`p-3 rounded-lg border-2 text-sm transition-all relative ${
+                          className={`booking-picker-button p-3 rounded-lg border-2 text-sm transition-all relative ${
                             isSelected
                               ? 'border-primary bg-primary text-primary-foreground shadow-md'
                               : isGroupFull
@@ -2149,9 +2596,105 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                       animate={{ opacity: 1 }}
                       className="text-muted-foreground mt-4 text-center"
                     >
-                      😔 {t('booking.noAvailableSlots')}
+                      {isRTL ? (
+                        <>
+                          {t('booking.noAvailableSlots')} 😔
+                        </>
+                      ) : (
+                        <>
+                          😔 {t('booking.noAvailableSlots')}
+                        </>
+                      )}
                     </motion.p>
                   )}
+
+                </motion.div>
+              )}
+
+              {/* Contact Message - Did not find your specific date */}
+              {settings.calendar?.contactMessage?.enabled && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className={`mt-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                >
+                  <div className={`text-sm text-gray-900 dark:text-gray-100 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <div 
+                      className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}
+                      data-edit-id="contact-message"
+                      data-edit-type="text"
+                      dangerouslySetInnerHTML={{
+                        __html: settings.calendar?.contactMessage?.message || t('booking.didNotFindDate') || 'Did not find your specific date? Contact us and we will try our best to fit you in.'
+                      }}
+                    />
+                    <div className={`flex flex-col gap-3 ${isRTL ? 'items-start' : 'items-start'}`}>
+                      {settings.calendar?.contactMessage?.contacts
+                        ?.filter((contact: { id: string; type: 'phone' | 'whatsapp' | 'email'; value: string; visible: boolean }) => contact.visible && contact.value.trim())
+                        .map((contact: { id: string; type: 'phone' | 'whatsapp' | 'email'; value: string; visible: boolean }) => {
+                          if (contact.type === 'phone') {
+                            return (
+                              <motion.a
+                                key={contact.id}
+                                href={`tel:${contact.value}`}
+                                className={`flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 font-medium underline transition-colors ${
+                                  isRTL ? 'flex-row-reverse' : ''
+                                }`}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                dir="ltr"
+                              >
+                                <Phone className="w-4 h-4 flex-shrink-0" />
+                                <span>{contact.value}</span>
+                              </motion.a>
+                            );
+                          }
+                          if (contact.type === 'whatsapp') {
+                            return (
+                              <motion.a
+                                key={contact.id}
+                                href={getWhatsAppLink(contact.value)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex items-center gap-2 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 font-medium underline transition-colors ${
+                                  isRTL ? 'flex-row-reverse' : ''
+                                }`}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                dir="ltr"
+                              >
+                                <img 
+                                  src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
+                                  alt="WhatsApp" 
+                                  className="w-4 h-4 flex-shrink-0"
+                                  style={{ width: '16px', height: '16px' }}
+                                />
+                                <span>{contact.value}</span>
+                              </motion.a>
+                            );
+                          }
+                          if (contact.type === 'email') {
+                            return (
+                              <motion.a
+                                key={contact.id}
+                                href={`mailto:${contact.value}`}
+                                className={`flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 font-medium underline transition-colors ${
+                                  isRTL ? 'flex-row-reverse' : ''
+                                }`}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                dir="ltr"
+                              >
+                                <Mail className="w-4 h-4 flex-shrink-0" />
+                                <span>{contact.value}</span>
+                              </motion.a>
+                            );
+                          }
+                          return null;
+                        })}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </Card>
@@ -2173,7 +2716,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">✍️</span>
+                    <UserCircle className="w-6 h-6" />
                     <h2 className="text-lg font-semibold">{t('booking.step3')}</h2>
                   </div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -2251,7 +2794,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
 
               {/* Customer Information Form */}
               <div className="space-y-4">
-                {isLoggedIn && currentUser ? (
+                {effectiveIsLoggedIn && effectiveCurrentUser ? (
                   // Show user info as read-only when logged in
                   <>
                     <motion.div
@@ -2266,18 +2809,20 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                       </div>
                       <p className={`text-base ${isRTL ? 'text-right' : 'text-left'}`}>{customerInfo.name}</p>
                     </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="p-4 bg-muted rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span>📧</span>
-                        <span className="text-sm font-medium">{t('booking.email')}</span>
-                      </div>
-                      <p className={`text-base ${isRTL ? 'text-right' : 'text-left'}`} dir="ltr">{customerInfo.email}</p>
-                    </motion.div>
+                    {customerInfo.email && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="p-4 bg-muted rounded-lg"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span>📧</span>
+                          <span className="text-sm font-medium">{t('booking.email')}</span>
+                        </div>
+                        <p className={`text-base ${isRTL ? 'text-right' : 'text-left'}`} dir="ltr">{customerInfo.email}</p>
+                      </motion.div>
+                    )}
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -2319,7 +2864,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                     >
                       <Label htmlFor="email" className={`flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                         <span>📧</span>
-                        {t('booking.email')} *
+                        {t('booking.email')}
                       </Label>
                       <Input
                         id="email"
@@ -2368,8 +2913,8 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                 >
                   <Button
                     onClick={handleBookAppointment}
-                    disabled={isBooking || (isLoggedIn ? false : (!customerInfo.name || !customerInfo.email || !customerInfo.phone))}
-                    className="w-full relative overflow-hidden"
+                    disabled={isBooking || (effectiveIsLoggedIn ? false : (!customerInfo.name || !customerInfo.phone))}
+                    className="w-full relative overflow-hidden booking-confirm-button"
                     size="lg"
                   >
                     {isBooking ? (
@@ -2581,7 +3126,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                         setConfirmedAppointment(null);
                       }}
                       variant="default"
-                      className="w-full sm:w-auto"
+                      className="thank-you-button w-full sm:w-auto"
                     >
                       <span className="flex items-center gap-2">
                         <span>🔄</span>
@@ -2602,7 +3147,7 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
                         }
                       }}
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="thank-you-button w-full sm:w-auto"
                     >
                       <span className="flex items-center gap-2">
                         <span>🏠</span>
@@ -2631,6 +3176,8 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="mt-12 pb-8 border-t pt-8"
+              data-edit-id="social-links"
+              data-edit-type="links"
             >
               <p className="text-center mb-4 text-sm text-muted-foreground">
                 {t('booking.followUsOnSocial')}
@@ -2733,20 +3280,20 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
 
         {/* Cancel Appointment Confirmation Dialog */}
         <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-          <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('booking.cancelAppointment') || 'Cancel Appointment'}</AlertDialogTitle>
-              <AlertDialogDescription>
+          <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
+            <AlertDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+              <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('booking.cancelAppointment') || 'Cancel Appointment'}</AlertDialogTitle>
+              <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
                 {t('booking.confirmCancel') || 'Are you sure you want to cancel this appointment? This action cannot be undone.'}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+            <AlertDialogFooter className={`flex-col-reverse sm:flex-row ${isRTL ? 'sm:flex-row-reverse' : ''} justify-center sm:justify-end gap-2`}>
               <AlertDialogCancel onClick={() => setShowCancelDialog(false)}>
                 {t('common.cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmCancelAppointment}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="cancel-appointment-button"
               >
                 {t('booking.cancelAppointment') || 'Cancel Appointment'}
               </AlertDialogAction>
@@ -2965,14 +3512,145 @@ function BookingPageContent({ editMode = false }: BookingPageContentProps = {}) 
           }}
           registrationSettings={settings.registration}
         />
-      </main>
-    </div>
+      </>
+    );
+  };
+
+  // Extract dialogs
+  const rescheduleDialog = reschedulingAppointment ? (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={() => setReschedulingAppointment(null)}
+    >
+      {/* Reschedule dialog content - we'll extract this from the old structure */}
+      {/* For now, this is a placeholder - we need to extract the full reschedule dialog */}
+    </motion.div>
+  ) : null;
+
+  const loginDialog = (
+    <LoginRegisterDialog
+      open={showLoginDialog}
+      onClose={() => setShowLoginDialog(false)}
+      onSuccess={(userData) => {
+        setIsLoggedIn(true);
+        setCurrentUser(userData);
+        setCustomerInfo({
+          name: userData.name || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+        });
+        
+        // Save session to localStorage with 14-day expiration
+        const expirationTime = new Date().getTime() + (14 * 24 * 60 * 60 * 1000);
+        const session = {
+          user: userData,
+          expirationTime: expirationTime
+        };
+        localStorage.setItem('userSession', JSON.stringify(session));
+        
+        setShowLoginDialog(false);
+      }}
+      registrationSettings={settings.registration}
+    />
+  );
+
+  // Render main content once (appointments + booking section, without guestMessage)
+  const mainContent = renderMainContent();
+
+  // Render based on layout type
+  if (layoutType === 'classic') {
+    return (
+      <ClassicLayout
+        header={header}
+        trialBanner={trialBanner}
+        bannerCover={bannerCover}
+        businessInfo={businessInfo}
+        guestMessage={guestMessage}
+        mainContent={mainContent}
+        rescheduleDialog={rescheduleDialog}
+        loginDialog={loginDialog}
+      />
+    );
+  } else if (layoutType === 'sidebar') {
+    return (
+      <SidebarLayout
+        header={header}
+        trialBanner={trialBanner}
+        bannerCover={bannerCover}
+        businessInfo={businessInfo}
+        guestMessage={guestMessage}
+        mainContent={mainContent}
+        rescheduleDialog={rescheduleDialog}
+        loginDialog={loginDialog}
+      />
+    );
+  } else if (layoutType === 'hero') {
+    return (
+      <HeroLayout
+        header={header}
+        trialBanner={trialBanner}
+        bannerCover={bannerCover}
+        businessInfo={businessInfo}
+        guestMessage={guestMessage}
+        mainContent={mainContent}
+        rescheduleDialog={rescheduleDialog}
+        loginDialog={loginDialog}
+        businessName={businessName}
+        logoUrl={logoUrl}
+        logoShape={logoShape}
+      />
+    );
+  }
+
+  // Default to classic
+  return (
+    <ClassicLayout
+      header={header}
+      trialBanner={trialBanner}
+      bannerCover={bannerCover}
+      businessInfo={businessInfo}
+      guestMessage={guestMessage}
+      mainContent={mainContent}
+      rescheduleDialog={rescheduleDialog}
+      loginDialog={loginDialog}
+    />
   );
 }
 
 function BookingPageFallback() {
   const { dir } = useDirection();
   const { t } = useLocale();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const [themeColor, setThemeColor] = useState<string>('#0EA5E9');
+  
+  // Get slug from route params or query params
+  const slug = (params?.slug as string) || searchParams.get('slug') || searchParams.get('ui') || null;
+  
+  // Fetch settings to get theme color
+  useEffect(() => {
+    if (slug) {
+      const fetchSettings = async () => {
+        try {
+          const response = await fetch(`/api/settings?businessSlug=${slug}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.settings?.branding?.themeColor) {
+              setThemeColor(data.settings.branding.themeColor);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching settings for fallback:', error);
+        }
+      };
+      fetchSettings();
+    }
+  }, [slug]);
+  
+  const rgb = hexToRgb(themeColor);
   
   return (
     <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in" data-booking-page="true">
@@ -2983,9 +3661,9 @@ function BookingPageFallback() {
         </div>
         {/* Modern animated spinner with smooth gradient */}
         <div className="relative mx-auto w-16 h-16">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin" style={{ animationDuration: '0.8s' }}></div>
-          <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-primary/40 border-l-primary/40 animate-spin" style={{ animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
+          <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` }}></div>
+          <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: themeColor, borderRightColor: themeColor, animationDuration: '0.8s' }}></div>
+          <div className="absolute inset-2 rounded-full border-4 border-transparent animate-spin" style={{ borderBottomColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, borderLeftColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
         </div>
         {/* Friendly loading message with pulse animation */}
         <div className="space-y-2">
@@ -2994,9 +3672,9 @@ function BookingPageFallback() {
           </p>
           {/* Subtle dots animation */}
           <div className="flex justify-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0s', animationDuration: '1.4s' }}></div>
-            <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
-            <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0s', animationDuration: '1.4s' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
+            <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
           </div>
         </div>
       </div>

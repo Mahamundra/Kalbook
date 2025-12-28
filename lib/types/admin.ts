@@ -88,7 +88,10 @@ export interface BusinessProfile {
 
 export interface Branding {
   logoUrl?: string;
+  logoShape?: 'circle' | 'square';
   themeColor: string;
+  textColor?: 'white' | 'black';
+  layout?: 'classic' | 'sidebar' | 'hero';
   bannerCover?: {
     type: 'upload' | 'pattern';
     uploadUrl?: string;
@@ -147,8 +150,12 @@ export interface CalendarSettings {
   contactMessage?: {
     enabled: boolean;
     message: string;
-    showPhone: boolean;
-    showWhatsApp: boolean;
+    contacts?: Array<{
+      id: string;
+      type: 'phone' | 'whatsapp' | 'email';
+      value: string;
+      visible: boolean;
+    }>;
   };
   reschedule?: {
     allowCustomerReschedule: boolean; // Whether customers can reschedule appointments

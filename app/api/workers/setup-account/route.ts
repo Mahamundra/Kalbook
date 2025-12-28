@@ -6,6 +6,9 @@ import { signCookie } from '@/lib/auth/cookie-sign';
 import type { Database } from '@/lib/supabase/database.types';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
+type WorkerUpdate = Database['public']['Tables']['workers']['Update'];
+type UserUpdate = Database['public']['Tables']['users']['Update'];
+type UserInsert = Database['public']['Tables']['users']['Insert'];
 
 /**
  * POST /api/workers/setup-account
@@ -57,14 +60,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Update worker with name, phone number, and set to active (registration complete)
-    const { error: updateError } = await supabase
-      .from('workers')
-      .update({
-        name: name.trim(),
-        phone: e164Phone,
-        active: true, // Set to active after registration
-        updated_at: new Date().toISOString(),
-      } as any)
+    const updateData: WorkerUpdate = {
+      name: name.trim(),
+      phone: e164Phone,
+      active: true, // Set to active after registration
+      updated_at: new Date().toISOString(),
+    };
+    const { error: updateError } = await (supabase
+      .from('workers') as any)
+      .update(updateData)
       .eq('id', worker.id);
 
     if (updateError) {
@@ -90,16 +94,17 @@ export async function POST(request: NextRequest) {
       // User already exists - update it
       userId = existingUser.id;
 
-      const { error: updateUserError } = await supabase
-        .from('users')
-        .update({
-          name: worker.name,
-          email: worker.email || existingUser.email,
-          phone: e164Phone,
-          role: 'admin', // Workers with accounts are admins
-          is_main_admin: false,
-          updated_at: new Date().toISOString(),
-        } as any)
+      const userUpdateData = {
+        name: worker.name,
+        email: worker.email || existingUser.email,
+        phone: e164Phone,
+        role: 'admin', // Workers with accounts are admins
+        is_main_admin: false,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: updateUserError } = await (supabase
+        .from('users') as any)
+        .update(userUpdateData)
         .eq('id', userId);
 
       if (updateUserError) {
@@ -119,17 +124,18 @@ export async function POST(request: NextRequest) {
             return v.toString(16);
           });
 
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          business_id: worker.business_id,
-          email: worker.email || null,
-          phone: e164Phone,
-          name: worker.name,
-          role: 'admin', // Workers with accounts are admins
-          is_main_admin: false,
-        } as any);
+      const userInsertData = {
+        id: userId,
+        business_id: worker.business_id,
+        email: worker.email || null,
+        phone: e164Phone,
+        name: worker.name,
+        role: 'admin', // Workers with accounts are admins
+        is_main_admin: false,
+      };
+      const { error: userError } = await (supabase
+        .from('users') as any)
+        .insert(userInsertData);
 
       if (userError) {
         return NextResponse.json(

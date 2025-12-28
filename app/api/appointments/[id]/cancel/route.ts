@@ -16,7 +16,21 @@ export async function POST(
 ) {
   try {
     const appointmentId = params.id;
-    const body = await request.json();
+    
+    // Parse body if it exists (optional for cancel requests)
+    let body: any = {};
+    try {
+      const contentType = request.headers.get('content-type');
+      const contentLength = request.headers.get('content-length');
+      
+      // Only try to parse if we have content
+      if (contentType?.includes('application/json') && contentLength && parseInt(contentLength) > 0) {
+        body = await request.json();
+      }
+    } catch (parseError) {
+      // Body is optional, continue without it
+      console.log('No body provided for cancel request, using defaults');
+    }
 
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
@@ -153,8 +167,12 @@ export async function POST(
       message: 'Appointment cancelled successfully',
     });
   } catch (error: any) {
+    console.error('Error cancelling appointment:', error);
     return NextResponse.json(
-      { error: 'Failed to cancel appointment' },
+      { 
+        error: error.message || 'Failed to cancel appointment',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

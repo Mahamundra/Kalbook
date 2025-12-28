@@ -148,22 +148,25 @@ export default function TermsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
                       align={isRTL ? "end" : "end"} 
-                      className={isRTL ? "text-right [&>*]:text-right" : ""}
-                      style={isRTL ? { direction: 'rtl' } : { direction: 'ltr' }}
+                      className={`${isRTL ? "text-right [&>*]:text-right" : ""} w-[var(--radix-dropdown-menu-trigger-width)]`}
+                      style={{
+                        direction: isRTL ? 'rtl' : 'ltr',
+                        width: 'var(--radix-dropdown-menu-trigger-width)',
+                      }}
                     >
                       <div className="px-2 py-1.5">
                         <p className="text-sm font-medium">{user.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleGoToDashboard} className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <DropdownMenuItem onClick={handleGoToDashboard} className={`cursor-pointer hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row justify-end' : ''}`}>
                         <LayoutDashboard className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                        {t('userDashboard.title') || 'My Account'}
+                        <span className={isRTL ? 'text-right' : ''}>{t('userDashboard.title') || 'My Account'}</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <DropdownMenuItem onClick={handleLogout} className={`cursor-pointer text-[#030408] hover:bg-[#030408] hover:text-white focus:bg-[#030408] focus:text-white ${isRTL ? 'flex-row justify-end' : ''}`}>
                         <LogOut className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                        {t('userDashboard.logout') || 'Logout'}
+                        <span className={isRTL ? 'text-right' : ''}>{t('userDashboard.logout') || 'Logout'}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

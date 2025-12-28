@@ -5,15 +5,17 @@ import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useDirection } from '@/components/providers/DirectionProvider';
 
 interface EditOverlayProps {
   elementId: string;
-  elementType: 'text' | 'image';
+  elementType: 'text' | 'image' | 'color' | 'links' | 'settings';
   onEdit: () => void;
   className?: string;
 }
 
 export function EditOverlay({ elementId, elementType, onEdit, className }: EditOverlayProps) {
+  const { dir } = useDirection();
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -24,12 +26,15 @@ export function EditOverlay({ elementId, elementType, onEdit, className }: EditO
       const element = document.querySelector(`[data-edit-id="${elementId}"]`);
       if (element) {
         const rect = element.getBoundingClientRect();
+        const buttonSize = 32; // h-8 w-8 = 32px
+        const offset = 4; // Small gap from the corner
         
-        // Use getBoundingClientRect which gives viewport-relative position
-        // Then we use fixed positioning to keep it relative to viewport
+        // Position at top-left corner: 
+        // Button top edge aligns with element's top edge (or slightly above)
+        // Button left edge aligns with element's left edge (or slightly outside)
         setPosition({
-          top: rect.top + rect.height / 2, // Center vertically relative to viewport
-          left: rect.right + 8, // Right side with small gap, relative to viewport
+          top: rect.top - offset, // Button top edge at element's top edge minus small gap
+          left: rect.left - offset, // Button left edge at element's left edge minus small gap
         });
         setIsVisible(true);
       } else {
@@ -65,7 +70,7 @@ export function EditOverlay({ elementId, elementType, onEdit, className }: EditO
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
     };
-  }, [elementId]);
+  }, [elementId, dir]);
 
   if (!position || !isVisible) return null;
 
@@ -73,13 +78,13 @@ export function EditOverlay({ elementId, elementType, onEdit, className }: EditO
     <div
       ref={overlayRef}
       className={cn(
-        "fixed z-[10000] pointer-events-auto",
+        "fixed pointer-events-auto",
         className
       )}
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
-        transform: 'translateY(-50%)',
+        zIndex: 10001, // Higher than header (z-50) and HomepageEditor (z-[9999])
       }}
     >
       <Button
@@ -88,15 +93,12 @@ export function EditOverlay({ elementId, elementType, onEdit, className }: EditO
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
-          // Small delay to ensure click event is processed
-          setTimeout(() => {
-            onEdit();
-          }, 0);
+          onEdit();
         }}
-        className="h-8 w-8 p-0 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110"
+        className="h-8 w-8 p-0 rounded-full shadow-lg transition-all hover:scale-110 bg-black/50 hover:bg-black"
         title="Edit"
       >
-        <Pencil className="w-4 h-4" />
+        <Pencil className="w-4 h-4 text-white" />
       </Button>
     </div>
   );

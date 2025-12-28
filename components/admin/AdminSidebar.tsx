@@ -115,7 +115,7 @@ export const AdminSidebar = () => {
   return (
     <Sidebar side={isRTL ? "right" : "left"}>
       <SidebarHeader className="p-6 border-b">
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           {logoUrl && mounted && (
             <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center">
               <img
@@ -127,7 +127,7 @@ export const AdminSidebar = () => {
           )}
           <div className="flex-1 min-w-0">
             {mounted && businessName ? (
-              <p className="text-base font-bold truncate">{businessName}</p>
+              <p className="text-base font-bold break-words">{businessName}</p>
             ) : !mounted ? (
               <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
             ) : null}

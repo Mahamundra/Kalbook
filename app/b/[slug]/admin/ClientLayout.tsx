@@ -200,8 +200,11 @@ export default function BusinessAdminClientLayout({ children }: { children: Reac
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
                       align={isRTL ? "end" : "end"} 
-                      className={isRTL ? "text-right [&>*]:text-right" : ""}
-                      style={isRTL ? { direction: 'rtl' } : { direction: 'ltr' }}
+                      className={`${isRTL ? "text-right [&>*]:text-right" : ""} w-[var(--radix-dropdown-menu-trigger-width)]`}
+                      style={{
+                        direction: isRTL ? 'rtl' : 'ltr',
+                        width: 'var(--radix-dropdown-menu-trigger-width)',
+                      }}
                     >
                       <div className="px-2 py-1.5">
                         <p className="text-sm font-medium">{user.name}</p>

@@ -113,3 +113,5 @@ export function getAppointmentIdFromFullCalendarEvent(event: EventInput): string
   return event.extendedProps?.appointmentId as string | undefined;
 }
 
+
+

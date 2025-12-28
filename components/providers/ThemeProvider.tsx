@@ -83,6 +83,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           root.style.removeProperty('--booking-primary-foreground');
           root.style.removeProperty('--booking-primary-glow');
           root.style.removeProperty('--booking-ring');
+          root.style.removeProperty('--booking-text-color');
           return;
         }
         
@@ -95,8 +96,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           const response = await fetch(`/api/settings?businessSlug=${slug}`);
           if (response.ok) {
             const data = await response.json();
-            if (data.success && data.settings?.branding?.themeColor) {
-              applyThemeColor(data.settings.branding.themeColor);
+            if (data.success && data.settings?.branding) {
+              if (data.settings.branding.themeColor) {
+                applyThemeColor(data.settings.branding.themeColor);
+              }
+              // Apply text color
+              const root = document.documentElement;
+              if (data.settings.branding.textColor === 'white') {
+                root.style.setProperty('--booking-text-color', '0 0% 100%');
+              } else if (data.settings.branding.textColor === 'black') {
+                root.style.setProperty('--booking-text-color', '0 0% 0%');
+              }
               return;
             }
           }
@@ -109,8 +119,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           const response = await fetch(`/api/settings?businessSlug=${businessSlug}`);
           if (response.ok) {
             const data = await response.json();
-            if (data.success && data.settings?.branding?.themeColor) {
-              applyThemeColor(data.settings.branding.themeColor);
+            if (data.success && data.settings?.branding) {
+              if (data.settings.branding.themeColor) {
+                applyThemeColor(data.settings.branding.themeColor);
+              }
+              // Apply text color
+              const root = document.documentElement;
+              if (data.settings.branding.textColor === 'white') {
+                root.style.setProperty('--booking-text-color', '0 0% 100%');
+              } else if (data.settings.branding.textColor === 'black') {
+                root.style.setProperty('--booking-text-color', '0 0% 0%');
+              }
               return;
             }
           }

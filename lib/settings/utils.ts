@@ -11,7 +11,7 @@ type SettingsRow = Database['public']['Tables']['settings']['Row'];
 /**
  * Deep merge two objects
  */
-function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const output = { ...target };
 
   for (const key in source) {
@@ -28,7 +28,10 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
 /**
  * Map business row to BusinessProfile
  */
-function mapBusinessToProfile(business: BusinessRow): BusinessProfile {
+function mapBusinessToProfile(business: BusinessRow, settings: SettingsRow | null): BusinessProfile {
+  // Social links are stored in the branding JSONB column
+  const socialLinks = settings?.branding?.socialLinks || {};
+  
   return {
     name: business.name,
     email: business.email || '',
@@ -37,9 +40,7 @@ function mapBusinessToProfile(business: BusinessRow): BusinessProfile {
     address: business.address || '',
     timezone: business.timezone,
     currency: business.currency,
-    // Social links would need to be stored separately or in a JSONB column
-    // For now, we'll return empty object
-    socialLinks: {},
+    socialLinks: socialLinks as any,
   };
 }
 
@@ -50,7 +51,7 @@ export function mapSettingsToInterface(
   business: BusinessRow,
   settings: SettingsRow | null
 ): Settings {
-  const businessProfile = mapBusinessToProfile(business);
+  const businessProfile = mapBusinessToProfile(business, settings);
 
   // Default settings structure
   const defaultSettings: Settings = {
@@ -121,12 +122,24 @@ export function prepareSettingsUpdate(
     if (profile.address !== undefined) businessUpdate.address = profile.address;
     if (profile.timezone !== undefined) businessUpdate.timezone = profile.timezone;
     if (profile.currency !== undefined) businessUpdate.currency = profile.currency;
-    // Note: socialLinks would need to be stored in a JSONB column or separate table
+    
+    // Store socialLinks in branding JSONB column
+    if (profile.socialLinks !== undefined) {
+      if (!settingsDbUpdate.branding) {
+        settingsDbUpdate.branding = {};
+      }
+      (settingsDbUpdate.branding as any).socialLinks = profile.socialLinks;
+    }
   }
 
   // Extract other settings to settings table JSONB columns
   if (settingsUpdate.branding !== undefined) {
-    settingsDbUpdate.branding = settingsUpdate.branding as any;
+    // Merge branding updates (including socialLinks if already set above)
+    if (settingsDbUpdate.branding) {
+      settingsDbUpdate.branding = deepMerge(settingsDbUpdate.branding as any, settingsUpdate.branding as any) as any;
+    } else {
+      settingsDbUpdate.branding = settingsUpdate.branding as any;
+    }
   }
 
   if (settingsUpdate.locale !== undefined) {

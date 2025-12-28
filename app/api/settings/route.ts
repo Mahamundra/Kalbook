@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
-import { mapSettingsToInterface, prepareSettingsUpdate, mergeSettingsUpdate } from '@/lib/settings/utils';
-import type { Settings } from '@/types/admin';
+import { mapSettingsToInterface, prepareSettingsUpdate, mergeSettingsUpdate, deepMerge } from '@/lib/settings/utils';
+import type { Settings } from '@/lib/types/admin';
 import type { Database } from '@/lib/supabase/database.types';
 
 type BusinessRow = Database['public']['Tables']['businesses']['Row'];
@@ -79,8 +79,9 @@ export async function GET(request: NextRequest) {
       businessType: business.business_type,
     });
   } catch (error: any) {
+    console.error('Settings API GET error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch settings' },
+      { error: error?.message || 'Failed to fetch settings', details: error?.stack },
       { status: 500 }
     );
   }
@@ -195,21 +196,31 @@ export async function PATCH(request: NextRequest) {
       if (currentSettings && currentSettings !== null) {
         // Update existing settings with deep merge for JSONB columns
         const mergedSettings: any = {
-          branding: currentSettings.branding
-            ? { ...currentSettings.branding, ...settingsUpdate.branding }
-            : settingsUpdate.branding,
-          locale: currentSettings.locale
-            ? { ...currentSettings.locale, ...settingsUpdate.locale }
-            : settingsUpdate.locale,
-          notifications: currentSettings.notifications
-            ? { ...currentSettings.notifications, ...settingsUpdate.notifications }
-            : settingsUpdate.notifications,
-          calendar: currentSettings.calendar
-            ? { ...currentSettings.calendar, ...settingsUpdate.calendar }
-            : settingsUpdate.calendar,
-          registration: currentSettings.registration
-            ? { ...currentSettings.registration, ...settingsUpdate.registration }
-            : settingsUpdate.registration,
+          branding: settingsUpdate.branding !== undefined
+            ? (currentSettings.branding && typeof currentSettings.branding === 'object' && !Array.isArray(currentSettings.branding)
+                ? deepMerge(currentSettings.branding, settingsUpdate.branding)
+                : settingsUpdate.branding)
+            : undefined,
+          locale: settingsUpdate.locale !== undefined
+            ? (currentSettings.locale && typeof currentSettings.locale === 'object' && !Array.isArray(currentSettings.locale)
+                ? deepMerge(currentSettings.locale, settingsUpdate.locale)
+                : settingsUpdate.locale)
+            : undefined,
+          notifications: settingsUpdate.notifications !== undefined
+            ? (currentSettings.notifications && typeof currentSettings.notifications === 'object' && !Array.isArray(currentSettings.notifications)
+                ? deepMerge(currentSettings.notifications, settingsUpdate.notifications)
+                : settingsUpdate.notifications)
+            : undefined,
+          calendar: settingsUpdate.calendar !== undefined
+            ? (currentSettings.calendar && typeof currentSettings.calendar === 'object' && !Array.isArray(currentSettings.calendar)
+                ? deepMerge(currentSettings.calendar, settingsUpdate.calendar)
+                : settingsUpdate.calendar)
+            : undefined,
+          registration: settingsUpdate.registration !== undefined
+            ? (currentSettings.registration && typeof currentSettings.registration === 'object' && !Array.isArray(currentSettings.registration)
+                ? deepMerge(currentSettings.registration || {}, settingsUpdate.registration)
+                : settingsUpdate.registration)
+            : undefined,
         };
 
         // Remove undefined values

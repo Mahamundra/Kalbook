@@ -67,7 +67,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2, Mail, Send, RefreshCw, Edit } from 'lucide-react';
+import { Save, Globe, Upload, X, Calendar, Clock, Plus, Image, MessageSquare, Trash2, Check, Video, Building2, Palette, Bell, Link2, CheckCircle2, Loader2, Mail, Send, RefreshCw, Edit, AlertCircle, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -81,8 +81,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { BusinessProfile } from '@/types/admin';
 import { HomepageEditor } from './HomepageEditor';
+import type { Settings } from '@/types/admin';
+import { validateEmail, validatePhone, validateUrl, validateTime, validateWorkingHours, validateHexColor } from '@/lib/validation/settings';
 
 // Banner Image Preview Component with Video Support
 function BannerImagePreview({ 
@@ -243,6 +262,13 @@ const Settings = () => {
   );
   const [templateSubject, setTemplateSubject] = useState(selectedTemplate?.subject || '');
   const [templateBody, setTemplateBody] = useState(selectedTemplate?.body || '');
+  
+  // UX Improvements: Unsaved changes tracking
+  const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showRemoveLogoDialog, setShowRemoveLogoDialog] = useState(false);
+  const [showRemoveBannerDialog, setShowRemoveBannerDialog] = useState(false);
+  const [showRemoveVideoDialog, setShowRemoveVideoDialog] = useState(false);
 
   // Update template subject/body when selected template changes
   useEffect(() => {
@@ -390,6 +416,31 @@ const Settings = () => {
     }
   };
 
+  // Convert E.164 format (+972540000000) to display format (050-000-0000)
+  const formatPhoneForDisplay = (phone: string): string => {
+    if (!phone) return '';
+    
+    // Remove all non-digit characters
+    let digits = phone.replace(/\D/g, '');
+    
+    // If it starts with country code (972 for Israel), remove it and add leading 0
+    if (digits.startsWith('972') && digits.length > 10) {
+      digits = '0' + digits.substring(3);
+    }
+    
+    // Limit to 10 digits and format
+    const limited = digits.slice(-10); // Take last 10 digits
+    
+    // Format as XXX-XXX-XXXX
+    if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+    } else {
+      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+    }
+  };
+
   // Note: Theme color is only applied to booking pages via ThemeProvider
   // Admin panel keeps the default homepage primary color
 
@@ -399,6 +450,9 @@ const Settings = () => {
     const loadSettings = async () => {
       try {
         setLoading(true);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'components/pages/admin/Settings.tsx:398',message:'loadSettings:start',data:{businessSlug},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         const loadedSettings = await getSettings();
         
         // Ensure businessProfile has defaults if missing
@@ -426,11 +480,12 @@ const Settings = () => {
           loadedSettings.businessProfile.currency = 'ILS';
           
           // Format phone numbers to XXX-XXX-XXXX format (10 digits with dashes)
+          // Use formatPhoneForDisplay to handle E.164 format from database
           if (loadedSettings.businessProfile.phone) {
-            loadedSettings.businessProfile.phone = formatPhoneNumber(loadedSettings.businessProfile.phone);
+            loadedSettings.businessProfile.phone = formatPhoneForDisplay(loadedSettings.businessProfile.phone);
           }
           if (loadedSettings.businessProfile.whatsapp) {
-            loadedSettings.businessProfile.whatsapp = formatPhoneNumber(loadedSettings.businessProfile.whatsapp);
+            loadedSettings.businessProfile.whatsapp = formatPhoneForDisplay(loadedSettings.businessProfile.whatsapp);
           }
           
           // Ensure socialLinks exists
@@ -523,6 +578,11 @@ const Settings = () => {
         }
         
         setSettings(loadedSettings);
+        // Store original settings for change tracking
+        setOriginalSettings(JSON.parse(JSON.stringify(loadedSettings)));
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'components/pages/admin/Settings.tsx:525',message:'loadSettings:success',data:{hasBusinessProfile:!!loadedSettings.businessProfile,hasBranding:!!loadedSettings.branding,hasCalendar:!!loadedSettings.calendar,hasNotifications:!!loadedSettings.notifications,hasLocale:!!loadedSettings.locale,workingDays:loadedSettings.calendar?.workingDays?.length ?? 0},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
       } catch (error: any) {
         console.error('Failed to load settings:', error);
         toast.error('Failed to load settings');
@@ -571,6 +631,9 @@ const Settings = () => {
             defaultGender: '',
           },
         });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'components/pages/admin/Settings.tsx:529',message:'loadSettings:error',data:{error: error?.message || 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
       } finally {
         setLoading(false);
       }
@@ -596,15 +659,167 @@ const Settings = () => {
       if (templatesData.success) {
         setCanManageTemplates(templatesData.canPerform);
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H3',location:'components/pages/admin/Settings.tsx:597',message:'featureCheck:results',data:{branding:brandingData?.canPerform,whatsapp:whatsappData?.canPerform,language:languageData?.canPerform,templates:templatesData?.canPerform},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     }).catch(error => {
       console.error('Error checking features:', error);
       // Default to true if check fails to avoid blocking unnecessarily
     });
   }, []);
 
+  // UX Improvement: Detect unsaved changes
+  const hasUnsavedChanges = (): boolean => {
+    if (!originalSettings || !settings) return false;
+    return JSON.stringify(settings) !== JSON.stringify(originalSettings);
+  };
+
+  // UX Improvement: Detect changes per tab
+  const getTabChanges = (tab: string): number => {
+    if (!originalSettings || !settings) return 0;
+    let changes = 0;
+    
+    switch (tab) {
+      case 'business':
+        if (JSON.stringify(settings.businessProfile) !== JSON.stringify(originalSettings.businessProfile)) {
+          changes++;
+        }
+        break;
+      case 'calendar':
+        if (JSON.stringify(settings.calendar) !== JSON.stringify(originalSettings.calendar)) {
+          changes++;
+        }
+        break;
+      case 'notifications':
+        if (JSON.stringify(settings.notifications) !== JSON.stringify(originalSettings.notifications)) {
+          changes++;
+        }
+        break;
+      case 'templates':
+        // Templates are managed separately, no change tracking needed
+        break;
+      case 'integrations':
+        // Integrations are managed separately, no change tracking needed
+        break;
+    }
+    
+    return changes;
+  };
+
+  // UX Improvement: Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [settings, originalSettings]);
+
+  // UX Improvement: Keyboard shortcut (Ctrl/Cmd + S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (hasUnsavedChanges() && !saving) {
+          handleSave();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [settings, originalSettings, saving]);
+
+  // UX Improvement: Validate field on change
+  const validateField = (field: string, value: string) => {
+    let error: string | undefined;
+    
+    switch (field) {
+      case 'email':
+        const emailResult = validateEmail(value);
+        if (!emailResult.isValid) error = emailResult.error;
+        break;
+      case 'phone':
+      case 'whatsapp':
+        const phoneResult = validatePhone(value);
+        if (!phoneResult.isValid) error = phoneResult.error;
+        break;
+      case 'senderEmail':
+        const senderEmailResult = validateEmail(value);
+        if (!senderEmailResult.isValid) error = senderEmailResult.error;
+        break;
+      case 'workingHoursStart':
+      case 'workingHoursEnd':
+      case 'defaultTime':
+        const timeResult = validateTime(value);
+        if (!timeResult.isValid) error = timeResult.error;
+        break;
+      case 'themeColor':
+        const colorResult = validateHexColor(value);
+        if (!colorResult.isValid) error = colorResult.error;
+        break;
+    }
+    
+    if (error) {
+      setFieldErrors(prev => ({ ...prev, [field]: error! }));
+    } else {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
   const handleSave = async () => {
+    // UX Improvement: Validate critical fields before saving
+    const criticalErrors: string[] = [];
+    
+    // Validate email if provided
+    if (settings.businessProfile.email) {
+      const emailResult = validateEmail(settings.businessProfile.email);
+      if (!emailResult.isValid) {
+        criticalErrors.push('Business email');
+        setFieldErrors(prev => ({ ...prev, email: emailResult.error! }));
+      }
+    }
+    
+    // Validate sender email if provided
+    if (settings.notifications.senderEmail) {
+      const senderEmailResult = validateEmail(settings.notifications.senderEmail);
+      if (!senderEmailResult.isValid) {
+        criticalErrors.push('Sender email');
+        setFieldErrors(prev => ({ ...prev, senderEmail: senderEmailResult.error! }));
+      }
+    }
+    
+    // Validate working hours
+    if (settings.calendar.workingHours) {
+      const hoursResult = validateWorkingHours(
+        settings.calendar.workingHours.start,
+        settings.calendar.workingHours.end
+      );
+      if (!hoursResult.isValid) {
+        criticalErrors.push('Working hours');
+        setFieldErrors(prev => ({ ...prev, workingHours: hoursResult.error! }));
+      }
+    }
+    
+    if (criticalErrors.length > 0) {
+      toast.error(`Please fix errors in: ${criticalErrors.join(', ')}`);
+      return;
+    }
+
     try {
       setSaving(true);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2',location:'components/pages/admin/Settings.tsx:607',message:'handleSave:start',data:{hasLogo:!!settings.branding?.logoUrl,bannerType:settings.branding?.bannerCover?.type,workingDays:settings.calendar?.workingDays?.length ?? 0,remindersEnabled:settings.notifications?.reminders?.enabled ?? null,language:settings.locale?.language},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       // Ensure timezone and currency are always set to Israel/ILS
       const settingsToSave = {
         ...settings,
@@ -615,18 +830,44 @@ const Settings = () => {
         },
       };
       await updateSettings(settingsToSave);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2',location:'components/pages/admin/Settings.tsx:618',message:'handleSave:success',data:{hasLogo:!!settingsToSave.branding?.logoUrl,bannerType:settingsToSave.branding?.bannerCover?.type,workingDays:settingsToSave.calendar?.workingDays?.length ?? 0},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setLastSaved(new Date());
+      // UX Improvement: Update original settings after successful save
+      setOriginalSettings(JSON.parse(JSON.stringify(settingsToSave)));
+      // Clear field errors on successful save
+      setFieldErrors({});
       // Refresh preview to show changes (with a small delay to ensure settings are saved)
       setTimeout(() => {
         refreshPreview();
       }, 500);
-      toast.success(t('settings.savedSuccessfully') || 'Settings saved successfully');
+      toast.success(t('settings.savedSuccessfully') || 'Settings saved successfully', {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            // Restore previous settings
+            if (originalSettings) {
+              setSettings(originalSettings);
+              toast.info('Changes reverted');
+            }
+          },
+        },
+      });
       // Trigger a custom event to notify other components of settings change
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
       }
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to save settings');
+      toast.error(error?.message || 'Failed to save settings', {
+        action: {
+          label: 'Retry',
+          onClick: () => handleSave(),
+        },
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2',location:'components/pages/admin/Settings.tsx:629',message:'handleSave:error',data:{error: error?.message || 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     } finally {
       setSaving(false);
     }
@@ -686,11 +927,14 @@ const Settings = () => {
       // Auto-save logo immediately
       await updateSettings(updatedSettings);
       
+      // Update original settings after auto-save
+      setOriginalSettings(JSON.parse(JSON.stringify(updatedSettings)));
+      
       // Trigger event to update sidebar
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
       }
-      toast.success('Logo uploaded successfully');
+      toast.success(t('settings.logoUploaded') || 'Logo uploaded successfully');
     } catch (error: any) {
       console.error('Logo upload error:', error);
       toast.error(error?.message || 'Failed to upload logo');
@@ -705,6 +949,13 @@ const Settings = () => {
       return;
     }
 
+    // UX Improvement: Show confirmation dialog
+    setShowRemoveLogoDialog(true);
+  };
+
+  const confirmRemoveLogo = async () => {
+    setShowRemoveLogoDialog(false);
+    
     try {
       // Delete file from Supabase Storage if it exists
       const oldLogoUrl = settings.branding.logoUrl;
@@ -734,66 +985,177 @@ const Settings = () => {
       // Auto-save removal immediately
       await updateSettings(updatedSettings);
       
+      // Update original settings
+      setOriginalSettings(JSON.parse(JSON.stringify(updatedSettings)));
+      
       // Trigger event to update sidebar
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
       }
-      toast.success('Logo removed');
+      toast.success(t('settings.logoRemoved') || 'Logo removed');
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to remove logo');
+      toast.error(error?.message || 'Failed to remove logo', {
+        action: {
+          label: 'Retry',
+          onClick: () => confirmRemoveLogo(),
+        },
+      });
     }
   };
 
-  // Show loading state or ensure settings is initialized
+  const confirmRemoveBanner = async () => {
+    setShowRemoveBannerDialog(false);
+    
+    try {
+      // Delete files from Supabase Storage if they exist
+      const oldBannerUrl = settings.branding.bannerCover?.uploadUrl;
+      const oldVideoUrl = settings.branding.bannerCover?.videoUrl;
+      
+      if (oldBannerUrl && !oldBannerUrl.startsWith('data:')) {
+        try {
+          const urlObj = new URL(oldBannerUrl);
+          const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+          if (pathMatch) {
+            await deleteFile(pathMatch[1]);
+          }
+        } catch (err) {
+          // Ignore delete errors
+        }
+      }
+      
+      if (oldVideoUrl && !oldVideoUrl.startsWith('data:')) {
+        try {
+          const urlObj = new URL(oldVideoUrl);
+          const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+          if (pathMatch) {
+            await deleteFile(pathMatch[1]);
+          }
+        } catch (err) {
+          // Ignore delete errors
+        }
+      }
+      
+      const updatedSettings = {
+        ...settings,
+        branding: {
+          ...settings.branding,
+          bannerCover: { 
+            type: 'upload' as const, 
+            uploadUrl: '',
+            videoUrl: '',
+          },
+        },
+      };
+      setSettings(updatedSettings);
+      
+      // Auto-save removal immediately
+      await updateSettings(updatedSettings);
+      
+      // Update original settings
+      setOriginalSettings(JSON.parse(JSON.stringify(updatedSettings)));
+      
+      toast.success(t('settings.bannerRemoved') || 'Banner removed');
+    } catch (error: any) {
+      console.error('Remove banner error:', error);
+      toast.error('Failed to remove banner', {
+        action: {
+          label: 'Retry',
+          onClick: () => confirmRemoveBanner(),
+        },
+      });
+    }
+  };
+
+  // UX Improvement: Show skeleton loaders instead of spinner
   if (loading || !settings || !settings.businessProfile) {
     return (
       <div>
         <PageHeader title={t('settings.title')} />
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">{t('settings.loading') || 'Loading settings...'}</p>
-          </div>
+        <div className="space-y-6">
+          <Card className="p-6">
+            <Skeleton className="h-8 w-48 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </Card>
+          <Card className="p-6">
+            <Skeleton className="h-8 w-48 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </Card>
         </div>
       </div>
     );
   }
 
-  // Fixed Save Button Component - always visible at bottom
-  const FixedSaveButton = () => (
-    <div className={`fixed bottom-0 left-0 right-0 z-50 py-4 px-4 md:px-6 bg-background/95 backdrop-blur-sm border-t shadow-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
-      <div className={`max-w-7xl mx-auto flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span className="text-muted-foreground">{t('settings.saving') || 'Saving...'}</span>
-            </>
-          ) : lastSaved ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
-              <span className="text-muted-foreground">
-                {t('settings.lastSaved') || 'Last saved'} {lastSaved.toLocaleTimeString()}
+  // UX Improvement: Enhanced Save Button with unsaved changes indicator
+  const FixedSaveButton = () => {
+    const hasChanges = hasUnsavedChanges();
+    const hasErrors = Object.keys(fieldErrors).length > 0;
+    
+    return (
+      <div className={`fixed bottom-0 left-0 right-0 z-50 py-4 px-4 md:px-6 bg-background/95 backdrop-blur-sm border-t shadow-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`max-w-7xl mx-auto flex items-center justify-between p-3 rounded-lg bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-muted-foreground">{t('settings.saving') || 'Saving...'}</span>
+              </>
+            ) : lastSaved && !hasChanges ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span className="text-muted-foreground">
+                  {t('settings.allChangesSaved') || 'All changes saved'} • {lastSaved.toLocaleTimeString()}
+                </span>
+              </>
+            ) : hasChanges ? (
+              <>
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+                <span className="text-amber-600 font-medium">
+                  {t('settings.unsavedChanges') || 'You have unsaved changes'}
+                </span>
+              </>
+            ) : null}
+          </div>
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {hasChanges && (
+              <span className="text-xs text-muted-foreground hidden md:inline">
+                {t('settings.keyboardShortcut') || 'Press Ctrl+S to save'}
               </span>
-            </>
-          ) : null}
+            )}
+            <Button 
+              onClick={handleSave} 
+              size="default" 
+              disabled={saving || hasErrors}
+              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''} ${hasChanges ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{t('settings.saving') || 'Saving...'}</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{t('settings.save') || 'Save Changes'}</span>
+                  {hasChanges && (
+                    <Badge variant="secondary" className="ml-1">
+                      {Object.keys(fieldErrors).length > 0 ? '!' : '•'}
+                    </Badge>
+                  )}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        <Button 
-          onClick={handleSave} 
-          size="default" 
-          disabled={saving}
-          className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {t('settings.save') || 'Save Changes'}
-        </Button>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div>
@@ -804,55 +1166,73 @@ const Settings = () => {
         {/* Horizontal Top Bar Navigation */}
         <div className="mb-6 border-b md:border-b-0 md:mb-6 edge-to-edge-mobile">
           <TabsList className={`flex flex-row w-full h-14 md:h-auto bg-transparent p-0 gap-0 overflow-x-auto settings-nav-scrollbar ${isRTL ? 'pr-6 pl-6 md:px-0' : 'pl-6 pr-6 md:px-0'}`}>
-            <TabsTrigger 
-              value="business" 
-              className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pr-6 pl-4 md:px-4' : 'pl-6 pr-4 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Building2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.businessProfile') || 'Business Profile'}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="branding" 
-              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Palette className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.bookingPageAppearance') || 'Branding'}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="calendar" 
-              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Calendar className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.calendarSettings') || 'Calendar'}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="notifications" 
-              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Bell className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.notifications') || 'Notifications'}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="language" 
-              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Globe className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.languageAndLocalization') || 'Language'}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="templates" 
-              className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Mail className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('nav.templates') || 'Templates'}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="integrations" 
-              className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pl-6 pr-4 md:px-4' : 'pl-4 pr-6 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit`}
-            >
-              <Link2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-              <span className="whitespace-nowrap text-sm md:text-base">{t('settings.integrations') || 'Integrations'}</span>
-            </TabsTrigger>
+            <TooltipProvider>
+              <TabsTrigger 
+                value="business" 
+                className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pr-6 pl-4 md:px-4' : 'pl-6 pr-4 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+              >
+                <Building2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.businessProfile') || 'Business Profile'}</span>
+                {getTabChanges('business') > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Unsaved changes in this tab</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="calendar" 
+                className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+              >
+                <Calendar className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.calendarSettings') || 'Calendar'}</span>
+                {getTabChanges('calendar') > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Unsaved changes in this tab</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="notifications" 
+                className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+              >
+                <Bell className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.notifications') || 'Notifications'}</span>
+                {getTabChanges('notifications') > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Unsaved changes in this tab</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="templates" 
+                className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+              >
+                <Mail className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm md:text-base">{t('nav.templates') || 'Templates'}</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="integrations" 
+                className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pl-6 pr-4 md:px-4' : 'pl-4 pr-6 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+              >
+                <Link2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.integrations') || 'Integrations'}</span>
+              </TabsTrigger>
+            </TooltipProvider>
           </TabsList>
         </div>
 
@@ -861,9 +1241,25 @@ const Settings = () => {
             {/* Business Profile Tab */}
             <TabsContent value="business" className="space-y-6 mt-0">
               <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-                <div className="flex items-center gap-2 mb-6">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.businessProfile')}</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.businessProfile')}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowHomepageEditor(true)}
+                      className="gap-2"
+                      disabled={!canCustomBranding}
+                      title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
+                    >
+                      <Edit className="w-4 h-4" />
+                      {t('settings.editHomepage') || 'Edit Homepage'}
+                    </Button>
+                  </div>
                 </div>
                 
                 {/* Logo Upload */}
@@ -929,6 +1325,9 @@ const Settings = () => {
                       className="hidden"
                     />
                   </div>
+                  <p className={`text-xs text-muted-foreground mt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('settings.logoVisibleNote') || 'This logo is visible on your booking page.'}
+                  </p>
                 </div>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -944,23 +1343,41 @@ const Settings = () => {
                 }
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
+              <p className={`text-xs text-muted-foreground mt-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.businessNameVisibleNote') || 'This name is visible on your booking page.'}
+              </p>
             </div>
             <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.email')}</label>
+              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.email')}
+              </label>
               <Input
                 type="email"
                 value={settings.businessProfile.email}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.target.value;
                   setSettings({
                     ...settings,
-                    businessProfile: { ...settings.businessProfile, email: e.target.value } as BusinessProfile,
-                  })
-                }
+                    businessProfile: { ...settings.businessProfile, email: value } as BusinessProfile,
+                  });
+                  if (value) validateField('email', value);
+                }}
+                onBlur={(e) => validateField('email', e.target.value)}
                 dir={isRTL ? 'rtl' : 'ltr'}
+                className={fieldErrors.email ? 'border-destructive' : ''}
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? 'email-error' : undefined}
               />
+              {fieldErrors.email && (
+                <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
             <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.phone')}</label>
+              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.phone')}
+              </label>
               <Input
                 value={settings.businessProfile.phone}
                 onChange={(e) => {
@@ -969,13 +1386,40 @@ const Settings = () => {
                     ...settings,
                     businessProfile: { ...settings.businessProfile, phone: formatted } as BusinessProfile,
                   });
+                  if (formatted) validateField('phone', formatted);
                 }}
+                onBlur={(e) => validateField('phone', e.target.value)}
                 maxLength={12}
                 dir={isRTL ? 'rtl' : 'ltr'}
+                className={fieldErrors.phone ? 'border-destructive' : ''}
+                aria-invalid={!!fieldErrors.phone}
+                aria-describedby={fieldErrors.phone ? 'phone-error' : undefined}
               />
+              {fieldErrors.phone && (
+                <p id="phone-error" className="text-sm text-destructive mt-1" role="alert">
+                  {fieldErrors.phone}
+                </p>
+              )}
+              <p className={`text-xs text-muted-foreground mt-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.phoneVisibleNote') || 'This phone number is visible on your booking page.'}
+              </p>
             </div>
             <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.whatsapp')}</label>
+              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.whatsapp')}
+                {!canUseWhatsApp && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3 h-3 inline-block ml-1 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>WhatsApp integration is available in Premium plans. Upgrade to enable this feature.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </label>
               <Input
                 value={settings.businessProfile.whatsapp}
                 onChange={(e) => {
@@ -988,12 +1432,25 @@ const Settings = () => {
                     ...settings,
                     businessProfile: { ...settings.businessProfile, whatsapp: formatted } as BusinessProfile,
                   });
+                  if (formatted) validateField('whatsapp', formatted);
                 }}
+                onBlur={(e) => validateField('whatsapp', e.target.value)}
                 disabled={!canUseWhatsApp}
                 title={!canUseWhatsApp ? 'Your plan doesn\'t allow WhatsApp integration. Please upgrade to continue.' : ''}
                 maxLength={12}
                 dir={isRTL ? 'rtl' : 'ltr'}
+                className={fieldErrors.whatsapp ? 'border-destructive' : ''}
+                aria-invalid={!!fieldErrors.whatsapp}
+                aria-describedby={fieldErrors.whatsapp ? 'whatsapp-error' : undefined}
               />
+              {fieldErrors.whatsapp && (
+                <p id="whatsapp-error" className="text-sm text-destructive mt-1" role="alert">
+                  {fieldErrors.whatsapp}
+                </p>
+              )}
+              <p className={`text-xs text-muted-foreground mt-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.whatsappVisibleNote') || 'This WhatsApp number is visible on your booking page.'}
+              </p>
             </div>
             <div className="md:col-span-2">
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.address')}</label>
@@ -1007,6 +1464,9 @@ const Settings = () => {
                 }
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
+              <p className={`text-xs text-muted-foreground mt-1.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.addressVisibleNote') || 'This address is visible on your booking page.'}
+              </p>
             </div>
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.timezone')}</label>
@@ -1031,1103 +1491,26 @@ const Settings = () => {
               </select>
             </div>
           </div>
-        </Card>
-            </TabsContent>
 
-            {/* Branding Tab */}
-            <TabsContent value="branding" className="space-y-6 mt-0">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-primary" />
-                  <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.bookingPageAppearance')}</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!canCustomBranding && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">(Upgrade required)</span>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowPreviewModal(true)}
-                    className="gap-2"
-                  >
-                    <Image className="w-4 h-4" />
-                    {t('settings.openPreview') || 'Open Preview'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowHomepageEditor(true)}
-                    className="gap-2"
-                    disabled={!canCustomBranding}
-                    title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
-                  >
-                    <Edit className="w-4 h-4" />
-                    {t('settings.editHomepage') || 'Edit Homepage'}
-                  </Button>
-                </div>
+          {/* Language and Localization Section */}
+          <div className="mt-6 pt-6 border-t">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-primary" />
+                <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.languageAndLocalization')}</h3>
               </div>
-
-              {/* Settings Panel */}
-              <div className="space-y-6">
-
-              {/* Brand Colors Section */}
-              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <Palette className="w-4 h-4" />
-                  {t('settings.themeColor') || 'Brand Colors'}
-                </h4>
-                <div className="space-y-6">
-                  {/* Theme Color */}
-                  <div>
-                    <label className={`text-sm font-medium mb-3 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('settings.themeColor')}
-                    </label>
-              
-              {/* Hex Color Input */}
-              <div className="flex gap-2 items-center mb-3">
-                <div className="relative w-32">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">#</span>
-                  <Input
-                    type="text"
-                    value={mounted ? settings.branding.themeColor.replace('#', '') : '0EA5E9'}
-                    disabled={!canCustomBranding}
-                    onChange={(e) => {
-                      if (!canCustomBranding) {
-                        toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
-                        return;
-                      }
-                      let value = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
-                      if (value.length > 6) value = value.substring(0, 6);
-                      const newColor = value.length === 6 ? `#${value}` : (value.length > 0 ? `#${value}` : settings.branding.themeColor);
-                      setSettings({
-                        ...settings,
-                        branding: { ...settings.branding, themeColor: newColor },
-                      });
-                      // Trigger settings update event for booking page theme refresh
-                      if (value.length === 6 && typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('settingsUpdated'));
-                      }
-                    }}
-                    onPaste={(e) => {
-                      e.preventDefault();
-                      const pastedText = e.clipboardData.getData('text');
-                      let value = pastedText.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
-                      // Remove # if present
-                      value = value.replace('#', '');
-                      if (value.length > 6) value = value.substring(0, 6);
-                      const newColor = value.length === 6 ? `#${value}` : (value.length > 0 ? `#${value}` : settings.branding.themeColor);
-                      setSettings({
-                        ...settings,
-                        branding: { ...settings.branding, themeColor: newColor },
-                      });
-                      // Trigger settings update event for booking page theme refresh
-                      if (value.length === 6 && typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('settingsUpdated'));
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      // Allow backspace, delete, arrow keys, tab, and all Ctrl/Cmd combinations (for copy/paste/cut/select all)
-                      if (
-                        e.key === 'Backspace' || 
-                        e.key === 'Delete' || 
-                        e.key.startsWith('Arrow') || 
-                        e.key === 'Tab' ||
-                        e.key === 'Enter' ||
-                        (e.ctrlKey || e.metaKey) // Allow all Ctrl/Cmd combinations (Ctrl+V, Ctrl+C, etc.)
-                      ) {
-                        return;
-                      }
-                      // Allow only hex characters
-                      if (!/^[0-9A-Fa-f]$/.test(e.key)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    placeholder="0EA5E9"
-                    maxLength={6}
-                    className={`pl-8 font-mono ${isRTL ? 'text-right' : 'text-left'}`}
-                    readOnly={!mounted}
-                  />
-                </div>
-                <div
-                  className="w-40 h-10 rounded border-2 border-border flex-shrink-0 flex items-center justify-center"
-                  style={{
-                    backgroundColor: mounted ? settings.branding.themeColor : '#0EA5E9',
-                  }}
-                >
-                  <span className="text-xs text-white/90 font-medium px-2 text-center leading-tight whitespace-nowrap">
-                    {isRTL ? 'הזן קוד HEX' : 'Replace with HEX color'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Predefined Color Options */}
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { name: 'Blue', color: '#0EA5E9' },
-                  { name: 'Pink', color: '#EC4899' },
-                  { name: 'Purple', color: '#A855F7' },
-                  { name: 'Green', color: '#10B981' },
-                  { name: 'Yellow', color: '#F59E0B' },
-                  { name: 'Orange', color: '#F97316' },
-                  { name: 'Red', color: '#EF4444' },
-                  { name: 'Indigo', color: '#6366F1' },
-                  { name: 'Teal', color: '#14B8A6' },
-                  { name: 'Cyan', color: '#06B6D4' },
-                  { name: 'Rose', color: '#F43F5E' },
-                  { name: 'Black', color: '#1F2937' },
-                ].map((preset) => (
-                  <button
-                    key={preset.color}
-                    type="button"
-                    onClick={() => {
-                      const newColor = preset.color;
-                      setSettings({
-                        ...settings,
-                        branding: { ...settings.branding, themeColor: newColor },
-                      });
-                      // Trigger settings update event for booking page theme refresh
-                      if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('settingsUpdated'));
-                      }
-                    }}
-                    className={`w-10 h-10 rounded-lg border-2 transition-all hover:scale-110 hover:shadow-md ${
-                      mounted && settings.branding.themeColor === preset.color
-                        ? 'border-foreground ring-2 ring-primary ring-offset-2'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                    style={{ backgroundColor: preset.color }}
-                    title={preset.name}
-                    disabled={!mounted}
-                  />
-                    ))}
-                  </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Banner Cover Section */}
-              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <Image className="w-4 h-4" />
-                  {t('settings.bannerCover')}
-                </h4>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={settings.branding.bannerCover?.type === 'upload' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      if (!canCustomBranding) {
-                        toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
-                        return;
-                      }
-                      setSettings({
-                        ...settings,
-                        branding: {
-                          ...settings.branding,
-                          bannerCover: { 
-                            type: 'upload' as const, 
-                            uploadUrl: settings.branding.bannerCover?.uploadUrl || '',
-                            videoUrl: settings.branding.bannerCover?.videoUrl || '',
-                          },
-                        },
-                      });
-                    }}
-                    disabled={!canCustomBranding}
-                    title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
-                  >
-                    {t('settings.uploadBanner')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={settings.branding.bannerCover?.type === 'pattern' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      if (!canCustomBranding) {
-                        toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
-                        return;
-                      }
-                      setSettings({
-                        ...settings,
-                        branding: {
-                          ...settings.branding,
-                          bannerCover: { type: 'pattern' as const, patternId: settings.branding.bannerCover?.patternId || 'pattern1' },
-                        },
-                      });
-                    }}
-                    disabled={!canCustomBranding}
-                    title={!canCustomBranding ? 'Your plan doesn\'t allow custom branding. Please upgrade to continue.' : ''}
-                  >
-                    {t('settings.choosePattern')}
-                  </Button>
-                </div>
-
-                {settings.branding.bannerCover?.type === 'upload' && (
-                  <div className="space-y-2 -mx-6 sm:-mx-6 lg:-mx-8 first:mt-0">
-                    {settings.branding.bannerCover?.uploadUrl ? (
-                      <BannerImagePreview
-                        uploadUrl={settings.branding.bannerCover.uploadUrl}
-                        videoUrl={settings.branding.bannerCover.videoUrl}
-                        onRemove={async () => {
-                          try {
-                            // Delete files from Supabase Storage if they exist
-                            const oldBannerUrl = settings.branding.bannerCover?.uploadUrl;
-                            const oldVideoUrl = settings.branding.bannerCover?.videoUrl;
-                            
-                            if (oldBannerUrl && !oldBannerUrl.startsWith('data:')) {
-                              try {
-                                const urlObj = new URL(oldBannerUrl);
-                                const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
-                                if (pathMatch) {
-                                  await deleteFile(pathMatch[1]);
-                                }
-                              } catch (err) {
-                                // Ignore delete errors
-                              }
-                            }
-                            
-                            if (oldVideoUrl && !oldVideoUrl.startsWith('data:')) {
-                              try {
-                                const urlObj = new URL(oldVideoUrl);
-                                const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
-                                if (pathMatch) {
-                                  await deleteFile(pathMatch[1]);
-                                }
-                              } catch (err) {
-                                // Ignore delete errors
-                              }
-                            }
-                            
-                            const updatedSettings = {
-                              ...settings,
-                              branding: {
-                                ...settings.branding,
-                                bannerCover: { 
-                                  type: 'upload' as const, 
-                                  uploadUrl: '',
-                                  videoUrl: '',
-                                },
-                              },
-                            };
-                            setSettings(updatedSettings);
-                            
-                            // Auto-save removal immediately
-                            await updateSettings(updatedSettings);
-                            toast.success('Banner removed');
-                          } catch (error: any) {
-                            console.error('Remove banner error:', error);
-                            toast.error('Failed to remove banner');
-                          }
-                        }}
-                        onVideoChange={async (videoUrl) => {
-                          try {
-                            // If removing video, delete from storage
-                            if (!videoUrl && settings.branding.bannerCover?.videoUrl) {
-                              const oldVideoUrl = settings.branding.bannerCover.videoUrl;
-                              if (!oldVideoUrl.startsWith('data:')) {
-                                try {
-                                  const urlObj = new URL(oldVideoUrl);
-                                  const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
-                                  if (pathMatch) {
-                                    await deleteFile(pathMatch[1]);
-                                  }
-                                } catch (err) {
-                                  // Ignore delete errors
-                                }
-                              }
-                            }
-                            
-                            const updatedSettings = {
-                              ...settings,
-                              branding: {
-                                ...settings.branding,
-                                bannerCover: {
-                                  type: 'upload' as const,
-                                  uploadUrl: settings.branding.bannerCover?.uploadUrl || '',
-                                  videoUrl: videoUrl,
-                                },
-                              },
-                            };
-                            setSettings(updatedSettings);
-                            
-                            // Save immediately when video is uploaded/removed
-                            await updateSettings(updatedSettings);
-                            
-                            // Trigger event to update front-end
-                            if (typeof window !== 'undefined') {
-                              window.dispatchEvent(new CustomEvent('settingsUpdated'));
-                            }
-                            if (videoUrl) {
-                              toast.success(t('settings.videoSaved') || 'Video saved successfully');
-                            } else {
-                              toast.success(t('settings.videoRemoved') || 'Video removed successfully');
-                            }
-                          } catch (error: any) {
-                            console.error('Video change error:', error);
-                            toast.error(error?.message || t('settings.saveError') || 'Failed to save video');
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-32 border-2 border-dashed rounded-lg bg-muted flex items-center justify-center">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => document.getElementById('banner-upload')?.click()}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {t('settings.uploadBannerImage')}
-                        </Button>
-                        <input
-                          id="banner-upload"
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                setUploading({ ...uploading, banner: true });
-                                
-                                // Delete old banner if it exists and is from Supabase Storage
-                                const oldBannerUrl = settings.branding.bannerCover?.uploadUrl;
-                                if (oldBannerUrl && !oldBannerUrl.startsWith('data:')) {
-                                  try {
-                                    const urlObj = new URL(oldBannerUrl);
-                                    const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
-                                    if (pathMatch) {
-                                      await deleteFile(pathMatch[1]);
-                                    }
-                                  } catch (err) {
-                                    // Ignore delete errors
-                                  }
-                                }
-                                
-                                // Upload to Supabase Storage
-                                const result = await uploadFile(file, 'banner-image');
-                                
-                                if (result.error || !result.url) {
-                                  throw new Error(result.error || 'Failed to upload banner');
-                                }
-                                
-                                const updatedSettings = {
-                                  ...settings,
-                                  branding: {
-                                    ...settings.branding,
-                                    bannerCover: { 
-                                      type: 'upload' as const, 
-                                      uploadUrl: result.url,
-                                      videoUrl: settings.branding.bannerCover?.videoUrl || '',
-                                    },
-                                  },
-                                };
-                                setSettings(updatedSettings);
-                                
-                                // Auto-save immediately
-                                await updateSettings(updatedSettings);
-                                toast.success('Banner uploaded successfully');
-                              } catch (error: any) {
-                                console.error('Banner upload error:', error);
-                                toast.error(error?.message || 'Failed to upload banner');
-                              } finally {
-                                setUploading({ ...uploading, banner: false });
-                              }
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {settings.branding.bannerCover?.type === 'pattern' && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {bannerPatterns && bannerPatterns.length > 0 && bannerPatterns.map((pattern) => (
-                      <div
-                        key={pattern.id}
-                        className={`relative h-24 rounded-lg border-2 cursor-pointer transition-all ${
-                          settings.branding.bannerCover?.patternId === pattern.id
-                            ? 'border-primary ring-2 ring-primary/20'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() => {
-                          if (!canCustomBranding) {
-                            toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
-                            return;
-                          }
-                          setSettings({
-                            ...settings,
-                            branding: {
-                              ...settings.branding,
-                              bannerCover: { type: 'pattern' as const, patternId: pattern.id },
-                            },
-                          });
-                        }}
-                        style={{
-                          cursor: !canCustomBranding ? 'not-allowed' : 'pointer',
-                          opacity: !canCustomBranding ? 0.5 : 1,
-                          background: pattern.id === 'pattern1' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
-                                     pattern.id === 'pattern2' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
-                                     pattern.id === 'pattern3' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' :
-                                     pattern.id === 'pattern4' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' :
-                                     'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                        }}
-                      >
-                        {settings.branding.bannerCover?.patternId === pattern.id && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <Check className="w-6 h-6 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              </Card>
-
-              {/* Messages Section */}
-              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <MessageSquare className="w-4 h-4" />
-                  {t('settings.messages') || 'Welcome Messages'}
-                </h4>
-                <div className="space-y-4">
-                  <div>
-                    <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('settings.guestMessage')}
-                    </label>
-                <Textarea
-                  value={settings.branding.guestMessage || 'שלום אורח, ברוך הבא!'}
-                  onChange={(e) => {
-                    if (!canCustomBranding) {
-                      toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
-                      return;
-                    }
-                    setSettings({
-                      ...settings,
-                      branding: { ...settings.branding, guestMessage: e.target.value },
-                    });
-                  }}
-                  disabled={!canCustomBranding}
-                  placeholder={t('settings.guestMessagePlaceholder')}
-                  rows={2}
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                />
-                <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('settings.guestMessageDescription')}
-                </p>
-              </div>
+              {!canUseMultiLanguage && (
+                <span className="text-xs text-muted-foreground">(Upgrade required)</span>
+              )}
+            </div>
+            <div className="space-y-4">
               <div>
-                <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    {t('settings.loggedInMessage')}
-                  </span>
-                </label>
-                <Textarea
-                  value={settings.branding.loggedInMessage || 'שלום {name}, ברוך הבא!'}
-                  onChange={(e) => {
-                    if (!canCustomBranding) {
-                      toast.error('Your plan doesn\'t allow custom branding. Please upgrade to continue.');
-                      return;
-                    }
-                    setSettings({
-                      ...settings,
-                      branding: { ...settings.branding, loggedInMessage: e.target.value },
-                    });
-                  }}
-                  disabled={!canCustomBranding}
-                  placeholder={t('settings.loggedInMessagePlaceholder')}
-                  rows={2}
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                />
-                <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('settings.loggedInMessageDescription')}
-                </p>
+                <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.language')}</label>
+                <LanguageSelect disabled={!canUseMultiLanguage} />
               </div>
-                </div>
-              </Card>
-
-              {/* Contact Message Section */}
-              <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
-                <h4 className={`text-base font-semibold mb-4 flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <MessageSquare className="w-4 h-4" />
-                  {t('settings.contactMessage') || 'Contact Message'}
-                </h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-4 border-b">
-                    <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <label className="text-sm font-medium block">
-                        {t('settings.contactMessageEnabled')}
-                      </label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {t('settings.contactMessageDescription')}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.calendar?.contactMessage?.enabled ?? true}
-                      onCheckedChange={(checked) =>
-                        setSettings({
-                          ...settings,
-                          calendar: {
-                            ...settings.calendar,
-                            contactMessage: {
-                              enabled: checked,
-                              message: settings.calendar?.contactMessage?.message || '',
-                              showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
-                              showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
-                            },
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('settings.contactMessageText')}
-                    </label>
-                    <Textarea
-                      value={settings.calendar?.contactMessage?.message || ''}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          calendar: {
-                            ...settings.calendar,
-                            contactMessage: {
-                              ...settings.calendar?.contactMessage,
-                              enabled: settings.calendar?.contactMessage?.enabled ?? true,
-                              message: e.target.value,
-                              showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
-                              showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
-                            },
-                          },
-                        })
-                      }
-                      rows={3}
-                      placeholder={t('settings.contactMessagePlaceholder')}
-                      dir={isRTL ? 'rtl' : 'ltr'}
-                      disabled={!settings.calendar?.contactMessage?.enabled}
-                    />
-                    <p className={`text-xs text-muted-foreground mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t('settings.contactMessageDescription')}
-                      {t('settings.contactMessageHelp') && (
-                        <>
-                          <br />
-                          {t('settings.contactMessageHelp')}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  {settings.calendar?.contactMessage?.enabled && (
-                    <div className="space-y-3 pt-2">
-                        <div className="flex items-center justify-between">
-                          <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <label className="text-sm font-medium block">
-                              {t('settings.showPhoneInContact')}
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              {t('settings.contactPhoneNote')}
-                            </p>
-                          </div>
-                          <Switch
-                            checked={settings.calendar?.contactMessage?.showPhone ?? true}
-                            onCheckedChange={(checked) =>
-                              setSettings({
-                                ...settings,
-                                calendar: {
-                                  ...settings.calendar,
-                                  contactMessage: {
-                                    ...settings.calendar?.contactMessage,
-                                    enabled: settings.calendar?.contactMessage?.enabled ?? true,
-                                    message: settings.calendar?.contactMessage?.message || '',
-                                    showPhone: checked,
-                                    showWhatsApp: settings.calendar?.contactMessage?.showWhatsApp ?? true,
-                                  },
-                                },
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <label className="text-sm font-medium block">
-                              {t('settings.showWhatsAppInContact')}
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              {t('settings.contactWhatsAppNote')}
-                            </p>
-                          </div>
-                          <Switch
-                            checked={settings.calendar?.contactMessage?.showWhatsApp ?? true}
-                            onCheckedChange={(checked) =>
-                              setSettings({
-                                ...settings,
-                                calendar: {
-                                  ...settings.calendar,
-                                  contactMessage: {
-                                    ...settings.calendar?.contactMessage,
-                                    enabled: settings.calendar?.contactMessage?.enabled ?? true,
-                                    message: settings.calendar?.contactMessage?.message || '',
-                                    showPhone: settings.calendar?.contactMessage?.showPhone ?? true,
-                                    showWhatsApp: checked,
-                                  },
-                                },
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                  )}
-                </div>
-              </Card>
-
-              {/* Social Media Links */}
-              <Card className={`p-6 shadow-card ${!canCustomBranding ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                <h4 className={`text-base font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.socialLinks')}</h4>
-              <div className={`flex items-center justify-end mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className={isRTL ? 'flex-row-reverse' : ''}>
-                      <Plus className={`w-4 h-4 ${isRTL ? 'mr-2' : 'ml-2'}`} />
-                      {t('settings.addSocialLink')}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align={isRTL ? 'end' : 'start'}>
-                    {settings.businessProfile.socialLinks?.facebook === undefined && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                facebook: '',
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        <span className={isRTL ? 'ml-2' : 'mr-2'}>📘</span>
-                        {t('settings.facebook')}
-                      </DropdownMenuItem>
-                    )}
-                    {settings.businessProfile.socialLinks?.instagram === undefined && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                instagram: '',
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        <span className={isRTL ? 'ml-2' : 'mr-2'}>📷</span>
-                        {t('settings.instagram')}
-                      </DropdownMenuItem>
-                    )}
-                    {settings.businessProfile.socialLinks?.twitter === undefined && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                twitter: '',
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        <span className={isRTL ? 'ml-2' : 'mr-2'}>🐦</span>
-                        {t('settings.twitter')}
-                      </DropdownMenuItem>
-                    )}
-                    {settings.businessProfile.socialLinks?.tiktok === undefined && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                tiktok: '',
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        <span className={isRTL ? 'ml-2' : 'mr-2'}>🎵</span>
-                        {t('settings.tiktok')}
-                      </DropdownMenuItem>
-                    )}
-                    {settings.businessProfile.socialLinks?.linkedin === undefined && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                linkedin: '',
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        <span className={isRTL ? 'ml-2' : 'mr-2'}>💼</span>
-                        {t('settings.linkedin')}
-                      </DropdownMenuItem>
-                    )}
-                    {settings.businessProfile.socialLinks?.youtube === undefined && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                youtube: '',
-                              },
-                            },
-                          });
-                        }}
-                      >
-                        <span className={isRTL ? 'ml-2' : 'mr-2'}>📺</span>
-                        {t('settings.youtube')}
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <p className={`text-xs text-muted-foreground mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('settings.socialLinksDescription')}
-              </p>
-              
-              <div className="space-y-4">
-                {settings.businessProfile.socialLinks?.facebook !== undefined && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <span className="inline-flex items-center gap-2">
-                          <span>📘</span>
-                          {t('settings.facebook')}
-                        </span>
-                      </label>
-                      <Input
-                        value={settings.businessProfile.socialLinks.facebook}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                facebook: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        placeholder="https://facebook.com/yourpage"
-                        dir="ltr"
-                        className="text-left"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mt-8"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          businessProfile: {
-                            ...settings.businessProfile,
-                              socialLinks: (() => {
-                                const current = settings.businessProfile.socialLinks || {};
-                                const updated = { ...current, facebook: undefined };
-                                const hasOthers = updated.instagram || updated.twitter || updated.tiktok || updated.linkedin || updated.youtube;
-                                return hasOthers ? updated : undefined;
-                              })(),
-                          },
-                        });
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-                {settings.businessProfile.socialLinks?.instagram !== undefined && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <span className="inline-flex items-center gap-2">
-                          <span>📷</span>
-                          {t('settings.instagram')}
-                        </span>
-                      </label>
-                      <Input
-                        value={settings.businessProfile.socialLinks.instagram}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                instagram: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        placeholder="https://instagram.com/yourpage"
-                        dir="ltr"
-                        className="text-left"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mt-8"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          businessProfile: {
-                            ...settings.businessProfile,
-                              socialLinks: (() => {
-                                const current = settings.businessProfile.socialLinks || {};
-                                const updated = { ...current, instagram: undefined };
-                                const hasOthers = updated.facebook || updated.twitter || updated.tiktok || updated.linkedin || updated.youtube;
-                                return hasOthers ? updated : undefined;
-                              })(),
-                          },
-                        });
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-                {settings.businessProfile.socialLinks?.twitter !== undefined && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <span className="inline-flex items-center gap-2">
-                          <span>🐦</span>
-                          {t('settings.twitter')}
-                        </span>
-                      </label>
-                      <Input
-                        value={settings.businessProfile.socialLinks.twitter}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                twitter: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        placeholder="https://twitter.com/yourpage"
-                        dir="ltr"
-                        className="text-left"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mt-8"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          businessProfile: {
-                            ...settings.businessProfile,
-                              socialLinks: (() => {
-                                const current = settings.businessProfile.socialLinks || {};
-                                const updated = { ...current, twitter: undefined };
-                                const hasOthers = updated.facebook || updated.instagram || updated.tiktok || updated.linkedin || updated.youtube;
-                                return hasOthers ? updated : undefined;
-                              })(),
-                          },
-                        });
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-                {settings.businessProfile.socialLinks?.tiktok !== undefined && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <span className="inline-flex items-center gap-2">
-                          <span>🎵</span>
-                          {t('settings.tiktok')}
-                        </span>
-                      </label>
-                      <Input
-                        value={settings.businessProfile.socialLinks.tiktok}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                tiktok: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        placeholder="https://tiktok.com/@yourpage"
-                        dir="ltr"
-                        className="text-left"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mt-8"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          businessProfile: {
-                            ...settings.businessProfile,
-                              socialLinks: (() => {
-                                const current = settings.businessProfile.socialLinks || {};
-                                const updated = { ...current, tiktok: undefined };
-                                const hasOthers = updated.facebook || updated.instagram || updated.twitter || updated.linkedin || updated.youtube;
-                                return hasOthers ? updated : undefined;
-                              })(),
-                          },
-                        });
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-                {settings.businessProfile.socialLinks?.linkedin !== undefined && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <span className="inline-flex items-center gap-2">
-                          <span>💼</span>
-                          {t('settings.linkedin')}
-                        </span>
-                      </label>
-                      <Input
-                        value={settings.businessProfile.socialLinks.linkedin}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                linkedin: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        placeholder="https://linkedin.com/company/yourpage"
-                        dir="ltr"
-                        className="text-left"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mt-8"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          businessProfile: {
-                            ...settings.businessProfile,
-                              socialLinks: (() => {
-                                const current = settings.businessProfile.socialLinks || {};
-                                const updated = { ...current, linkedin: undefined };
-                                const hasOthers = updated.facebook || updated.instagram || updated.twitter || updated.tiktok || updated.youtube;
-                                return hasOthers ? updated : undefined;
-                              })(),
-                          },
-                        });
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-                {settings.businessProfile.socialLinks?.youtube !== undefined && (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
-                        <span className="inline-flex items-center gap-2">
-                          <span>📺</span>
-                          {t('settings.youtube')}
-                        </span>
-                      </label>
-                      <Input
-                        value={settings.businessProfile.socialLinks.youtube}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            businessProfile: {
-                              ...settings.businessProfile,
-                              socialLinks: {
-                                ...(settings.businessProfile.socialLinks || {}),
-                                youtube: e.target.value,
-                              },
-                            },
-                          })
-                        }
-                        placeholder="https://youtube.com/@yourchannel"
-                        dir="ltr"
-                        className="text-left"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mt-8"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          businessProfile: {
-                            ...settings.businessProfile,
-                              socialLinks: (() => {
-                                const current = settings.businessProfile.socialLinks || {};
-                                const updated = { ...current, youtube: undefined };
-                                const hasOthers = updated.facebook || updated.instagram || updated.twitter || updated.tiktok || updated.linkedin;
-                                return hasOthers ? updated : undefined;
-                              })(),
-                          },
-                        });
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+            </div>
+          </div>
         </Card>
-              </div>
             </TabsContent>
 
             {/* Calendar Tab */}
@@ -2170,6 +1553,9 @@ const Settings = () => {
             </div>
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.workingDays')}</label>
+              <p className={`text-xs text-muted-foreground mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.workingDaysVisibleNote') || 'These working days are visible on your booking page.'}
+              </p>
               <div className="flex flex-wrap gap-4">
                 {[
                   { value: 0, label: t('settings.sunday') },
@@ -2214,23 +1600,50 @@ const Settings = () => {
                   <Clock className="w-4 h-4" />
                   {t('settings.workingHoursStart')}
                 </label>
+                <p className={`text-xs text-muted-foreground mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t('settings.workingHoursVisibleNote') || 'These working hours are visible on your booking page.'}
+                </p>
               <Input
                 type="time"
                 value={settings.calendar?.workingHours?.start || '09:00'}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.target.value;
                   setSettings({
                     ...settings,
                     calendar: {
                       ...settings.calendar,
                       workingHours: {
                         ...settings.calendar?.workingHours,
-                        start: e.target.value,
+                        start: value,
                       },
                     },
-                  })
-                }
+                  });
+                  // Validate working hours when both are set
+                  if (value && settings.calendar?.workingHours?.end) {
+                    const hoursResult = validateWorkingHours(value, settings.calendar.workingHours.end);
+                    if (!hoursResult.isValid) {
+                      setFieldErrors(prev => ({ ...prev, workingHours: hoursResult.error! }));
+                    } else {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.workingHours;
+                        return newErrors;
+                      });
+                    }
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value && settings.calendar?.workingHours?.end) {
+                    const hoursResult = validateWorkingHours(e.target.value, settings.calendar.workingHours.end);
+                    if (!hoursResult.isValid) {
+                      setFieldErrors(prev => ({ ...prev, workingHours: hoursResult.error! }));
+                    }
+                  }
+                }}
                 dir="ltr"
-                className={isRTL ? 'text-right' : 'text-left'}
+                className={`${isRTL ? 'text-right' : 'text-left'} ${fieldErrors.workingHours ? 'border-destructive' : ''}`}
+                aria-invalid={!!fieldErrors.workingHours}
+                aria-describedby={fieldErrors.workingHours ? 'workingHours-error' : undefined}
               />
               </div>
               <div>
@@ -2241,23 +1654,52 @@ const Settings = () => {
                 <Input
                   type="time"
                   value={settings.calendar?.workingHours?.end || '18:00'}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const value = e.target.value;
                     setSettings({
                       ...settings,
                       calendar: {
                         ...settings.calendar,
                         workingHours: {
                           ...settings.calendar?.workingHours,
-                          end: e.target.value,
+                          end: value,
                         },
                       },
-                    })
-                  }
+                    });
+                    // Validate working hours when both are set
+                    if (value && settings.calendar?.workingHours?.start) {
+                      const hoursResult = validateWorkingHours(settings.calendar.workingHours.start, value);
+                      if (!hoursResult.isValid) {
+                        setFieldErrors(prev => ({ ...prev, workingHours: hoursResult.error! }));
+                      } else {
+                        setFieldErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.workingHours;
+                          return newErrors;
+                        });
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value && settings.calendar?.workingHours?.start) {
+                      const hoursResult = validateWorkingHours(settings.calendar.workingHours.start, e.target.value);
+                      if (!hoursResult.isValid) {
+                        setFieldErrors(prev => ({ ...prev, workingHours: hoursResult.error! }));
+                      }
+                    }
+                  }}
                   dir="ltr"
-                  className={isRTL ? 'text-right' : 'text-left'}
+                  className={`${isRTL ? 'text-right' : 'text-left'} ${fieldErrors.workingHours ? 'border-destructive' : ''}`}
+                  aria-invalid={!!fieldErrors.workingHours}
+                  aria-describedby={fieldErrors.workingHours ? 'workingHours-error' : undefined}
                 />
               </div>
             </div>
+            {fieldErrors.workingHours && (
+              <p id="workingHours-error" className="text-sm text-destructive mt-1" role="alert">
+                {fieldErrors.workingHours}
+              </p>
+            )}
             <div>
               <label className={`text-sm font-medium mb-2 block flex items-center gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <Clock className="w-4 h-4" />
@@ -2380,18 +1822,41 @@ const Settings = () => {
               />
             </div>
             <div>
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.senderEmail')}</label>
+              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.senderEmail')}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3 h-3 inline-block ml-1 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Email address used to send notifications to customers</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </label>
               <Input
                 type="email"
                 value={settings.notifications.senderEmail}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.target.value;
                   setSettings({
                     ...settings,
-                    notifications: { ...settings.notifications, senderEmail: e.target.value },
-                  })
-                }
+                    notifications: { ...settings.notifications, senderEmail: value },
+                  });
+                  if (value) validateField('senderEmail', value);
+                }}
+                onBlur={(e) => validateField('senderEmail', e.target.value)}
                 dir={isRTL ? 'rtl' : 'ltr'}
+                className={fieldErrors.senderEmail ? 'border-destructive' : ''}
+                aria-invalid={!!fieldErrors.senderEmail}
+                aria-describedby={fieldErrors.senderEmail ? 'senderEmail-error' : undefined}
               />
+              {fieldErrors.senderEmail && (
+                <p id="senderEmail-error" className="text-sm text-destructive mt-1" role="alert">
+                  {fieldErrors.senderEmail}
+                </p>
+              )}
             </div>
           </div>
           <div className="space-y-2">
@@ -2625,27 +2090,6 @@ const Settings = () => {
         </Card>
             </TabsContent>
 
-            {/* Language Tab */}
-            <TabsContent value="language" className="space-y-6 mt-0">
-              <Card className={`p-6 shadow-card ${!canUseMultiLanguage ? 'opacity-60' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-primary" />
-                    <h3 className={`text-lg font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.languageAndLocalization')}</h3>
-                  </div>
-                  {!canUseMultiLanguage && (
-                    <span className="text-xs text-muted-foreground">(Upgrade required)</span>
-                  )}
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.language')}</label>
-                    <LanguageSelect disabled={!canUseMultiLanguage} />
-                  </div>
-                </div>
-              </Card>
-            </TabsContent>
-
             {/* Templates Tab */}
             <TabsContent value="templates" className="space-y-6 mt-0">
               <Card className="p-6 shadow-card" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -2812,16 +2256,16 @@ const Settings = () => {
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-[95vw] !max-w-[95vw] w-full h-[90vh] max-h-[90vh] p-0 flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <DialogTitle>{t('settings.previewBookingPage') || t('preview') || 'Preview'}</DialogTitle>
+        <DialogContent className="max-w-[95vw] !max-w-[95vw] w-full h-[90vh] max-h-[90vh] p-0 flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
+          <DialogHeader className={`px-6 pt-6 pb-4 border-b flex-shrink-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <DialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('settings.previewBookingPage') || t('preview') || 'Preview'}</DialogTitle>
               {businessSlug && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={refreshPreview}
-                  className="gap-2"
+                  className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <RefreshCw className="w-4 h-4" />
                   {t('settings.refreshPreview') || 'Refresh'}
@@ -2841,7 +2285,7 @@ const Settings = () => {
               />
             ) : (
               <div className="flex items-center justify-center h-full p-6">
-                <p className="text-muted-foreground">
+                <p className={`text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
                   {t('settings.previewNotAvailable') || 'Preview not available. Please access settings from a business admin page.'}
                 </p>
               </div>
@@ -2849,6 +2293,61 @@ const Settings = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* UX Improvement: Confirmation Dialogs */}
+      <AlertDialog open={showRemoveLogoDialog} onOpenChange={setShowRemoveLogoDialog}>
+        <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+          <AlertDialogHeader className={isRTL ? '!text-right' : '!text-left'}>
+            <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('settings.confirmRemoveLogo') || 'Remove Logo?'}</AlertDialogTitle>
+            <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+              {t('settings.confirmRemoveLogoDescription') || 'Are you sure you want to remove your logo? This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <AlertDialogCancel className="min-w-[100px]">{t('common.cancel') || 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveLogo} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-w-[100px]">
+              {t('settings.remove') || 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showRemoveBannerDialog} onOpenChange={setShowRemoveBannerDialog}>
+        <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+          <AlertDialogHeader className={isRTL ? '!text-right' : '!text-left'}>
+            <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('settings.confirmRemoveBanner') || 'Remove Banner?'}</AlertDialogTitle>
+            <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+              {t('settings.confirmRemoveBannerDescription') || 'Are you sure you want to remove your banner image? This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <AlertDialogCancel className="min-w-[100px]">{t('common.cancel') || 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveBanner} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-w-[100px]">
+              {t('settings.remove') || 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showRemoveVideoDialog} onOpenChange={setShowRemoveVideoDialog}>
+        <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+          <AlertDialogHeader className={isRTL ? '!text-right' : '!text-left'}>
+            <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>{t('settings.confirmRemoveVideo') || 'Remove Video?'}</AlertDialogTitle>
+            <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+              {t('settings.confirmRemoveVideoDescription') || 'Are you sure you want to remove your banner video? This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <AlertDialogCancel className="min-w-[100px]">{t('common.cancel') || 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setShowRemoveVideoDialog(false);
+              // Video removal logic will be handled by the component that triggers this
+            }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-w-[100px]">
+              {t('settings.remove') || 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

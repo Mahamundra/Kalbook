@@ -358,6 +358,7 @@ const Customers = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [newsletterSubscribe, setNewsletterSubscribe] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -429,7 +430,7 @@ const Customers = () => {
 
   useEffect(() => {
     loadCustomers();
-  }, [page, limit, search, sortBy, sortOrder]);
+  }, [page, limit, search, sortBy, sortOrder, newsletterSubscribe]);
 
   // Fetch all tags from customers for filter dropdown
   useEffect(() => {
@@ -470,6 +471,9 @@ const Customers = () => {
       if (search) params.append('search', search);
       if (sortBy) params.append('sortBy', sortBy);
       if (sortOrder) params.append('sortOrder', sortOrder);
+      if (newsletterSubscribe !== undefined) {
+        params.append('consentMarketing', newsletterSubscribe);
+      }
 
       const response = await fetch(`/api/customers?${params.toString()}`);
       const data = await response.json();
@@ -1140,6 +1144,24 @@ const Customers = () => {
             </SelectContent>
           </Select>
 
+          {/* Newsletter Subscribe Filter */}
+          <Select
+            value={newsletterSubscribe || 'all'}
+            onValueChange={(value) => {
+              setNewsletterSubscribe(value === 'all' ? undefined : value);
+              setPage(1); // Reset to first page when filter changes
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t('customers.filters.newsletterSubscribe') || 'Newsletter Subscribe'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('customers.filters.all') || 'All'}</SelectItem>
+              <SelectItem value="true">{t('customers.filters.subscribed') || 'Subscribed'}</SelectItem>
+              <SelectItem value="false">{t('customers.filters.notSubscribed') || 'Not Subscribed'}</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* View Toggle */}
           <div className="flex items-center gap-1 border rounded-md p-1">
             <Button
@@ -1283,18 +1305,38 @@ const Customers = () => {
           {/* Scrollable Content */}
           <form ref={formRef} id="customer-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" style={{ overflowX: 'visible' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Label htmlFor="name" className={isRTL ? 'text-right' : 'text-left'}>
-                  {t('customers.name')} *
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  placeholder={t('customers.name')}
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                />
+              <div className={`md:col-span-2 flex flex-col sm:flex-row gap-4`}>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Label htmlFor="name" className={isRTL ? 'text-right' : 'text-left'}>
+                    {t('customers.name')} *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    placeholder={t('customers.name')}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  />
+                </div>
+
+                <div className="flex-shrink-0 space-y-2" style={{ width: '150px' }}>
+                  <Label htmlFor="gender" className={isRTL ? 'text-right' : 'text-left'}>
+                    {t('customers.gender') || 'Gender'}
+                  </Label>
+                  <select
+                    id="gender"
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                  >
+                    <option value="">{t('auth.selectGender')}</option>
+                    <option value="male">{t('auth.male')}</option>
+                    <option value="female">{t('auth.female')}</option>
+                    <option value="other">{t('auth.other')}</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -1330,7 +1372,7 @@ const Customers = () => {
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <Label htmlFor="dateOfBirth" className={isRTL ? 'text-right' : 'text-left'}>
                   {t('customers.dateOfBirth') || 'Date of Birth'}
                 </Label>
@@ -1356,7 +1398,7 @@ const Customers = () => {
                       }
                     }}
                     className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    dir="ltr"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
                     <option value="">{t('auth.year') || 'Year'}</option>
                       {Array.from({ length: new Date().getFullYear() - 1899 }, (_, i) => {
@@ -1390,12 +1432,15 @@ const Customers = () => {
                       }
                     }}
                     className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    dir="ltr"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
                     <option value="">{t('auth.month') || 'Month'}</option>
                       {Array.from({ length: 12 }, (_, i) => {
                         const month = i + 1;
-                        const monthName = new Date(2000, month - 1, 1).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { month: 'long' });
+                        let localeString = 'en-US';
+                        if (locale === 'he') localeString = 'he-IL';
+                        else if (locale === 'ar') localeString = 'ar-SA';
+                        const monthName = new Date(2000, month - 1, 1).toLocaleDateString(localeString, { month: 'long' });
                         return (
                         <option key={month} value={month.toString().padStart(2, '0')}>
                             {monthName}
@@ -1421,7 +1466,7 @@ const Customers = () => {
                       }
                     }}
                     className="w-full sm:flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    dir="ltr"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                   >
                     <option value="">{t('auth.day') || 'Day'}</option>
                       {(() => {
@@ -1452,24 +1497,6 @@ const Customers = () => {
                       })()}
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="gender" className={isRTL ? 'text-right' : 'text-left'}>
-                  {t('customers.gender') || 'Gender'}
-                </Label>
-                <select
-                  id="gender"
-                  value={formData.gender}
-                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg mt-2"
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                >
-                  <option value="">{t('auth.selectGender')}</option>
-                  <option value="male">{t('auth.male')}</option>
-                  <option value="female">{t('auth.female')}</option>
-                  <option value="other">{t('auth.other')}</option>
-                </select>
               </div>
 
               <div className="md:col-span-2">

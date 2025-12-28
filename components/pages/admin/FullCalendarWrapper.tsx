@@ -5,7 +5,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventInput, DateSelectArg, EventClickArg, EventDropArg, EventResizeArg, ViewApi } from '@fullcalendar/core';
+import type { EventInput, DateSelectArg, EventClickArg, EventDropArg, ViewApi } from '@fullcalendar/core';
 import heLocale from '@fullcalendar/core/locales/he';
 import arLocale from '@fullcalendar/core/locales/ar';
 import ruLocale from '@fullcalendar/core/locales/ru';
@@ -50,7 +50,7 @@ export function FullCalendarWrapper({
   const calendarRef = useRef<FullCalendar>(null);
 
   // Map locale to FullCalendar locale
-  const fullCalendarLocale = useMemo<LocaleInput>(() => {
+  const fullCalendarLocale = useMemo<LocaleInput | undefined>(() => {
     switch (locale) {
       case 'he':
         return heLocale;
@@ -108,8 +108,8 @@ export function FullCalendarWrapper({
   };
 
   // Handle date click (for time slots in day/week view)
-  const handleDateClick = (selectInfo: DateSelectArg) => {
-    onDateClick(selectInfo.start);
+  const handleDateClick = (clickInfo: { date: Date }) => {
+    onDateClick(clickInfo.date);
   };
 
   // Handle day cell click in month view
@@ -129,7 +129,7 @@ export function FullCalendarWrapper({
   };
 
   // Handle event resize
-  const handleEventResize = (resizeInfo: EventResizeArg) => {
+  const handleEventResize = (resizeInfo: { event: { id?: string; start: Date | null; end: Date | null } }) => {
     const event = resizeInfo.event;
     const newStart = event.start!;
     const newEnd = event.end || new Date(newStart.getTime() + 60 * 60 * 1000);
@@ -151,8 +151,16 @@ export function FullCalendarWrapper({
     const map = new Map<string, number>();
     events.forEach(event => {
       if (event.start) {
-        const dateStr = new Date(event.start).toISOString().split('T')[0];
-        map.set(dateStr, (map.get(dateStr) || 0) + 1);
+        // Handle DateInput which can be string, Date, or number array
+        const startDate = typeof event.start === 'string' || event.start instanceof Date
+          ? new Date(event.start)
+          : Array.isArray(event.start)
+          ? new Date(event.start[0], event.start[1] || 0, event.start[2] || 1)
+          : null;
+        if (startDate && !isNaN(startDate.getTime())) {
+          const dateStr = startDate.toISOString().split('T')[0];
+          map.set(dateStr, (map.get(dateStr) || 0) + 1);
+        }
       }
     });
     return map;
@@ -219,7 +227,6 @@ export function FullCalendarWrapper({
         initialView={fullCalendarView}
         initialDate={currentDate}
         locale={fullCalendarLocale}
-        dir={isRTL ? 'rtl' : 'ltr'}
         events={events}
         height={height}
         headerToolbar={false}
@@ -321,8 +328,6 @@ export function FullCalendarWrapper({
         eventClassNames="cursor-pointer"
         eventContent={renderEventContent}
         nowIndicator={true}
-        // RTL specific configurations
-        rtl={isRTL}
         // Styling
         dayHeaderFormat={{
           weekday: 'short',

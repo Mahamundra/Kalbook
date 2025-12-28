@@ -17,3 +17,5 @@ WHERE last_invite_sent_at IS NOT NULL;
 -- Add comment
 COMMENT ON COLUMN workers.last_invite_sent_at IS 'Timestamp of when the last invite email was sent (for rate limiting - 1 invite per 24 hours)';
 
+
+

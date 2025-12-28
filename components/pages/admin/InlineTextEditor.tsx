@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Link2, Bold, Italic, Underline } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 
 interface InlineTextEditorProps {
   value: string;
@@ -22,17 +21,26 @@ export function InlineTextEditor({
   placeholder = '',
   className = ''
 }: InlineTextEditorProps) {
-  const [editedValue, setEditedValue] = useState(value);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [html, setHtml] = useState<string>(value || '');
+  const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Focus input when editor opens
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    // Set initial HTML content
+    if (editorRef.current) {
+      editorRef.current.innerHTML = value || '';
+      setHtml(value || '');
+      
+      // Focus and place caret at end
+      editorRef.current.focus();
+      const range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
-  }, []);
+  }, [value]);
 
   useEffect(() => {
     // Close on Escape key
@@ -42,30 +50,39 @@ export function InlineTextEditor({
       }
     };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        // Don't auto-close on outside click, let user explicitly save or cancel
-      }
-    };
-
     document.addEventListener('keydown', handleEscape as any);
-    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       document.removeEventListener('keydown', handleEscape as any);
-      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [onCancel]);
 
-  const handleSave = () => {
-    onSave(editedValue);
+  const exec = (cmd: string, val?: string) => {
+    document.execCommand(cmd, false, val);
+    editorRef.current?.focus();
+    if (editorRef.current) {
+      setHtml(editorRef.current.innerHTML);
+    }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !multiline && !e.shiftKey) {
+  const handleLink = () => {
+    const url = prompt('Enter URL:');
+    if (url) {
+      exec('createLink', url);
+    }
+  };
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      setHtml(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!multiline && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSave();
-    } else if (e.key === 'Enter' && multiline && (e.metaKey || e.ctrlKey)) {
+    } else if (multiline && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
       handleSave();
     } else if (e.key === 'Escape') {
@@ -74,53 +91,108 @@ export function InlineTextEditor({
     }
   };
 
+  const handleSave = () => {
+    onSave(html);
+  };
+
   return (
     <div
       ref={containerRef}
-      className={`relative bg-white border-2 border-primary rounded-lg shadow-lg p-2 z-50 ${className}`}
+      className={`relative bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {multiline ? (
-        <Textarea
-          ref={inputRef}
-          value={editedValue}
-          onChange={(e) => setEditedValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="min-h-[100px] resize-none pr-20"
-          rows={4}
-        />
-      ) : (
-        <textarea
-          ref={inputRef}
-          value={editedValue}
-          onChange={(e) => setEditedValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="w-full px-2 py-1 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-          rows={1}
-        />
-      )}
-      <div className="flex items-center gap-2 mt-2 justify-end">
+      {/* Toolbar */}
+      <div className="flex items-center gap-1 mb-3 pb-3 border-b border-gray-200">
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          onClick={() => exec('bold')}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+          title="Bold (Ctrl+B)"
+        >
+          <Bold className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          onClick={() => exec('italic')}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+          title="Italic (Ctrl+I)"
+        >
+          <Italic className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          onClick={() => exec('underline')}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+          title="Underline (Ctrl+U)"
+        >
+          <Underline className="w-4 h-4" />
+        </Button>
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          onClick={handleLink}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+          title="Insert Link"
+        >
+          <Link2 className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Editable area */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        className="min-h-[120px] w-full rounded-md border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 text-black prose prose-sm max-w-none"
+        style={{
+          wordBreak: 'break-word',
+          whiteSpace: 'pre-wrap',
+        }}
+        data-placeholder={placeholder}
+      />
+      
+      {/* Placeholder styling */}
+      <style dangerouslySetInnerHTML={{__html: `
+        [contenteditable][data-placeholder]:empty:before {
+          content: attr(data-placeholder);
+          color: #9ca3af;
+          pointer-events: none;
+        }
+      `}} />
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 mt-4 justify-end">
         <Button
           variant="ghost"
           size="sm"
           onClick={onCancel}
-          className="h-8 px-2"
+          className="h-9 px-4 text-gray-700 hover:bg-gray-100"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4 mr-2" />
+          Cancel
         </Button>
         <Button
           variant="default"
           size="sm"
           onClick={handleSave}
-          className="h-8 px-2"
+          className="h-9 px-4 bg-gray-900 text-white hover:bg-gray-800"
         >
-          <Check className="w-4 h-4" />
+          <Check className="w-4 h-4 mr-2" />
+          Save
         </Button>
       </div>
       {multiline && (
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-gray-500 mt-2 text-center">
           Press Ctrl+Enter (Cmd+Enter on Mac) to save
         </p>
       )}

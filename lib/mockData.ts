@@ -71,8 +71,7 @@ const defaultSettings: Settings = {
     contactMessage: {
       enabled: true,
       message: '',
-      showPhone: true,
-      showWhatsApp: true,
+      contacts: [],
     },
   },
   registration: {

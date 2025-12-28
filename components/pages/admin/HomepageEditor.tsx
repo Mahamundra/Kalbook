@@ -1,18 +1,38 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Save, Undo2, Redo2, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Save, Undo2, Redo2, Loader2, User, UserCircle, Palette, MoreVertical, Pencil, Monitor, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { useEditHistory } from '@/lib/hooks/useEditHistory';
 import { InlineTextEditor } from './InlineTextEditor';
 import { ImageEditor } from './ImageEditor';
-import { EditOverlay } from './EditOverlay';
+import { BannerEditor } from './BannerEditor';
+import { ThemeColorEditor } from './ThemeColorEditor';
+import { TextColorEditor } from './TextColorEditor';
+import { LogoShapeEditor } from './LogoShapeEditor';
+import { ContactMessageEditor } from './ContactMessageEditor';
+import { SocialLinksEditor } from './SocialLinksEditor';
+import { LayoutSelector, type LayoutType } from './LayoutSelector';
+import { EditSideMenu, MobileEditMenuItems } from './EditSideMenu';
 import type { Settings } from '@/lib/types/admin';
 import { toast } from 'sonner';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
-import { motion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +43,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { BookingPageContent } from '@/app/booking/page';
+import { useParams } from 'next/navigation';
 
 interface HomepageEditorProps {
   open: boolean;
@@ -34,7 +63,7 @@ interface HomepageEditorProps {
 
 type EditingElement = {
   id: string;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'color' | 'links' | 'settings' | 'layout';
   position: { top: number; left: number };
 } | null;
 
@@ -47,17 +76,39 @@ export function HomepageEditor({
 }: HomepageEditorProps) {
   const { t, isRTL } = useLocale();
   const { dir } = useDirection();
+  const isMobile = useIsMobile();
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [editingElement, setEditingElement] = useState<EditingElement>(null);
+  const [viewAsGuest, setViewAsGuest] = useState(true); // Toggle between guest and logged-in view
+  const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop'); // Toggle between desktop and mobile view
   const [showImageEditor, setShowImageEditor] = useState<{
     type: 'logo' | 'banner-image' | 'banner-video';
     currentUrl?: string;
   } | null>(null);
+  const [showSideMenu, setShowSideMenu] = useState(!isMobile); // Closed by default on mobile
+  const [dropdownOpen, setDropdownOpen] = useState(false); // Controlled dropdown state
+  const [showEditMenuSheet, setShowEditMenuSheet] = useState(false); // Mobile sheet state
+  const [showBannerEditor, setShowBannerEditor] = useState(false);
+  const [showThemeColorEditor, setShowThemeColorEditor] = useState(false);
+  const [showTextColorEditor, setShowTextColorEditor] = useState(false);
+  const [showLogoShapeEditor, setShowLogoShapeEditor] = useState(false);
+  const [showContactMessageEditor, setShowContactMessageEditor] = useState(false);
+  const [showSocialLinksEditor, setShowSocialLinksEditor] = useState(false);
+  const [showLayoutSelector, setShowLayoutSelector] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Update side menu state when mobile state changes
+  useEffect(() => {
+    if (!isMobile) {
+      setShowSideMenu(true); // Open by default on desktop
+    } else {
+      setShowSideMenu(false); // Closed by default on mobile
+    }
+  }, [isMobile]);
 
   const history = useEditHistory(initialSettings);
 
@@ -81,15 +132,15 @@ export function HomepageEditor({
     const editId = target.getAttribute('data-edit-id') || 
                    target.closest('[data-edit-id]')?.getAttribute('data-edit-id');
     const editType = target.getAttribute('data-edit-type') || 
-                     target.closest('[data-edit-type]')?.getAttribute('data-edit-type') as 'text' | 'image';
+                     target.closest('[data-edit-type]')?.getAttribute('data-edit-type') as 'text' | 'image' | 'color' | 'links' | 'settings';
 
-    if (editId && editType) {
+    if (editId && editType && (editType === 'text' || editType === 'image' || editType === 'color' || editType === 'links' || editType === 'settings')) {
       const element = document.querySelector(`[data-edit-id="${editId}"]`);
       if (element) {
         const rect = element.getBoundingClientRect();
         setEditingElement({
           id: editId,
-          type: editType,
+          type: editType as 'text' | 'image',
           position: {
             top: rect.top + window.scrollY + rect.height / 2,
             left: rect.left + window.scrollX + rect.width / 2,
@@ -115,12 +166,6 @@ export function HomepageEditor({
     let updatedSettings = { ...settings };
 
     switch (elementId) {
-      case 'business-name':
-        updatedSettings.businessProfile = {
-          ...updatedSettings.businessProfile,
-          name: value,
-        };
-        break;
       case 'guest-message':
         updatedSettings.branding = {
           ...updatedSettings.branding,
@@ -133,15 +178,6 @@ export function HomepageEditor({
           loggedInMessage: value,
         };
         break;
-      case 'contact-message':
-        updatedSettings.calendar = {
-          ...updatedSettings.calendar,
-          contactMessage: {
-            ...updatedSettings.calendar.contactMessage,
-            message: value,
-          },
-        };
-        break;
     }
 
     setSettings(updatedSettings);
@@ -150,47 +186,117 @@ export function HomepageEditor({
   };
 
   const handleImageSave = (url: string) => {
+    // Logo editing removed - use Settings > Business Profile instead
+    setShowImageEditor(null);
+  };
+
+  const handleBannerSave = (banner: {
+    type: 'upload' | 'pattern';
+    uploadUrl?: string;
+    videoUrl?: string;
+    patternId?: string;
+    position?: { x: number; y: number };
+  }) => {
     let updatedSettings = { ...settings };
-
-    if (showImageEditor?.type === 'logo') {
-      updatedSettings.branding = {
-        ...updatedSettings.branding,
-        logoUrl: url,
-      };
-    } else if (showImageEditor?.type === 'banner-image') {
-      updatedSettings.branding = {
-        ...updatedSettings.branding,
-        bannerCover: {
-          ...updatedSettings.branding.bannerCover,
-          type: 'upload',
-          uploadUrl: url,
-        },
-      };
-    } else if (showImageEditor?.type === 'banner-video') {
-      updatedSettings.branding = {
-        ...updatedSettings.branding,
-        bannerCover: {
-          ...updatedSettings.branding.bannerCover,
-          type: 'upload',
-          videoUrl: url,
-        },
-      };
-    }
-
+    updatedSettings.branding = {
+      ...updatedSettings.branding,
+      bannerCover: banner,
+    };
     setSettings(updatedSettings);
     history.pushToHistory(updatedSettings);
-    setShowImageEditor(null);
+    setShowBannerEditor(false);
+  };
+
+  const handleThemeColorSave = (color: string) => {
+    let updatedSettings = { ...settings };
+    updatedSettings.branding = {
+      ...updatedSettings.branding,
+      themeColor: color,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
+    setShowThemeColorEditor(false);
+  };
+
+  const handleTextColorSave = (color: 'white' | 'black') => {
+    let updatedSettings = { ...settings };
+    updatedSettings.branding = {
+      ...updatedSettings.branding,
+      textColor: color,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
+    setShowTextColorEditor(false);
+  };
+
+  const handleLogoShapeSave = (shape: 'circle' | 'square') => {
+    let updatedSettings = { ...settings };
+    updatedSettings.branding = {
+      ...updatedSettings.branding,
+      logoShape: shape,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
+    setShowLogoShapeEditor(false);
+  };
+
+  const handleContactMessageSave = (contactSettings: {
+    enabled: boolean;
+    message: string;
+    contacts: Array<{
+      id: string;
+      type: 'phone' | 'whatsapp' | 'email';
+      value: string;
+      visible: boolean;
+    }>;
+  }) => {
+    let updatedSettings = { ...settings };
+    updatedSettings.calendar = {
+      ...updatedSettings.calendar,
+      contactMessage: {
+        enabled: contactSettings.enabled,
+        message: contactSettings.message,
+        contacts: contactSettings.contacts,
+      } as any,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
+    setShowContactMessageEditor(false);
+  };
+
+  const handleSocialLinksSave = (links: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+    linkedin?: string;
+    youtube?: string;
+  }) => {
+    let updatedSettings = { ...settings };
+    updatedSettings.businessProfile = {
+      ...updatedSettings.businessProfile,
+      socialLinks: Object.keys(links).length > 0 ? links : undefined,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
+    setShowSocialLinksEditor(false);
+  };
+
+  const handleLayoutChange = (layout: LayoutType) => {
+    let updatedSettings = { ...settings };
+    updatedSettings.branding = {
+      ...updatedSettings.branding,
+      layout: layout,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
+    setShowLayoutSelector(false);
   };
 
   const handleImageRemove = () => {
     let updatedSettings = { ...settings };
 
-    if (showImageEditor?.type === 'logo') {
-      updatedSettings.branding = {
-        ...updatedSettings.branding,
-        logoUrl: '',
-      };
-    } else if (showImageEditor?.type === 'banner-image' || showImageEditor?.type === 'banner-video') {
+    if (showImageEditor?.type === 'banner-image' || showImageEditor?.type === 'banner-video') {
       updatedSettings.branding = {
         ...updatedSettings.branding,
         bannerCover: {
@@ -198,10 +304,11 @@ export function HomepageEditor({
           patternId: 'pattern1',
         },
       };
+      setSettings(updatedSettings);
+      history.pushToHistory(updatedSettings);
     }
+    // Logo editing removed - use Settings > Business Profile instead
 
-    setSettings(updatedSettings);
-    history.pushToHistory(updatedSettings);
     setShowImageEditor(null);
   };
 
@@ -254,314 +361,495 @@ export function HomepageEditor({
 
   const getElementValue = (elementId: string): string => {
     switch (elementId) {
-      case 'business-name':
-        return settings.businessProfile?.name || '';
       case 'guest-message':
         return settings.branding?.guestMessage || '';
       case 'logged-in-message':
         return settings.branding?.loggedInMessage || '';
-      case 'contact-message':
-        return settings.calendar?.contactMessage?.message || '';
       default:
         return '';
     }
   };
 
   const getImageUrl = (elementId: string): string | undefined => {
-    if (elementId === 'logo') {
-      return settings.branding?.logoUrl;
-    } else if (elementId === 'banner') {
+    if (elementId === 'banner') {
       return settings.branding?.bannerCover?.uploadUrl || settings.branding?.bannerCover?.videoUrl;
     }
     return undefined;
   };
 
+  // Map sidebar item IDs to data-edit-id values on the page
+  const getElementSelector = (elementId: string): string | null => {
+    const mapping: Record<string, string> = {
+      'logo': 'logo',
+      'logo-shape': 'logo',
+      'banner': 'banner',
+      'guest-message': 'guest-message',
+      'logged-in-message': 'logged-in-message',
+      'contact-message-settings': 'contact-message',
+      'business-name': 'business-name',
+    };
+    return mapping[elementId] || null;
+  };
+
+  // Scroll to element on the page
+  const scrollToElement = (elementId: string) => {
+    const selector = getElementSelector(elementId);
+    if (!selector) return;
+
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      // Try to find element within the editor container first
+      const container = containerRef.current;
+      const element = container 
+        ? container.querySelector(`[data-edit-id="${selector}"]`)
+        : document.querySelector(`[data-edit-id="${selector}"]`);
+      
+      if (element) {
+        // Calculate position relative to container
+        if (container) {
+          const containerRect = container.getBoundingClientRect();
+          const elementRect = element.getBoundingClientRect();
+          const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - (containerRect.height / 2) + (elementRect.height / 2);
+          
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          });
+        } else {
+          // Fallback to window scroll
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+        
+        // Add a temporary highlight effect
+        const htmlElement = element as HTMLElement;
+        htmlElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'rounded');
+        setTimeout(() => {
+          htmlElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'transition-all', 'rounded');
+        }, 2000);
+      }
+    }, 150);
+  };
+
+  const handleMenuEdit = (elementId: string, elementType: 'text' | 'image' | 'color' | 'links' | 'settings' | 'layout') => {
+    // Switch view when clicking on guest or logged-in message
+    if (elementId === 'guest-message') {
+      setViewAsGuest(true);
+    } else if (elementId === 'logged-in-message') {
+      setViewAsGuest(false);
+    }
+
+    // Scroll to element if it exists on the page
+    scrollToElement(elementId);
+
+    if (elementType === 'image') {
+      if (elementId === 'banner') {
+        setShowBannerEditor(true);
+      }
+      // Logo editing removed - use Settings > Business Profile instead
+    } else if (elementType === 'color') {
+      if (elementId === 'text-color') {
+        setShowTextColorEditor(true);
+      } else {
+        setShowThemeColorEditor(true);
+      }
+    } else if (elementType === 'links') {
+      setShowSocialLinksEditor(true);
+    } else if (elementType === 'settings') {
+      if (elementId === 'logo-shape') {
+        setShowLogoShapeEditor(true);
+      } else {
+        setShowContactMessageEditor(true);
+      }
+    } else if (elementType === 'layout') {
+      setShowLayoutSelector(true);
+    } else {
+      setEditingElement({
+        id: elementId,
+        type: 'text',
+        position: { top: 0, left: 0 },
+      });
+    }
+  };
+
   const businessName = settings.businessProfile?.name || '';
   const logoUrl = settings.branding?.logoUrl;
   const themeColor = settings.branding?.themeColor || '#0EA5E9';
+  const textColor = settings.branding?.textColor || 'black';
+
+  // Apply theme color and text color to preview
+  useEffect(() => {
+    if (open) {
+      const root = document.documentElement;
+      
+      if (themeColor) {
+        const hsl = hexToHsl(themeColor);
+        const [h, s, l] = hsl.split(' ').map((v: string) => parseFloat(v));
+        root.style.setProperty('--booking-primary', hsl);
+        root.style.setProperty('--booking-primary-foreground', '0 0% 100%');
+        root.style.setProperty('--booking-primary-glow', `${h} ${s}% ${Math.min(l + 10, 100)}%`);
+        root.style.setProperty('--booking-ring', hsl);
+      }
+      
+      // Apply text color
+      if (textColor === 'white') {
+        root.style.setProperty('--booking-text-color', '0 0% 100%');
+      } else {
+        root.style.setProperty('--booking-text-color', '0 0% 0%');
+      }
+    }
+  }, [open, themeColor, textColor]);
+
+  // Helper function to convert hex to HSL
+  const hexToHsl = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h: number, s: number, l: number;
+
+    l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+        default: h = 0;
+      }
+    }
+
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  };
 
   if (!open) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
       {/* Toolbar */}
-      <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">
-            {t('settings.homepageEditor.title') || 'Edit Homepage'}
-          </h2>
-          {hasUnsavedChanges && (
-            <span className="text-xs text-muted-foreground">
-              ({t('settings.homepageEditor.unsavedChanges') || 'Unsaved changes'})
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleUndo}
-            disabled={!history.canUndo}
-            title={t('settings.homepageEditor.undo') || 'Undo (Ctrl+Z)'}
-          >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRedo}
-            disabled={!history.canRedo}
-            title={t('settings.homepageEditor.redo') || 'Redo (Ctrl+Y)'}
-          >
-            <Redo2 className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCancel}
-          >
-            {t('settings.homepageEditor.cancel') || 'Cancel'}
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || !hasUnsavedChanges}
-          >
-            {saving ? (
+      <div className="border-b bg-card px-2 sm:px-4 py-2 sm:py-3">
+        {/* Top row: Unsaved changes message centered */}
+        {hasUnsavedChanges && (
+          <div className="flex items-center justify-center mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {t('settings.homepageEditor.unsavedChanges') || 'Unsaved changes'}
+              </span>
+              {isRTL ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={handleRedo}
+                    disabled={!history.canRedo}
+                    title={t('settings.homepageEditor.redo') || 'Redo (Ctrl+Y)'}
+                  >
+                    <Redo2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={handleUndo}
+                    disabled={!history.canUndo}
+                    title={t('settings.homepageEditor.undo') || 'Undo (Ctrl+Z)'}
+                  >
+                    <Undo2 className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={handleUndo}
+                    disabled={!history.canUndo}
+                    title={t('settings.homepageEditor.undo') || 'Undo (Ctrl+Z)'}
+                  >
+                    <Undo2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={handleRedo}
+                    disabled={!history.canRedo}
+                    title={t('settings.homepageEditor.redo') || 'Redo (Ctrl+Y)'}
+                  >
+                    <Redo2 className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          {/* Title and menu button row */}
+          <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold truncate">
+                {t('settings.homepageEditor.title') || 'Edit Homepage'}
+              </h2>
+            </div>
+          </div>
+
+          {/* Buttons row */}
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+            {/* Mobile: Primary actions only */}
+            {isMobile ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {t('settings.homepageEditor.saving') || 'Saving...'}
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={viewMode === 'desktop' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={() => setViewMode('desktop')}
+                    title={t('settings.homepageEditor.desktopView') || 'Desktop View'}
+                  >
+                    <Monitor className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'mobile' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={() => setViewMode('mobile')}
+                    title={t('settings.homepageEditor.mobileView') || 'Mobile View'}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px]"
+                  onClick={handleCancel}
+                >
+                  {t('settings.homepageEditor.cancel') || 'Cancel'}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px]"
+                  onClick={handleSave}
+                  disabled={saving || !hasUnsavedChanges}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span className="hidden sm:inline">{t('settings.homepageEditor.saving') || 'Saving...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">{t('settings.homepageEditor.save') || 'Save'}</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none min-h-[44px]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowEditMenuSheet(true);
+                  }}
+                  aria-label="Edit menu"
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">{t('settings.homepageEditor.editMenu') || 'Edit Menu'}</span>
+                </Button>
+                {/* Mobile: Secondary actions in dropdown */}
+                <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 flex-shrink-0"
+                      aria-label="More options"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align={isRTL ? 'start' : 'end'} className="z-[10001]">
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        // Don't prevent default - let Radix close the dropdown naturally
+                        setDropdownOpen(false);
+                        // Blur any focused element to prevent aria-hidden focus issues
+                        if (document.activeElement instanceof HTMLElement) {
+                          document.activeElement.blur();
+                        }
+                        setTimeout(() => {
+                          setViewAsGuest(!viewAsGuest);
+                        }, 50);
+                      }}
+                    >
+                      {viewAsGuest ? <UserCircle className="w-4 h-4 mr-2" /> : <User className="w-4 h-4 mr-2" />}
+                      {viewAsGuest ? (t('settings.homepageEditor.switchToLoggedIn') || 'Switch to Logged-in View') : (t('settings.homepageEditor.switchToGuest') || 'Switch to Guest View')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
-                {t('settings.homepageEditor.save') || 'Save'}
+                {/* Desktop: All buttons visible */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewAsGuest(!viewAsGuest)}
+                  title={viewAsGuest ? (t('settings.homepageEditor.switchToLoggedIn') || 'Switch to Logged-in View') : (t('settings.homepageEditor.switchToGuest') || 'Switch to Guest View')}
+                >
+                  {viewAsGuest ? <UserCircle className="w-4 h-4 mr-2" /> : <User className="w-4 h-4 mr-2" />}
+                  <span className="hidden md:inline">
+                    {viewAsGuest ? (t('settings.homepageEditor.viewingAsGuest') || 'Viewing as Guest') : (t('settings.homepageEditor.viewingAsLoggedIn') || 'Viewing as Logged-in User')}
+                  </span>
+                </Button>
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={viewMode === 'desktop' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setViewMode('desktop')}
+                    title={t('settings.homepageEditor.desktopView') || 'Desktop View'}
+                  >
+                    <Monitor className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'mobile' ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setViewMode('mobile')}
+                    title={t('settings.homepageEditor.mobileView') || 'Mobile View'}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                >
+                  {t('settings.homepageEditor.cancel') || 'Cancel'}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving || !hasUnsavedChanges}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {t('settings.homepageEditor.saving') || 'Saving...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      {t('settings.homepageEditor.save') || 'Save'}
+                    </>
+                  )}
+                </Button>
+                {isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSideMenu(true)}
+                    title={t('settings.homepageEditor.editMenu') || 'Edit Menu'}
+                  >
+                    <Pencil className="w-4 h-4 mr-2" />
+                    {t('settings.homepageEditor.editMenu') || 'Edit Menu'}
+                  </Button>
+                )}
               </>
             )}
-          </Button>
+          </div>
         </div>
       </div>
 
-      {/* Editor Content - Simplified booking page preview */}
-      <div ref={containerRef} className="flex-1 overflow-auto relative bg-gradient-to-b from-gray-50 to-white" dir={dir}>
-        <div className="min-h-full">
-          {/* Header */}
-          <header className="bg-white border-b sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    {logoUrl ? (
-                      <img 
-                        src={logoUrl} 
-                        alt={businessName} 
-                        className="h-10 w-auto object-contain"
-                        data-edit-id="logo"
-                        data-edit-type="image"
-                      />
-                    ) : (
-                      <div 
-                        className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"
-                        data-edit-id="logo"
-                        data-edit-type="image"
-                      >
-                        <CalendarIcon className="w-6 h-6 text-primary" />
-                      </div>
-                    )}
-                  </div>
-                  <h1 
-                    className="text-xl font-bold relative"
-                    data-edit-id="business-name"
-                    data-edit-type="text"
+      {/* Editor Content Area with Side Menu */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Side Menu - Desktop: Sidebar */}
+        {!isMobile && (
+          <EditSideMenu
+            isOpen={showSideMenu}
+            onToggle={() => setShowSideMenu(!showSideMenu)}
+            onEdit={handleMenuEdit}
+          />
+        )}
+        
+        {/* Content Area - Full width on mobile when menu is closed */}
+        <div 
+          ref={containerRef} 
+          className={cn(
+            "flex-1 overflow-auto relative transition-all duration-300",
+            !isMobile && showSideMenu && "transition-all duration-300",
+            viewMode === 'mobile' && "flex items-center justify-center bg-gray-100 p-8"
+          )}
+          dir={dir}
+        >
+          {viewMode === 'mobile' ? (
+            /* iPhone 16 Pro Mockup - Scaled to fit editor */
+            <div className="relative w-full flex justify-center items-center">
+              <div className="relative mx-auto" style={{ width: '300px', height: '600px' }}>
+                {/* Phone Container */}
+                <div 
+                  className="relative bg-black rounded-[2rem] p-[8px] shadow-2xl w-full h-full"
+                  style={{
+                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+                  }}
+                >
+                  {/* Notch */}
+                  <div 
+                    className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-black rounded-b-lg z-10"
+                    style={{ width: '96px', height: '28px' }}
+                  />
+                  
+                  {/* Speaker */}
+                  <div 
+                    className="absolute top-0.5 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded-full z-10"
+                    style={{ width: '34px', height: '2px' }}
+                  />
+                  
+                  {/* Screen */}
+                  <div 
+                    className="relative bg-white rounded-[1.75rem] overflow-hidden w-full h-full"
                   >
-                    {businessName || t('booking.title')}
-                  </h1>
+                    {/* Screen Content - Booking Page */}
+                    <div className="h-full overflow-y-auto">
+                      <BookingPageContent editMode={true} editorSettings={settings} editorViewAsGuest={viewAsGuest} {...({} as any)} />
+                    </div>
+                  </div>
+                  
+                  {/* Home Indicator (for modern phones) */}
+                  <div 
+                    className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 bg-gray-400 rounded-full z-10"
+                    style={{ width: '76px', height: '2px' }}
+                  />
                 </div>
               </div>
             </div>
-          </header>
-
-          <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Banner Cover */}
-            {settings.branding?.bannerCover && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 -mt-8 sm:mt-0 relative"
-                data-edit-id="banner"
-                data-edit-type="image"
-              >
-                <div className="relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-none sm:rounded-lg">
-                  {settings.branding.bannerCover?.type === 'upload' && settings.branding.bannerCover?.uploadUrl ? (
-                    <>
-                      {settings.branding.bannerCover.videoUrl ? (
-                        <video
-                          src={settings.branding.bannerCover.videoUrl}
-                          className="w-full h-full object-cover"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                        />
-                      ) : (
-                        <img
-                          src={settings.branding.bannerCover.uploadUrl}
-                          alt="Banner"
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: settings.branding.bannerCover.patternId === 'pattern1' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
-                                   settings.branding.bannerCover.patternId === 'pattern2' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
-                                   settings.branding.bannerCover.patternId === 'pattern3' ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' :
-                                   settings.branding.bannerCover.patternId === 'pattern4' ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' :
-                                   'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                      }}
-                    />
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Guest/Logged-in Message */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
-            >
-              <Card className="p-4">
-                <div className="flex flex-col items-center text-center gap-4">
-                  <div className="flex-1 relative">
-                    <p 
-                      className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}
-                      data-edit-id={isLoggedIn ? "logged-in-message" : "guest-message"}
-                      data-edit-type="text"
-                    >
-                      {isLoggedIn
-                        ? (settings.branding?.loggedInMessage || 'שלום {name}, ברוך הבא!').replace('{name}', 'User')
-                        : settings.branding?.guestMessage || 'שלום אורח, ברוך הבא!'}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Contact Message */}
-            {settings.calendar?.contactMessage?.enabled && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className={`mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
-                dir={isRTL ? 'rtl' : 'ltr'}
-              >
-                <div className={`text-sm text-blue-900 dark:text-blue-100 ${isRTL ? 'text-right' : 'text-left'} relative`}>
-                  <p 
-                    className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}
-                    data-edit-id="contact-message"
-                    data-edit-type="text"
-                  >
-                    {settings.calendar?.contactMessage?.message || t('booking.didNotFindDate') || 'Did not find your specific date? Contact us and we will try our best to fit you in.'}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Render edit overlays with pencil icons */}
-            {['business-name', 'logo', 'banner', 'guest-message', 'logged-in-message', 'contact-message'].map((id) => {
-              const elementType = id === 'logo' || id === 'banner' ? 'image' : 'text';
-              
-              return (
-                <EditOverlay
-                  key={id}
-                  elementId={id}
-                  elementType={elementType}
-                  onEdit={() => {
-                    if (elementType === 'image') {
-                      if (id === 'logo') {
-                        setShowImageEditor({ type: 'logo', currentUrl: getImageUrl('logo') });
-                      } else if (id === 'banner') {
-                        const bannerCover = settings.branding?.bannerCover;
-                        if (bannerCover?.videoUrl) {
-                          setShowImageEditor({ type: 'banner-video', currentUrl: bannerCover.videoUrl });
-                        } else {
-                          setShowImageEditor({ type: 'banner-image', currentUrl: bannerCover?.uploadUrl });
-                        }
-                      }
-                    } else {
-                      // For text elements, find the element and get its position
-                      const element = containerRef.current?.querySelector(`[data-edit-id="${id}"]`);
-                      if (element) {
-                        const rect = element.getBoundingClientRect();
-                        const scrollY = window.scrollY || window.pageYOffset;
-                        const scrollX = window.scrollX || window.pageXOffset;
-                        setEditingElement({
-                          id,
-                          type: 'text',
-                          position: { 
-                            top: rect.top + scrollY + rect.height / 2, 
-                            left: rect.left + scrollX + rect.width / 2 
-                          },
-                        });
-                      }
-                    }
-                  }}
-                />
-              );
-            })}
-          </main>
+          ) : (
+            <div className="min-h-full">
+              {/* Render actual booking page with editor settings */}
+              <BookingPageContent editMode={true} editorSettings={settings} editorViewAsGuest={viewAsGuest} {...({} as any)} />
+            </div>
+          )}
         </div>
-
-        {/* Inline Text Editor */}
-        {editingElement && editingElement.type === 'text' && (
-          <div
-            className="fixed z-[10001]"
-            style={{
-              top: `${editingElement.position.top}px`,
-              left: `${editingElement.position.left}px`,
-              transform: 'translate(-50%, -50%)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <InlineTextEditor
-              value={getElementValue(editingElement.id)}
-              onSave={(value) => handleTextSave(editingElement.id, value)}
-              onCancel={() => setEditingElement(null)}
-              multiline={editingElement.id === 'guest-message' || 
-                        editingElement.id === 'logged-in-message' || 
-                        editingElement.id === 'contact-message'}
-              placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
-            />
-          </div>
-        )}
       </div>
-
-      {/* Image Editor Dialog */}
-      {showImageEditor && (
-        <ImageEditor
-          open={!!showImageEditor}
-          onOpenChange={(open) => !open && setShowImageEditor(null)}
-          currentUrl={showImageEditor.currentUrl}
-          onSave={handleImageSave}
-          onRemove={handleImageRemove}
-          title={
-            showImageEditor.type === 'logo'
-              ? t('settings.homepageEditor.editLogo') || 'Edit Logo'
-              : t('settings.homepageEditor.editBanner') || 'Edit Banner'
-          }
-          fileType={showImageEditor.type}
-          accept={
-            showImageEditor.type === 'banner-video'
-              ? 'video/*'
-              : 'image/*'
-          }
-        />
-      )}
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
@@ -585,5 +873,169 @@ export function HomepageEditor({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+
+    {/* Text Editor Dialog - Outside main container to avoid z-index issues */}
+    {editingElement && editingElement.type === 'text' && (
+      <Dialog 
+        open={true} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingElement(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md z-[10001]" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>
+              {editingElement.id === 'guest-message'
+                ? t('settings.guestMessage') || 'Edit Guest Message'
+                : editingElement.id === 'logged-in-message'
+                ? t('settings.loggedInMessage') || 'Edit Logged-in Message'
+                : t('settings.homepageEditor.editPlaceholder') || 'Edit Text'}
+            </DialogTitle>
+            <DialogDescription>
+              {t('settings.homepageEditor.editPlaceholder') || 'Edit the text content below'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <InlineTextEditor
+              value={getElementValue(editingElement.id)}
+              onSave={(value) => {
+                handleTextSave(editingElement.id, value);
+                setEditingElement(null);
+              }}
+              onCancel={() => setEditingElement(null)}
+              multiline={editingElement.id === 'guest-message' || 
+                        editingElement.id === 'logged-in-message'}
+              placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+
+    {/* Image Editor Dialog - Outside main container to avoid z-index issues */}
+    {showImageEditor && showImageEditor.type !== 'logo' && (
+      <ImageEditor
+        open={!!showImageEditor}
+        onOpenChange={(open) => !open && setShowImageEditor(null)}
+        currentUrl={showImageEditor.currentUrl}
+        onSave={handleImageSave}
+        onRemove={handleImageRemove}
+        title={t('settings.homepageEditor.editBanner') || 'Edit Banner'}
+        fileType={showImageEditor.type}
+        accept={
+          showImageEditor.type === 'banner-video'
+            ? 'video/*'
+            : 'image/*'
+        }
+      />
+    )}
+
+    {/* Theme Color Editor Dialog - Outside main container to avoid z-index issues */}
+    <ThemeColorEditor
+      open={showThemeColorEditor}
+      onOpenChange={setShowThemeColorEditor}
+      currentColor={themeColor}
+      onSave={handleThemeColorSave}
+    />
+
+    {/* Text Color Editor Dialog - Outside main container to avoid z-index issues */}
+    <TextColorEditor
+      open={showTextColorEditor}
+      onOpenChange={setShowTextColorEditor}
+      currentColor={settings.branding?.textColor}
+      onSave={handleTextColorSave}
+    />
+
+    {/* Logo Shape Editor Dialog - Outside main container to avoid z-index issues */}
+    <LogoShapeEditor
+      open={showLogoShapeEditor}
+      onOpenChange={setShowLogoShapeEditor}
+      currentShape={settings.branding?.logoShape}
+      onSave={handleLogoShapeSave}
+    />
+
+    {/* Banner Editor Dialog - Outside main container to avoid z-index issues */}
+    {showBannerEditor && (
+      <BannerEditor
+        open={showBannerEditor}
+        onOpenChange={setShowBannerEditor}
+        currentBanner={settings.branding?.bannerCover}
+        onSave={handleBannerSave}
+        onRemove={() => {
+          handleBannerSave({ type: 'pattern', patternId: 'pattern1' });
+        }}
+      />
+    )}
+
+    {/* Contact Message Editor Dialog - Outside main container to avoid z-index issues */}
+    {showContactMessageEditor && (
+      <ContactMessageEditor
+        open={showContactMessageEditor}
+        onOpenChange={setShowContactMessageEditor}
+        currentSettings={{
+          enabled: settings.calendar?.contactMessage?.enabled,
+          message: settings.calendar?.contactMessage?.message,
+          contacts: (settings.calendar?.contactMessage as any)?.contacts || [],
+        }}
+        onSave={handleContactMessageSave}
+      />
+    )}
+
+    {/* Social Links Editor Dialog - Outside main container to avoid z-index issues */}
+    {showSocialLinksEditor && (
+      <SocialLinksEditor
+        open={showSocialLinksEditor}
+        onOpenChange={setShowSocialLinksEditor}
+        currentLinks={settings.businessProfile?.socialLinks}
+        onSave={handleSocialLinksSave}
+      />
+    )}
+
+    {/* Layout Selector Dialog - Outside main container to avoid z-index issues */}
+    <Dialog open={showLayoutSelector} onOpenChange={setShowLayoutSelector}>
+      <DialogContent className="sm:max-w-md z-[10001]" dir={dir}>
+        <DialogHeader>
+          <DialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+            {t('settings.homepageEditor.selectLayout') || 'Select Layout'}
+          </DialogTitle>
+          <DialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+            {t('settings.homepageEditor.selectLayoutDescription') || 'Choose a layout for your booking page.'}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <LayoutSelector
+            currentLayout={(settings.branding?.layout || 'classic') as LayoutType}
+            onLayoutChange={handleLayoutChange}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Mobile Edit Menu Sheet - Outside main container for proper rendering */}
+    {isMobile && (
+      <Sheet open={showEditMenuSheet} onOpenChange={setShowEditMenuSheet}>
+        <SheetContent side="bottom" className="!z-[10001] max-h-[80vh] overflow-y-auto" dir={dir}>
+          <SheetHeader className="pb-2 px-4 pt-2">
+            <SheetTitle className={isRTL ? 'text-right' : 'text-left'}>
+              {t('settings.homepageEditor.editMenu') || 'Edit Menu'}
+            </SheetTitle>
+            <SheetDescription className={isRTL ? 'text-right' : 'text-left'}>
+              {t('settings.homepageEditor.editMenuDescription') || 'Select an element to edit on your booking page.'}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            <div className="flex flex-col gap-2">
+              <MobileEditMenuItems 
+                onEdit={handleMenuEdit}
+                onItemClick={() => setShowEditMenuSheet(false)}
+              />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    )}
+    </>
   );
 }

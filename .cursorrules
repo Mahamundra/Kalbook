@@ -1,0 +1,207 @@
+# Cursor Rules for Kalbook - Vercel Deployment Safety
+
+## Project Context
+- Next.js 14.2.6 with App Router
+- TypeScript with strict mode enabled
+- Supabase for database/auth (multi-tenant architecture)
+- Edge runtime middleware
+- Server/Client component architecture
+
+## Critical Vercel Deployment Rules
+
+### 1. Environment Variables
+- ALWAYS check for required environment variables before using them
+- Use non-null assertions (!) only when absolutely certain the variable exists
+- Provide fallbacks or throw descriptive errors for missing env vars
+- Required env vars:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
+  - `COOKIE_SECRET` (for cookie signing)
+  - `BREVO_API_KEY` (for email)
+  - `NEXT_PUBLIC_APP_URL` or `VERCEL_URL` (for absolute URLs)
+
+Example pattern:
+```typescript
+const apiKey = process.env.BREVO_API_KEY;
+if (!apiKey) {
+  throw new Error('BREVO_API_KEY environment variable is required');
+}
+```
+
+### 2. Edge Runtime Compatibility
+- Middleware MUST use Edge-compatible APIs only
+- NO Node.js APIs in middleware (fs, path, crypto, etc.)
+- Use Web APIs: URL, Headers, Request, Response, fetch
+- NO dynamic imports with Node.js modules in middleware
+- Cookie operations must use Edge-compatible methods
+
+Example:
+```typescript
+// ✅ GOOD - Edge compatible
+export async function middleware(request: NextRequest) {
+  const url = new URL(request.url);
+  // ...
+}
+
+// ❌ BAD - Node.js API
+import fs from 'fs'; // Will fail on Vercel Edge
+```
+
+### 3. Server vs Client Components
+- Server Components (default): Can use async/await, access headers(), cookies(), etc.
+- Client Components: Must have 'use client' directive, cannot use server-only APIs
+- NEVER import server-only code in client components
+- NEVER use 'use client' in API routes or middleware
+
+Rules:
+- API routes (`app/api/**/route.ts`) are always server-side - NO 'use client'
+- Middleware is always Edge runtime - NO 'use client'
+- Pages that use hooks, event handlers, or browser APIs need 'use client'
+- Components that only render UI can be Server Components
+
+### 4. TypeScript Build Safety
+- ALWAYS fix TypeScript errors before deployment
+- Use proper type assertions, avoid `any` when possible
+- Ensure all imports resolve correctly
+- Check that path aliases (@/*) are correctly configured
+- Run `npm run build` locally to catch build errors
+
+### 5. API Route Best Practices
+- ALWAYS handle errors with try/catch
+- ALWAYS return proper NextResponse.json() responses
+- Include proper status codes (200, 400, 401, 404, 500)
+- Validate request data before processing
+- Use getTenantInfoFromRequest() for multi-tenant routes
+- Never expose service role keys or secrets in responses
+
+Example:
+```typescript
+export async function POST(request: NextRequest) {
+  try {
+    const tenantInfo = await getTenantInfoFromRequest(request);
+    if (!tenantInfo?.businessId) {
+      return NextResponse.json(
+        { error: 'Business context required' },
+        { status: 400 }
+      );
+    }
+    // ... rest of logic
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### 6. File System Access
+- NEVER use fs.readFile, fs.writeFile, or any Node.js file system APIs
+- Use Supabase Storage for file uploads/downloads
+- Use FormData for file handling in API routes
+- Client-side file operations use File API (browser)
+
+### 7. Dynamic Imports
+- Use dynamic imports for code splitting: `const Component = dynamic(() => import('./Component'))`
+- For conditional imports, ensure the module exists
+- Avoid dynamic imports in middleware (Edge runtime limitations)
+
+### 8. Supabase Client Usage
+- Server Components: Use `createClient()` from `@/lib/supabase/server`
+- Middleware: Use `createClient()` from `@/lib/supabase/middleware`
+- Client Components: Use `supabase` from `@/lib/supabase/client`
+- Admin operations: Use `createAdminClient()` from `@/lib/supabase/admin` (server-only)
+
+### 9. Multi-Tenant Architecture
+- ALWAYS get tenant context before database operations
+- Use `getTenantInfoFromRequest()` in API routes
+- Use `getTenantContext()` in Server Components
+- Never query without business_id filter (RLS handles this, but be explicit)
+- Validate business exists before operations
+
+### 10. Error Handling
+- Wrap async operations in try/catch
+- Return user-friendly error messages
+- Log errors server-side (console.error)
+- Never expose internal errors to clients
+- Handle edge cases (null, undefined, empty arrays)
+
+### 11. Build Configuration
+- Ensure `next.config.mjs` exports valid configuration
+- Check `tsconfig.json` paths are correct
+- Verify `package.json` scripts are correct
+- No circular dependencies
+- All imports must resolve
+
+### 12. Runtime Configuration
+- Use `export const dynamic = 'force-dynamic'` only when necessary
+- Use `export const revalidate` for ISR when appropriate
+- Default to static generation when possible for better performance
+
+### 13. Cookie Handling
+- Use secure cookies in production: `secure: process.env.NODE_ENV === 'production'`
+- Set proper cookie options (path, maxAge, sameSite)
+- Use Edge-compatible cookie signing in middleware
+
+### 14. Absolute URLs
+- Use `process.env.NEXT_PUBLIC_APP_URL` or `process.env.VERCEL_URL` for absolute URLs
+- Never hardcode localhost URLs
+- Check for URL existence before using
+
+Example:
+```typescript
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+```
+
+### 15. Database Queries
+- Always handle Supabase query errors
+- Check for PGRST116 (not found) vs other errors
+- Use proper TypeScript types from Database types
+- Never expose raw database errors to clients
+
+### 16. Pre-Deployment Checklist
+Before pushing to Vercel, ensure:
+- [ ] `npm run build` succeeds locally
+- [ ] All TypeScript errors are resolved
+- [ ] All environment variables are set in Vercel dashboard
+- [ ] No console.log statements with sensitive data
+- [ ] Error handling is in place for all API routes
+- [ ] No hardcoded secrets or API keys
+- [ ] Middleware doesn't use Node.js APIs
+- [ ] All imports resolve correctly
+- [ ] Server/Client component boundaries are correct
+
+### 17. Common Pitfalls to Avoid
+- ❌ Using `fs` in API routes (use Supabase Storage)
+- ❌ Using Node.js APIs in middleware
+- ❌ Missing error handling in API routes
+- ❌ Exposing service role keys
+- ❌ Hardcoded URLs or localhost references
+- ❌ Missing environment variable checks
+- ❌ Using 'use client' in server-only code
+- ❌ Missing tenant context in multi-tenant operations
+- ❌ TypeScript errors in production build
+- ❌ Circular dependencies
+
+### 18. When Making Changes
+1. Check if the change affects server/client boundaries
+2. Verify environment variables are available
+3. Test error cases (missing data, network failures)
+4. Ensure TypeScript types are correct
+5. Run build locally before pushing
+6. Check Vercel build logs for warnings
+
+## Code Review Checklist
+When reviewing code for Vercel deployment:
+- ✅ All env vars are checked before use
+- ✅ Error handling is comprehensive
+- ✅ No Node.js APIs in Edge runtime
+- ✅ Proper server/client component usage
+- ✅ TypeScript builds without errors
+- ✅ Multi-tenant context is handled
+- ✅ No hardcoded secrets or URLs
+- ✅ Supabase clients are used correctly
+
