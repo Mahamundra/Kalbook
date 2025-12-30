@@ -107,27 +107,13 @@ export async function middleware(request: NextRequest) {
                 adminSessionUser = JSON.parse(unsignedData);
                 // Verify the session user has access to this business
                 if (adminSessionUser && adminSessionUser.businessId !== business.id) {
-                  console.log('[MIDDLEWARE] Business mismatch:', {
-                    sessionBusinessId: adminSessionUser.businessId,
-                    routeBusinessId: business.id,
-                  });
                   adminSessionUser = null; // Business mismatch, invalidate session
-                } else {
-                  console.log('[MIDDLEWARE] Admin session validated:', {
-                    userId: adminSessionUser?.userId,
-                    businessId: adminSessionUser?.businessId,
-                    role: adminSessionUser?.role,
-                  });
                 }
-              } else {
-                console.log('[MIDDLEWARE] Failed to unsign admin_session cookie');
               }
             } catch (error) {
               console.error('[MIDDLEWARE] Error parsing admin_session cookie:', error);
               adminSessionUser = null;
             }
-          } else {
-            console.log('[MIDDLEWARE] No admin_session cookie found');
           }
         }
 

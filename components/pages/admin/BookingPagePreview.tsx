@@ -33,6 +33,7 @@ interface BookingPagePreviewProps {
         type?: 'upload' | 'pattern';
         uploadUrl?: string;
         videoUrl?: string;
+        posterUrl?: string;
         patternId?: string;
         position?: { x: number; y: number };
       };
@@ -171,6 +172,7 @@ export function BookingPagePreview({ settings }: BookingPagePreviewProps) {
                   {bannerCover.videoUrl ? (
                     <video
                       src={bannerCover.videoUrl}
+                      poster={bannerCover.posterUrl || undefined}
                       className="w-full h-full object-cover"
                       style={{
                         objectPosition: bannerCover.position

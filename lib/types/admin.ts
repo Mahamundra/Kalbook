@@ -96,6 +96,7 @@ export interface Branding {
     type: 'upload' | 'pattern';
     uploadUrl?: string;
     videoUrl?: string;
+    posterUrl?: string; // First frame of video as poster image
     patternId?: string;
     position?: {
       x: number; // percentage (0-100)

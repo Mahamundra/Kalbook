@@ -51,8 +51,10 @@ const defaultSettings: Settings = {
       type: 'pattern',
       patternId: 'pattern1',
     },
-    guestMessage: 'שלום אורח, ברוך הבא!',
-    loggedInMessage: 'שלום {name}, ברוך הבא!',
+    // Default messages will use time-based greetings dynamically in the booking page
+    // These are set to empty to trigger time-based greeting logic
+    guestMessage: '',
+    loggedInMessage: '',
   },
   locale: { language: 'en', rtl: false },
   notifications: { 

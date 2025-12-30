@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -57,13 +56,14 @@ export function LoginRegisterDialog({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [codeSentViaWhatsApp, setCodeSentViaWhatsApp] = useState(false);
   const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string | null>(null);
-  const otpInputRef = useRef<HTMLInputElement>(null);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Format phone number with dashes (050-000-0000)
   const formatPhoneNumber = (value: string): string => {
@@ -166,6 +166,7 @@ export function LoginRegisterDialog({
       setPhone('');
       setEmail('');
       setCode('');
+      setOtpDigits(['', '', '', '', '', '']);
       setIsVerifying(false);
       setIsRegistering(false);
       setRateLimitCountdown(null);
@@ -183,26 +184,12 @@ export function LoginRegisterDialog({
     }
   }, [open, registrationSettings?.defaultGender]);
 
-  // Auto-focus first OTP input when step changes to verify (fallback if animation callback doesn't work)
+  // Auto-focus first OTP input when step changes to verify
   useEffect(() => {
-    if (step === 'verify') {
-      // Fallback focus after a delay (in case onAnimationComplete doesn't fire)
+    if (step === 'verify' && otpInputRefs.current[0]) {
       const timer = setTimeout(() => {
-        const dialog = document.querySelector('[role="dialog"]');
-        if (dialog) {
-          const inputs = dialog.querySelectorAll('input');
-          const otpInput = Array.from(inputs).find((input) => {
-            const el = input as HTMLInputElement;
-            return el.maxLength === 6 || el.getAttribute('inputmode') === 'numeric' || el.type === 'text';
-          }) as HTMLInputElement;
-          
-          if (otpInput && document.activeElement !== otpInput) {
-            otpInput.focus();
-          } else if (inputs.length > 0 && document.activeElement !== inputs[0]) {
-            (inputs[0] as HTMLInputElement).focus();
-          }
-        }
-      }, 400); // Delay to allow Framer Motion animation to complete
+        otpInputRefs.current[0]?.focus();
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [step]);
@@ -290,15 +277,70 @@ export function LoginRegisterDialog({
     }
   };
 
-  const handleVerifyCode = async () => {
+  // Handle OTP digit change
+  const handleOtpDigitChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d$/.test(value)) return;
+
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+
+    // Update code for API
+    const newCode = newDigits.join('');
+    setCode(newCode);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify when all 6 digits are entered
+    if (newCode.length === 6) {
+      handleVerifyCode(newCode);
+    }
+  };
+
+  // Handle OTP key down (backspace)
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle OTP paste
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pastedData[i] || '';
+    }
+    setOtpDigits(newDigits);
+    const pastedCode = pastedData;
+    setCode(pastedCode);
+    if (pastedCode.length === 6) {
+      handleVerifyCode(pastedCode);
+    } else {
+      otpInputRefs.current[Math.min(pastedCode.length, 5)]?.focus();
+    }
+  };
+
+  const handleVerifyCode = async (codeToVerify?: string) => {
+    // Prevent multiple simultaneous verification attempts
+    if (isVerifying) return;
+    
+    // Use provided code or fall back to state
+    const codeToCheck = codeToVerify || code;
+    
     // Accept both 4-digit test code (1234) and 6-digit real codes
-    if (!code || (code.length !== 4 && code.length !== 6)) {
+    if (!codeToCheck || (codeToCheck.length !== 4 && codeToCheck.length !== 6)) {
       toast.error(t('auth.invalidCode'));
       return;
     }
     
     // Allow test code 1234 (4 digits) or 6-digit codes
-    if (code.length === 4 && code !== '1234') {
+    if (codeToCheck.length === 4 && codeToCheck !== '1234') {
       toast.error(t('auth.invalidCode'));
       return;
     }
@@ -310,7 +352,7 @@ export function LoginRegisterDialog({
         // Verify email OTP using Supabase
         const { data, error } = await supabase.auth.verifyOtp({
           email: email,
-          token: code,
+          token: codeToCheck,
           type: 'email',
         });
 
@@ -375,7 +417,7 @@ export function LoginRegisterDialog({
           },
           body: JSON.stringify({
             phone: cleanPhone,
-            code: code,
+            code: codeToCheck,
             userType: 'customer',
           }),
         });
@@ -435,6 +477,10 @@ export function LoginRegisterDialog({
       } else {
         toast.error(errorMessage || t('auth.invalidCode') || 'Invalid code');
       }
+      // Clear OTP on error
+      setOtpDigits(['', '', '', '', '', '']);
+      setCode('');
+      otpInputRefs.current[0]?.focus();
     }
   };
 
@@ -727,22 +773,9 @@ export function LoginRegisterDialog({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
               onAnimationComplete={() => {
-                // Focus the OTP input after animation completes
+                // Focus the first OTP input after animation completes
                 setTimeout(() => {
-                  const dialog = document.querySelector('[role="dialog"]');
-                  if (dialog) {
-                    const inputs = dialog.querySelectorAll('input');
-                    const otpInput = Array.from(inputs).find((input) => {
-                      const el = input as HTMLInputElement;
-                      return el.maxLength === 6 || el.getAttribute('inputmode') === 'numeric' || el.type === 'text';
-                    }) as HTMLInputElement;
-                    
-                    if (otpInput) {
-                      otpInput.focus();
-                    } else if (inputs.length > 0) {
-                      (inputs[0] as HTMLInputElement).focus();
-                    }
-                  }
+                  otpInputRefs.current[0]?.focus();
                 }, 50);
               }}
               className="space-y-4"
@@ -764,27 +797,26 @@ export function LoginRegisterDialog({
               </div>
               
               <div>
-                <Label className={`block mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <Label className={`block mb-3 text-center`}>
                   {t('auth.verificationCode')}
                 </Label>
-                <div className="flex justify-center w-full">
-                  <InputOTP
-                    maxLength={6}
-                    value={code}
-                    onChange={(value) => setCode(value)}
-                    disabled={isVerifying}
-                    className="w-full justify-center"
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                  >
-                    <InputOTPGroup className={`gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
+                <div className="flex gap-1 sm:gap-2 justify-center px-2" dir="ltr">
+                  {otpDigits.map((digit, index) => (
+                    <Input
+                      key={index}
+                      ref={(el) => { otpInputRefs.current[index] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onPaste={index === 0 ? handleOtpPaste : undefined}
+                      disabled={isVerifying}
+                      className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
+                      autoFocus={index === 0}
+                    />
+                  ))}
                 </div>
                 {loginMethod === 'phone' && codeSentViaWhatsApp && (
                   <p className={`text-xs text-muted-foreground mt-2 text-center ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
@@ -797,9 +829,9 @@ export function LoginRegisterDialog({
                 )}
               </div>
                   <Button
-                    onClick={handleVerifyCode}
+                    onClick={() => handleVerifyCode()}
                     disabled={(code.length !== 4 && code.length !== 6) || isVerifying}
-                    className="w-full"
+                    className="w-full h-12 text-base font-semibold"
                     style={primaryColor ? {
                       backgroundColor: primaryColor,
                       color: '#ffffff',

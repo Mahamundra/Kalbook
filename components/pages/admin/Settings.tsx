@@ -13,6 +13,7 @@ import { getSettings, updateSettings, uploadFile, deleteFile } from '@/lib/api/s
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { getLocaleDisplayName } from '@/lib/i18n';
 import { bannerPatterns } from '@/lib/mockData';
+import { getDefaultGuestMessage, getDefaultLoggedInMessage } from '@/lib/utils/greetings';
 
 /**
  * Convert hex color to HSL format (without hsl() wrapper, just the values)
@@ -516,6 +517,7 @@ const Settings = () => {
         }
         
         // Ensure branding has defaults if missing
+        const businessLocale = (loadedSettings.locale?.language || 'en') as 'en' | 'he' | 'ar' | 'ru';
         if (!loadedSettings.branding) {
           loadedSettings.branding = {
             logoUrl: '',
@@ -524,16 +526,16 @@ const Settings = () => {
               type: 'pattern',
               patternId: 'pattern1',
             },
-            guestMessage: 'שלום אורח, ברוך הבא!',
-            loggedInMessage: 'שלום {name}, ברוך הבא!',
+            guestMessage: getDefaultGuestMessage(businessLocale),
+            loggedInMessage: getDefaultLoggedInMessage(businessLocale),
           };
         } else {
           // Set default greeting messages if empty
           if (!loadedSettings.branding.guestMessage || loadedSettings.branding.guestMessage.trim() === '') {
-            loadedSettings.branding.guestMessage = 'שלום אורח, ברוך הבא!';
+            loadedSettings.branding.guestMessage = getDefaultGuestMessage(businessLocale);
           }
           if (!loadedSettings.branding.loggedInMessage || loadedSettings.branding.loggedInMessage.trim() === '') {
-            loadedSettings.branding.loggedInMessage = 'שלום {name}, ברוך הבא!';
+            loadedSettings.branding.loggedInMessage = getDefaultLoggedInMessage(businessLocale);
           }
         }
         
@@ -1163,16 +1165,78 @@ const Settings = () => {
 
       {/* Main Settings with Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? 'rtl' : 'ltr'}>
-        {/* Horizontal Top Bar Navigation */}
+        {/* Mobile: Select Dropdown, Desktop: Horizontal Tabs */}
         <div className="mb-6 border-b md:border-b-0 md:mb-6 edge-to-edge-mobile">
-          <TabsList className={`flex flex-row w-full h-14 md:h-auto bg-transparent p-0 gap-0 overflow-x-auto settings-nav-scrollbar ${isRTL ? 'pr-6 pl-6 md:px-0' : 'pl-6 pr-6 md:px-0'}`}>
+          {/* Mobile Select Dropdown */}
+          <div className="md:hidden px-4 pb-4">
+            <p className={`text-sm text-muted-foreground mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('settings.selectSection') || 'Select a section to view more settings'}
+            </p>
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full h-12 justify-between" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2">
+                  {activeTab === 'business' && <Building2 className="w-4 h-4 flex-shrink-0" />}
+                  {activeTab === 'calendar' && <Calendar className="w-4 h-4 flex-shrink-0" />}
+                  {activeTab === 'notifications' && <Bell className="w-4 h-4 flex-shrink-0" />}
+                  {activeTab === 'templates' && <Mail className="w-4 h-4 flex-shrink-0" />}
+                  {activeTab === 'integrations' && <Link2 className="w-4 h-4 flex-shrink-0" />}
+                  <SelectValue>
+                    {activeTab === 'business' && (t('settings.businessProfile') || 'Business Profile')}
+                    {activeTab === 'calendar' && (t('settings.calendarSettings') || 'Calendar')}
+                    {activeTab === 'notifications' && (t('settings.notifications') || 'Notifications')}
+                    {activeTab === 'templates' && (t('nav.templates') || 'Templates')}
+                    {activeTab === 'integrations' && (t('settings.integrations') || 'Integrations')}
+                  </SelectValue>
+                  {(getTabChanges('business') > 0 && activeTab === 'business') ||
+                   (getTabChanges('calendar') > 0 && activeTab === 'calendar') ||
+                   (getTabChanges('notifications') > 0 && activeTab === 'notifications') ? (
+                    <span className="ml-2 w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" />
+                  ) : null}
+                </div>
+              </SelectTrigger>
+              <SelectContent dir={isRTL ? 'rtl' : 'ltr'}>
+                <SelectItem value="business" className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 flex-shrink-0" />
+                  <span>{t('settings.businessProfile') || 'Business Profile'}</span>
+                  {getTabChanges('business') > 0 && (
+                    <span className={`ml-auto w-2 h-2 bg-amber-500 rounded-full flex-shrink-0 ${isRTL ? 'mr-auto ml-0' : ''}`} />
+                  )}
+                </SelectItem>
+                <SelectItem value="calendar" className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 flex-shrink-0" />
+                  <span>{t('settings.calendarSettings') || 'Calendar'}</span>
+                  {getTabChanges('calendar') > 0 && (
+                    <span className={`ml-auto w-2 h-2 bg-amber-500 rounded-full flex-shrink-0 ${isRTL ? 'mr-auto ml-0' : ''}`} />
+                  )}
+                </SelectItem>
+                <SelectItem value="notifications" className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 flex-shrink-0" />
+                  <span>{t('settings.notifications') || 'Notifications'}</span>
+                  {getTabChanges('notifications') > 0 && (
+                    <span className={`ml-auto w-2 h-2 bg-amber-500 rounded-full flex-shrink-0 ${isRTL ? 'mr-auto ml-0' : ''}`} />
+                  )}
+                </SelectItem>
+                <SelectItem value="templates" className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 flex-shrink-0" />
+                  <span>{t('nav.templates') || 'Templates'}</span>
+                </SelectItem>
+                <SelectItem value="integrations" className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 flex-shrink-0" />
+                  <span>{t('settings.integrations') || 'Integrations'}</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop: Horizontal Tabs */}
+          <TabsList className={`hidden md:flex flex-row w-full h-auto bg-transparent p-0 gap-0 ${isRTL ? 'px-0' : 'px-0'}`}>
             <TooltipProvider>
               <TabsTrigger 
                 value="business" 
-                className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pr-6 pl-4 md:px-4' : 'pl-6 pr-4 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+                className={`flex-shrink-0 justify-center gap-2 px-4 py-3 h-auto rounded-none data-[state=active]:bg-black data-[state=active]:text-white ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
               >
-                <Building2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.businessProfile') || 'Business Profile'}</span>
+                <Building2 className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-base">{t('settings.businessProfile') || 'Business Profile'}</span>
                 {getTabChanges('business') > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1186,10 +1250,10 @@ const Settings = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="calendar" 
-                className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+                className={`flex-shrink-0 justify-center gap-2 px-4 py-3 h-auto rounded-none data-[state=active]:bg-black data-[state=active]:text-white ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
               >
-                <Calendar className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.calendarSettings') || 'Calendar'}</span>
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-base">{t('settings.calendarSettings') || 'Calendar'}</span>
                 {getTabChanges('calendar') > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1203,10 +1267,10 @@ const Settings = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="notifications" 
-                className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+                className={`flex-shrink-0 justify-center gap-2 px-4 py-3 h-auto rounded-none data-[state=active]:bg-black data-[state=active]:text-white ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
               >
-                <Bell className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.notifications') || 'Notifications'}</span>
+                <Bell className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-base">{t('settings.notifications') || 'Notifications'}</span>
                 {getTabChanges('notifications') > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1220,17 +1284,17 @@ const Settings = () => {
               </TabsTrigger>
               <TabsTrigger 
                 value="templates" 
-                className={`flex-shrink-0 justify-center gap-2 px-4 md:px-4 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+                className={`flex-shrink-0 justify-center gap-2 px-4 py-3 h-auto rounded-none data-[state=active]:bg-black data-[state=active]:text-white ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
               >
-                <Mail className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap text-sm md:text-base">{t('nav.templates') || 'Templates'}</span>
+                <Mail className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-base">{t('nav.templates') || 'Templates'}</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="integrations" 
-                className={`flex-shrink-0 justify-center gap-2 ${isRTL ? 'pl-6 pr-4 md:px-4' : 'pl-4 pr-6 md:px-4'} py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
+                className={`flex-shrink-0 justify-center gap-2 px-4 py-3 h-auto rounded-none data-[state=active]:bg-black data-[state=active]:text-white ${isRTL ? 'flex-row-reverse' : ''} min-w-fit relative`}
               >
-                <Link2 className="w-4 h-4 md:w-4 md:h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap text-sm md:text-base">{t('settings.integrations') || 'Integrations'}</span>
+                <Link2 className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap text-base">{t('settings.integrations') || 'Integrations'}</span>
               </TabsTrigger>
             </TooltipProvider>
           </TabsList>

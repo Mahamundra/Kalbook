@@ -469,8 +469,25 @@ export default function AdminLoginPage() {
 
         toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
         
-        // Wait a bit to ensure cookie is set, then redirect with full page reload
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait for cookie to be set and verify it exists before redirecting
+        // This ensures the middleware will see the cookie when the redirect happens
+        // Start with a minimum wait (like OAuth flow) then check for cookie
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        let cookieSet = false;
+        let attempts = 0;
+        const maxAttempts = 10; // 10 attempts * 200ms = 2 seconds additional wait
+        
+        while (!cookieSet && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          // Check if is_logged_in cookie is set (non-httpOnly, so we can check it)
+          cookieSet = document.cookie.includes('is_logged_in=true');
+          attempts++;
+        }
+        
+        if (!cookieSet) {
+          console.warn('[LOGIN] Cookie not detected after verification, but redirecting anyway. Middleware will handle authentication.');
+        }
         
         // Get return URL from query params or default to dashboard
         const urlParams = new URLSearchParams(window.location.search);
@@ -492,7 +509,15 @@ export default function AdminLoginPage() {
           phoneForApi = '+' + cleanPhone;
         }
 
-        // Call verify-otp API with business slug
+        // Get return URL from query params or default to dashboard
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return');
+        const redirectPath = returnUrl 
+          ? decodeURIComponent(returnUrl)
+          : `/b/${slug}/admin/dashboard`;
+
+        // Call verify-otp API - don't pass redirectUrl, get JSON response and set cookie
+        // Then redirect manually on client side
         const response = await fetch('/api/auth/verify-otp', {
           method: 'POST',
           credentials: 'include', // Ensure cookies are sent and received
@@ -504,6 +529,7 @@ export default function AdminLoginPage() {
             code: codeToUse,
             userType: 'business_owner',
             businessSlug: slug,
+            // Don't pass redirectUrl - get JSON response instead
           }),
         });
 
@@ -524,24 +550,101 @@ export default function AdminLoginPage() {
           throw new Error(data.error || 'Authentication failed');
         }
 
+        // Success - cookie should be set in the response
         setIsLoading(false);
         setShowOtpModal(false);
-
-        // Redirect to dashboard
         toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
         
-        // Wait a bit to ensure cookie is set, then redirect with full page reload
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait for cookie to be set and verify it exists before redirecting
+        let cookieSet = false;
+        let attempts = 0;
+        const maxAttempts = 20; // 20 attempts * 100ms = 2 seconds max wait
         
-        // Get return URL from query params or default to dashboard
-        const urlParams = new URLSearchParams(window.location.search);
-        const returnUrl = urlParams.get('return');
-        const redirectPath = returnUrl 
-          ? decodeURIComponent(returnUrl)
-          : `/b/${slug}/admin/dashboard`;
+        while (!cookieSet && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          // Check if is_logged_in cookie is set (non-httpOnly, so we can check it)
+          cookieSet = document.cookie.includes('is_logged_in=true');
+          attempts++;
+          if (cookieSet) {
+            console.log('[LOGIN] Cookie detected after', attempts, 'attempts');
+          }
+        }
         
-        // Use window.location.href for full page reload to ensure cookie is sent
+        if (!cookieSet) {
+          console.warn('[LOGIN] Cookie not detected after verification, but redirecting anyway');
+        }
+        
+        // Redirect to dashboard - cookie should be set now
+        console.log('[LOGIN] Redirecting to:', redirectPath);
         window.location.href = redirectPath;
+
+        // If not a redirect, check for JSON response (error case)
+        if (!response.ok) {
+          // Try to parse JSON error response
+          let errorMessage = 'Authentication failed';
+          try {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const text = await response.text();
+              if (text) {
+                const data = JSON.parse(text);
+                errorMessage = data.error || errorMessage;
+              }
+            } else {
+              errorMessage = response.statusText || errorMessage;
+            }
+          } catch (e) {
+            // If JSON parsing fails, use status text
+            console.error('[LOGIN] Error parsing error response:', e);
+            errorMessage = response.statusText || errorMessage;
+          }
+          
+          const lowerErrorMessage = errorMessage.toLowerCase();
+          if (lowerErrorMessage.includes('invalid') && lowerErrorMessage.includes('expired')) {
+            throw new Error(t('adminLogin.invalidOrExpiredCode') || 'Invalid or expired code');
+          }
+          throw new Error(errorMessage || t('adminLogin.invalidCode') || 'Invalid code');
+        }
+
+        // Fallback: if API returned JSON instead of redirect (shouldn't happen with redirectUrl)
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const text = await response.text();
+            if (text) {
+              const data = JSON.parse(text);
+              if (!data.success) {
+                throw new Error(data.error || 'Authentication failed');
+              }
+              // If we get here, API returned JSON success (shouldn't happen with redirectUrl, but handle it)
+              setIsLoading(false);
+              setShowOtpModal(false);
+              toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
+              window.location.href = redirectPath;
+            } else {
+              // Empty response, assume redirect worked
+              console.warn('[LOGIN] Empty JSON response, assuming redirect succeeded');
+              setIsLoading(false);
+              setShowOtpModal(false);
+              toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
+              window.location.href = redirectPath;
+            }
+          } else {
+            // No JSON content type, assume redirect worked
+            console.warn('[LOGIN] Response has no JSON content-type, assuming redirect succeeded');
+            setIsLoading(false);
+            setShowOtpModal(false);
+            toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
+            window.location.href = redirectPath;
+          }
+        } catch (e) {
+          // If JSON parsing fails, assume redirect worked but we got an empty response
+          console.warn('[LOGIN] Could not parse response as JSON, assuming redirect succeeded:', e);
+          setIsLoading(false);
+          setShowOtpModal(false);
+          toast.success(t('adminLogin.loginSuccess') || 'Logged in successfully');
+          window.location.href = redirectPath;
+        }
       }
     } catch (error: any) {
       setIsLoading(false);

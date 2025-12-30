@@ -31,6 +31,7 @@ import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { ClassicLayout } from '@/components/booking/layouts/ClassicLayout';
 import { SidebarLayout } from '@/components/booking/layouts/SidebarLayout';
 import { HeroLayout } from '@/components/booking/layouts/HeroLayout';
+import { getGreetingMessage } from '@/lib/utils/greetings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +78,52 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Helper to convert HSL to hex (for reading from CSS variables)
+  const hslToHex = (hsl: string): string | null => {
+    const match = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+    if (!match) return null;
+    
+    const h = parseInt(match[1]) / 360;
+    const s = parseInt(match[2]) / 100;
+    const l = parseInt(match[3]) / 100;
+    
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+    const m = l - c / 2;
+    
+    let r = 0, g = 0, b = 0;
+    if (h < 1/6) { r = c; g = x; b = 0; }
+    else if (h < 2/6) { r = x; g = c; b = 0; }
+    else if (h < 3/6) { r = 0; g = c; b = x; }
+    else if (h < 4/6) { r = 0; g = x; b = c; }
+    else if (h < 5/6) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+    
+    const toHex = (n: number) => {
+      const hex = Math.round((n + m) * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return '#' + toHex(r) + toHex(g) + toHex(b);
+  };
+  
+  // Initialize theme color from CSS variables if available (ThemeProvider may have set them)
+  const getInitialThemeColor = (): string => {
+    if (typeof window === 'undefined') return '#0EA5E9';
+    
+    // Check if CSS variable is already set by ThemeProvider
+    const root = document.documentElement;
+    const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
+    if (bookingPrimary) {
+      const hex = hslToHex(bookingPrimary);
+      if (hex) return hex;
+    }
+    
+    return '#0EA5E9';
+  };
+  
+  const [themeColor, setThemeColor] = useState<string>(() => getInitialThemeColor()); // Initialize from CSS variables if available
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -269,6 +316,72 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     }
   }, []);
 
+  // Update theme color when settings or editorSettings change
+  useEffect(() => {
+    if (settings?.branding?.themeColor) {
+      setThemeColor(settings.branding.themeColor);
+    } else if (editorSettings?.branding?.themeColor) {
+      setThemeColor(editorSettings.branding.themeColor);
+    } else {
+      // Check CSS variables again in case ThemeProvider updated them
+      const root = document.documentElement;
+      const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
+      if (bookingPrimary) {
+        const hex = hslToHex(bookingPrimary);
+        if (hex) setThemeColor(hex);
+      }
+    }
+  }, [settings, editorSettings]);
+
+  // Fetch theme color immediately on mount if we have a slug (before settings are fully loaded)
+  useEffect(() => {
+    if (slug && !settings && !editMode) {
+      // Fetch immediately, don't wait
+      const fetchThemeColor = async () => {
+        try {
+          const response = await fetch(`/api/settings?businessSlug=${slug}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.settings?.branding?.themeColor) {
+              setThemeColor(data.settings.branding.themeColor);
+            }
+          }
+        } catch (error) {
+          // Silently fail, will use default or CSS variable
+        }
+      };
+      fetchThemeColor();
+    }
+  }, [slug, settings, editMode]);
+  
+  // Also listen for CSS variable changes (in case ThemeProvider updates them)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkCSSVariables = () => {
+      const root = document.documentElement;
+      const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
+      if (bookingPrimary) {
+        const hex = hslToHex(bookingPrimary);
+        if (hex && hex !== themeColor) {
+          setThemeColor(hex);
+        }
+      }
+    };
+    
+    // Check immediately
+    checkCSSVariables();
+    
+    // Set up a MutationObserver to watch for CSS variable changes
+    const observer = new MutationObserver(checkCSSVariables);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+    
+    return () => observer.disconnect();
+  }, [themeColor]);
+
   // Update settings when editorSettings changes (for real-time preview)
   useEffect(() => {
     if (editMode && editorSettings) {
@@ -402,6 +515,10 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
             const settingsData = await settingsResponse.value.json();
             if (settingsData.success && settingsData.settings) {
               setSettings(settingsData.settings);
+              // Update theme color immediately when settings are loaded
+              if (settingsData.settings.branding?.themeColor) {
+                setThemeColor(settingsData.settings.branding.themeColor);
+              }
             }
           }
           
@@ -851,57 +968,72 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     return workers.filter(w => w.services.includes(selectedService.id));
   };
 
-  // Generate calendar URLs
-  const generateAppleCalendarUrl = (apt: Appointment) => {
+  // Generate ICS file from appointment (for Apple Calendar)
+  const generateICSFromAppointment = (apt: Appointment): string => {
     const startDate = new Date(apt.start);
     const endDate = new Date(apt.end);
     
-    // Format dates for Apple Calendar (YYYYMMDDTHHmmssZ)
-    const formatDate = (date: Date) => {
-      const year = date.getUTCFullYear();
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(date.getUTCDate()).padStart(2, '0');
-      const hours = String(date.getUTCHours()).padStart(2, '0');
-      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    const formatICSDate = (date: Date): string => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     };
     
-    const start = formatDate(startDate);
-    const end = formatDate(endDate);
-    const title = encodeURIComponent(apt.service || 'Appointment');
-    const description = encodeURIComponent(
-      `${apt.service}${apt.workerId ? ` - ${workers.find(w => w.id === apt.workerId || w.id === apt.staffId)?.name || ''}` : ''}`
-    );
-    const location = encodeURIComponent(settings?.businessProfile?.address || '');
+    const businessName = settings?.businessProfile?.name || 'Business';
+    const businessAddress = settings?.businessProfile?.address || '';
+    const worker = workers.find(w => w.id === apt.workerId || w.id === apt.staffId);
+    const workerName = worker?.name || '';
+    const serviceDescription = (apt as any).serviceDescription || '';
     
-    return `data:text/calendar;charset=utf8,BEGIN:VCALENDAR%0AVERSION:2.0%0ABEGIN:VEVENT%0ADTSTART:${start}%0ADTEND:${end}%0ASUMMARY:${title}%0ADESCRIPTION:${description}%0ALOCATION:${location}%0AEND:VEVENT%0AEND:VCALENDAR`;
+    // Get translated labels
+    const serviceLabel = t('booking.calendarLabels.service');
+    const workerLabel = t('booking.calendarLabels.worker');
+    const customerLabel = t('booking.calendarLabels.customer');
+    
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Booking System//EN',
+      'BEGIN:VEVENT',
+      `DTSTART:${formatICSDate(startDate)}`,
+      `DTEND:${formatICSDate(endDate)}`,
+      `SUMMARY:${apt.service} - ${businessName}`,
+      `DESCRIPTION:${serviceDescription || ''}\\n${serviceLabel}: ${apt.service}\\n${workerLabel}: ${workerName}\\n${customerLabel}: ${apt.customer}`,
+      `LOCATION:${businessAddress}`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+    
+    return icsContent;
   };
 
+  // Generate Google Calendar URL from appointment
   const generateGoogleCalendarUrl = (apt: Appointment) => {
     const startDate = new Date(apt.start);
     const endDate = new Date(apt.end);
     
-    // Format dates for Google Calendar (YYYYMMDDTHHmmssZ)
-    const formatDate = (date: Date) => {
-      const year = date.getUTCFullYear();
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(date.getUTCDate()).padStart(2, '0');
-      const hours = String(date.getUTCHours()).padStart(2, '0');
-      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    const formatGoogleDate = (date: Date): string => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     };
     
-    const start = formatDate(startDate);
-    const end = formatDate(endDate);
-    const title = encodeURIComponent(apt.service || 'Appointment');
-    const description = encodeURIComponent(
-      `${apt.service}${apt.workerId ? ` - ${workers.find(w => w.id === apt.workerId || w.id === apt.staffId)?.name || ''}` : ''}`
-    );
-    const location = encodeURIComponent(settings?.businessProfile?.address || '');
+    const businessName = settings?.businessProfile?.name || 'Business';
+    const businessAddress = settings?.businessProfile?.address || '';
+    const worker = workers.find(w => w.id === apt.workerId || w.id === apt.staffId);
+    const workerName = worker?.name || '';
+    const serviceDescription = (apt as any).serviceDescription || '';
     
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${description}&location=${location}`;
+    // Get translated labels
+    const serviceLabel = t('booking.calendarLabels.service');
+    const workerLabel = t('booking.calendarLabels.worker');
+    const customerLabel = t('booking.calendarLabels.customer');
+    
+    const title = encodeURIComponent(`${apt.service} - ${businessName}`);
+    const details = encodeURIComponent(
+      `${serviceDescription || ''}\n${serviceLabel}: ${apt.service}\n${workerLabel}: ${workerName}\n${customerLabel}: ${apt.customer}`
+    );
+    const location = encodeURIComponent(businessAddress);
+    const dates = `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`;
+    
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
   };
 
   // Handle cancel appointment
@@ -1107,9 +1239,9 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
   // Show loading state until settings are loaded (AFTER all hooks)
   if (loading || !settings) {
-    // Get theme color from settings or editorSettings, fallback to default
-    const themeColor = settings?.branding?.themeColor || editorSettings?.branding?.themeColor || '#0EA5E9';
-    const rgb = hexToRgb(themeColor);
+    // Use the themeColor state which is updated from settings, editorSettings, or CSS variables
+    const currentThemeColor = themeColor;
+    const rgb = hexToRgb(currentThemeColor);
     
     return (
       <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in">
@@ -1121,7 +1253,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
           {/* Modern animated spinner with smooth gradient */}
           <div className="relative mx-auto w-16 h-16">
             <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` }}></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: themeColor, borderRightColor: themeColor, animationDuration: '0.8s' }}></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: currentThemeColor, borderRightColor: currentThemeColor, animationDuration: '0.8s' }}></div>
             <div className="absolute inset-2 rounded-full border-4 border-transparent animate-spin" style={{ borderBottomColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, borderLeftColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
           </div>
           {/* Friendly loading message with pulse animation */}
@@ -1623,6 +1755,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
             {settings.branding.bannerCover.videoUrl ? (
               <video
                 src={settings.branding.bannerCover.videoUrl}
+                poster={settings.branding.bannerCover.posterUrl || undefined}
                 className="w-full h-full object-cover"
                 style={{
                   objectPosition: settings.branding.bannerCover.position
@@ -1817,9 +1950,26 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                   data-edit-id={effectiveIsLoggedIn && effectiveCurrentUser ? "logged-in-message" : "guest-message"}
                   data-edit-type="text"
                   dangerouslySetInnerHTML={{
-                    __html: effectiveIsLoggedIn && effectiveCurrentUser
-                      ? (settings.branding?.loggedInMessage || 'שלום {name}, ברוך הבא!').replace('{name}', effectiveCurrentUser.name || '')
-                      : settings.branding?.guestMessage || 'שלום אורח, ברוך הבא!'
+                    __html: (() => {
+                      // Use user's selected language from language toggle, not business's default locale
+                      // This allows the greeting to change when user changes language
+                      const greetingLocale = (locale || settings?.locale?.language || 'en') as 'en' | 'he' | 'ar' | 'ru';
+                      
+                      if (effectiveIsLoggedIn && effectiveCurrentUser) {
+                        const message = getGreetingMessage(
+                          settings?.branding?.loggedInMessage,
+                          greetingLocale,
+                          true
+                        );
+                        return message.replace('{name}', effectiveCurrentUser.name || '');
+                      } else {
+                        return getGreetingMessage(
+                          settings?.branding?.guestMessage,
+                          greetingLocale,
+                          false
+                        );
+                      }
+                    })()
                   }}
                 />
               </div>
@@ -1951,6 +2101,45 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                                 : apt.status}
                             </Badge>
                           </div>
+                          {/* Cancel Button - Mobile: Under status, Desktop: At bottom */}
+                          {!isPast && apt.status !== 'cancelled' && (
+                            <div className="sm:hidden">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleCancelAppointment(apt.id)}
+                                disabled={cancellingAppointmentId === apt.id}
+                                className="text-xs px-3 h-8 w-full sm:w-auto"
+                              >
+                                {cancellingAppointmentId === apt.id ? (
+                                  <>
+                                    <motion.span
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      className={isRTL ? 'ml-1.5' : 'mr-1.5'}
+                                    >
+                                      ⏳
+                                    </motion.span>
+                                    <span>...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    {isRTL ? (
+                                      <>
+                                        {t('booking.cancel')}
+                                        <Trash2 className="w-3.5 h-3.5 ml-1.5" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                        {t('booking.cancel')}
+                                      </>
+                                    )}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <CalendarIcon className="w-4 h-4" />
                             <span>{formattedDate}</span>
@@ -1979,11 +2168,17 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  const url = generateAppleCalendarUrl(apt);
+                                  const icsContent = generateICSFromAppointment(apt);
+                                  if (!icsContent) return;
+                                  
+                                  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
                                   const link = document.createElement('a');
-                                  link.href = url;
-                                  link.download = 'appointment.ics';
+                                  link.href = window.URL.createObjectURL(blob);
+                                  const dateStr = new Date(apt.start).toISOString().split('T')[0];
+                                  link.download = `appointment-${dateStr}.ics`;
+                                  document.body.appendChild(link);
                                   link.click();
+                                  document.body.removeChild(link);
                                 }}
                                 className={`text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap ${isRTL ? 'flex-row-reverse' : ''}`}
                               >
@@ -2052,13 +2247,13 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                                   {t('booking.reschedule')}
                                 </Button>
                               )}
-                              {/* Cancel Button */}
+                              {/* Cancel Button - Desktop only */}
                               <Button
                                 variant="default"
                                 size="sm"
                                 onClick={() => handleCancelAppointment(apt.id)}
                                 disabled={cancellingAppointmentId === apt.id}
-                                className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap"
+                                className="hidden sm:flex text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 whitespace-nowrap"
                               >
                                 {cancellingAppointmentId === apt.id ? (
                                   <>
@@ -3625,12 +3820,57 @@ function BookingPageFallback() {
   const { t } = useLocale();
   const params = useParams();
   const searchParams = useSearchParams();
-  const [themeColor, setThemeColor] = useState<string>('#0EA5E9');
+  
+  // Helper to convert HSL to hex (for reading from CSS variables)
+  const hslToHex = (hsl: string): string | null => {
+    const match = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+    if (!match) return null;
+    
+    const h = parseInt(match[1]) / 360;
+    const s = parseInt(match[2]) / 100;
+    const l = parseInt(match[3]) / 100;
+    
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+    const m = l - c / 2;
+    
+    let r = 0, g = 0, b = 0;
+    if (h < 1/6) { r = c; g = x; b = 0; }
+    else if (h < 2/6) { r = x; g = c; b = 0; }
+    else if (h < 3/6) { r = 0; g = c; b = x; }
+    else if (h < 4/6) { r = 0; g = x; b = c; }
+    else if (h < 5/6) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+    
+    const toHex = (n: number) => {
+      const hex = Math.round((n + m) * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    
+    return '#' + toHex(r) + toHex(g) + toHex(b);
+  };
+  
+  // Initialize theme color from CSS variables if available (ThemeProvider may have set them)
+  const getInitialThemeColor = (): string => {
+    if (typeof window === 'undefined') return '#0EA5E9';
+    
+    // Check if CSS variable is already set by ThemeProvider
+    const root = document.documentElement;
+    const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
+    if (bookingPrimary) {
+      const hex = hslToHex(bookingPrimary);
+      if (hex) return hex;
+    }
+    
+    return '#0EA5E9';
+  };
+  
+  const [themeColor, setThemeColor] = useState<string>(() => getInitialThemeColor());
   
   // Get slug from route params or query params
   const slug = (params?.slug as string) || searchParams.get('slug') || searchParams.get('ui') || null;
   
-  // Fetch settings to get theme color
+  // Fetch settings to get theme color immediately
   useEffect(() => {
     if (slug) {
       const fetchSettings = async () => {
@@ -3649,6 +3889,34 @@ function BookingPageFallback() {
       fetchSettings();
     }
   }, [slug]);
+  
+  // Also listen for CSS variable changes (in case ThemeProvider updates them)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkCSSVariables = () => {
+      const root = document.documentElement;
+      const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
+      if (bookingPrimary) {
+        const hex = hslToHex(bookingPrimary);
+        if (hex && hex !== themeColor) {
+          setThemeColor(hex);
+        }
+      }
+    };
+    
+    // Check immediately
+    checkCSSVariables();
+    
+    // Set up a MutationObserver to watch for CSS variable changes
+    const observer = new MutationObserver(checkCSSVariables);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+    
+    return () => observer.disconnect();
+  }, [themeColor]);
   
   const rgb = hexToRgb(themeColor);
   

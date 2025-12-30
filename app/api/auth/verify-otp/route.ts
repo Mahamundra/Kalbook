@@ -21,7 +21,7 @@ function getSessionCookieName(businessSlug: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, code, userType = 'customer', email, name } = body;
+    const { phone, code, userType = 'customer', email, name, redirectUrl } = body;
 
     // Validate inputs
     if (!phone || !code) {
@@ -432,19 +432,30 @@ export async function POST(request: NextRequest) {
         email: userData.email,
       });
 
-      // Create response with session data
-      const response = NextResponse.json({
-        success: true,
-        session: {
-          type: 'business_owner',
-          userId: userData.id,
-          businessId: userData.business_id,
-          email: userData.email,
-          phone: userData.phone,
-          name: userData.name,
-          role: userData.role,
-        },
-      });
+      // Create response - either redirect or JSON
+      let response: NextResponse;
+      if (redirectUrl && typeof redirectUrl === 'string') {
+        // Return redirect response with cookie set
+        // Ensure redirectUrl is absolute
+        const redirectUrlObj = redirectUrl.startsWith('http') 
+          ? new URL(redirectUrl)
+          : new URL(redirectUrl, request.url);
+        response = NextResponse.redirect(redirectUrlObj);
+      } else {
+        // Return JSON response
+        response = NextResponse.json({
+          success: true,
+          session: {
+            type: 'business_owner',
+            userId: userData.id,
+            businessId: userData.business_id,
+            email: userData.email,
+            phone: userData.phone,
+            name: userData.name,
+            role: userData.role,
+          },
+        });
+      }
 
       // Set admin session cookie for middleware to check
       // Ensure all fields are strings (not null) for consistency

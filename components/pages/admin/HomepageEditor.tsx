@@ -20,6 +20,10 @@ import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { getGreetingMessage, getGuestMessageTemplates } from '@/lib/utils/greetings';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import {
   Sheet,
   SheetContent,
@@ -74,7 +78,7 @@ export function HomepageEditor({
   businessSlug,
   onSave,
 }: HomepageEditorProps) {
-  const { t, isRTL } = useLocale();
+  const { t, isRTL, locale: adminLocale } = useLocale();
   const { dir } = useDirection();
   const isMobile = useIsMobile();
   const [settings, setSettings] = useState<Settings>(initialSettings);
@@ -99,6 +103,9 @@ export function HomepageEditor({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [guestMessageUseCustom, setGuestMessageUseCustom] = useState(false);
+  const [guestMessageTemplate, setGuestMessageTemplate] = useState<string>('');
+  const [guestMessageCustomText, setGuestMessageCustomText] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Update side menu state when mobile state changes
@@ -138,6 +145,35 @@ export function HomepageEditor({
       const element = document.querySelector(`[data-edit-id="${editId}"]`);
       if (element) {
         const rect = element.getBoundingClientRect();
+        
+        // Initialize guest message state if editing guest message
+        if (editId === 'guest-message') {
+          const currentMessage = settings.branding?.guestMessage || '';
+          const templates = getGuestMessageTemplates(adminLocale);
+          
+          // Check if current message matches a template (compare text content, ignoring HTML)
+          const currentMessageText = currentMessage.replace(/<[^>]*>/g, '').trim();
+          const matchingTemplate = templates.find(t => {
+            const templateText = t.value.replace(/<[^>]*>/g, '').trim();
+            return templateText === currentMessageText || t.value === currentMessage;
+          });
+          if (matchingTemplate) {
+            setGuestMessageUseCustom(false);
+            setGuestMessageTemplate(matchingTemplate.id);
+            setGuestMessageCustomText('');
+          } else if (currentMessage) {
+            // Has custom text
+            setGuestMessageUseCustom(true);
+            setGuestMessageTemplate('');
+            setGuestMessageCustomText(currentMessage);
+          } else {
+            // No message set, default to first template
+            setGuestMessageUseCustom(false);
+            setGuestMessageTemplate(templates[0]?.id || '');
+            setGuestMessageCustomText('');
+          }
+        }
+        
         setEditingElement({
           id: editId,
           type: editType as 'text' | 'image',
@@ -167,10 +203,18 @@ export function HomepageEditor({
 
     switch (elementId) {
       case 'guest-message':
+        // If using template, use template value; otherwise use custom text
+        const guestMessageValue = guestMessageUseCustom 
+          ? value 
+          : (guestMessageTemplate || value);
         updatedSettings.branding = {
           ...updatedSettings.branding,
-          guestMessage: value,
+          guestMessage: guestMessageValue,
         };
+        // Reset state
+        setGuestMessageUseCustom(false);
+        setGuestMessageTemplate('');
+        setGuestMessageCustomText('');
         break;
       case 'logged-in-message':
         updatedSettings.branding = {
@@ -194,6 +238,7 @@ export function HomepageEditor({
     type: 'upload' | 'pattern';
     uploadUrl?: string;
     videoUrl?: string;
+    posterUrl?: string;
     patternId?: string;
     position?: { x: number; y: number };
   }) => {
@@ -360,11 +405,12 @@ export function HomepageEditor({
   };
 
   const getElementValue = (elementId: string): string => {
+    const currentLocale = (settings.locale?.language || 'en') as 'en' | 'he' | 'ar' | 'ru';
     switch (elementId) {
       case 'guest-message':
-        return settings.branding?.guestMessage || '';
+        return getGreetingMessage(settings.branding?.guestMessage, currentLocale, false);
       case 'logged-in-message':
-        return settings.branding?.loggedInMessage || '';
+        return getGreetingMessage(settings.branding?.loggedInMessage, currentLocale, true);
       default:
         return '';
     }
@@ -438,6 +484,31 @@ export function HomepageEditor({
     // Switch view when clicking on guest or logged-in message
     if (elementId === 'guest-message') {
       setViewAsGuest(true);
+      // Initialize guest message state
+      const currentMessage = settings.branding?.guestMessage || '';
+      const templates = getGuestMessageTemplates(adminLocale);
+      
+      // Check if current message matches a template (compare text content, ignoring HTML)
+      const currentMessageText = currentMessage.replace(/<[^>]*>/g, '').trim();
+      const matchingTemplate = templates.find(t => {
+        const templateText = t.value.replace(/<[^>]*>/g, '').trim();
+        return templateText === currentMessageText || t.value === currentMessage;
+      });
+      if (matchingTemplate) {
+        setGuestMessageUseCustom(false);
+        setGuestMessageTemplate(matchingTemplate.id);
+        setGuestMessageCustomText('');
+      } else if (currentMessage) {
+        // Has custom text
+        setGuestMessageUseCustom(true);
+        setGuestMessageTemplate('');
+        setGuestMessageCustomText(currentMessage);
+      } else {
+        // No message set, default to first template
+        setGuestMessageUseCustom(false);
+        setGuestMessageTemplate(templates[0]?.id || '');
+        setGuestMessageCustomText('');
+      }
     } else if (elementId === 'logged-in-message') {
       setViewAsGuest(false);
     }
@@ -802,12 +873,12 @@ export function HomepageEditor({
           dir={dir}
         >
           {viewMode === 'mobile' ? (
-            /* iPhone 16 Pro Mockup - Scaled to fit editor */
-            <div className="relative w-full flex justify-center items-center">
-              <div className="relative mx-auto" style={{ width: '300px', height: '600px' }}>
+            /* iPhone 16 Pro Mockup - Wider size, centered */
+            <div className="relative w-full h-full flex items-center justify-center py-8">
+              <div className="relative mx-auto" style={{ width: '420px', height: '911px' }}>
                 {/* Phone Container */}
                 <div 
-                  className="relative bg-black rounded-[2rem] p-[8px] shadow-2xl w-full h-full"
+                  className="relative bg-black rounded-[2rem] p-[12px] shadow-2xl w-full h-full"
                   style={{
                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
                   }}
@@ -815,13 +886,13 @@ export function HomepageEditor({
                   {/* Notch */}
                   <div 
                     className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-black rounded-b-lg z-10"
-                    style={{ width: '96px', height: '28px' }}
+                    style={{ width: '134px', height: '39px' }}
                   />
                   
                   {/* Speaker */}
                   <div 
-                    className="absolute top-0.5 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded-full z-10"
-                    style={{ width: '34px', height: '2px' }}
+                    className="absolute top-1 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded-full z-10"
+                    style={{ width: '48px', height: '2.5px' }}
                   />
                   
                   {/* Screen */}
@@ -836,8 +907,8 @@ export function HomepageEditor({
                   
                   {/* Home Indicator (for modern phones) */}
                   <div 
-                    className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 bg-gray-400 rounded-full z-10"
-                    style={{ width: '76px', height: '2px' }}
+                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-400 rounded-full z-10"
+                    style={{ width: '107px', height: '2.5px' }}
                   />
                 </div>
               </div>
@@ -881,10 +952,16 @@ export function HomepageEditor({
         onOpenChange={(open) => {
           if (!open) {
             setEditingElement(null);
+            // Reset guest message state when closing
+            if (editingElement.id === 'guest-message') {
+              setGuestMessageUseCustom(false);
+              setGuestMessageTemplate('');
+              setGuestMessageCustomText('');
+            }
           }
         }}
       >
-        <DialogContent className="max-w-md z-[10001]" dir={dir}>
+        <DialogContent className={`${editingElement.id === 'guest-message' ? 'max-w-2xl' : 'max-w-md'} z-[10001]`} dir={dir}>
           <DialogHeader>
             <DialogTitle>
               {editingElement.id === 'guest-message'
@@ -894,21 +971,146 @@ export function HomepageEditor({
                 : t('settings.homepageEditor.editPlaceholder') || 'Edit Text'}
             </DialogTitle>
             <DialogDescription>
-              {t('settings.homepageEditor.editPlaceholder') || 'Edit the text content below'}
+              {editingElement.id === 'guest-message'
+                ? t('settings.homepageEditor.guestMessageDescription') || 'Choose a template or enter custom text'
+                : t('settings.homepageEditor.editPlaceholder') || 'Edit the text content below'}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <InlineTextEditor
-              value={getElementValue(editingElement.id)}
-              onSave={(value) => {
-                handleTextSave(editingElement.id, value);
-                setEditingElement(null);
-              }}
-              onCancel={() => setEditingElement(null)}
-              multiline={editingElement.id === 'guest-message' || 
-                        editingElement.id === 'logged-in-message'}
-              placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
-            />
+            {editingElement.id === 'guest-message' ? (
+              <div className="space-y-4">
+                {/* Template Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    {t('settings.homepageEditor.selectTemplate') || 'Select a template'}
+                  </Label>
+                  <RadioGroup
+                    value={guestMessageUseCustom ? 'custom' : guestMessageTemplate}
+                    onValueChange={(value) => {
+                      if (value === 'custom') {
+                        setGuestMessageUseCustom(true);
+                        setGuestMessageTemplate('');
+                      } else {
+                        setGuestMessageUseCustom(false);
+                        setGuestMessageTemplate(value);
+                        // Set custom text to the selected template value for preview
+                        const templates = getGuestMessageTemplates(adminLocale);
+                        const selectedTemplate = templates.find(t => t.id === value);
+                        if (selectedTemplate) {
+                          setGuestMessageCustomText(selectedTemplate.value);
+                        }
+                      }
+                    }}
+                    className="space-y-2"
+                  >
+                    {getGuestMessageTemplates(adminLocale).map((template) => (
+                      <div key={template.id} className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value={template.id} id={`template-${template.id}`} />
+                        <Label 
+                          htmlFor={`template-${template.id}`} 
+                          className="text-sm font-normal cursor-pointer flex-1"
+                        >
+                          {template.label}
+                        </Label>
+                      </div>
+                    ))}
+                    <div className="flex items-center space-x-2 space-x-reverse pt-2 border-t">
+                      <RadioGroupItem value="custom" id="template-custom" />
+                      <Label 
+                        htmlFor="template-custom" 
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        {t('settings.homepageEditor.useCustomText') || 'Use custom text'}
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Custom Text Editor - Show when custom is selected */}
+                {guestMessageUseCustom && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      {t('settings.homepageEditor.customText') || 'Custom text'}
+                    </Label>
+                    <InlineTextEditor
+                      value={guestMessageCustomText || getElementValue(editingElement.id)}
+                      onSave={(value) => {
+                        setGuestMessageCustomText(value);
+                        handleTextSave(editingElement.id, value);
+                        setEditingElement(null);
+                      }}
+                      onCancel={() => {
+                        setEditingElement(null);
+                        setGuestMessageUseCustom(false);
+                        setGuestMessageTemplate('');
+                        setGuestMessageCustomText('');
+                      }}
+                      multiline={true}
+                      placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
+                    />
+                  </div>
+                )}
+
+                {/* Preview and Save button for template selection */}
+                {!guestMessageUseCustom && guestMessageTemplate && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        {t('settings.homepageEditor.preview') || 'Preview'}
+                      </Label>
+                      <div className="p-3 bg-gray-50 rounded-md border border-gray-200 min-h-[60px] flex items-center">
+                        <p 
+                          className="text-base"
+                          dir={isRTL ? 'rtl' : 'ltr'}
+                          dangerouslySetInnerHTML={{
+                            __html: (() => {
+                              const templates = getGuestMessageTemplates(adminLocale);
+                              const selectedTemplate = templates.find(t => t.id === guestMessageTemplate);
+                              return selectedTemplate?.value || '';
+                            })()
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditingElement(null);
+                          setGuestMessageUseCustom(false);
+                          setGuestMessageTemplate('');
+                          setGuestMessageCustomText('');
+                        }}
+                      >
+                        {t('common.cancel') || 'Cancel'}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const templates = getGuestMessageTemplates(adminLocale);
+                          const selectedTemplate = templates.find(t => t.id === guestMessageTemplate);
+                          if (selectedTemplate) {
+                            handleTextSave(editingElement.id, selectedTemplate.value);
+                          }
+                        }}
+                      >
+                        {t('common.save') || 'Save'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <InlineTextEditor
+                value={getElementValue(editingElement.id)}
+                onSave={(value) => {
+                  handleTextSave(editingElement.id, value);
+                  setEditingElement(null);
+                }}
+                onCancel={() => setEditingElement(null)}
+                multiline={editingElement.id === 'logged-in-message'}
+                placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

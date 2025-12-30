@@ -13,11 +13,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import { uploadFile, deleteFile } from '@/lib/api/services';
 import { bannerPatterns } from '@/lib/mockData';
 import { toast } from 'sonner';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
+import { extractVideoFrame } from '@/lib/utils/video';
 
 interface BannerEditorProps {
   open: boolean;
@@ -26,6 +28,7 @@ interface BannerEditorProps {
     type: 'upload' | 'pattern';
     uploadUrl?: string;
     videoUrl?: string;
+    posterUrl?: string;
     patternId?: string;
     position?: { x: number; y: number };
   };
@@ -33,6 +36,7 @@ interface BannerEditorProps {
     type: 'upload' | 'pattern';
     uploadUrl?: string;
     videoUrl?: string;
+    posterUrl?: string;
     patternId?: string;
     position?: { x: number; y: number };
   }) => void;
@@ -57,6 +61,9 @@ export function BannerEditor({
   const [videoUrl, setVideoUrl] = useState<string | null>(
     currentBanner?.videoUrl || null
   );
+  const [posterUrl, setPosterUrl] = useState<string | null>(
+    currentBanner?.posterUrl || null
+  );
   const [patternId, setPatternId] = useState<string>(
     currentBanner?.patternId || 'pattern1'
   );
@@ -72,6 +79,7 @@ export function BannerEditor({
       setBannerType(currentBanner.type);
       setUploadUrl(currentBanner.uploadUrl || null);
       setVideoUrl(currentBanner.videoUrl || null);
+      setPosterUrl(currentBanner.posterUrl || null);
       setPatternId(currentBanner.patternId || 'pattern1');
       setPosition(currentBanner.position || { x: 50, y: 50 });
     }
@@ -115,7 +123,7 @@ export function BannerEditor({
 
       setUploadUrl(result.url);
       setBannerType('upload');
-      toast.success('Image uploaded successfully');
+      toast.success(t('settings.imageUploaded') || 'Image uploaded successfully');
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error?.message || 'Failed to upload image');
@@ -144,7 +152,7 @@ export function BannerEditor({
     try {
       setUploading(true);
 
-      // Delete old video if exists
+      // Delete old video and poster if exists
       if (videoUrl && !videoUrl.startsWith('data:')) {
         try {
           const urlObj = new URL(videoUrl);
@@ -157,15 +165,56 @@ export function BannerEditor({
         }
       }
 
-      const result = await uploadFile(file, 'banner-video');
-
-      if (result.error || !result.url) {
-        throw new Error(result.error || 'Failed to upload video');
+      if (posterUrl && !posterUrl.startsWith('data:')) {
+        try {
+          const urlObj = new URL(posterUrl);
+          const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+          if (pathMatch) {
+            await deleteFile(pathMatch[1]);
+          }
+        } catch (err) {
+          // Ignore
+        }
       }
 
-      setVideoUrl(result.url);
+      // Extract first frame from video
+      let posterBlob: Blob | null = null;
+      try {
+        posterBlob = await extractVideoFrame(file);
+      } catch (error) {
+        console.warn('Failed to extract video frame, continuing without poster:', error);
+        // Continue without poster - not a critical error
+      }
+
+      // Upload video
+      const videoResult = await uploadFile(file, 'banner-video');
+
+      if (videoResult.error || !videoResult.url) {
+        throw new Error(videoResult.error || 'Failed to upload video');
+      }
+
+      // Upload poster image if extraction succeeded
+      let posterResult: { url?: string; error?: string } | null = null;
+      if (posterBlob) {
+        try {
+          // Convert blob to File for upload
+          const posterFile = new File([posterBlob], 'poster.jpg', { type: 'image/jpeg' });
+          posterResult = await uploadFile(posterFile, 'banner-image');
+          
+          if (posterResult.error || !posterResult.url) {
+            console.warn('Failed to upload poster image:', posterResult.error);
+            // Continue without poster - not a critical error
+          }
+        } catch (error) {
+          console.warn('Error uploading poster image:', error);
+          // Continue without poster - not a critical error
+        }
+      }
+
+      setVideoUrl(videoResult.url);
+      setPosterUrl(posterResult?.url || null);
       setBannerType('upload');
-      toast.success('Video uploaded successfully');
+      toast.success(t('settings.videoUploaded') || 'Video uploaded successfully');
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error?.message || 'Failed to upload video');
@@ -204,8 +253,21 @@ export function BannerEditor({
         }
       }
 
+      if (posterUrl && !posterUrl.startsWith('data:')) {
+        try {
+          const urlObj = new URL(posterUrl);
+          const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+          if (pathMatch) {
+            await deleteFile(pathMatch[1]);
+          }
+        } catch (err) {
+          // Ignore
+        }
+      }
+
       setUploadUrl(null);
       setVideoUrl(null);
+      setPosterUrl(null);
       setBannerType('pattern');
       setPatternId('pattern1');
       if (onRemove) {
@@ -225,6 +287,7 @@ export function BannerEditor({
         ? {
             uploadUrl: uploadUrl || undefined,
             videoUrl: videoUrl || undefined,
+            posterUrl: posterUrl || undefined,
             // Always persist position for uploads/videos so X/Y sliders are saved
             position: position || { x: 50, y: 50 },
           }
@@ -241,6 +304,7 @@ export function BannerEditor({
       setBannerType(currentBanner.type);
       setUploadUrl(currentBanner.uploadUrl || null);
       setVideoUrl(currentBanner.videoUrl || null);
+      setPosterUrl(currentBanner.posterUrl || null);
       setPatternId(currentBanner.patternId || 'pattern1');
       setPosition(currentBanner.position || { x: 50, y: 50 });
     }
@@ -288,6 +352,7 @@ export function BannerEditor({
               {videoUrl ? (
                 <video
                   src={videoUrl}
+                  poster={posterUrl || undefined}
                   className="w-full h-full object-cover"
                   style={{
                     objectPosition: `${position.x}% ${position.y}%`,
@@ -364,25 +429,37 @@ export function BannerEditor({
                     <label className="text-xs text-muted-foreground mb-2 block">
                       X: {position.x}%
                     </label>
-                    <Slider
+                    <SliderPrimitive.Root
                       value={[position.x]}
                       onValueChange={([value]) => setPosition({ ...position, x: value })}
                       min={0}
                       max={100}
                       step={1}
-                    />
+                      className="relative flex w-full touch-none select-none items-center"
+                    >
+                      <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-gray-300">
+                        <SliderPrimitive.Range className="absolute h-full bg-gray-600" />
+                      </SliderPrimitive.Track>
+                      <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-black bg-white ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+                    </SliderPrimitive.Root>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-2 block">
                       Y: {position.y}%
                     </label>
-                    <Slider
+                    <SliderPrimitive.Root
                       value={[position.y]}
                       onValueChange={([value]) => setPosition({ ...position, y: value })}
                       min={0}
                       max={100}
                       step={1}
-                    />
+                      className="relative flex w-full touch-none select-none items-center"
+                    >
+                      <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-gray-300">
+                        <SliderPrimitive.Range className="absolute h-full bg-gray-600" />
+                      </SliderPrimitive.Track>
+                      <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-black bg-white ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+                    </SliderPrimitive.Root>
                   </div>
                 </div>
               </div>

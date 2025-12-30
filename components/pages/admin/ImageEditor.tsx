@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { uploadFile, deleteFile } from '@/lib/api/services';
 import { toast } from 'sonner';
+import { useLocale } from '@/hooks/useLocale';
 
 interface ImageEditorProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function ImageEditor({
   fileType,
   accept = 'image/*'
 }: ImageEditorProps) {
+  const { t } = useLocale();
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +92,7 @@ export function ImageEditor({
       }
 
       setPreviewUrl(result.url);
-      toast.success('File uploaded successfully');
+      toast.success(t('settings.fileUploaded') || 'File uploaded successfully');
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error?.message || 'Failed to upload file');
