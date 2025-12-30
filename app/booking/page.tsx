@@ -620,7 +620,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   const address = settings?.businessProfile?.address || '';
 
   // Helper function to format operating hours
-  const formatOperatingHours = (): string => {
+  const formatOperatingHours = (): React.ReactNode => {
     if (!workingDays || workingDays.length === 0) {
       return t('booking.closed');
     }
@@ -653,7 +653,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     }
 
     // Format each group
-    const formattedGroups: string[] = [];
+    const formattedGroups: React.ReactNode[] = [];
     
     for (const [hoursKey, days] of hoursMap.entries()) {
       const [startTime, endTime] = hoursKey.split('-');
@@ -685,10 +685,15 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         }
       });
 
-      formattedGroups.push(`${dayGroupStrings.join(', ')}: ${startTime} - ${endTime}`);
+      formattedGroups.push(
+        <React.Fragment key={hoursKey}>
+          {formattedGroups.length > 0 && <br />}
+          {`${dayGroupStrings.join(', ')}: ${startTime} - ${endTime}`}
+        </React.Fragment>
+      );
     }
 
-    return formattedGroups.join(' | ');
+    return <>{formattedGroups}</>;
   };
 
   // Helper function to format phone for WhatsApp link
