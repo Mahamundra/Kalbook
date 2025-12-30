@@ -18,6 +18,7 @@ export function HeroLayout({
   rescheduleDialog,
   loginDialog,
   businessName,
+  businessDescription,
   logoUrl,
   logoShape = 'square',
   dir,
@@ -88,6 +89,23 @@ export function HeroLayout({
               >
                 {businessName}
               </h1>
+              {businessDescription ? (
+                <p
+                  className="text-lg md:text-xl text-white/90 drop-shadow-md max-w-2xl"
+                  data-edit-id="business-description"
+                  data-edit-type="text"
+                  dangerouslySetInnerHTML={{ __html: businessDescription }}
+                />
+              ) : (
+                <p
+                  className="text-lg md:text-xl text-white/90 drop-shadow-md max-w-2xl opacity-0"
+                  data-edit-id="business-description"
+                  data-edit-type="text"
+                  style={{ minHeight: '1.5rem', marginBottom: '1rem' }}
+                >
+                  {' '}
+                </p>
+              )}
             </div>
 
             {/* Business Info in Hero */}

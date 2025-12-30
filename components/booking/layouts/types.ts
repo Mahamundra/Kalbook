@@ -12,6 +12,7 @@ export interface LayoutProps {
   rescheduleDialog: ReactNode;
   loginDialog: ReactNode;
   businessName?: string;
+  businessDescription?: string;
   logoUrl?: string;
   logoShape?: 'circle' | 'square';
   dir?: 'ltr' | 'rtl';

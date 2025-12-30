@@ -1532,6 +1532,134 @@ const Settings = () => {
                 {t('settings.addressVisibleNote') || 'This address is visible on your booking page.'}
               </p>
             </div>
+
+            {/* Working Hours Per Day */}
+            <div className="col-span-full mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-5 h-5 text-primary" />
+                <h4 className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t('settings.workingHoursPerDay') || 'Working Hours Per Day'}
+                </h4>
+              </div>
+              <p className={`text-xs text-muted-foreground mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('settings.workingHoursPerDayNote') || 'Set different working hours for each day. Days with the same hours will be grouped together on your booking page.'}
+              </p>
+              <div className="space-y-3">
+                {[
+                  { value: 0, label: t('settings.sunday') },
+                  { value: 1, label: t('settings.monday') },
+                  { value: 2, label: t('settings.tuesday') },
+                  { value: 3, label: t('settings.wednesday') },
+                  { value: 4, label: t('settings.thursday') },
+                  { value: 5, label: t('settings.friday') },
+                  { value: 6, label: t('settings.saturday') },
+                ].map((day) => {
+                  const isWorkingDay = settings.calendar?.workingDays?.includes(day.value) || false;
+                  const dayHours = settings.calendar?.dailyWorkingHours?.[day.value] || 
+                    settings.calendar?.workingHours || 
+                    { start: '09:00', end: '18:00' };
+                  
+                  return (
+                    <div key={day.value} className="flex items-center gap-4 p-3 border rounded-lg">
+                      <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Checkbox
+                          id={`working-day-${day.value}`}
+                          checked={isWorkingDay}
+                          onCheckedChange={(checked) => {
+                            const currentDays = settings.calendar?.workingDays || [];
+                            const newDays = checked
+                              ? [...currentDays, day.value]
+                              : currentDays.filter((d: number) => d !== day.value);
+                            
+                            // If unchecking, remove from dailyWorkingHours
+                            let newDailyHours = { ...(settings.calendar?.dailyWorkingHours || {}) };
+                            if (!checked) {
+                              delete newDailyHours[day.value];
+                            } else {
+                              // If checking, set default hours if not already set
+                              if (!newDailyHours[day.value]) {
+                                newDailyHours[day.value] = {
+                                  start: settings.calendar?.workingHours?.start || '09:00',
+                                  end: settings.calendar?.workingHours?.end || '18:00',
+                                };
+                              }
+                            }
+                            
+                            setSettings({
+                              ...settings,
+                              calendar: {
+                                ...settings.calendar,
+                                workingDays: newDays.sort(),
+                                dailyWorkingHours: Object.keys(newDailyHours).length > 0 ? newDailyHours : undefined,
+                              },
+                            });
+                          }}
+                        />
+                        <label
+                          htmlFor={`working-day-${day.value}`}
+                          className={`text-sm font-medium cursor-pointer w-24 flex-shrink-0 ${isRTL ? 'text-right' : 'text-left'}`}
+                        >
+                          {day.label}
+                        </label>
+                      </div>
+                      {isWorkingDay && (
+                        <div className="flex-1 grid grid-cols-2 gap-3">
+                          <div>
+                            <Input
+                              type="time"
+                              value={dayHours.start}
+                              onChange={(e) => {
+                                const newDailyHours = {
+                                  ...(settings.calendar?.dailyWorkingHours || {}),
+                                  [day.value]: {
+                                    start: e.target.value,
+                                    end: dayHours.end,
+                                  },
+                                };
+                                setSettings({
+                                  ...settings,
+                                  calendar: {
+                                    ...settings.calendar,
+                                    dailyWorkingHours: newDailyHours,
+                                  },
+                                });
+                              }}
+                              dir="ltr"
+                              className="w-full"
+                            />
+                          </div>
+                          <div>
+                            <Input
+                              type="time"
+                              value={dayHours.end}
+                              onChange={(e) => {
+                                const newDailyHours = {
+                                  ...(settings.calendar?.dailyWorkingHours || {}),
+                                  [day.value]: {
+                                    start: dayHours.start,
+                                    end: e.target.value,
+                                  },
+                                };
+                                setSettings({
+                                  ...settings,
+                                  calendar: {
+                                    ...settings.calendar,
+                                    dailyWorkingHours: newDailyHours,
+                                  },
+                                });
+                              }}
+                              dir="ltr"
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.timezone')}</label>
               <select

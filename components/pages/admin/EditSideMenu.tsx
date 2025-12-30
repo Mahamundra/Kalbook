@@ -111,6 +111,18 @@ export function MobileEditMenuItems({ onEdit, onItemClick }: { onEdit: (elementI
       label: t("settings.homepageEditor.brandingSection") || "Branding",
       items: [
         {
+          id: "business-name",
+          label: t("settings.homepageEditor.businessName") || "Business Name",
+          type: "text",
+          icon: <Type className="w-4 h-4" />,
+        },
+        {
+          id: "business-description",
+          label: t("settings.homepageEditor.businessDescription") || "Business Description",
+          type: "text",
+          icon: <Type className="w-4 h-4" />,
+        },
+        {
           id: "logo-shape",
           label: t("settings.homepageEditor.logoShape") || "Logo Shape",
           type: "settings",
@@ -223,6 +235,18 @@ export function EditSideMenuContent({ onEdit, showHeader = true }: EditSideMenuC
       id: "branding",
       label: t("settings.homepageEditor.brandingSection") || "Branding",
       items: [
+        {
+          id: "business-name",
+          label: t("settings.homepageEditor.businessName") || "Business Name",
+          type: "text",
+          icon: <Type className="w-4 h-4" />,
+        },
+        {
+          id: "business-description",
+          label: t("settings.homepageEditor.businessDescription") || "Business Description",
+          type: "text",
+          icon: <Type className="w-4 h-4" />,
+        },
         {
           id: "logo-shape",
           label: t("settings.homepageEditor.logoShape") || "Logo Shape",

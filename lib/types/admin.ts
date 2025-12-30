@@ -70,6 +70,7 @@ export interface Settings {
 
 export interface BusinessProfile {
   name: string;
+  description?: string;
   email: string;
   phone: string;
   whatsapp: string;
@@ -146,6 +147,13 @@ export interface CalendarSettings {
   workingHours: {
     start: string; // Format: "HH:mm" (e.g., "09:00")
     end: string; // Format: "HH:mm" (e.g., "18:00")
+  };
+  dailyWorkingHours?: {
+    // Per-day working hours (0 = Sunday, 1 = Monday, etc.)
+    [day: number]: {
+      start: string; // Format: "HH:mm"
+      end: string; // Format: "HH:mm"
+    };
   };
   timeSlotGap?: number; // Time slot gap in minutes (5-60), default 60
   contactMessage?: {

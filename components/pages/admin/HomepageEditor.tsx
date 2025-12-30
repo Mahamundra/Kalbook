@@ -203,13 +203,10 @@ export function HomepageEditor({
 
     switch (elementId) {
       case 'guest-message':
-        // If using template, use template value; otherwise use custom text
-        const guestMessageValue = guestMessageUseCustom 
-          ? value 
-          : (guestMessageTemplate || value);
+        // value already contains the correct template value or custom text
         updatedSettings.branding = {
           ...updatedSettings.branding,
-          guestMessage: guestMessageValue,
+          guestMessage: value,
         };
         // Reset state
         setGuestMessageUseCustom(false);
@@ -220,6 +217,18 @@ export function HomepageEditor({
         updatedSettings.branding = {
           ...updatedSettings.branding,
           loggedInMessage: value,
+        };
+        break;
+      case 'business-name':
+        updatedSettings.businessProfile = {
+          ...updatedSettings.businessProfile,
+          name: value,
+        };
+        break;
+      case 'business-description':
+        updatedSettings.businessProfile = {
+          ...updatedSettings.businessProfile,
+          description: value,
         };
         break;
     }
@@ -411,6 +420,10 @@ export function HomepageEditor({
         return getGreetingMessage(settings.branding?.guestMessage, currentLocale, false);
       case 'logged-in-message':
         return getGreetingMessage(settings.branding?.loggedInMessage, currentLocale, true);
+      case 'business-name':
+        return settings.businessProfile?.name || '';
+      case 'business-description':
+        return settings.businessProfile?.description || '';
       default:
         return '';
     }
@@ -433,6 +446,7 @@ export function HomepageEditor({
       'logged-in-message': 'logged-in-message',
       'contact-message-settings': 'contact-message',
       'business-name': 'business-name',
+      'business-description': 'business-description',
     };
     return mapping[elementId] || null;
   };
@@ -981,7 +995,7 @@ export function HomepageEditor({
               <div className="space-y-4">
                 {/* Template Selection */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">
+                  <Label className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
                     {t('settings.homepageEditor.selectTemplate') || 'Select a template'}
                   </Label>
                   <RadioGroup
@@ -1002,23 +1016,29 @@ export function HomepageEditor({
                       }
                     }}
                     className="space-y-2"
+                    dir={dir}
                   >
                     {getGuestMessageTemplates(adminLocale).map((template) => (
-                      <div key={template.id} className="flex items-center space-x-2 space-x-reverse">
+                      <div 
+                        key={template.id} 
+                        className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                      >
                         <RadioGroupItem value={template.id} id={`template-${template.id}`} />
                         <Label 
                           htmlFor={`template-${template.id}`} 
-                          className="text-sm font-normal cursor-pointer flex-1"
+                          className={`text-sm font-normal cursor-pointer flex-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                          dir={dir}
                         >
                           {template.label}
                         </Label>
                       </div>
                     ))}
-                    <div className="flex items-center space-x-2 space-x-reverse pt-2 border-t">
+                    <div className={`flex items-center gap-2 pt-2 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <RadioGroupItem value="custom" id="template-custom" />
                       <Label 
                         htmlFor="template-custom" 
-                        className="text-sm font-medium cursor-pointer"
+                        className={`text-sm font-medium cursor-pointer ${isRTL ? 'text-right' : 'text-left'}`}
+                        dir={dir}
                       >
                         {t('settings.homepageEditor.useCustomText') || 'Use custom text'}
                       </Label>
@@ -1028,26 +1048,28 @@ export function HomepageEditor({
 
                 {/* Custom Text Editor - Show when custom is selected */}
                 {guestMessageUseCustom && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
+                  <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
+                    <Label className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
                       {t('settings.homepageEditor.customText') || 'Custom text'}
                     </Label>
-                    <InlineTextEditor
-                      value={guestMessageCustomText || getElementValue(editingElement.id)}
-                      onSave={(value) => {
-                        setGuestMessageCustomText(value);
-                        handleTextSave(editingElement.id, value);
-                        setEditingElement(null);
-                      }}
-                      onCancel={() => {
-                        setEditingElement(null);
-                        setGuestMessageUseCustom(false);
-                        setGuestMessageTemplate('');
-                        setGuestMessageCustomText('');
-                      }}
-                      multiline={true}
-                      placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
-                    />
+                    <div className={isRTL ? 'rtl' : 'ltr'}>
+                      <InlineTextEditor
+                        value={guestMessageCustomText || settings.branding?.guestMessage || ''}
+                        onSave={(value) => {
+                          setGuestMessageCustomText(value);
+                          handleTextSave(editingElement.id, value);
+                          setEditingElement(null);
+                        }}
+                        onCancel={() => {
+                          setEditingElement(null);
+                          setGuestMessageUseCustom(false);
+                          setGuestMessageTemplate('');
+                          setGuestMessageCustomText('');
+                        }}
+                        multiline={true}
+                        placeholder={t('settings.homepageEditor.editPlaceholder') || 'Enter text...'}
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -1055,12 +1077,12 @@ export function HomepageEditor({
                 {!guestMessageUseCustom && guestMessageTemplate && (
                   <div className="space-y-3 pt-2 border-t">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">
+                      <Label className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`} dir={dir}>
                         {t('settings.homepageEditor.preview') || 'Preview'}
                       </Label>
-                      <div className="p-3 bg-gray-50 rounded-md border border-gray-200 min-h-[60px] flex items-center">
+                      <div className={`p-3 bg-gray-50 rounded-md border border-gray-200 min-h-[60px] flex items-center ${isRTL ? 'justify-end' : 'justify-start'}`}>
                         <p 
-                          className="text-base"
+                          className={`text-base w-full ${isRTL ? 'text-right' : 'text-left'}`}
                           dir={isRTL ? 'rtl' : 'ltr'}
                           dangerouslySetInnerHTML={{
                             __html: (() => {
@@ -1072,7 +1094,7 @@ export function HomepageEditor({
                         />
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse justify-start' : 'justify-end'}`}>
                       <Button
                         variant="outline"
                         onClick={() => {

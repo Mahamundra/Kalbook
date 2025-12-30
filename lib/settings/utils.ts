@@ -29,11 +29,13 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
  * Map business row to BusinessProfile
  */
 function mapBusinessToProfile(business: BusinessRow, settings: SettingsRow | null): BusinessProfile {
-  // Social links are stored in the branding JSONB column
+  // Social links and description are stored in the branding JSONB column
   const socialLinks = settings?.branding?.socialLinks || {};
+  const description = (settings?.branding as any)?.businessDescription;
   
   return {
     name: business.name,
+    description: description,
     email: business.email || '',
     phone: business.phone || '',
     whatsapp: business.whatsapp || '',
@@ -123,12 +125,18 @@ export function prepareSettingsUpdate(
     if (profile.timezone !== undefined) businessUpdate.timezone = profile.timezone;
     if (profile.currency !== undefined) businessUpdate.currency = profile.currency;
     
-    // Store socialLinks in branding JSONB column
+    // Store socialLinks and description in branding JSONB column
     if (profile.socialLinks !== undefined) {
       if (!settingsDbUpdate.branding) {
         settingsDbUpdate.branding = {};
       }
       (settingsDbUpdate.branding as any).socialLinks = profile.socialLinks;
+    }
+    if (profile.description !== undefined) {
+      if (!settingsDbUpdate.branding) {
+        settingsDbUpdate.branding = {};
+      }
+      (settingsDbUpdate.branding as any).businessDescription = profile.description;
     }
   }
 

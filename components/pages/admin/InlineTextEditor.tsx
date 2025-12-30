@@ -72,6 +72,63 @@ export function InlineTextEditor({
     }
   };
 
+  // Clean HTML by removing unwanted browser-generated styles and spans
+  const cleanHtml = (html: string): string => {
+    if (!html) return '';
+    
+    // Create a temporary div to parse the HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Remove spans with only style attributes (browser-generated around emojis)
+    const spans = temp.querySelectorAll('span[style]');
+    spans.forEach((span) => {
+      const style = span.getAttribute('style') || '';
+      // If the span only has font-family in style (browser emoji wrapping), unwrap it
+      if (style.includes('font-family') && span.children.length === 0) {
+        const parent = span.parentNode;
+        if (parent) {
+          while (span.firstChild) {
+            parent.insertBefore(span.firstChild, span);
+          }
+          parent.removeChild(span);
+        }
+      }
+    });
+    
+    // Remove empty spans
+    const emptySpans = temp.querySelectorAll('span:empty');
+    emptySpans.forEach((span) => {
+      const parent = span.parentNode;
+      if (parent) {
+        parent.removeChild(span);
+      }
+    });
+    
+    // Remove style attributes from all elements (keep only intentional formatting tags)
+    const allElements = temp.querySelectorAll('*');
+    allElements.forEach((el) => {
+      // Keep style only for intentional formatting, remove font-family styles
+      const currentStyle = el.getAttribute('style');
+      if (currentStyle) {
+        // Remove font-family related styles
+        const cleanedStyle = currentStyle
+          .split(';')
+          .filter((prop) => !prop.trim().startsWith('font-family'))
+          .join(';')
+          .trim();
+        
+        if (cleanedStyle) {
+          el.setAttribute('style', cleanedStyle);
+        } else {
+          el.removeAttribute('style');
+        }
+      }
+    });
+    
+    return temp.innerHTML;
+  };
+
   const handleInput = () => {
     if (editorRef.current) {
       setHtml(editorRef.current.innerHTML);
@@ -92,7 +149,9 @@ export function InlineTextEditor({
   };
 
   const handleSave = () => {
-    onSave(html);
+    // Clean the HTML before saving
+    const cleaned = cleanHtml(html);
+    onSave(cleaned);
   };
 
   return (

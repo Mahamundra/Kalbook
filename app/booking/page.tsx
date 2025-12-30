@@ -612,6 +612,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   const workingHours = settings?.calendar?.workingHours || { start: '09:00', end: '18:00' };
   const workingDays = settings?.calendar?.workingDays || [0, 1, 2, 3, 4];
   const businessName = settings?.businessProfile?.name || '';
+  const businessDescription = settings?.businessProfile?.description || '';
   const logoUrl = settings?.branding?.logoUrl || '';
   const logoShape = settings?.branding?.logoShape || 'square';
   const whatsapp = settings?.businessProfile?.whatsapp || '';
@@ -635,37 +636,59 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     ];
 
     const sortedDays = [...workingDays].sort((a, b) => a - b);
-    const startTime = workingHours.start || '09:00';
-    const endTime = workingHours.end || '18:00';
+    const dailyHours = settings?.calendar?.dailyWorkingHours;
+    const defaultHours = workingHours || { start: '09:00', end: '18:00' };
 
-    // Group consecutive days
-    const groups: Array<{ start: number; end: number }> = [];
-    let currentGroup: { start: number; end: number } | null = null;
-
+    // Group days by their working hours
+    const hoursMap = new Map<string, number[]>();
+    
     for (const day of sortedDays) {
-      if (!currentGroup) {
-        currentGroup = { start: day, end: day };
-      } else if (day === currentGroup.end + 1) {
-        currentGroup.end = day;
-      } else {
-        groups.push(currentGroup);
-        currentGroup = { start: day, end: day };
+      const dayHours = dailyHours?.[day] || defaultHours;
+      const hoursKey = `${dayHours.start}-${dayHours.end}`;
+      
+      if (!hoursMap.has(hoursKey)) {
+        hoursMap.set(hoursKey, []);
       }
-    }
-    if (currentGroup) {
-      groups.push(currentGroup);
+      hoursMap.get(hoursKey)!.push(day);
     }
 
-    // Format groups
-    const formattedGroups = groups.map((group) => {
-      if (group.start === group.end) {
-        return dayNames[group.start];
-      } else {
-        return `${dayNames[group.start]} - ${dayNames[group.end]}`;
-      }
-    });
+    // Format each group
+    const formattedGroups: string[] = [];
+    
+    for (const [hoursKey, days] of hoursMap.entries()) {
+      const [startTime, endTime] = hoursKey.split('-');
+      
+      // Group consecutive days
+      const dayGroups: Array<{ start: number; end: number }> = [];
+      let currentGroup: { start: number; end: number } | null = null;
 
-    return `${formattedGroups.join(', ')}: ${startTime} - ${endTime}`;
+      for (const day of days) {
+        if (!currentGroup) {
+          currentGroup = { start: day, end: day };
+        } else if (day === currentGroup.end + 1) {
+          currentGroup.end = day;
+        } else {
+          dayGroups.push(currentGroup);
+          currentGroup = { start: day, end: day };
+        }
+      }
+      if (currentGroup) {
+        dayGroups.push(currentGroup);
+      }
+
+      // Format day groups
+      const dayGroupStrings = dayGroups.map((group) => {
+        if (group.start === group.end) {
+          return dayNames[group.start];
+        } else {
+          return `${dayNames[group.start]} - ${dayNames[group.end]}`;
+        }
+      });
+
+      formattedGroups.push(`${dayGroupStrings.join(', ')}: ${startTime} - ${endTime}`);
+    }
+
+    return formattedGroups.join(' | ');
   };
 
   // Helper function to format phone for WhatsApp link
@@ -3794,6 +3817,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         rescheduleDialog={rescheduleDialog}
         loginDialog={loginDialog}
         businessName={businessName}
+        businessDescription={businessDescription}
         logoUrl={logoUrl}
         logoShape={logoShape}
       />
