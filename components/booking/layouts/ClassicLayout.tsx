@@ -13,6 +13,8 @@ export function ClassicLayout({
   mainContent,
   rescheduleDialog,
   loginDialog,
+  footer,
+  loginFirst = false,
   dir,
 }: LayoutProps) {
   // Use mainContent if provided, otherwise combine customerAppointments and bookingSection
@@ -24,7 +26,7 @@ export function ClassicLayout({
   );
 
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white" data-booking-page="true">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" data-booking-page="true">
       {/* Header */}
       {header}
 
@@ -32,33 +34,52 @@ export function ClassicLayout({
       {trialBanner}
 
       {/* Main Content - Centered */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Banner Cover with Business Info positioned below on mobile */}
-        <div className="relative">
-          {bannerCover}
-          
-          {/* White background for mobile - appears behind business info under the video */}
-          {businessInfo && (
-            <div 
-              className="absolute bottom-0 left-0 right-0 h-64 md:hidden bg-white -mx-4 sm:-mx-6 rounded-t-3xl shadow-lg" 
-              style={{ zIndex: 1 }} 
-            />
-          )}
-          
-          {/* Business Information Section - Positioned in blank space below video on mobile */}
-          {businessInfo && (
-            <div className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:mt-6" style={{ zIndex: 2 }}>
-              {businessInfo}
-            </div>
-          )}
-        </div>
+      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Banner Cover - Centered */}
+        {bannerCover && (
+          <div className="relative w-full mb-6 overflow-hidden">
+            {bannerCover}
+          </div>
+        )}
 
-        {/* Guest Message */}
-        {guestMessage}
-
-        {/* Main Content (Appointments, Booking Section) */}
-        {content}
+        {/* Conditional rendering based on loginFirst - swap guestMessage with businessInfo */}
+        {loginFirst ? (
+          <>
+            {/* Guest Message First */}
+            {guestMessage}
+            {/* Business Information Section */}
+            {businessInfo && (
+              <div className="mt-6">
+                {businessInfo}
+              </div>
+            )}
+            {/* Main Content (Appointments, Booking Section) */}
+            {content}
+          </>
+        ) : (
+          <>
+            {/* Business Information Section First */}
+            {businessInfo && (
+              <div className="mt-6">
+                {businessInfo}
+              </div>
+            )}
+            {/* Guest Message After */}
+            {guestMessage}
+            {/* Main Content (Appointments, Booking Section) */}
+            {content}
+          </>
+        )}
       </main>
+
+      {/* Footer - Always at bottom */}
+      {footer && (
+        <footer className="mt-auto">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            {footer}
+          </div>
+        </footer>
+      )}
 
       {/* Dialogs */}
       {rescheduleDialog}

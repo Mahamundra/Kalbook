@@ -29,8 +29,8 @@ import Link from 'next/link';
 import { LoginRegisterDialog } from '@/components/LoginRegisterDialog';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { ClassicLayout } from '@/components/booking/layouts/ClassicLayout';
-import { SidebarLayout } from '@/components/booking/layouts/SidebarLayout';
 import { HeroLayout } from '@/components/booking/layouts/HeroLayout';
+import { CompactDashboardLayout } from '@/components/booking/layouts/CompactDashboardLayout';
 import { getGreetingMessage } from '@/lib/utils/greetings';
 import {
   AlertDialog,
@@ -1706,7 +1706,9 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   };
 
   // Get layout type (default to 'classic')
-  const layoutType = (settings?.branding?.layout || 'classic') as 'classic' | 'sidebar' | 'hero';
+  // If layout is 'sidebar' or 'asymmetric', default to 'classic' as these layouts are removed
+  const rawLayout = settings?.branding?.layout || 'classic';
+  const layoutType = (rawLayout === 'sidebar' || rawLayout === 'asymmetric' ? 'classic' : rawLayout) as 'classic' | 'hero' | 'compact';
 
   // Extract header
   const header = (
@@ -3783,6 +3785,11 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   // Render main content once (appointments + booking section, without guestMessage)
   const mainContent = renderMainContent();
 
+  // Get loginFirst value - use editorSettings in edit mode, otherwise use settings
+  const loginFirstValue = editMode 
+    ? (editorSettings?.branding?.loginFirst ?? settings?.branding?.loginFirst ?? false)
+    : (settings?.branding?.loginFirst ?? false);
+
   // Render based on layout type
   if (layoutType === 'classic') {
     return (
@@ -3795,19 +3802,8 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         mainContent={mainContent}
         rescheduleDialog={rescheduleDialog}
         loginDialog={loginDialog}
-      />
-    );
-  } else if (layoutType === 'sidebar') {
-    return (
-      <SidebarLayout
-        header={header}
-        trialBanner={trialBanner}
-        bannerCover={bannerCover}
-        businessInfo={businessInfo}
-        guestMessage={guestMessage}
-        mainContent={mainContent}
-        rescheduleDialog={rescheduleDialog}
-        loginDialog={loginDialog}
+        loginFirst={loginFirstValue}
+        dir={dir}
       />
     );
   } else if (layoutType === 'hero') {
@@ -3825,6 +3821,28 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         businessDescription={businessDescription}
         logoUrl={logoUrl}
         logoShape={logoShape}
+        loginFirst={loginFirstValue}
+        dir={dir}
+      />
+    );
+  } else if (layoutType === 'compact') {
+    return (
+      <CompactDashboardLayout
+        header={null}
+        trialBanner={trialBanner}
+        bannerCover={bannerCover}
+        businessInfo={businessInfo}
+        guestMessage={guestMessage}
+        mainContent={mainContent}
+        rescheduleDialog={rescheduleDialog}
+        loginDialog={loginDialog}
+        footer={undefined}
+        businessName={businessName}
+        businessDescription={businessDescription}
+        logoUrl={logoUrl}
+        logoShape={logoShape}
+        loginFirst={loginFirstValue}
+        dir={dir}
       />
     );
   }

@@ -348,6 +348,31 @@ html[lang="he"] * {
     border-color: #000000 !important;
   }
   
+  /* Logout button - use theme primary color (booking page theme) */
+  /* Use --booking-primary directly since it's set on root element and works in portals */
+  button.logout-button,
+  [role="button"].logout-button,
+  button[class*="logout-button"],
+  [data-radix-collection-item].logout-button,
+  button[data-radix-alert-dialog-action].logout-button,
+  [data-radix-alert-dialog-action].logout-button {
+    background-color: hsl(var(--booking-primary, var(--primary))) !important;
+    color: hsl(var(--booking-primary-foreground, var(--primary-foreground))) !important;
+    border-color: hsl(var(--booking-primary, var(--primary))) !important;
+  }
+
+  button.logout-button:hover,
+  [role="button"].logout-button:hover,
+  button[class*="logout-button"]:hover,
+  [data-radix-collection-item].logout-button:hover,
+  button[data-radix-alert-dialog-action].logout-button:hover,
+  [data-radix-alert-dialog-action].logout-button:hover {
+    background-color: hsl(var(--booking-primary, var(--primary))) !important;
+    opacity: 0.9 !important;
+    color: hsl(var(--booking-primary-foreground, var(--primary-foreground))) !important;
+    border-color: hsl(var(--booking-primary, var(--primary))) !important;
+  }
+
   /* Default variant (make another appointment) - keep primary background */
   button.thank-you-button.bg-primary:hover:not(:disabled) {
     background-color: hsl(var(--primary)) !important;

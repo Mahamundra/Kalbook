@@ -326,21 +326,42 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      // Use Supabase signInWithOtp for email OTP
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
-        },
+      // Use custom email OTP API
+      const response = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          userType: 'business_owner',
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle rate limiting
+        if (response.status === 429 && data.retryAfter) {
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          setError(errorMessage);
+          toast.error(errorMessage);
+          setIsLoading(false);
+          return;
+        } else {
+          throw new Error(data.error || 'Failed to send code');
+        }
+      }
 
       setIsLoading(false);
       setShowOtpModal(true);
       setOtpCountdown(30);
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
+      
+      // In development, log the code
+      if (process.env.NODE_ENV === 'development' && data.code) {
+        console.log(`[DEV] Email OTP Code: ${data.code}`);
+      }
+      
       toast.success(
         loginMethod === 'phone' 
           ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
@@ -433,35 +454,26 @@ export default function AdminLoginPage() {
 
     try {
       if (loginMethod === 'email') {
-        // Verify email OTP using Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: email,
-          token: codeToUse,
-          type: 'email',
-        });
-
-        if (error) throw error;
-
-        // Create business admin session from OAuth session
-        const response = await fetch('/api/auth/oauth-session-business', {
+        // Verify email OTP using custom API
+        const response = await fetch('/api/auth/verify-email-otp', {
           method: 'POST',
-          credentials: 'include', // Ensure cookies are sent and received
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            email: email,
+            code: codeToUse,
+            userType: 'business_owner',
             businessSlug: slug,
           }),
         });
 
-        const sessionData = await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(sessionData.error || 'Authentication failed');
+          throw new Error(data.error || 'Invalid or expired code');
         }
 
-        if (!sessionData.success) {
-          throw new Error(sessionData.error || 'Authentication failed');
+        if (!data.success) {
+          throw new Error(data.error || 'Authentication failed');
         }
 
         setIsLoading(false);

@@ -10,7 +10,6 @@ import { BannerEditor } from './BannerEditor';
 import { ThemeColorEditor } from './ThemeColorEditor';
 import { TextColorEditor } from './TextColorEditor';
 import { LogoShapeEditor } from './LogoShapeEditor';
-import { ContactMessageEditor } from './ContactMessageEditor';
 import { SocialLinksEditor } from './SocialLinksEditor';
 import { LayoutSelector, type LayoutType } from './LayoutSelector';
 import { EditSideMenu, MobileEditMenuItems } from './EditSideMenu';
@@ -96,7 +95,6 @@ export function HomepageEditor({
   const [showThemeColorEditor, setShowThemeColorEditor] = useState(false);
   const [showTextColorEditor, setShowTextColorEditor] = useState(false);
   const [showLogoShapeEditor, setShowLogoShapeEditor] = useState(false);
-  const [showContactMessageEditor, setShowContactMessageEditor] = useState(false);
   const [showSocialLinksEditor, setShowSocialLinksEditor] = useState(false);
   const [showLayoutSelector, setShowLayoutSelector] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -294,29 +292,6 @@ export function HomepageEditor({
     setShowLogoShapeEditor(false);
   };
 
-  const handleContactMessageSave = (contactSettings: {
-    enabled: boolean;
-    message: string;
-    contacts: Array<{
-      id: string;
-      type: 'phone' | 'whatsapp' | 'email';
-      value: string;
-      visible: boolean;
-    }>;
-  }) => {
-    let updatedSettings = { ...settings };
-    updatedSettings.calendar = {
-      ...updatedSettings.calendar,
-      contactMessage: {
-        enabled: contactSettings.enabled,
-        message: contactSettings.message,
-        contacts: contactSettings.contacts,
-      } as any,
-    };
-    setSettings(updatedSettings);
-    history.pushToHistory(updatedSettings);
-    setShowContactMessageEditor(false);
-  };
 
   const handleSocialLinksSave = (links: {
     facebook?: string;
@@ -345,6 +320,16 @@ export function HomepageEditor({
     setSettings(updatedSettings);
     history.pushToHistory(updatedSettings);
     setShowLayoutSelector(false);
+  };
+
+  const handleLoginFirstChange = (loginFirst: boolean) => {
+    let updatedSettings = { ...settings };
+    updatedSettings.branding = {
+      ...updatedSettings.branding,
+      loginFirst: loginFirst,
+    };
+    setSettings(updatedSettings);
+    history.pushToHistory(updatedSettings);
   };
 
   const handleImageRemove = () => {
@@ -444,7 +429,6 @@ export function HomepageEditor({
       'banner': 'banner',
       'guest-message': 'guest-message',
       'logged-in-message': 'logged-in-message',
-      'contact-message-settings': 'contact-message',
       'business-name': 'business-name',
       'business-description': 'business-description',
     };
@@ -546,8 +530,6 @@ export function HomepageEditor({
     } else if (elementType === 'settings') {
       if (elementId === 'logo-shape') {
         setShowLogoShapeEditor(true);
-      } else {
-        setShowContactMessageEditor(true);
       }
     } else if (elementType === 'layout') {
       setShowLayoutSelector(true);
@@ -1193,20 +1175,6 @@ export function HomepageEditor({
       />
     )}
 
-    {/* Contact Message Editor Dialog - Outside main container to avoid z-index issues */}
-    {showContactMessageEditor && (
-      <ContactMessageEditor
-        open={showContactMessageEditor}
-        onOpenChange={setShowContactMessageEditor}
-        currentSettings={{
-          enabled: settings.calendar?.contactMessage?.enabled,
-          message: settings.calendar?.contactMessage?.message,
-          contacts: (settings.calendar?.contactMessage as any)?.contacts || [],
-        }}
-        onSave={handleContactMessageSave}
-      />
-    )}
-
     {/* Social Links Editor Dialog - Outside main container to avoid z-index issues */}
     {showSocialLinksEditor && (
       <SocialLinksEditor
@@ -1232,6 +1200,8 @@ export function HomepageEditor({
           <LayoutSelector
             currentLayout={(settings.branding?.layout || 'classic') as LayoutType}
             onLayoutChange={handleLayoutChange}
+            loginFirst={settings.branding?.loginFirst || false}
+            onLoginFirstChange={handleLoginFirstChange}
           />
         </div>
       </DialogContent>

@@ -92,7 +92,7 @@ export interface Branding {
   logoShape?: 'circle' | 'square';
   themeColor: string;
   textColor?: 'white' | 'black';
-  layout?: 'classic' | 'sidebar' | 'hero';
+  layout?: 'classic' | 'hero' | 'compact';
   bannerCover?: {
     type: 'upload' | 'pattern';
     uploadUrl?: string;
@@ -106,6 +106,7 @@ export interface Branding {
   };
   guestMessage?: string;
   loggedInMessage?: string;
+  loginFirst?: boolean; // If true, login component appears before time/details; if false, after
 }
 
 export interface CustomField {

@@ -257,19 +257,40 @@ export function LoginRegisterDialog({
     setIsVerifying(true);
     
     try {
-      // Use Supabase signInWithOtp for email OTP
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
-        },
+      // Use custom email OTP API
+      const response = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          userType: 'customer',
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle rate limiting with countdown
+        if (response.status === 429 && data.retryAfter) {
+          setRateLimitCountdown(data.retryAfter);
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          toast.error(errorMessage);
+          setIsVerifying(false);
+          return;
+        } else {
+          throw new Error(data.error || 'Failed to send code');
+        }
+      }
 
       setIsVerifying(false);
       setStep('verify');
       setCodeSentViaWhatsApp(false);
+      
+      // In development, log the code
+      if (process.env.NODE_ENV === 'development' && data.code) {
+        console.log(`[DEV] Email OTP Code: ${data.code}`);
+      }
+      
       toast.success(t('auth.codeSentToEmail')?.replace('{email}', email) || `Verification code sent to ${email}`);
     } catch (error: any) {
       setIsVerifying(false);
@@ -349,31 +370,30 @@ export function LoginRegisterDialog({
 
     try {
       if (loginMethod === 'email') {
-        // Verify email OTP using Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: email,
-          token: codeToCheck,
-          type: 'email',
+        // Verify email OTP using custom API
+        const response = await fetch('/api/auth/verify-email-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            code: codeToCheck,
+            userType: 'customer',
+            name: formData.name,
+          }),
         });
 
-        if (error) throw error;
+        const data = await response.json();
 
-        // Get user info from Supabase session
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          throw new Error('Failed to get user information');
+        if (!response.ok) {
+          throw new Error(data.error || 'Invalid or expired code');
         }
 
-        // For email login, we need to create/update customer session
-        // Check if customer exists by email
-        try {
-          const sessionResponse = await fetch('/api/auth/session');
-          const sessionData = await sessionResponse.json();
+        // Session created successfully
+        if (data.success && data.session) {
+          const session = data.session;
           
-          if (sessionData.success && sessionData.session) {
-            const session = sessionData.session;
-            // Try to find customer by email
+          // Try to find customer by email to get full details
+          try {
             const customerResponse = await fetch(`/api/customers?email=${encodeURIComponent(email)}`);
             const customerData = await customerResponse.json();
             
@@ -398,13 +418,15 @@ export function LoginRegisterDialog({
               toast.info(t('auth.customerNotFound') || 'Please complete your registration');
               setStep('register');
             }
-          } else {
-            throw new Error('Session not found');
+          } catch (error: any) {
+            // Customer lookup failed, but session is created - proceed to registration
+            setFormData({
+              ...formData,
+              email: email,
+            });
+            toast.info(t('auth.customerNotFound') || 'Please complete your registration');
+            setStep('register');
           }
-        } catch (error) {
-          console.error('Error checking customer:', error);
-          toast.info(t('auth.customerNotFound') || 'Please complete your registration');
-          setStep('register');
         }
       } else {
         // Phone OTP verification (existing flow)

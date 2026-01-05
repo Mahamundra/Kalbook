@@ -90,3 +90,50 @@ async function getLastOTPRequestByPhone(phone: string): Promise<Date | null> {
   return null;
 }
 
+/**
+ * Get last email OTP request timestamp (used by checkEmailRateLimit)
+ */
+export async function getLastEmailOTPRequest(email: string): Promise<Date | null> {
+  const supabase = createAdminClient();
+  const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+
+  const recentOtpResult = await supabase
+    .from('otp_codes')
+    .select('created_at')
+    .eq('email', email)
+    .gte('created_at', thirtySecondsAgo.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1) as { data: Array<{ created_at: string }> | null; error: any };
+
+  if (recentOtpResult.data && recentOtpResult.data.length > 0) {
+    return new Date(recentOtpResult.data[0].created_at);
+  }
+
+  return null;
+}
+
+/**
+ * Combined rate limiting for email: check both email and IP
+ * Returns retryAfter in seconds if rate limited
+ */
+export async function checkEmailRateLimit(
+  email: string,
+  ip: string
+): Promise<{ allowed: boolean; reason?: 'email' | 'ip'; retryAfter?: number }> {
+  // Check email-based rate limit
+  const lastEmailRequest = await getLastEmailOTPRequest(email);
+  if (lastEmailRequest) {
+    const retryAfter = Math.ceil((lastEmailRequest.getTime() + 30 * 1000 - Date.now()) / 1000);
+    return { allowed: false, reason: 'email', retryAfter: Math.max(0, retryAfter) };
+  }
+
+  // Check IP-based rate limit
+  const lastIPRequest = await getLastOTPRequestByIP(ip);
+  if (lastIPRequest) {
+    const retryAfter = Math.ceil((lastIPRequest.getTime() + 30 * 1000 - Date.now()) / 1000);
+    return { allowed: false, reason: 'ip', retryAfter: Math.max(0, retryAfter) };
+  }
+
+  return { allowed: true };
+}
+

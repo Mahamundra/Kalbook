@@ -11,9 +11,11 @@ export interface LayoutProps {
   mainContent?: ReactNode;
   rescheduleDialog: ReactNode;
   loginDialog: ReactNode;
+  footer?: ReactNode;
   businessName?: string;
   businessDescription?: string;
   logoUrl?: string;
   logoShape?: 'circle' | 'square';
+  loginFirst?: boolean;
   dir?: 'ltr' | 'rtl';
 }

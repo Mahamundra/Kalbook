@@ -511,27 +511,36 @@ export interface Database {
       otp_codes: {
         Row: {
           id: string;
-          phone: string;
+          phone: string | null;
+          email: string | null;
           code: string;
           expires_at: string;
           verified: boolean;
           created_at: string;
+          ip_address: string | null;
+          type: 'phone' | 'email' | null;
         };
         Insert: {
           id?: string;
-          phone: string;
+          phone?: string | null;
+          email?: string | null;
           code: string;
           expires_at: string;
           verified?: boolean;
           created_at?: string;
+          ip_address?: string | null;
+          type?: 'phone' | 'email' | null;
         };
         Update: {
           id?: string;
-          phone?: string;
+          phone?: string | null;
+          email?: string | null;
           code?: string;
           expires_at?: string;
           verified?: boolean;
           created_at?: string;
+          ip_address?: string | null;
+          type?: 'phone' | 'email' | null;
         };
       };
       plans: {

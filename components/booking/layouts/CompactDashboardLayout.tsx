@@ -1,12 +1,13 @@
 "use client";
 
 import { LayoutProps } from './types';
+import { Card } from '@/components/ui/card';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { cn } from '@/lib/utils';
 
-export function HeroLayout({
+export function CompactDashboardLayout({
   header,
   trialBanner,
   bannerCover,
@@ -25,9 +26,6 @@ export function HeroLayout({
   loginFirst = false,
   dir,
 }: LayoutProps) {
-  const { dir: direction } = useDirection();
-  const isRTL = direction === 'rtl';
-  
   // Use mainContent if provided, otherwise combine customerAppointments and bookingSection
   const content = mainContent ?? (
     <>
@@ -35,12 +33,15 @@ export function HeroLayout({
       {bookingSection}
     </>
   );
+  const { dir: direction } = useDirection();
+  const isRTL = direction === 'rtl';
+
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" data-booking-page="true">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white overflow-x-hidden flex flex-col" data-booking-page="true">
       {/* Trial Expired Banner */}
       {trialBanner}
 
-      {/* Hero Section - Full Width */}
+      {/* Hero Banner Section - Full Width (like hero layout) */}
       <div className="relative w-full min-h-[50vh] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] overflow-hidden">
         {/* Banner Background */}
         {bannerCover ? (
@@ -54,15 +55,15 @@ export function HeroLayout({
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/30" />
 
-        {/* Language Toggle - Positioned in top corner of hero */}
+        {/* Language Toggle - Positioned in top corner */}
         <div className={cn(
-          "absolute top-4 z-20",
+          "absolute top-4 z-20 safe-area-top",
           isRTL ? "left-4" : "right-4"
         )}>
           <LanguageToggle />
         </div>
 
-        {/* Hero Content */}
+        {/* Banner Content - Logo, Name, Description (like hero layout) */}
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 sm:pt-16 sm:pb-16 md:py-20 lg:py-24">
           <div className="max-w-4xl mx-auto">
             {/* Business Name and Logo */}
@@ -71,97 +72,101 @@ export function HeroLayout({
                 <img
                   src={logoUrl}
                   alt={businessName}
-                  className={`h-16 ${logoShape === 'circle' ? 'w-16 rounded-[100%]' : 'w-auto rounded-[25%]'} object-contain mb-4 drop-shadow-lg`}
+                  className={cn(
+                    "h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 object-contain mb-3 sm:mb-4 md:mb-5 lg:mb-6 drop-shadow-lg",
+                    logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'
+                  )}
                   data-edit-id="logo"
                   data-edit-type="image"
                 />
               ) : (
                 <div
-                  className={`h-16 w-16 ${logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'} bg-white/90 flex items-center justify-center mb-4 shadow-lg`}
+                  className={cn(
+                    "h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 flex items-center justify-center mb-3 sm:mb-4 md:mb-5 lg:mb-6 shadow-lg bg-white/90",
+                    logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'
+                  )}
                   data-edit-id="logo"
                   data-edit-type="image"
                 >
-                  <CalendarIcon className="w-8 h-8 text-primary" />
+                  <CalendarIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 text-primary" />
                 </div>
               )}
-              <h1
-                className="text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg mb-4"
-                data-edit-id="business-name"
-                data-edit-type="text"
-              >
-                {businessName}
-              </h1>
+              {businessName && (
+                <h1
+                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white drop-shadow-lg mb-2 sm:mb-3 md:mb-4 px-2"
+                  data-edit-id="business-name"
+                  data-edit-type="text"
+                >
+                  {businessName}
+                </h1>
+              )}
               {businessDescription ? (
                 <p
-                  className="text-lg md:text-xl text-white/90 drop-shadow-md max-w-2xl"
+                  className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-white/90 drop-shadow-md max-w-2xl px-4"
                   data-edit-id="business-description"
                   data-edit-type="text"
                   dangerouslySetInnerHTML={{ __html: businessDescription }}
                 />
               ) : (
                 <p
-                  className="text-lg md:text-xl text-white/90 drop-shadow-md max-w-2xl opacity-0"
+                  className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-white/90 drop-shadow-md max-w-2xl opacity-0 px-4"
                   data-edit-id="business-description"
                   data-edit-type="text"
-                  style={{ minHeight: '1.5rem', marginBottom: '1rem' }}
+                  style={{ minHeight: '1.5rem' }}
                 >
                   {' '}
                 </p>
               )}
             </div>
-
-            {/* Conditional rendering based on loginFirst - Show only ONE component in Hero */}
-            {loginFirst ? (
-              <>
-                {/* Only Guest Message in Hero - No background */}
-                <div className="flex justify-center">
-                  <div className="w-full max-w-2xl [&_.bg-card]:!bg-transparent [&_.bg-card]:!border-transparent [&_.bg-card]:!shadow-none [&_*]:!text-white [&_.text-muted-foreground]:!text-white/80 [&_button]:!text-white [&_button]:!border-white/20 [&_button:hover]:!bg-white/10">
-                    {guestMessage}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Only Business Info in Hero */}
-                {businessInfo && (
-                  <div className="flex justify-center">
-                    <div 
-                      className="backdrop-blur-sm rounded-lg p-6 shadow-xl overflow-hidden w-full max-w-2xl"
-                      style={{ backgroundColor: 'rgb(255 255 255 / 10%)' }}
-                    >
-                      <div className="[&_.bg-card]:!bg-transparent [&_.bg-card]:!border-white/20 [&_.bg-card]:!shadow-none [&_*]:!text-white [&_.text-muted-foreground]:!text-white/80 [&_h2]:!text-white [&_h3]:!text-white [&_div]:!text-white [&_span]:!text-white">
-                        {businessInfo}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Main Content - Full Width Below Hero */}
-      <main className="flex-1 w-full">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Show the other component below hero based on loginFirst */}
+      {/* Main Content - Everything Below Banner */}
+      <main className="flex-1 w-full overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 pt-4 sm:pt-6 pb-6 safe-area-bottom">
+          {/* Conditional rendering based on loginFirst */}
           {loginFirst ? (
             <>
-              {/* Business Info Below Hero (when login is in hero) */}
-              {businessInfo && (
-                <div className="mb-6">
-                  {businessInfo}
+              {/* Login Component First */}
+              {guestMessage && (
+                <div className="mb-4 sm:mb-6">
+                  {guestMessage}
                 </div>
               )}
+              {/* Business Info - Open Times, Address, Contact */}
+              {businessInfo && (
+                <Card className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 bg-white shadow-sm border-gray-200 rounded-lg">
+                  <div className="[&_.bg-card]:!bg-transparent [&_.bg-card]:!shadow-none [&_.bg-card]:!border-0">
+                    {businessInfo}
+                  </div>
+                </Card>
+              )}
               {/* Main Content (Appointments, Booking Section) */}
-              {content}
+              <div className="space-y-4 sm:space-y-6">
+                {content}
+              </div>
             </>
           ) : (
             <>
-              {/* Guest Message Below Hero (when business info is in hero) */}
-              {guestMessage}
+              {/* Business Info - Open Times, Address, Contact First */}
+              {businessInfo && (
+                <Card className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 bg-white shadow-sm border-gray-200 rounded-lg">
+                  <div className="[&_.bg-card]:!bg-transparent [&_.bg-card]:!shadow-none [&_.bg-card]:!border-0">
+                    {businessInfo}
+                  </div>
+                </Card>
+              )}
               {/* Main Content (Appointments, Booking Section) */}
-              {content}
+              <div className="space-y-4 sm:space-y-6">
+                {content}
+              </div>
+              {/* Login Component After */}
+              {guestMessage && (
+                <div className="mt-4 sm:mt-6">
+                  {guestMessage}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -170,7 +175,7 @@ export function HeroLayout({
       {/* Footer - Always at bottom */}
       {footer && (
         <footer className="mt-auto">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8">
             {footer}
           </div>
         </footer>
@@ -182,3 +187,4 @@ export function HeroLayout({
     </div>
   );
 }
+

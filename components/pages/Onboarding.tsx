@@ -735,55 +735,45 @@ const Onboarding = () => {
     setVerifyingOtp(true);
     try {
       if (loginMethod === 'email') {
-        // Verify email OTP using Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: email,
-          token: code,
-          type: 'email',
-        });
-
-        if (error) throw error;
-
-        // Get user info from Supabase session
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          throw new Error('Failed to get user information');
-        }
-
-        // Create admin session from OAuth session
-        const response = await fetch('/api/auth/oauth-session', {
+        // Verify email OTP using custom API
+        const response = await fetch('/api/auth/verify-email-otp', {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            code: code,
+            userType: 'homepage_admin',
+          }),
         });
 
-        const sessionData = await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          // New user - proceed with onboarding
-          setOtpVerified(true);
+          throw new Error(data.error || 'Invalid or expired code');
+        }
+
+        setOtpVerified(true);
+        // Handle both existing user and new user cases
+        if (data.isNewUser) {
+          // New user - just set email, they'll register during onboarding
           setAuthenticatedUser({ email: email });
           setBusinessInfo(prev => ({ ...prev, email: email }));
-        } else if (sessionData.success && sessionData.user) {
-          // Existing user
-          setOtpVerified(true);
+        } else if (data.user) {
+          // Existing user - set all user data
           setAuthenticatedUser({ 
-            email: sessionData.user.email,
-            name: sessionData.user.name,
+            email: data.user.email,
+            phone: data.user.phone,
+            name: data.user.name,
           });
           setBusinessInfo(prev => ({ 
             ...prev, 
-            email: sessionData.user.email || prev.email,
+            email: data.user.email || prev.email,
           }));
-          if (sessionData.user.name) {
-            setOwnerName(sessionData.user.name);
+          if (data.user.name) {
+            setOwnerName(data.user.name);
           }
         } else {
-          // New user
-          setOtpVerified(true);
+          // Fallback - new user
           setAuthenticatedUser({ email: email });
           setBusinessInfo(prev => ({ ...prev, email: email }));
         }
@@ -923,15 +913,30 @@ const Onboarding = () => {
     setSendingOtp(true);
 
     try {
-      // Use Supabase signInWithOtp for email OTP
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
-        },
+      // Use custom email OTP API
+      const response = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          userType: 'homepage_admin',
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle rate limiting with countdown
+        if (response.status === 429 && data.retryAfter) {
+          setRateLimitCountdown(data.retryAfter);
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          toast.error(errorMessage);
+          setSendingOtp(false);
+          return;
+        } else {
+          throw new Error(data.error || 'Failed to send OTP');
+        }
+      }
 
       setSendingOtp(false);
       setOtpSent(true);
@@ -939,6 +944,13 @@ const Onboarding = () => {
       setOtpCountdown(30);
       setOtpDigits(['', '', '', '', '', '']);
       setOtpCode('');
+      setRateLimitCountdown(null);
+      
+      // In development, log the code
+      if (process.env.NODE_ENV === 'development' && data.code) {
+        console.log(`[DEV] Email OTP Code: ${data.code}`);
+      }
+      
       toast.success(t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`);
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();

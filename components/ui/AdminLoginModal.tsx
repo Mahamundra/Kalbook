@@ -261,21 +261,43 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     setError(null);
 
     try {
-      // Use Supabase signInWithOtp for email OTP
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
-        },
+      // Use custom email OTP API
+      const response = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          userType: 'homepage_admin',
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle rate limiting with countdown
+        if (response.status === 429 && data.retryAfter) {
+          setRateLimitCountdown(data.retryAfter);
+          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+          setError(errorMessage);
+          toast.error(errorMessage);
+          setSendingOtp(false);
+          return;
+        } else {
+          throw new Error(data.error || 'Failed to send code');
+        }
+      }
 
       setSendingOtp(false);
       setStep('verify');
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
       setRateLimitCountdown(null);
+      
+      // In development, log the code
+      if (process.env.NODE_ENV === 'development' && data.code) {
+        console.log(`[DEV] Email OTP Code: ${data.code}`);
+      }
+      
       toast.success(
         loginMethod === 'phone' 
           ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
@@ -307,54 +329,42 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
 
     try {
       if (loginMethod === 'email') {
-        // Verify email OTP using Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: email,
-          token: codeToUse,
-          type: 'email',
-        });
-
-        if (error) throw error;
-
-        // Get user info from Supabase session
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          throw new Error('Failed to get user information');
-        }
-
-        // Create admin session from OAuth session
-        const response = await fetch('/api/auth/oauth-session', {
+        // Verify email OTP using custom API
+        const response = await fetch('/api/auth/verify-email-otp', {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            code: codeToUse,
+            userType: 'homepage_admin',
+          }),
         });
 
-        const sessionData = await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          if (response.status === 404) {
-            setIsLoading(false);
-            setStep('notRegistered');
-            return;
-          }
-          throw new Error(sessionData.error || 'Authentication failed');
+          throw new Error(data.error || 'Invalid or expired code');
         }
 
-        if (!sessionData.success || !sessionData.user) {
+        // Handle response
+        if (data.isNewUser) {
+          setIsLoading(false);
+          setStep('notRegistered');
+          return;
+        }
+
+        if (!data.user) {
           setIsLoading(false);
           setStep('notRegistered');
           return;
         }
 
         setIsLoading(false);
-        setUserName(sessionData.user?.name || '');
+        setUserName(data.user?.name || '');
         setStep('welcome');
 
         toast.success(
-          (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', sessionData.user?.name || '')
+          (t('adminLogin.welcomeBack') || 'Welcome Back! {name}').replace('{name}', data.user?.name || '')
         );
         
         await new Promise(resolve => setTimeout(resolve, 1000));
