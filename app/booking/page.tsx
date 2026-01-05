@@ -165,6 +165,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
   const [rescheduleAvailableSlots, setRescheduleAvailableSlots] = useState<string[]>([]);
   const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Auto-fill customer info if logged in
   useEffect(() => {
@@ -1957,15 +1958,9 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                   </Button>
                 ) : (
                   <Button
-                    variant="outline"
+                    variant="default"
                     size="lg"
-                    onClick={() => {
-                      setIsLoggedIn(false);
-                      setCurrentUser(null);
-                      setCustomerInfo({ name: '', email: '', phone: '' });
-                      localStorage.removeItem('userSession');
-                      toast.success(t('auth.logoutSuccess'));
-                    }}
+                    onClick={() => setShowLogoutDialog(true)}
                     className="w-full sm:w-auto px-8 flex items-center"
                     dir="ltr"
                   >
@@ -3521,6 +3516,38 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                 className="cancel-appointment-button"
               >
                 {t('booking.cancelAppointment') || 'Cancel Appointment'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Logout Confirmation Dialog */}
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
+            <AlertDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+              <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+                {t('auth.logout') || 'Logout'}
+              </AlertDialogTitle>
+              <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+                {t('auth.confirmLogout') || t('confirmLogout') || 'Are you sure you want to logout?'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className={`flex-col-reverse sm:flex-row ${isRTL ? 'sm:flex-row-reverse' : ''} justify-center sm:justify-end gap-2`}>
+              <AlertDialogCancel onClick={() => setShowLogoutDialog(false)}>
+                {t('common.cancel') || 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setCurrentUser(null);
+                  setCustomerInfo({ name: '', email: '', phone: '' });
+                  localStorage.removeItem('userSession');
+                  setShowLogoutDialog(false);
+                  toast.success(t('auth.logoutSuccess'));
+                }}
+                className="logout-button"
+              >
+                {t('auth.logout') || 'Logout'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
