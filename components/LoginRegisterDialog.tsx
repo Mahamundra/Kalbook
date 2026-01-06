@@ -619,7 +619,7 @@ export function LoginRegisterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md px-6" dir={isRTL ? 'rtl' : 'ltr'}>
+      <DialogContent className="max-w-md px-4 sm:px-6 max-h-[95vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
         <DialogHeader>
           <DialogTitle className={isRTL ? 'text-right' : 'text-left'}>
             {step === 'phone' && t('auth.enterPhone')}
@@ -882,7 +882,7 @@ export function LoginRegisterDialog({
               initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRTL ? -50 : 50 }}
-              className="space-y-4 max-h-[60vh] overflow-y-auto px-1"
+              className="space-y-4 sm:max-h-[60vh] sm:overflow-y-auto px-1"
             >
               {/* Show verified phone number */}
               <div className="p-3 bg-muted rounded-lg">

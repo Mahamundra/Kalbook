@@ -24,7 +24,6 @@ import {
   Clock,
   User,
   Building2,
-  ExternalLink,
   Globe,
   Plus,
   Edit,
@@ -712,12 +711,6 @@ export function UserAccountModal({ open, onOpenChange, initialTab = 'businesses'
                                 )}
                               </div>
                               <div className={`flex flex-col sm:flex-row gap-2 w-full sm:w-auto justify-center overflow-x-hidden ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
-                                <Link href={`/b/${business.slug}/admin/dashboard`} className="flex-1 sm:flex-initial min-w-0" onClick={() => onOpenChange(false)}>
-                                  <Button className={`w-full gap-2 bg-green-600 hover:bg-green-700 text-white shadow-soft transition-shadow ${isRTL ? 'flex-row-reverse' : ''} whitespace-normal sm:whitespace-nowrap`}>
-                                    {t('userDashboard.goToAdmin') || 'Go to Admin Panel'}
-                                    <ExternalLink className="w-4 h-4" />
-                                  </Button>
-                                </Link>
                                 <Link href={`/b/${business.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-initial min-w-0">
                                   <Button variant="outline" className={`w-full gap-2 hover:bg-custom hover:text-white transition-colors ${isRTL ? 'flex-row-reverse' : ''} whitespace-normal sm:whitespace-nowrap`}>
                                     <Globe className="w-4 h-4" />
