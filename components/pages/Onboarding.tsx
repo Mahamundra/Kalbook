@@ -869,11 +869,14 @@ const Onboarding = () => {
     try {
       setLoading(true);
       
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       // Use redirect flow (same page)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding&type=onboarding`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=/onboarding&type=onboarding`,
         },
       });
 
@@ -889,10 +892,14 @@ const Onboarding = () => {
   const handleFacebookLogin = async () => {
     try {
       setLoading(true);
+      
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=/onboarding`,
         },
       });
 

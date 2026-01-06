@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
-import { mapCustomerToInterface, normalizePhone } from '@/lib/customers/utils';
+import { mapCustomerToInterface, normalizePhone, toE164Format } from '@/lib/customers/utils';
 import type { Database } from '@/lib/supabase/database.types';
 
 type CustomerTagRow = Database['public']['Tables']['customer_tags']['Row'];
@@ -27,18 +27,45 @@ export async function GET(
       );
     }
 
-    const normalizedPhone = normalizePhone(phoneParam);
-
     const supabase = createAdminClient();
 
-    // Get customer by phone
-    const customerResult = await supabase
-      .from('customers')
-      .select('*')
-      .eq('business_id', tenantInfo.businessId)
-      .eq('phone', normalizedPhone)
-      .maybeSingle() as { data: any; error: any };
-    const { data: customer, error } = customerResult;
+    // Try multiple phone formats to find the customer
+    // Customers might be stored in different formats (E.164, normalized, or original)
+    const e164Phone = toE164Format(phoneParam);
+    const normalizedPhone = normalizePhone(phoneParam);
+    const normalizedE164 = normalizePhone(e164Phone); // E.164 without + and spaces
+    
+    // Try formats in order: E.164 (most common), normalized E.164, original normalized
+    const phoneFormats = [
+      e164Phone,           // +972542636737
+      normalizedE164,      // 972542636737
+      normalizedPhone,     // 0542636737 or 542636737
+      phoneParam,          // Original format
+    ].filter((format, index, self) => format && self.indexOf(format) === index); // Remove duplicates
+
+    let customer: any = null;
+    let error: any = null;
+
+    // Try each format until we find a match
+    for (const phoneFormat of phoneFormats) {
+      const customerResult = await supabase
+        .from('customers')
+        .select('*')
+        .eq('business_id', tenantInfo.businessId)
+        .eq('phone', phoneFormat)
+        .maybeSingle() as { data: any; error: any };
+      
+      ({ data: customer, error } = customerResult);
+      
+      if (customer) {
+        break; // Found customer, stop searching
+      }
+      
+      if (error) {
+        // If there's a database error (not just "not found"), stop and return error
+        break;
+      }
+    }
 
     if (error) {
       return NextResponse.json(

@@ -97,6 +97,45 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     }
   };
 
+  // Handle phone input change with cursor position preservation
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const cursorPosition = input.selectionStart || 0;
+    const oldValue = phone;
+    const newValue = e.target.value;
+    
+    // Count digits before cursor in old value
+    const digitsBeforeCursor = oldValue.slice(0, cursorPosition).replace(/\D/g, '').length;
+    
+    // Format the new value
+    const formatted = formatPhoneNumber(newValue);
+    
+    // Update state
+    setPhone(formatted);
+    
+    // Calculate new cursor position
+    // Find the position where we have the same number of digits
+    let digitCount = 0;
+    let newCursorPosition = formatted.length;
+    
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        digitCount++;
+        if (digitCount === digitsBeforeCursor) {
+          newCursorPosition = i + 1;
+          break;
+        }
+      }
+    }
+    
+    // Restore cursor position after React updates
+    setTimeout(() => {
+      if (phoneInputRef.current) {
+        phoneInputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+      }
+    }, 0);
+  };
+
   const handlePhoneSubmit = async () => {
     if (!phone.trim()) {
       toast.error(t('adminLogin.phoneRequired') || 'Phone number is required');
@@ -216,11 +255,14 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     try {
       setIsLoading(true);
       
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       // Use redirect flow (same page)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=/&type=homepage_admin`,
         },
       });
 
@@ -236,10 +278,14 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
   const handleFacebookLogin = async () => {
     try {
       setIsLoading(true);
+      
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/&type=homepage_admin`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=/&type=homepage_admin`,
         },
       });
 
@@ -600,7 +646,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
                     type="tel"
                     placeholder={t('adminLogin.phonePlaceholder') || t('onboarding.auth.phonePlaceholder') || 'enter phone number'}
                     value={phone}
-                    onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+                    onChange={handlePhoneChange}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && phone.replace(/\D/g, '').length >= 10 && !sendingOtp) {
                         handlePhoneSubmit();

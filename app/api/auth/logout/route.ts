@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logout, getBusinessOwnerSession } from '@/lib/auth/session';
+import { BUSINESS_SLUG_COOKIE } from '@/lib/tenant';
 
-const SESSION_COOKIE_NAME = 'customer_session';
+// Get business-specific session cookie name
+function getSessionCookieName(businessSlug: string): string {
+  return `customer_session_${businessSlug}`;
+}
 
 /**
  * POST /api/auth/logout
@@ -22,8 +26,24 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies();
     const response = NextResponse.json({ success: true });
 
-    // Clear customer session cookie
-    response.cookies.delete(SESSION_COOKIE_NAME);
+    // Get business slug from cookie (set by middleware)
+    const businessSlug = cookieStore.get(BUSINESS_SLUG_COOKIE)?.value;
+    
+    // Clear both generic and business-specific customer session cookies
+    response.cookies.delete('customer_session');
+    
+    if (businessSlug) {
+      const sessionCookieName = getSessionCookieName(businessSlug);
+      response.cookies.delete(sessionCookieName);
+      // Also explicitly set it to empty to ensure it's cleared
+      response.cookies.set(sessionCookieName, '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+        path: '/',
+      });
+    }
 
     // Check if there's a business owner session and sign out from Supabase Auth
     // Either explicitly requested or if we detect a business owner session

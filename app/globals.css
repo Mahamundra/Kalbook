@@ -373,6 +373,36 @@ html[lang="he"] * {
     border-color: hsl(var(--booking-primary, var(--primary))) !important;
   }
 
+  /* Center logout dialog content */
+  .logout-dialog-header {
+    text-align: center !important;
+  }
+
+  .logout-dialog-header * {
+    text-align: center !important;
+  }
+
+  @media (min-width: 640px) {
+    .logout-dialog-header {
+      text-align: center !important;
+    }
+    
+    .logout-dialog-header * {
+      text-align: center !important;
+    }
+  }
+
+  /* Center logout dialog buttons on desktop */
+  .logout-dialog-footer {
+    justify-content: center !important;
+  }
+
+  @media (min-width: 640px) {
+    .logout-dialog-footer {
+      justify-content: center !important;
+    }
+  }
+
   /* Default variant (make another appointment) - keep primary background */
   button.thank-you-button.bg-primary:hover:not(:disabled) {
     background-color: hsl(var(--primary)) !important;

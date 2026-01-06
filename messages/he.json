@@ -1209,7 +1209,20 @@
     "logoutSuccess": "התנתקת בהצלחה",
     "verifiedPhone": "טלפון מאומת:",
     "rateLimitMessage": "אנא המתן {seconds} שניות לפני בקשת קוד נוסף",
-    "notRequired": "לא נדרש"
+    "notRequired": "לא נדרש",
+    "phoneDialog": {
+      "title": "הוסף את מספר הטלפון שלך",
+      "description": "הוסף את מספר הטלפון שלך כדי לקבל תזכורות WhatsApp על התורים שלך ולהתחבר בקלות בפעם הבאה.",
+      "phoneLabel": "מספר טלפון",
+      "phonePlaceholder": "050-000-0000",
+      "save": "שמור",
+      "skip": "דלג",
+      "saving": "שומר...",
+      "saveSuccess": "מספר הטלפון נשמר בהצלחה!",
+      "saveError": "שמירת מספר הטלפון נכשלה",
+      "invalidPhone": "אנא הזן מספר טלפון תקין (לפחות 10 ספרות)",
+      "phoneExists": "מספר טלפון זה כבר רשום"
+    }
   },
   "adminLogin": {
     "title": "כניסת מנהל",

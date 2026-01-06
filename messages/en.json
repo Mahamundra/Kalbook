@@ -1133,7 +1133,20 @@
     "logoutSuccess": "Logged out successfully",
     "verifiedPhone": "Verified Phone:",
     "rateLimitMessage": "Please wait {seconds} seconds before requesting another code",
-    "notRequired": "Not required"
+    "notRequired": "Not required",
+    "phoneDialog": {
+      "title": "Add Your Phone Number",
+      "description": "Add your phone number to receive WhatsApp reminders about your appointments and to login easily next time.",
+      "phoneLabel": "Phone Number",
+      "phonePlaceholder": "050-000-0000",
+      "save": "Save",
+      "skip": "Skip",
+      "saving": "Saving...",
+      "saveSuccess": "Phone number saved successfully!",
+      "saveError": "Failed to save phone number",
+      "invalidPhone": "Please enter a valid phone number (at least 10 digits)",
+      "phoneExists": "This phone number is already registered"
+    }
   },
   "adminLogin": {
     "title": "Admin Login",

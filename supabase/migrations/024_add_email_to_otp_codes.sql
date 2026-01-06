@@ -38,3 +38,4 @@ COMMENT ON COLUMN otp_codes.type IS 'Type of OTP: phone or email';
 
 
 
+

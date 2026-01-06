@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Service, Appointment, Worker } from '@/types/admin';
 import Link from 'next/link';
 import { LoginRegisterDialog } from '@/components/LoginRegisterDialog';
+import { PhoneNumberDialog } from '@/components/PhoneNumberDialog';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { ClassicLayout } from '@/components/booking/layouts/ClassicLayout';
 import { HeroLayout } from '@/components/booking/layouts/HeroLayout';
@@ -166,6 +167,8 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   const [rescheduleAvailableSlots, setRescheduleAvailableSlots] = useState<string[]>([]);
   const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
+  const [phoneDialogShown, setPhoneDialogShown] = useState(false);
 
   // Auto-fill customer info if logged in
   useEffect(() => {
@@ -271,6 +274,12 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
               };
               localStorage.setItem('userSession', JSON.stringify(session));
               
+              // Check if customer has phone number - if not, show phone dialog
+              if (!customerSession.phone && !phoneDialogShown && customerSession.customerId) {
+                setPhoneDialogShown(true);
+                setShowPhoneDialog(true);
+              }
+              
               // Clean URL
               window.history.replaceState({}, '', window.location.pathname);
             } else {
@@ -291,30 +300,76 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
   // Check for valid session on mount
   useEffect(() => {
-    const storedSession = localStorage.getItem('userSession');
-    if (storedSession) {
+    const checkSession = async () => {
       try {
-        const session = JSON.parse(storedSession);
-        const expirationTime = session.expirationTime;
+        // First check server-side session (source of truth)
+        const response = await fetch('/api/auth/session', {
+          credentials: 'same-origin',
+        });
         
-        // Check if session is still valid (not expired)
-        if (expirationTime && new Date().getTime() < expirationTime) {
-          setIsLoggedIn(true);
-          setCurrentUser(session.user);
-          setCustomerInfo({
-            name: session.user.name || '',
-            email: session.user.email || '',
-            phone: session.user.phone || '',
-          });
-        } else {
-          // Session expired, clear it
-          localStorage.removeItem('userSession');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.session && data.session.type === 'customer') {
+            const session = data.session;
+            setIsLoggedIn(true);
+            setCurrentUser({
+              id: session.customerId,
+              name: session.name,
+              email: session.email || '',
+              phone: session.phone || '',
+            });
+            setCustomerInfo({
+              name: session.name || '',
+              email: session.email || '',
+              phone: session.phone || '',
+            });
+            // Also store in localStorage for backward compatibility
+            localStorage.setItem('userSession', JSON.stringify({
+              user: {
+                id: session.customerId,
+                name: session.name,
+                email: session.email || '',
+                phone: session.phone || '',
+              },
+              expirationTime: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
+            }));
+            return;
+          }
+        }
+        
+        // Fallback: Check localStorage (for backward compatibility)
+        const storedSession = localStorage.getItem('userSession');
+        if (storedSession) {
+          try {
+            const session = JSON.parse(storedSession);
+            const expirationTime = session.expirationTime;
+            
+            // Check if session is still valid (not expired)
+            if (expirationTime && new Date().getTime() < expirationTime) {
+              setIsLoggedIn(true);
+              setCurrentUser(session.user);
+              setCustomerInfo({
+                name: session.user.name || '',
+                email: session.user.email || '',
+                phone: session.user.phone || '',
+              });
+            } else {
+              // Session expired, clear it
+              localStorage.removeItem('userSession');
+            }
+          } catch (error) {
+            // Invalid session data, clear it
+            localStorage.removeItem('userSession');
+          }
         }
       } catch (error) {
-        // Invalid session data, clear it
+        console.error('Error checking session:', error);
+        // On error, clear any stale localStorage
         localStorage.removeItem('userSession');
       }
-    }
+    };
+
+    checkSession();
   }, []);
 
   // Update theme color when settings or editorSettings change
@@ -3523,21 +3578,36 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Logout Confirmation Dialog */}
         <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-          <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
-            <AlertDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-              <AlertDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+          <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'} className="logout-dialog-content">
+            <AlertDialogHeader className="logout-dialog-header text-center">
+              <AlertDialogTitle className="text-center">
                 {t('auth.logout') || 'Logout'}
               </AlertDialogTitle>
-              <AlertDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+              <AlertDialogDescription className="text-center">
                 {t('auth.confirmLogout') || t('confirmLogout') || 'Are you sure you want to logout?'}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className={`flex-col-reverse sm:flex-row ${isRTL ? 'sm:flex-row-reverse' : ''} justify-center sm:justify-end gap-2`}>
+            <AlertDialogFooter className={`logout-dialog-footer flex-col-reverse sm:flex-row ${isRTL ? 'sm:flex-row-reverse' : ''} justify-center sm:justify-center gap-2 w-full`}>
               <AlertDialogCancel onClick={() => setShowLogoutDialog(false)}>
                 {t('common.cancel') || 'Cancel'}
               </AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => {
+                onClick={async () => {
+                  try {
+                    // Call logout API to clear server-side cookie
+                    await fetch('/api/auth/logout', {
+                      method: 'POST',
+                      credentials: 'same-origin',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ userType: 'customer' }),
+                    });
+                  } catch (error) {
+                    console.error('Error calling logout API:', error);
+                  }
+                  
+                  // Clear local state
                   setIsLoggedIn(false);
                   setCurrentUser(null);
                   setCustomerInfo({ name: '', email: '', phone: '' });
@@ -3809,6 +3879,36 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     />
   );
 
+  // Phone number dialog for OAuth users
+  const phoneDialog = currentUser?.customerId ? (
+    <PhoneNumberDialog
+      open={showPhoneDialog}
+      onClose={() => setShowPhoneDialog(false)}
+      customerId={currentUser.customerId}
+      onSuccess={() => {
+        // Refresh customer session to get updated phone
+        if (currentUser?.customerId) {
+          fetch(`/api/customers/${currentUser.customerId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success && data.customer) {
+                const updatedPhone = data.customer.phone || '';
+                setCurrentUser({
+                  ...currentUser,
+                  phone: updatedPhone,
+                });
+                setCustomerInfo({
+                  ...customerInfo,
+                  phone: updatedPhone,
+                });
+              }
+            })
+            .catch(err => console.error('Error fetching updated customer:', err));
+        }
+      }}
+    />
+  ) : null;
+
   // Render main content once (appointments + booking section, without guestMessage)
   const mainContent = renderMainContent();
 
@@ -3820,6 +3920,72 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   // Render based on layout type
   if (layoutType === 'classic') {
     return (
+      <>
+        <ClassicLayout
+          header={header}
+          trialBanner={trialBanner}
+          bannerCover={bannerCover}
+          businessInfo={businessInfo}
+          guestMessage={guestMessage}
+          mainContent={mainContent}
+          rescheduleDialog={rescheduleDialog}
+          loginDialog={loginDialog}
+          loginFirst={loginFirstValue}
+          dir={dir}
+        />
+        {phoneDialog}
+      </>
+    );
+  } else if (layoutType === 'hero') {
+    return (
+      <>
+        <HeroLayout
+          header={header}
+          trialBanner={trialBanner}
+          bannerCover={bannerCover}
+          businessInfo={businessInfo}
+          guestMessage={guestMessage}
+          mainContent={mainContent}
+          rescheduleDialog={rescheduleDialog}
+          loginDialog={loginDialog}
+          businessName={businessName}
+          businessDescription={businessDescription}
+          logoUrl={logoUrl}
+          logoShape={logoShape}
+          loginFirst={loginFirstValue}
+          dir={dir}
+        />
+        {phoneDialog}
+      </>
+    );
+  } else if (layoutType === 'compact') {
+    return (
+      <>
+        <CompactDashboardLayout
+          header={null}
+          trialBanner={trialBanner}
+          bannerCover={bannerCover}
+          businessInfo={businessInfo}
+          guestMessage={guestMessage}
+          mainContent={mainContent}
+          rescheduleDialog={rescheduleDialog}
+          loginDialog={loginDialog}
+          footer={undefined}
+          businessName={businessName}
+          businessDescription={businessDescription}
+          logoUrl={logoUrl}
+          logoShape={logoShape}
+          loginFirst={loginFirstValue}
+          dir={dir}
+        />
+        {phoneDialog}
+      </>
+    );
+  }
+
+  // Default to classic
+  return (
+    <>
       <ClassicLayout
         header={header}
         trialBanner={trialBanner}
@@ -3829,63 +3995,9 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         mainContent={mainContent}
         rescheduleDialog={rescheduleDialog}
         loginDialog={loginDialog}
-        loginFirst={loginFirstValue}
-        dir={dir}
       />
-    );
-  } else if (layoutType === 'hero') {
-    return (
-      <HeroLayout
-        header={header}
-        trialBanner={trialBanner}
-        bannerCover={bannerCover}
-        businessInfo={businessInfo}
-        guestMessage={guestMessage}
-        mainContent={mainContent}
-        rescheduleDialog={rescheduleDialog}
-        loginDialog={loginDialog}
-        businessName={businessName}
-        businessDescription={businessDescription}
-        logoUrl={logoUrl}
-        logoShape={logoShape}
-        loginFirst={loginFirstValue}
-        dir={dir}
-      />
-    );
-  } else if (layoutType === 'compact') {
-    return (
-      <CompactDashboardLayout
-        header={null}
-        trialBanner={trialBanner}
-        bannerCover={bannerCover}
-        businessInfo={businessInfo}
-        guestMessage={guestMessage}
-        mainContent={mainContent}
-        rescheduleDialog={rescheduleDialog}
-        loginDialog={loginDialog}
-        footer={undefined}
-        businessName={businessName}
-        businessDescription={businessDescription}
-        logoUrl={logoUrl}
-        logoShape={logoShape}
-        loginFirst={loginFirstValue}
-        dir={dir}
-      />
-    );
-  }
-
-  // Default to classic
-  return (
-    <ClassicLayout
-      header={header}
-      trialBanner={trialBanner}
-      bannerCover={bannerCover}
-      businessInfo={businessInfo}
-      guestMessage={guestMessage}
-      mainContent={mainContent}
-      rescheduleDialog={rescheduleDialog}
-      loginDialog={loginDialog}
-    />
+      {phoneDialog}
+    </>
   );
 }
 

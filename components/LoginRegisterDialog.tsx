@@ -64,13 +64,14 @@ export function LoginRegisterDialog({
   const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
 
   // Format phone number with dashes (050-000-0000)
   const formatPhoneNumber = (value: string): string => {
     // Remove all non-digit characters
     const digits = value.replace(/\D/g, '');
     
-    // Limit to 10 digits
+    // Limit to 10 digits (Israeli phone numbers are 10 digits)
     const limited = digits.slice(0, 10);
     
     // Format as XXX-XXX-XXXX (always maintain dashes)
@@ -83,6 +84,41 @@ export function LoginRegisterDialog({
     } else {
       return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
     }
+  };
+
+  // Handle phone input change - simple and reliable version
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Get the raw input value directly from the event
+    const rawValue = e.target.value;
+    
+    // Extract digits by iterating through the string to preserve exact order
+    // This ensures we get digits in the order they appear, not affected by RTL
+    let digits = '';
+    for (let i = 0; i < rawValue.length; i++) {
+      const char = rawValue[i];
+      if (char >= '0' && char <= '9') {
+        digits += char;
+      }
+    }
+    
+    // Limit to 10 digits maximum
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10);
+    }
+    
+    // Format the digits (adds dashes)
+    const formatted = formatPhoneNumber(digits);
+    
+    // Update state with formatted value
+    setPhone(formatted);
+    
+    // Place cursor at end after formatting
+    setTimeout(() => {
+      if (phoneInputRef.current) {
+        const endPos = formatted.length;
+        phoneInputRef.current.setSelectionRange(endPos, endPos);
+      }
+    }, 0);
   };
 
   // Helper function to darken color for hover state
@@ -511,11 +547,14 @@ export function LoginRegisterDialog({
     try {
       setIsOAuthLoading(true);
       
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       // Use redirect flow (same page)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
         },
       });
 
@@ -531,10 +570,14 @@ export function LoginRegisterDialog({
   const handleFacebookLogin = async () => {
     try {
       setIsOAuthLoading(true);
+      
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=${encodeURIComponent(window.location.pathname)}&type=customer`,
         },
       });
 
@@ -649,17 +692,18 @@ export function LoginRegisterDialog({
                       {t('auth.phoneNumber')}
                     </Label>
                     <Input
+                      ref={phoneInputRef}
                       id="phone"
                       type="tel"
                       value={phone}
-                      onChange={(e) => {
-                        const formatted = formatPhoneNumber(e.target.value);
-                        setPhone(formatted);
-                      }}
+                      onChange={handlePhoneChange}
                       placeholder={t('auth.phonePlaceholder') || '050-123-4567'}
                       dir="ltr"
-                      className="mt-2"
+                      className="mt-2 text-center"
+                      style={{ direction: 'ltr', textAlign: 'center' }}
                       maxLength={12}
+                      autoComplete="off"
+                      inputMode="numeric"
                     />
                   </div>
                   <Button
@@ -698,7 +742,8 @@ export function LoginRegisterDialog({
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder={t('auth.emailPlaceholder') || 'Enter your email'}
                       dir="ltr"
-                      className="mt-2"
+                      className="mt-2 text-center"
+                      style={{ direction: 'ltr', textAlign: 'center' }}
                     />
                   </div>
                   <Button
@@ -1063,7 +1108,8 @@ export function LoginRegisterDialog({
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder={t('auth.emailPlaceholder')}
                     dir="ltr"
-                    className="mt-2"
+                    className="mt-2 text-center"
+                    style={{ direction: 'ltr', textAlign: 'center' }}
                   />
                 </div>
               )}

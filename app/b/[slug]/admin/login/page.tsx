@@ -38,6 +38,7 @@ export default function AdminLoginPage() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
   const oauthCallbackHandled = useRef(false);
 
   // Format phone number with dashes (050-000-0000)
@@ -58,6 +59,45 @@ export default function AdminLoginPage() {
     } else {
       return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
     }
+  };
+
+  // Handle phone input change with cursor position preservation
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const cursorPosition = input.selectionStart || 0;
+    const oldValue = phone;
+    const newValue = e.target.value;
+    
+    // Count digits before cursor in old value
+    const digitsBeforeCursor = oldValue.slice(0, cursorPosition).replace(/\D/g, '').length;
+    
+    // Format the new value
+    const formatted = formatPhoneNumber(newValue);
+    
+    // Update state
+    setPhone(formatted);
+    
+    // Calculate new cursor position
+    // Find the position where we have the same number of digits
+    let digitCount = 0;
+    let newCursorPosition = formatted.length;
+    
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        digitCount++;
+        if (digitCount === digitsBeforeCursor) {
+          newCursorPosition = i + 1;
+          break;
+        }
+      }
+    }
+    
+    // Restore cursor position after React updates
+    setTimeout(() => {
+      if (phoneInputRef.current) {
+        phoneInputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+      }
+    }, 0);
   };
 
   // Check if user is already authenticated and redirect
@@ -281,11 +321,14 @@ export default function AdminLoginPage() {
     try {
       setIsLoading(true);
       
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       // Use redirect flow (same page)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
         },
       });
 
@@ -301,10 +344,14 @@ export default function AdminLoginPage() {
   const handleFacebookLogin = async () => {
     try {
       setIsLoading(true);
+      
+      // Get base URL - prefer NEXT_PUBLIC_APP_URL, fallback to current origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
+          redirectTo: `${baseUrl}/api/auth/callback?next=/b/${slug}/admin/login&type=business_admin`,
         },
       });
 
@@ -764,14 +811,12 @@ export default function AdminLoginPage() {
                         </svg>
                       </div>
                       <Input
+                        ref={phoneInputRef}
                         id="phone"
                         type="tel"
                         placeholder={t('adminLogin.phonePlaceholder') || t('onboarding.auth.phonePlaceholder') || 'enter phone number'}
                         value={phone}
-                        onChange={(e) => {
-                          const formatted = formatPhoneNumber(e.target.value);
-                          setPhone(formatted);
-                        }}
+                        onChange={handlePhoneChange}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && phone.replace(/\D/g, '').length >= 10 && !isLoading) {
                             handlePhoneSubmit();

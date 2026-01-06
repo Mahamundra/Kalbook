@@ -1201,7 +1201,20 @@
     "logoutSuccess": "تم تسجيل الخروج بنجاح",
     "verifiedPhone": "الهاتف المؤكد:",
     "rateLimitMessage": "يرجى الانتظار {seconds} ثانية قبل طلب رمز آخر",
-    "notRequired": "غير مطلوب"
+    "notRequired": "غير مطلوب",
+    "phoneDialog": {
+      "title": "أضف رقم هاتفك",
+      "description": "أضف رقم هاتفك لتلقي تذكيرات واتساب حول مواعيدك وتسجيل الدخول بسهولة في المرة القادمة.",
+      "phoneLabel": "رقم الهاتف",
+      "phonePlaceholder": "050-000-0000",
+      "save": "حفظ",
+      "skip": "تخطي",
+      "saving": "جاري الحفظ...",
+      "saveSuccess": "تم حفظ رقم الهاتف بنجاح!",
+      "saveError": "فشل حفظ رقم الهاتف",
+      "invalidPhone": "يرجى إدخال رقم هاتف صالح (10 أرقام على الأقل)",
+      "phoneExists": "رقم الهاتف هذا مسجل بالفعل"
+    }
   },
   "adminLogin": {
     "title": "تسجيل دخول المدير",
