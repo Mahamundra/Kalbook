@@ -86,3 +86,63 @@ export async function getBusinessById(id: string): Promise<Business | null> {
   return data;
 }
 
+/**
+ * Check if a business is in portfolio mode
+ * Portfolio mode = portfolio plan OR is_portfolio flag
+ * @param businessIdOrSlug - Business ID (UUID) or slug
+ * @returns true if business is in portfolio mode
+ */
+export async function isPortfolioBusiness(
+  businessIdOrSlug: string
+): Promise<boolean> {
+  const supabase = createAdminClient();
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(businessIdOrSlug);
+  
+  // First, get the business
+  let business: Business | null = null;
+  
+  if (isUUID) {
+    business = await getBusinessById(businessIdOrSlug);
+  } else {
+    business = await getBusinessBySlug(businessIdOrSlug);
+  }
+  
+  if (!business) {
+    return false;
+  }
+  
+  // Check if on portfolio plan
+  if (business.plan_id) {
+    const { getBusinessPlan } = await import('@/lib/trial/utils');
+    const plan = await getBusinessPlan(business.id);
+    if (plan?.name === 'portfolio') {
+      return true;
+    }
+  }
+  
+  // Fallback to is_portfolio flag
+  return business.is_portfolio ?? false;
+}
+
+/**
+ * Check if business can enable booking
+ * @param businessId - Business ID
+ * @returns true if business can enable booking functionality
+ */
+export async function canEnableBooking(businessId: string): Promise<boolean> {
+  const isPortfolio = await isPortfolioBusiness(businessId);
+  if (isPortfolio) {
+    return false;
+  }
+  
+  // Check if trial expired
+  const { isTrialExpired } = await import('@/lib/trial/utils');
+  const expired = await isTrialExpired(businessId);
+  if (expired) {
+    return false;
+  }
+  
+  // Check if plan has booking feature
+  const { checkPlanFeature } = await import('@/lib/trial/utils');
+  return await checkPlanFeature(businessId, 'create_appointments');
+}

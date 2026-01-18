@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS super_admin_users (
 -- Professional: 79 ILS/month
 -- Business: 149 ILS/month
 INSERT INTO plans (name, price, features, active) VALUES
-('basic', 39, '{"max_staff": 1, "max_bookings_per_month": 100, "custom_branding": false, "analytics": false, "whatsapp_integration": false, "multi_language": true, "cloud_storage": false, "priority_support": false, "advanced_reports": false}', true),
+('basic', 29, '{"max_staff": 1, "max_bookings_per_month": 100, "custom_branding": false, "analytics": false, "whatsapp_integration": false, "multi_language": true, "cloud_storage": false, "priority_support": false, "advanced_reports": false}', true),
 ('professional', 79, '{"max_staff": 5, "max_bookings_per_month": -1, "custom_branding": true, "analytics": true, "whatsapp_integration": true, "multi_language": true, "cloud_storage": true, "priority_support": true, "advanced_reports": true}', true),
 ('business', 149, '{"max_staff": 15, "max_bookings_per_month": -1, "custom_branding": true, "analytics": true, "whatsapp_integration": true, "multi_language": true, "cloud_storage": true, "priority_support": true, "advanced_reports": true, "api_access": true}', true)
 ON CONFLICT (name) DO NOTHING;

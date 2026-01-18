@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
       const metadataName = features.name ? features.name.toLowerCase() : null;
       let homepageKey: string | null = null;
       
-      if (planName === 'basic' || planName === 'free' || metadataName === 'free') {
+      if (planName === 'portfolio' || metadataName === 'portfolio') {
+        homepageKey = 'portfolio';
+      } else if (planName === 'basic' || planName === 'free' || metadataName === 'free') {
         homepageKey = 'free';
       } else if (planName === 'professional' || planName === 'pro' || metadataName === 'pro') {
         homepageKey = 'pro';
@@ -75,8 +77,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Ensure all three plans are present (fallback to 0 if missing)
-    if (!pricing.free) pricing.free = { price: 0, currency: 'ILS', symbol: '₪', metadata: {} };
+    // Ensure all plans are present (fallback to defaults if missing)
+    // Order matters - portfolio first (0), then free/basic (29), pro (79), custom (249)
+    if (!pricing.portfolio) pricing.portfolio = { price: 0, currency: 'ILS', symbol: '₪', metadata: {} };
+    if (!pricing.free) pricing.free = { price: 29, currency: 'ILS', symbol: '₪', metadata: {} };
     if (!pricing.pro) pricing.pro = { price: 79, currency: 'ILS', symbol: '₪', metadata: {} };
     if (!pricing.custom) pricing.custom = { price: 249, currency: 'ILS', symbol: '₪', metadata: {} };
 

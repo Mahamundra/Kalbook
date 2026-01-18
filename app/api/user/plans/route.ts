@@ -186,35 +186,85 @@ export async function PATCH(request: NextRequest) {
     // Get current business to check if renewing or first time
     const { data: currentBusiness } = await supabase
       .from('businesses')
-      .select('subscription_started_at, subscription_status')
+      .select('plan_id, subscription_started_at, subscription_status, is_portfolio')
       .eq('id', businessId)
-      .single() as { data: BusinessRow | null; error: any };
+      .single() as { data: (BusinessRow & { is_portfolio?: boolean }) | null; error: any };
+
+    // Get current plan to check if upgrading from portfolio
+    let currentPlan: PlanRow | null = null;
+    if (currentBusiness?.plan_id) {
+      const currentPlanResult = await supabase
+        .from('plans')
+        .select('*')
+        .eq('id', currentBusiness.plan_id)
+        .single() as { data: PlanRow | null; error: any };
+      currentPlan = currentPlanResult.data;
+    }
 
     // Update business plan
     const updateData: any = {
       plan_id: planId,
     };
 
-    // If setting to active, handle subscription dates
-    if (subscriptionStatus === 'active') {
-      const now = new Date();
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-      // If already had an active subscription, this is a renewal
-      if (currentBusiness?.subscription_status === 'active' && currentBusiness?.subscription_started_at) {
-        updateData.renewed_at = now.toISOString();
-        updateData.subscription_ends_at = thirtyDaysFromNow.toISOString();
+    // Handle portfolio → paid upgrade
+    if (currentPlan?.name === 'portfolio' && plan.name !== 'portfolio') {
+      // Upgrading FROM portfolio TO paid plan
+      updateData.is_portfolio = false;
+      
+      // Set subscription status based on plan
+      if (plan.name === 'basic') {
+        // Basic plan: 14-day trial
+        const now = new Date();
+        const trialEnds = new Date();
+        trialEnds.setDate(trialEnds.getDate() + 14);
+        updateData.trial_started_at = now.toISOString();
+        updateData.trial_ends_at = trialEnds.toISOString();
+        updateData.subscription_status = 'trial';
+        updateData.subscription_started_at = null;
+        updateData.subscription_ends_at = null;
       } else {
-        // First time activating subscription
+        // Professional/Business plans: Start as active subscription
+        const now = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
         updateData.subscription_started_at = now.toISOString();
         updateData.subscription_ends_at = thirtyDaysFromNow.toISOString();
+        updateData.subscription_status = 'active';
         updateData.trial_started_at = null;
         updateData.trial_ends_at = null;
       }
+    } else if (plan.name === 'portfolio' && currentPlan?.name !== 'portfolio') {
+      // Downgrading FROM paid TO portfolio
+      updateData.is_portfolio = true;
       updateData.subscription_status = 'active';
-    } else if (subscriptionStatus) {
-      updateData.subscription_status = subscriptionStatus;
+      updateData.trial_started_at = null;
+      updateData.trial_ends_at = null;
+      // Keep subscription dates for potential re-upgrade, or clear them
+      // updateData.subscription_started_at = null;
+      // updateData.subscription_ends_at = null;
+    } else {
+      // Regular plan change (paid to paid)
+      // If setting to active, handle subscription dates
+      if (subscriptionStatus === 'active') {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+        // If already had an active subscription, this is a renewal
+        if (currentBusiness?.subscription_status === 'active' && currentBusiness?.subscription_started_at) {
+          updateData.renewed_at = now.toISOString();
+          updateData.subscription_ends_at = thirtyDaysFromNow.toISOString();
+        } else {
+          // First time activating subscription
+          updateData.subscription_started_at = now.toISOString();
+          updateData.subscription_ends_at = thirtyDaysFromNow.toISOString();
+          updateData.trial_started_at = null;
+          updateData.trial_ends_at = null;
+        }
+        updateData.subscription_status = 'active';
+      } else if (subscriptionStatus) {
+        updateData.subscription_status = subscriptionStatus;
+      }
     }
 
     const updateResult = await (supabase

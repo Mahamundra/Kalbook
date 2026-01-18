@@ -1459,10 +1459,18 @@
       "month": "/month",
       "riskFree": "14 Days Free Trial",
       "plans": {
-        "free": {
-          "name": "Free",
+        "portfolio": {
+          "name": "Portfolio",
           "price": "0",
-          "priceNote": "Perfect for getting started",
+          "priceNote": "Free Forever",
+          "cta": "Create Free Portfolio",
+          "note": "Showcase your business - no booking, just your portfolio",
+          "highlights": ["Business homepage/portfolio", "Logo & branding", "Services showcase", "Contact information", "Social links", "Homepage editor", "No appointment booking", "No customer management"]
+        },
+        "free": {
+          "name": "Basic",
+          "price": "29",
+          "priceNote": "14 Days Free Trial",
           "cta": "Start Free",
           "note": "Start managing your bookings today - no credit card required",
           "highlights": ["1 staff member", "Up to 100 bookings/month", "Smart calendar", "Customer management", "Email reminders", "Bilingual & RTL support"]
@@ -1484,6 +1492,21 @@
           "highlights": ["Everything in Pro", "Unlimited staff", "API Access", "White-label solution", "Custom integrations", "Advanced reporting", "Multi-location support", "Custom workflows", "Dedicated support", "Custom development"]
         }
       }
+    },
+    "portfolio": {
+      "badge": "Free Forever",
+      "title": "✨ Your Digital Business Card – Instantly Online & Impressively Professional",
+      "description": "Showcase your business online – fast, sleek, and free. Perfect for service providers, freelancers, and small businesses who want a beautiful digital presence without coding or monthly fees.",
+      "benefits": [
+        "Add your logo & branding",
+        "Display your services professionally",
+        "Include a portfolio or project gallery",
+        "Add social links & contact form",
+        "Customize your homepage layout",
+        "Mobile-friendly – looks perfect on mobile too"
+      ],
+      "cta": "Create Your Free Card Now",
+      "note": "No credit card required. Launch in seconds!"
     },
     "hero": {
       "title": "The easy way to manage customers, schedules, and appointments - all in one place.",
@@ -2429,5 +2452,17 @@
       "addressValue": "Beit El 47, Tel Aviv",
       "p2": "We will try to handle appropriate inquiries as soon as possible and in accordance with legal provisions."
     }
+  },
+  "portfolio": {
+    "modeBadge": "Portfolio Mode - Free Forever",
+    "upgradeTitle": "Want to accept online bookings?",
+    "upgradeDescription": "Upgrade to enable appointment scheduling for your customers",
+    "upgradeButton": "Upgrade Now",
+    "serviceInfoOnly": "Information Only",
+    "editorUpgradeTitle": "Unlock Appointment Booking",
+    "editorUpgradeDescription": "Upgrade to enable online booking for your customers",
+    "enableBookingTitle": "Enable Appointment Booking",
+    "enableBookingDescription": "Upgrade to accept online appointments from your customers",
+    "viewPlansButton": "View Plans & Upgrade"
   }
 }

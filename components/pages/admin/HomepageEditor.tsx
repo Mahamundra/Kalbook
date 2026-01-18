@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Save, Undo2, Redo2, Loader2, User, UserCircle, Palette, MoreVertical, Pencil, Monitor, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useEditHistory } from '@/lib/hooks/useEditHistory';
 import { InlineTextEditor } from './InlineTextEditor';
 import { ImageEditor } from './ImageEditor';
@@ -104,7 +105,25 @@ export function HomepageEditor({
   const [guestMessageUseCustom, setGuestMessageUseCustom] = useState(false);
   const [guestMessageTemplate, setGuestMessageTemplate] = useState<string>('');
   const [guestMessageCustomText, setGuestMessageCustomText] = useState<string>('');
+  const [isPortfolio, setIsPortfolio] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Check if business is in portfolio mode
+  useEffect(() => {
+    const checkPortfolioMode = async () => {
+      if (!businessSlug) return;
+      try {
+        const { isPortfolioBusiness } = await import('@/lib/business');
+        const portfolioStatus = await isPortfolioBusiness(businessSlug);
+        setIsPortfolio(portfolioStatus);
+      } catch (error) {
+        console.error('Error checking portfolio mode:', error);
+      }
+    };
+    if (open && businessSlug) {
+      checkPortfolioMode();
+    }
+  }, [open, businessSlug]);
 
   // Update side menu state when mobile state changes
   useEffect(() => {
@@ -670,6 +689,11 @@ export function HomepageEditor({
               <h2 className="text-base sm:text-lg font-semibold truncate">
                 {t('settings.homepageEditor.title') || 'Edit Homepage'}
               </h2>
+              {isPortfolio && (
+                <Badge variant="outline" className="bg-blue-50 border-blue-300 text-blue-700">
+                  {t('portfolio.modeBadge') || 'Portfolio Mode - Free Forever'}
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -855,6 +879,7 @@ export function HomepageEditor({
             isOpen={showSideMenu}
             onToggle={() => setShowSideMenu(!showSideMenu)}
             onEdit={handleMenuEdit}
+            isPortfolio={isPortfolio}
           />
         )}
         
@@ -868,6 +893,33 @@ export function HomepageEditor({
           )}
           dir={dir}
         >
+          {/* Portfolio Upgrade Banner */}
+          {isPortfolio && (
+            <div className="sticky top-0 z-50 bg-blue-600 text-white p-4 shadow-lg">
+              <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">
+                    {t('portfolio.editorUpgradeTitle') || 'Unlock Appointment Booking'}
+                  </h3>
+                  <p className="text-sm text-blue-100">
+                    {t('portfolio.editorUpgradeDescription') || 'Upgrade to enable online booking for your customers'}
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    // Close editor and navigate to settings/upgrade
+                    onOpenChange(false);
+                    window.location.href = `/b/${businessSlug}/admin/settings?tab=business&upgrade=true`;
+                  }}
+                  className="bg-white text-blue-600 hover:bg-blue-50 whitespace-nowrap"
+                >
+                  {t('portfolio.upgradeButton') || 'Upgrade Now'}
+                </Button>
+              </div>
+            </div>
+          )}
           {viewMode === 'mobile' ? (
             /* iPhone 16 Pro Mockup - Wider size, centered */
             <div className="relative w-full h-full flex items-center justify-center py-8">
@@ -897,7 +949,7 @@ export function HomepageEditor({
                   >
                     {/* Screen Content - Booking Page */}
                     <div className="h-full overflow-y-auto">
-                      <BookingPageContent editMode={true} editorSettings={settings} editorViewAsGuest={viewAsGuest} {...({} as any)} />
+                      <BookingPageContent editMode={true} editorSettings={settings} editorViewAsGuest={viewAsGuest} isPortfolio={isPortfolio} />
                     </div>
                   </div>
                   
@@ -912,7 +964,7 @@ export function HomepageEditor({
           ) : (
             <div className="min-h-full">
               {/* Render actual booking page with editor settings */}
-              <BookingPageContent editMode={true} editorSettings={settings} editorViewAsGuest={viewAsGuest} {...({} as any)} />
+              <BookingPageContent editMode={true} editorSettings={settings} editorViewAsGuest={viewAsGuest} isPortfolio={isPortfolio} />
             </div>
           )}
         </div>
@@ -1224,6 +1276,7 @@ export function HomepageEditor({
               <MobileEditMenuItems 
                 onEdit={handleMenuEdit}
                 onItemClick={() => setShowEditMenuSheet(false)}
+                isPortfolio={isPortfolio}
               />
             </div>
           </div>

@@ -34,6 +34,7 @@ export interface Database {
           subscription_ends_at: string | null;
           renewed_at: string | null;
           previous_calendar_type: 'appointment_scheduling_app' | 'paper_calendar' | 'google_phone_calendar' | 'not_using_calendar' | null;
+          is_portfolio: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -56,6 +57,7 @@ export interface Database {
           subscription_ends_at?: string | null;
           renewed_at?: string | null;
           previous_calendar_type?: 'appointment_scheduling_app' | 'paper_calendar' | 'google_phone_calendar' | 'not_using_calendar' | null;
+          is_portfolio?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -78,6 +80,7 @@ export interface Database {
           subscription_ends_at?: string | null;
           renewed_at?: string | null;
           previous_calendar_type?: 'appointment_scheduling_app' | 'paper_calendar' | 'google_phone_calendar' | 'not_using_calendar' | null;
+          is_portfolio?: boolean;
           created_at?: string;
           updated_at?: string;
         };

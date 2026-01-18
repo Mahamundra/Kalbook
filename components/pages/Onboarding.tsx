@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check, User, LogOut, LayoutDashboard, ChevronDown, Mail, Phone, MessageSquare, ArrowRight, ArrowLeft, AlertCircle } from "lucide-react";
+import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check, User, LogOut, LayoutDashboard, ChevronDown, Mail, Phone, MessageSquare, ArrowRight, ArrowLeft, AlertCircle, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLocale } from "@/hooks/useLocale";
@@ -53,6 +53,52 @@ type Service = {
   price: number;
 };
 
+// Social Media Icon Components
+const FacebookIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const InstagramIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+const TwitterIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+  </svg>
+);
+
+const TikTokIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+  </svg>
+);
+
+const LinkedInIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+);
+
+const YouTubeIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+const SOCIAL_PLATFORMS = [
+  { key: 'facebook' as const, Icon: FacebookIcon, label: { he: 'פייסבוק', ar: 'فيسبوك', ru: 'Facebook', en: 'Facebook' } },
+  { key: 'instagram' as const, Icon: InstagramIcon, label: { he: 'אינסטגרם', ar: 'إنستغرام', ru: 'Instagram', en: 'Instagram' } },
+  { key: 'twitter' as const, Icon: TwitterIcon, label: { he: 'טוויטר', ar: 'تويتر', ru: 'Twitter', en: 'Twitter' } },
+  { key: 'tiktok' as const, Icon: TikTokIcon, label: { he: 'טיקטוק', ar: 'تيك توك', ru: 'TikTok', en: 'TikTok' } },
+  { key: 'linkedin' as const, Icon: LinkedInIcon, label: { he: 'לינקדאין', ar: 'لينكد إن', ru: 'LinkedIn', en: 'LinkedIn' } },
+  { key: 'youtube' as const, Icon: YouTubeIcon, label: { he: 'יוטיוב', ar: 'يوتيوب', ru: 'YouTube', en: 'YouTube' } },
+];
+
 const Onboarding = () => {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -67,10 +113,19 @@ const Onboarding = () => {
     phone: "",
     address: "",
     previousCalendarType: "" as 'appointment_scheduling_app' | 'paper_calendar' | 'google_phone_calendar' | 'not_using_calendar' | '',
+    socialLinks: {
+      facebook: undefined,
+      instagram: undefined,
+      twitter: undefined,
+      tiktok: undefined,
+      linkedin: undefined,
+      youtube: undefined,
+    },
   });
   const [ownerName, setOwnerName] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [useAnotherAccount, setUseAnotherAccount] = useState(false);
+  const [useDifferentBusinessPhone, setUseDifferentBusinessPhone] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<{email: string, phone: string, name: string} | null>(null);
   // Authentication state
   const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
@@ -88,7 +143,8 @@ const Onboarding = () => {
   const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<string>('free');
+  const [selectedPlan, setSelectedPlan] = useState<string>('portfolio');
+  const [isPortfolio, setIsPortfolio] = useState<boolean>(true);
   const hasCheckedExistingBusiness = useRef<boolean>(false);
   const isRedirecting = useRef<boolean>(false);
   const [planDetails, setPlanDetails] = useState<{name: string, price: number, symbol: string, metadata?: any} | null>(null);
@@ -971,7 +1027,7 @@ const Onboarding = () => {
   // Read plan from URL params on mount
   useEffect(() => {
     const planParam = searchParams.get('plan');
-    const validPlans = ['free', 'pro', 'custom', 'basic', 'professional', 'business'];
+    const validPlans = ['portfolio', 'free', 'pro', 'custom', 'basic', 'professional', 'business'];
     if (planParam && validPlans.includes(planParam.toLowerCase())) {
       // Map old plan names to new ones
       const planMapping: Record<string, string> = {
@@ -980,15 +1036,18 @@ const Onboarding = () => {
         'business': 'custom'
       };
       const mappedPlan = planMapping[planParam.toLowerCase()] || planParam.toLowerCase();
-      // Prevent custom plan from being selected via URL - default to 'free' instead
+      // Prevent custom plan from being selected via URL - default to 'portfolio' instead
       if (mappedPlan === 'custom' || planParam.toLowerCase() === 'custom') {
-        setSelectedPlan('free');
+        setSelectedPlan('portfolio');
+        setIsPortfolio(true);
       } else {
         setSelectedPlan(mappedPlan);
+        setIsPortfolio(mappedPlan === 'portfolio');
       }
     } else {
-      // Default to 'free' if no plan or invalid plan provided
-      setSelectedPlan('free');
+      // Default to 'portfolio' if no plan or invalid plan provided
+      setSelectedPlan('portfolio');
+      setIsPortfolio(true);
     }
   }, [searchParams]);
 
@@ -1014,12 +1073,18 @@ const Onboarding = () => {
                 metadata: currentPlanData.metadata,
               });
             }
-            // Set all plans for modal
-            const plansArray = [
+            // Set all plans for modal - portfolio first, then paid plans
+            const plansArray = [];
+            // Add portfolio if available
+            if (data.pricing.portfolio) {
+              plansArray.push({ key: 'portfolio', ...data.pricing.portfolio, metadata: data.pricing.portfolio.metadata });
+            }
+            // Add paid plans
+            plansArray.push(
               { key: 'free', ...data.pricing.free, metadata: data.pricing.free.metadata },
               { key: 'pro', ...data.pricing.pro, metadata: data.pricing.pro.metadata },
               { key: 'custom', ...data.pricing.custom, metadata: data.pricing.custom.metadata },
-            ];
+            );
             setAllPlans(plansArray);
           }
         }
@@ -1596,6 +1661,38 @@ const Onboarding = () => {
     }
   };
 
+  // Handle social link change
+  const handleSocialLinkChange = (platform: keyof typeof businessInfo.socialLinks, value: string) => {
+    setBusinessInfo({
+      ...businessInfo,
+      socialLinks: {
+        ...businessInfo.socialLinks,
+        [platform]: value,
+      },
+    });
+  };
+
+  // Handle adding a social link
+  const handleAddSocialLink = (platform: keyof typeof businessInfo.socialLinks) => {
+    setBusinessInfo({
+      ...businessInfo,
+      socialLinks: {
+        ...businessInfo.socialLinks,
+        [platform]: '',
+      },
+    });
+  };
+
+  // Handle removing a social link
+  const handleRemoveSocialLink = (platform: keyof typeof businessInfo.socialLinks) => {
+    const updated = { ...businessInfo.socialLinks };
+    delete updated[platform];
+    setBusinessInfo({
+      ...businessInfo,
+      socialLinks: updated,
+    });
+  };
+
   const handleNext = async () => {
     // Step 1: Authentication - check if user is authenticated
     if (step === 1) {
@@ -1757,7 +1854,8 @@ const Onboarding = () => {
             services: services.map(({ id, ...service }) => service),
             ownerName,
             useAnotherAccount,
-            plan: selectedPlan || 'free',
+            plan: selectedPlan || 'portfolio',
+            isPortfolio: isPortfolio || selectedPlan === 'portfolio',
             adminUser: {
               email: businessInfo.email || authenticatedUser?.email || '',
               name: ownerName || authenticatedUser?.name || '',
@@ -2039,9 +2137,18 @@ const Onboarding = () => {
                   <span className="text-lg font-semibold text-gray-800">
                     {planDetails.name}
                   </span>
-                  {selectedPlan === 'free' && (
+                  {(selectedPlan === 'free' || selectedPlan === 'portfolio') && (
                     <span className="text-sm text-gray-600">
-                      חינם - לא נדרש אמצעי תשלום
+                      {selectedPlan === 'portfolio' 
+                        ? (locale === 'he' ? 'חינם לנצח - לא נדרש אמצעי תשלום' : 
+                           locale === 'ar' ? 'مجاني إلى الأبد - لا حاجة لوسيلة دفع' :
+                           locale === 'ru' ? 'Бесплатно навсегда - способ оплаты не требуется' :
+                           'Free Forever - No payment required')
+                        : (locale === 'he' ? 'חינם - לא נדרש אמצעי תשלום' : 
+                           locale === 'ar' ? 'مجاني - لا حاجة لوسيلة دفع' :
+                           locale === 'ru' ? 'Бесплатно - способ оплаты не требуется' :
+                           'Free - No payment required')
+                      }
                     </span>
                   )}
                   {planDetails.price > 0 && (
@@ -2367,18 +2474,21 @@ const Onboarding = () => {
                   </TooltipProvider>
                 </div>
                 
-                {/* Preview - softer design */}
+                {/* Preview - matches actual booking page appearance */}
                 {businessInfo.name && !errors.name && (
-                  <div className="mt-5 p-4 bg-green-50 rounded-xl border border-green-200">
-                    <p className="text-xs text-gray-600 mb-2">
+                  <div className="mt-5 p-6 bg-gradient-to-br from-green-50 to-white rounded-xl border-2 border-green-200 shadow-sm">
+                    <p className="text-xs text-gray-600 mb-4 text-center">
                       {locale === 'he' ? '✨ כך זה ייראה ללקוחות:' :
                        locale === 'ar' ? '✨ هكذا سيظهر للعملاء:' :
                        locale === 'ru' ? '✨ Так это будет выглядеть для клиентов:' :
                        '✨ This is how it will look to customers:'}
                     </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      KalBook - {businessInfo.name}
-                    </p>
+                    {/* Preview matches booking page styling */}
+                    <div className="text-center">
+                      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">
+                        {businessInfo.name}
+                      </h1>
+                    </div>
                   </div>
                 )}
                 
@@ -2411,10 +2521,10 @@ const Onboarding = () => {
               </p>
               
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                 "💡 Don't worry – everything can be changed later"}
+                {locale === 'he' ? '👋 שמחים להכיר אותך!' :
+                 locale === 'ar' ? '👋 سعيد بلقائك!' :
+                 locale === 'ru' ? '👋 Приятно познакомиться!' :
+                 "👋 Happy to meet you!"}
               </p>
               
               <div className="space-y-4 max-w-md mx-auto">
@@ -2431,7 +2541,7 @@ const Onboarding = () => {
                         <div>
                           <Input
                             id="ownerName"
-                            placeholder={locale === 'he' ? 'מי בעל הבית!?' : (t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter your name')}
+                            placeholder={locale === 'he' ? 'שם בעל העסק' : (t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter your name')}
                             value={ownerName}
                             onChange={(e) => {
                               setOwnerName(e.target.value);
@@ -2479,10 +2589,10 @@ const Onboarding = () => {
               </h2>
               
               <p className="text-sm text-gray-600 mb-4">
-                {locale === 'he' ? 'כך לקוחות יוכלו ליצור איתך קשר ולקבל עדכונים' :
-                 locale === 'ar' ? 'هكذا يمكن للعملاء التواصل معك والحصول على التحديثات' :
-                 locale === 'ru' ? 'Так клиенты смогут связаться с вами и получать обновления' :
-                 "This is how customers can contact you and receive updates"}
+                {locale === 'he' ? 'מספר הטלפון והאימייל שיוצגו ללקוחות בעמוד ההזמנות. לקוחות יוכלו להתקשר ולשלוח הודעות.' :
+                 locale === 'ar' ? 'رقم الهاتف والبريد الإلكتروني الذي سيظهر للعملاء في صفحة الحجز. يمكن للعملاء الاتصال وإرسال الرسائل.' :
+                 locale === 'ru' ? 'Номер телефона и email, которые будут отображаться клиентам на странице бронирования. Клиенты смогут звонить и отправлять сообщения.' :
+                 "The phone number and email that will be displayed to customers on the booking page. Customers will be able to call and send messages."}
               </p>
               
               <p className="text-xs text-gray-500 mb-5">
@@ -2495,12 +2605,32 @@ const Onboarding = () => {
               <div className="space-y-4 max-w-md mx-auto">
                 {/* Phone Field */}
                 <div>
-                  <Label htmlFor="phone" className="text-center block">
-                    {locale === 'he' ? 'מספר טלפון' :
-                     locale === 'ar' ? 'رقم الهاتف' :
-                     locale === 'ru' ? 'Номер телефона' :
-                     'Phone Number'}
-                  </Label>
+                  <p className="text-xs text-gray-500 mb-2 text-center">
+                    {locale === 'he' ? 'מספר זה יוצג ללקוחות בעמוד ההזמנות ויוכלו להתקשר אליך' :
+                     locale === 'ar' ? 'سيظهر هذا الرقم للعملاء في صفحة الحجز ويمكنهم الاتصال بك' :
+                     locale === 'ru' ? 'Этот номер будет отображаться клиентам на странице бронирования, и они смогут вам позвонить' :
+                     'This number will be displayed to customers on the booking page and they can call you'}
+                  </p>
+                  
+                  {/* Show owner's phone info if authenticated and not using different phone */}
+                  {authenticatedUser?.phone && !useDifferentBusinessPhone && (
+                    <div className="mb-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">
+                            {locale === 'he' ? 'מספר הטלפון שלך:' :
+                             locale === 'ar' ? 'رقم هاتفك:' :
+                             locale === 'ru' ? 'Ваш номер телефона:' :
+                             'Your phone number:'}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1" dir="ltr">
+                            {formatPhoneForDisplay(authenticatedUser.phone)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <TooltipProvider>
                     <Tooltip open={errors.phone ? true : undefined}>
                       <TooltipTrigger asChild>
@@ -2508,20 +2638,25 @@ const Onboarding = () => {
                           <Input
                             id="phone"
                             type="tel"
+                            aria-label={locale === 'he' ? 'מספר טלפון' : locale === 'ar' ? 'رقم الهاتف' : locale === 'ru' ? 'Номер телефона' : 'Phone Number'}
                             placeholder={t('onboarding.businessInfo.phonePlaceholder') || '050-000-0000'}
-                            value={businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '')}
+                            value={
+                              useDifferentBusinessPhone 
+                                ? (businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : '')
+                                : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : (businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : ''))
+                            }
                             onChange={(e) => {
-                              if (!authenticatedUser?.phone) {
+                              if (useDifferentBusinessPhone || !authenticatedUser?.phone) {
                                 const formatted = formatPhoneNumber(e.target.value);
                                 handleFieldChange('phone', formatted);
                               }
                             }}
                             onBlur={() => handleBlur('phone')}
-                            disabled={!!authenticatedUser?.phone}
+                            disabled={!!authenticatedUser?.phone && !useDifferentBusinessPhone}
                             dir="ltr"
                             maxLength={12}
-                            className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.phone ? 'border-red-400 focus-visible:ring-red-400' : ''} ${authenticatedUser?.phone ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                            autoFocus={!authenticatedUser?.phone && !isMobile}
+                            className={`mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20 ${errors.phone ? 'border-red-400 focus-visible:ring-red-400' : ''} ${(authenticatedUser?.phone && !useDifferentBusinessPhone) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            autoFocus={(!authenticatedUser?.phone || useDifferentBusinessPhone) && !isMobile}
                           />
                         </div>
                       </TooltipTrigger>
@@ -2535,8 +2670,44 @@ const Onboarding = () => {
                       )}
                     </Tooltip>
                   </TooltipProvider>
+                  
+                  {/* Checkbox to use different phone */}
                   {authenticatedUser?.phone && (
-                    <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.autoFilledFromAccount') || 'Auto-filled from your account'}</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <Checkbox
+                        id="useDifferentPhone"
+                        checked={useDifferentBusinessPhone}
+                        onCheckedChange={(checked) => {
+                          setUseDifferentBusinessPhone(checked === true);
+                          if (checked === true) {
+                            // Clear the field when enabling
+                            handleFieldChange('phone', '');
+                          } else {
+                            // Reset to owner's phone when disabling
+                            const displayPhone = formatPhoneForDisplay(authenticatedUser.phone);
+                            handleFieldChange('phone', displayPhone);
+                          }
+                        }}
+                      />
+                      <Label 
+                        htmlFor="useDifferentPhone" 
+                        className="text-sm text-gray-700 cursor-pointer"
+                      >
+                        {locale === 'he' ? 'השתמש במספר טלפון אחר לעסק שלי' :
+                         locale === 'ar' ? 'استخدم رقم هاتف مختلف لعملي' :
+                         locale === 'ru' ? 'Использовать другой номер телефона для моего бизнеса' :
+                         'Use a different phone number for my business'}
+                      </Label>
+                    </div>
+                  )}
+                  
+                  {authenticatedUser?.phone && !useDifferentBusinessPhone && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {locale === 'he' ? 'מספר הטלפון שלך יוצג ללקוחות בעמוד ההזמנות' :
+                       locale === 'ar' ? 'سيظهر رقم هاتفك للعملاء في صفحة الحجز' :
+                       locale === 'ru' ? 'Ваш номер телефона будет отображаться клиентам на странице бронирования' :
+                       'Your phone number will be displayed to customers on the booking page'}
+                    </p>
                   )}
                 </div>
                 
@@ -2548,6 +2719,12 @@ const Onboarding = () => {
                      locale === 'ru' ? 'Email (необязательно)' :
                      'Email (optional)'}
                   </Label>
+                  <p className="text-xs text-gray-500 mt-1 mb-2 text-center">
+                    {locale === 'he' ? 'כתובת האימייל שתוצג ללקוחות בעמוד ההזמנות' :
+                     locale === 'ar' ? 'عنوان البريد الإلكتروني الذي سيظهر للعملاء في صفحة الحجز' :
+                     locale === 'ru' ? 'Email адрес, который будет отображаться клиентам на странице бронирования' :
+                     'Email address that will be displayed to customers on the booking page'}
+                  </p>
                   <TooltipProvider>
                     <Tooltip open={errors.email ? true : undefined}>
                       <TooltipTrigger asChild>
@@ -2634,6 +2811,104 @@ const Onboarding = () => {
                     className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
                     autoFocus={!isMobile}
                   />
+                </div>
+                
+                {/* Social Links Section */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  {/* Description */}
+                  <p className={`text-xs text-gray-500 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {locale === 'he' ? 'הוסף קישורי רשתות חברתיות להצגה בתחתית עמוד ההזמנות. הקישורים יפתחו באפליקציות המתאימות בלחיצה.' :
+                     locale === 'ar' ? 'أضف روابط وسائل التواصل الاجتماعي للعرض في أسفل صفحة الحجز. ستفتح الروابط في التطبيقات المناسبة عند النقر.' :
+                     locale === 'ru' ? 'Добавьте ссылки на социальные сети для отображения внизу страницы бронирования. Ссылки откроются в соответствующих приложениях при нажатии.' :
+                     'Add social network links to display at the bottom of the booking page. The links will open in the corresponding applications when clicked.'}
+                  </p>
+
+                  {/* Add Link Button - Always visible if there are available platforms */}
+                  {SOCIAL_PLATFORMS.filter(platform => businessInfo.socialLinks?.[platform.key] === undefined).length > 0 && (
+                    <div className={`flex items-center ${isRTL ? 'justify-start' : 'justify-end'} mb-4`}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={isRTL ? 'flex-row-reverse' : ''}
+                            type="button"
+                          >
+                            <Plus className={`w-4 h-4 ${isRTL ? 'mr-2' : 'ml-2'}`} />
+                            {locale === 'he' ? 'הוסף קישור חברתי' :
+                             locale === 'ar' ? 'أضف رابط اجتماعي' :
+                             locale === 'ru' ? 'Добавить ссылку' :
+                             'Add Social Link'}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent 
+                          align={isRTL ? 'end' : 'start'}
+                          onCloseAutoFocus={(e) => e.preventDefault()}
+                        >
+                          {SOCIAL_PLATFORMS.filter(platform => businessInfo.socialLinks?.[platform.key] === undefined).map((platform) => {
+                            const IconComponent = platform.Icon;
+                            return (
+                              <DropdownMenuItem
+                                key={platform.key}
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  handleAddSocialLink(platform.key);
+                                }}
+                                className="flex items-center gap-3"
+                              >
+                                <IconComponent className="w-4 h-4" />
+                                {platform.label[locale] || platform.label.en}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+
+                  {/* Existing Links - Only show inputs that have been added */}
+                  {SOCIAL_PLATFORMS.some(platform => {
+                    const value = businessInfo.socialLinks?.[platform.key];
+                    return value !== undefined && value !== null;
+                  }) && (
+                    <div className="space-y-4">
+                      {SOCIAL_PLATFORMS.map((platform) => {
+                        const linkValue = businessInfo.socialLinks?.[platform.key];
+                        // Only show if link has been added (even if empty string - means user clicked add)
+                        if (linkValue === undefined || linkValue === null) return null;
+
+                        const IconComponent = platform.Icon;
+                        return (
+                          <div key={platform.key} className="flex items-start gap-2">
+                            <div className="flex-1">
+                              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>
+                                <span className="inline-flex items-center gap-3">
+                                  <IconComponent className="w-4 h-4" />
+                                  {platform.label[locale] || platform.label.en}
+                                </span>
+                              </label>
+                              <Input
+                                value={businessInfo.socialLinks?.[platform.key] || ''}
+                                onChange={(e) => handleSocialLinkChange(platform.key, e.target.value)}
+                                placeholder={`https://${platform.key}.com/yourpage`}
+                                dir="ltr"
+                                className="text-left"
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="mt-8"
+                              onClick={() => handleRemoveSocialLink(platform.key)}
+                              type="button"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3491,12 +3766,13 @@ const Onboarding = () => {
               // Prevent custom plan from being selected
               const isSelected = planKey !== 'custom' && selectedPlan === planKey;
               const isProfessional = planKey === 'pro';
+              const isPortfolioPlan = planKey === 'portfolio';
               // Use translated name from metadata if available, otherwise use plan key
               const planName = plan.metadata?.name || planKey.charAt(0).toUpperCase() + planKey.slice(1);
               // Use highlights from metadata if available, otherwise fallback to translations
               const planHighlights = plan.metadata?.highlights || 
                                     getTranslation(`home.pricing.plans.${planKey}.highlights`) as string[] || 
-                                    getTranslation(`home.pricing.plans.${planKey === 'free' ? 'basic' : planKey === 'pro' ? 'professional' : 'business'}.highlights`) as string[] || [];
+                                    getTranslation(`home.pricing.plans.${planKey === 'free' ? 'basic' : planKey === 'pro' ? 'professional' : planKey === 'portfolio' ? 'portfolio' : 'business'}.highlights`) as string[] || [];
               
               return (
                 <Card
@@ -3505,8 +3781,15 @@ const Onboarding = () => {
                     isSelected
                       ? 'border-2 border-green-500 bg-green-50'
                       : 'border border-gray-200 hover:border-green-300 bg-white'
-                  } ${isProfessional && !isSelected ? 'border-green-300' : ''}`}
+                  } ${isProfessional && !isSelected ? 'border-green-300' : ''} ${isPortfolioPlan && !isSelected ? 'border-blue-300 bg-blue-50/30' : ''}`}
                 >
+                  {isPortfolioPlan && !isSelected && (
+                    <div className="absolute -top-2.5 sm:-top-4 left-1/2 transform -translate-x-1/2 z-10">
+                      <span className="bg-blue-600 text-white px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
+                        {t('home.pricing.free') || 'FREE'}
+                      </span>
+                    </div>
+                  )}
                   {isProfessional && !isSelected && (
                     <div className="absolute -top-2.5 sm:-top-4 left-1/2 transform -translate-x-1/2 z-10">
                       <span className="bg-green-600 text-white px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
@@ -3548,6 +3831,7 @@ const Onboarding = () => {
                           return;
                         }
                         setSelectedPlan(planKey);
+                        setIsPortfolio(planKey === 'portfolio');
                         setShowPlanModal(false);
                         // Scroll to bottom where continue button is (only on step 10)
                         if (step === 10) {

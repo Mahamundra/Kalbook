@@ -37,15 +37,17 @@ interface EditSideMenuProps {
   isOpen: boolean;
   onToggle: () => void;
   onEdit: (elementId: string, elementType: EditItemType) => void;
+  isPortfolio?: boolean;
 }
 
 interface EditSideMenuContentProps {
   onEdit: (elementId: string, elementType: EditItemType) => void;
   showHeader?: boolean;
+  isPortfolio?: boolean;
 }
 
 // Component to get all edit items flattened from sections for mobile drawer
-export function MobileEditMenuItems({ onEdit, onItemClick }: { onEdit: (elementId: string, elementType: EditItemType) => void; onItemClick?: () => void }) {
+export function MobileEditMenuItems({ onEdit, onItemClick, isPortfolio = false }: { onEdit: (elementId: string, elementType: EditItemType) => void; onItemClick?: () => void; isPortfolio?: boolean }) {
   const { t } = useLocale();
   const { dir } = useDirection();
   const isRTL = dir === "rtl";
@@ -91,12 +93,13 @@ export function MobileEditMenuItems({ onEdit, onItemClick }: { onEdit: (elementI
           type: "text",
           icon: <Type className="w-4 h-4" />,
         },
-        {
+        // Hide logged-in message in portfolio mode
+        ...(isPortfolio ? [] : [{
           id: "logged-in-message",
           label: t("settings.homepageEditor.loggedInMessage") || "Logged-in Message",
-          type: "text",
+          type: "text" as const,
           icon: <Type className="w-4 h-4" />,
-        },
+        }]),
       ],
     },
     {
@@ -164,7 +167,7 @@ export function MobileEditMenuItems({ onEdit, onItemClick }: { onEdit: (elementI
 }
 
 // Extracted menu content component for reuse in both sidebar and Sheet
-export function EditSideMenuContent({ onEdit, showHeader = true }: EditSideMenuContentProps) {
+export function EditSideMenuContent({ onEdit, showHeader = true, isPortfolio = false }: EditSideMenuContentProps) {
   const { t } = useLocale();
   const { dir } = useDirection();
   const isRTL = dir === "rtl";
@@ -210,12 +213,13 @@ export function EditSideMenuContent({ onEdit, showHeader = true }: EditSideMenuC
           type: "text",
           icon: <Type className="w-4 h-4" />,
         },
-        {
+        // Hide logged-in message in portfolio mode
+        ...(isPortfolio ? [] : [{
           id: "logged-in-message",
           label: t("settings.homepageEditor.loggedInMessage") || "Logged-in Message",
-          type: "text",
+          type: "text" as const,
           icon: <Type className="w-4 h-4" />,
-        },
+        }]),
       ],
     },
     {
@@ -251,16 +255,16 @@ export function EditSideMenuContent({ onEdit, showHeader = true }: EditSideMenuC
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {showHeader && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-primary/10">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-primary/10 flex-shrink-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
             <Sparkles className="w-4 h-4 text-primary" />
             {t("settings.homepageEditor.editMenu") || "Edit Menu"}
           </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4 min-h-0">
         {sections.map((section) => (
           <Card 
             key={section.id} 
@@ -332,7 +336,7 @@ export function EditSideMenuContent({ onEdit, showHeader = true }: EditSideMenuC
 }
 
 // Desktop sidebar component
-export function EditSideMenu({ isOpen, onToggle, onEdit }: EditSideMenuProps) {
+export function EditSideMenu({ isOpen, onToggle, onEdit, isPortfolio = false }: EditSideMenuProps) {
   const { t } = useLocale();
   const { dir } = useDirection();
   const isRTL = dir === "rtl";
@@ -358,7 +362,7 @@ export function EditSideMenu({ isOpen, onToggle, onEdit }: EditSideMenuProps) {
     >
       {/* Header */}
       <div className={cn(
-        "flex items-center border-b border-gray-200 bg-white/95 backdrop-blur-sm",
+        "flex items-center border-b border-gray-200 bg-white/95 backdrop-blur-sm flex-shrink-0",
         isOpen ? "justify-between px-4 py-3" : "justify-center py-3"
       )}>
         {isOpen && (
@@ -386,7 +390,11 @@ export function EditSideMenu({ isOpen, onToggle, onEdit }: EditSideMenuProps) {
         </Button>
       </div>
 
-      {isOpen && <EditSideMenuContent onEdit={onEdit} showHeader={false} />}
+      {isOpen && (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <EditSideMenuContent onEdit={onEdit} showHeader={false} isPortfolio={isPortfolio} />
+        </div>
+      )}
     </div>
   );
 }

@@ -241,4 +241,3 @@ export async function cleanupExpiredEmailOTPs(): Promise<number> {
 
   return data?.length || 0;
 }
-

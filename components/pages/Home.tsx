@@ -30,7 +30,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import en from '@/messages/en.json';
 import he from '@/messages/he.json';
 import ar from '@/messages/ar.json';
@@ -82,6 +82,7 @@ const getTimeBasedAvatarStyle = (): string => {
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -90,6 +91,17 @@ export default function Home() {
   const [loadingUser, setLoadingUser] = useState(true);
   const hasCheckedUserRef = useRef(false);
   const isCheckingRef = useRef(false);
+  
+  // Handle OAuth code redirect - if Supabase redirects to homepage with code, redirect to callback
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      // Redirect to callback route with the code and appropriate parameters
+      // Default to homepage_admin type since this is the homepage
+      const callbackUrl = `/api/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent('/')}&type=homepage_admin`;
+      router.replace(callbackUrl);
+    }
+  }, [searchParams, router]);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [hoveredFeature, setHoveredFeature] = useState<{ planKey: string; featureIndex: number } | null>(null);
@@ -103,6 +115,7 @@ export default function Home() {
 
   // Pricing state - moved to parent to prevent re-fetching on hover
   const [pricing, setPricing] = useState<{
+    portfolio?: { price: number; currency: string; symbol: string; metadata?: any };
     free?: { price: number; currency: string; symbol: string; metadata?: any };
     pro?: { price: number; currency: string; symbol: string; metadata?: any };
     custom?: { price: number; currency: string; symbol: string; metadata?: any };
@@ -201,7 +214,8 @@ export default function Home() {
         } else {
           // Fallback to default pricing
           setPricing({
-            free: { price: 0, currency: 'ILS', symbol: '₪' },
+            portfolio: { price: 0, currency: 'ILS', symbol: '₪' },
+            free: { price: 29, currency: 'ILS', symbol: '₪' },
             pro: { price: 79, currency: 'ILS', symbol: '₪' },
             custom: { price: 249, currency: 'ILS', symbol: '₪' },
           });
@@ -211,7 +225,8 @@ export default function Home() {
           console.error('Error fetching pricing:', error);
           // Fallback to default pricing
           setPricing({
-            free: { price: 0, currency: 'ILS', symbol: '₪' },
+            portfolio: { price: 0, currency: 'ILS', symbol: '₪' },
+            free: { price: 29, currency: 'ILS', symbol: '₪' },
             pro: { price: 79, currency: 'ILS', symbol: '₪' },
             custom: { price: 249, currency: 'ILS', symbol: '₪' },
           });
@@ -637,6 +652,7 @@ export default function Home() {
     getFeatureDescription: (featureText: string, locale: string) => string;
     isRTL: boolean;
     pricing: {
+      portfolio?: { price: number; currency: string; symbol: string; metadata?: any };
       free?: { price: number; currency: string; symbol: string; metadata?: any };
       pro?: { price: number; currency: string; symbol: string; metadata?: any };
       custom?: { price: number; currency: string; symbol: string; metadata?: any };
@@ -666,6 +682,7 @@ export default function Home() {
       }
       // If price is "0" in translation, show "Free"
       if (planPrice === '0') return 'Free';
+      // Return the price from translation (should be "29" for Basic plan)
       return planPrice;
     };
 
@@ -736,10 +753,6 @@ export default function Home() {
                   <div className="mb-2">
                     {loading ? (
                       <span className="text-3xl font-bold text-gray-700">...</span>
-                    ) : displayPrice === 'Free' ? (
-                      <span className="text-3xl font-bold text-gray-700">
-                        {locale === 'he' ? 'חינם' : 'Free'}
-                      </span>
                     ) : planKey === 'custom' ? (
                       <span className="text-3xl font-bold text-gray-700">
                         {(locale === 'he' || locale === 'ar') ? (
@@ -767,11 +780,17 @@ export default function Home() {
                     ) : (
                       <>
                         <span className={`text-3xl font-bold ${isPro ? 'text-[#ff411b]' : 'text-gray-700'}`}>
-                          {currencySymbol}{displayPrice}
+                          {displayPrice === 'Free' ? (
+                            <span>{locale === 'he' ? 'חינם' : 'Free'}</span>
+                          ) : (
+                            <span>{currencySymbol}{displayPrice}</span>
+                          )}
                         </span>
-                        <span className="text-gray-500 text-base ml-1">
-                          {' / '}{getPricing('month')}
-                        </span>
+                        {displayPrice !== 'Free' && (
+                          <span className="text-gray-500 text-base ml-1">
+                            {' / '}{getPricing('month')}
+                          </span>
+                        )}
                       </>
                     )}
                   </div>
@@ -1167,6 +1186,85 @@ export default function Home() {
               </div>
             </motion.div>
           )}
+        </div>
+      </section>
+
+      {/* Free Portfolio Section */}
+      <section className="bg-gradient-to-br from-gray-50 to-white py-16 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <div className="inline-block mb-4">
+              <span className="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-semibold">
+                {getHome('portfolio.badge') || 'Free Forever'}
+              </span>
+            </div>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-[#030408]">
+              {getHome('portfolio.title') || '✨ Your Digital Business Card – Instantly Online & Impressively Professional'}
+            </h2>
+            <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto">
+              {getHome('portfolio.description') || 'Showcase your business online – fast, sleek, and free. Perfect for service providers, freelancers, and small businesses who want a beautiful digital presence without coding or monthly fees.'}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto"
+          >
+            {((getHome('portfolio.benefits') as string[]) || []).map((benefit: string, index: number) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col"
+                style={{ height: '100%' }}
+              >
+                <div className="flex items-start gap-3 flex-grow">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-50 flex items-center justify-center mt-0.5">
+                    <Check className="w-4 h-4 text-green-600" />
+                  </div>
+                  <p className={`text-gray-700 font-medium flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {benefit}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="text-center"
+          >
+            <Link href="/onboarding?plan=portfolio">
+              <Button
+                size="lg"
+                className="bg-[#ff411b] hover:bg-[#e23a16] text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+              >
+                {getHome('portfolio.cta') || 'Create Your Free Card Now'}
+                {isRTL ? (
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                ) : (
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                )}
+              </Button>
+            </Link>
+            <p className="mt-4 text-sm text-gray-600">
+              {getHome('portfolio.note') || 'No credit card required. Launch in seconds!'}
+            </p>
+          </motion.div>
         </div>
       </section>
 

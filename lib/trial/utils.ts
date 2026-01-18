@@ -182,6 +182,14 @@ export async function getBusinessPlan(businessId: string): Promise<PlanRow | nul
 }
 
 /**
+ * Check if business is on portfolio plan
+ */
+export async function isOnPortfolioPlan(businessId: string): Promise<boolean> {
+  const plan = await getBusinessPlan(businessId);
+  return plan?.name === 'portfolio';
+}
+
+/**
  * Get all features for a business's plan
  */
 export async function getBusinessPlanFeatures(businessId: string): Promise<Record<string, boolean>> {
@@ -221,6 +229,15 @@ export async function canBusinessPerformAction(
   businessId: string,
   featureName: string
 ): Promise<boolean> {
+  // Check if portfolio business
+  const { isPortfolioBusiness } = await import('@/lib/business');
+  const isPortfolio = await isPortfolioBusiness(businessId);
+  
+  // Portfolio businesses cannot perform booking actions
+  if (isPortfolio && (featureName === 'create_appointments' || featureName === 'manage_customers')) {
+    return false;
+  }
+  
   // First check if trial expired
   const expired = await isTrialExpired(businessId);
   if (expired) {

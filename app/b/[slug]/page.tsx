@@ -12,7 +12,7 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import BookingPage from '@/app/booking/page';
 import { validateWorkerInvite } from '@/lib/workers/invites';
-import { getBusinessBySlug } from '@/lib/business';
+import { getBusinessBySlug, isPortfolioBusiness } from '@/lib/business';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { mapSettingsToInterface } from '@/lib/settings/utils';
 
@@ -128,8 +128,11 @@ export default async function SlugBookingPage({
   // 3. Attached business context to headers (businessId, businessSlug)
   // 4. Set business slug in cookie for client-side access
   // 
-  // Just render the booking page - it will use the business context
-  // The slug is available if needed: params.slug
-  return <BookingPage />;
+  // Check if business is in portfolio mode
+  const business = await getBusinessBySlug(params.slug);
+  const isPortfolio = business ? await isPortfolioBusiness(business.id) : false;
+  
+  // Pass portfolio flag to booking page
+  return <BookingPage isPortfolio={isPortfolio} />;
 }
 

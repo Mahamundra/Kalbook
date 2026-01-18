@@ -64,9 +64,10 @@ interface BookingPageContentProps {
   editMode?: boolean;
   editorSettings?: any; // Settings passed from HomepageEditor
   editorViewAsGuest?: boolean; // Override isLoggedIn state in edit mode
+  isPortfolio?: boolean; // Whether business is in portfolio mode
 }
 
-export function BookingPageContent({ editMode = false, editorSettings, editorViewAsGuest = true }: BookingPageContentProps = {}) {
+export function BookingPageContent({ editMode = false, editorSettings, editorViewAsGuest = true, isPortfolio = false }: BookingPageContentProps = {}) {
   const { t, locale, isRTL } = useLocale();
   const { dir } = useDirection();
   const params = useParams();
@@ -1364,6 +1365,10 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   };
 
   const handleServiceSelect = async (service: Service) => {
+    if (isPortfolio) {
+      // Don't allow service selection in portfolio mode
+      return;
+    }
     setSelectedService(service);
     setSelectedDate(null);
     setSelectedTime(null);
@@ -1999,31 +2004,54 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         >
           <Card className="p-4">
             <div className="flex flex-col items-center text-center gap-4">
-              <div className={`flex gap-3 w-full sm:w-auto justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                {!effectiveIsLoggedIn ? (
+              {!isPortfolio && (
+                <div className={`flex gap-3 w-full sm:w-auto justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  {!effectiveIsLoggedIn ? (
+                    <Button
+                      variant="default"
+                      size="lg"
+                      onClick={() => setShowLoginDialog(true)}
+                      className="w-full sm:w-auto px-8 flex items-center"
+                      dir="ltr"
+                    >
+                      <LogIn className="w-5 h-5 mr-2" />
+                      {t('booking.loginOrRegister')}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      size="lg"
+                      onClick={() => setShowLogoutDialog(true)}
+                      className="w-full sm:w-auto px-8 flex items-center"
+                      dir="ltr"
+                    >
+                      <LogOut className="w-5 h-5 mr-2" />
+                      {t('auth.logout')}
+                    </Button>
+                  )}
+                </div>
+              )}
+              {isPortfolio && (
+                <div className="w-full max-w-md mx-auto p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2 text-blue-900">
+                    {t('portfolio.upgradeTitle') || 'Want to accept online bookings?'}
+                  </h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    {t('portfolio.upgradeDescription') || 'Upgrade to enable appointment scheduling for your customers'}
+                  </p>
                   <Button
                     variant="default"
                     size="lg"
-                    onClick={() => setShowLoginDialog(true)}
-                    className="w-full sm:w-auto px-8 flex items-center"
-                    dir="ltr"
+                    onClick={() => {
+                      // Open upgrade modal or redirect to upgrade page
+                      window.location.href = `/b/${slug}/admin/settings?tab=business&upgrade=true`;
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    <LogIn className="w-5 h-5 mr-2" />
-                    {t('booking.loginOrRegister')}
+                    {t('portfolio.upgradeButton') || 'Upgrade Now'}
                   </Button>
-                ) : (
-                  <Button
-                    variant="default"
-                    size="lg"
-                    onClick={() => setShowLogoutDialog(true)}
-                    className="w-full sm:w-auto px-8 flex items-center"
-                    dir="ltr"
-                  >
-                    <LogOut className="w-5 h-5 mr-2" />
-                    {t('auth.logout')}
-                  </Button>
-                )}
-              </div>
+                </div>
+              )}
               <div className="flex-1">
                 <div 
                   className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}
@@ -2073,8 +2101,8 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     return (
       <>
 
-        {/* Customer Appointments - Hide when user is booking a new appointment */}
-        {effectiveIsLoggedIn && customerAppointments.length > 0 && step === 1 && !selectedService && !confirmedAppointment && (
+        {/* Customer Appointments - Hide when user is booking a new appointment or in portfolio mode */}
+        {!isPortfolio && effectiveIsLoggedIn && customerAppointments.length > 0 && step === 1 && !selectedService && !confirmedAppointment && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2378,7 +2406,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         )}
 
         {/* Customer Appointments Button - Show when logged in but no appointments or appointments hidden */}
-        {effectiveIsLoggedIn && customerAppointments.length === 0 && step === 1 && !selectedService && !confirmedAppointment && (
+        {!isPortfolio && effectiveIsLoggedIn && customerAppointments.length === 0 && step === 1 && !selectedService && !confirmedAppointment && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2397,13 +2425,14 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         {/* Booking Section - Only show if logged in */}
         {effectiveIsLoggedIn ? (
           <>
-          {/* Step Indicator */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8 flex justify-center items-center px-4 sm:px-6"
-          >
+          {/* Step Indicator - Hide in portfolio mode */}
+          {!isPortfolio && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-8 flex justify-center items-center px-4 sm:px-6"
+            >
           <div className="flex items-center justify-center w-full max-w-2xl">
             {[1, 2, 3].map((s) => (
               <React.Fragment key={s}>
@@ -2462,6 +2491,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
             ))}
           </div>
         </motion.div>
+          )}
 
         {/* Step 1: Service Selection */}
         <AnimatePresence mode="wait">
@@ -2485,16 +2515,20 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                     {services.map((service, index) => (
                       <motion.div
                         key={service.id}
-                        onClick={() => handleServiceSelect(service)}
+                        onClick={() => !isPortfolio && handleServiceSelect(service)}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1, duration: 0.3 }}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`group p-4 rounded-lg border-2 transition-all hover:border-primary/50 hover:shadow-md flex flex-col cursor-pointer ${
-                          selectedService?.id === service.id
-                            ? 'border-primary bg-primary/5 shadow-md'
-                            : 'border-border'
+                        whileHover={!isPortfolio ? { scale: 1.02, y: -2 } : {}}
+                        whileTap={!isPortfolio ? { scale: 0.98 } : {}}
+                        className={`group p-4 rounded-lg border-2 transition-all flex flex-col ${
+                          isPortfolio 
+                            ? 'border-border cursor-default' 
+                            : `hover:border-primary/50 hover:shadow-md cursor-pointer ${
+                                selectedService?.id === service.id
+                                  ? 'border-primary bg-primary/5 shadow-md'
+                                  : 'border-border'
+                              }`
                         } ${isRTL ? 'text-right' : 'text-left'}`}
                         dir={isRTL ? 'rtl' : 'ltr'}
                       >
@@ -2519,16 +2553,22 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                             </span>
                           )}
                         </div>
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleServiceSelect(service);
-                          }}
-                          className={`w-full mt-auto group-hover:bg-primary group-hover:text-primary-foreground transition-colors ${isRTL ? 'text-right' : 'text-left'}`}
-                          variant={selectedService?.id === service.id ? 'default' : 'outline'}
-                        >
-                          בחר
-                        </Button>
+                        {!isPortfolio ? (
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleServiceSelect(service);
+                            }}
+                            className={`w-full mt-auto group-hover:bg-primary group-hover:text-primary-foreground transition-colors ${isRTL ? 'text-right' : 'text-left'}`}
+                            variant={selectedService?.id === service.id ? 'default' : 'outline'}
+                          >
+                            {t('booking.selectService') || 'Select'}
+                          </Button>
+                        ) : (
+                          <div className="w-full mt-auto p-2 text-center text-sm text-muted-foreground border border-muted rounded-md">
+                            {t('portfolio.serviceInfoOnly') || 'Information Only'}
+                          </div>
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -2540,7 +2580,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Step 2: Date & Time Selection */}
         <AnimatePresence mode="wait">
-          {step === 2 && selectedService && (
+          {!isPortfolio && step === 2 && selectedService && (
             <motion.div
               key="step2"
               initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
@@ -2979,7 +3019,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Step 3: Customer Information */}
         <AnimatePresence mode="wait">
-          {step === 3 && selectedService && selectedDate && selectedTime && (
+          {!isPortfolio && step === 3 && selectedService && selectedDate && selectedTime && (
             <motion.div
               key="step3"
               initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
@@ -3218,7 +3258,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Step 4: Success/Confirmation Screen */}
         <AnimatePresence mode="wait">
-          {step === 4 && confirmedAppointment && selectedService && selectedDate && selectedTime && (
+          {!isPortfolio && step === 4 && confirmedAppointment && selectedService && selectedDate && selectedTime && (
             <motion.div
               key="step4"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -4136,10 +4176,10 @@ function BookingPageFallback() {
   );
 }
 
-export default function BookingPage() {
+export default function BookingPage({ isPortfolio = false }: { isPortfolio?: boolean } = {}) {
   return (
     <Suspense fallback={<BookingPageFallback />}>
-      <BookingPageContent />
+      <BookingPageContent isPortfolio={isPortfolio} />
     </Suspense>
   );
 }

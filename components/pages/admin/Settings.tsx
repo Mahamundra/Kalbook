@@ -238,6 +238,8 @@ const Settings = () => {
   const [canUseWhatsApp, setCanUseWhatsApp] = useState(true); // Default to true to avoid blocking
   const [canUseMultiLanguage, setCanUseMultiLanguage] = useState(true); // Default to true to avoid blocking
   const [canManageTemplates, setCanManageTemplates] = useState(true); // Default to true to avoid blocking
+  const [isPortfolio, setIsPortfolio] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<{ name: string; price: number } | null>(null);
   const [emailTemplates] = useState(() => getTemplates('email'));
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     emailTemplates[0] || null
@@ -401,6 +403,29 @@ const Settings = () => {
       try {
         setLoading(true);
         const loadedSettings = await getSettings();
+        
+        // Check portfolio status
+        if (businessSlug) {
+          try {
+            const { isPortfolioBusiness } = await import('@/lib/business');
+            const portfolioStatus = await isPortfolioBusiness(businessSlug);
+            setIsPortfolio(portfolioStatus);
+            
+            // Fetch current plan
+            const plansResponse = await fetch('/api/user/plans');
+            if (plansResponse.ok) {
+              const plansData = await plansResponse.json();
+              if (plansData.currentPlan) {
+                setCurrentPlan({
+                  name: plansData.currentPlan.name,
+                  price: plansData.currentPlan.price,
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error checking portfolio status:', error);
+          }
+        }
         
         // Ensure businessProfile has defaults if missing
         if (!loadedSettings.businessProfile) {
@@ -843,6 +868,38 @@ const Settings = () => {
                     {t('settings.openHomepageEditor') || 'Open Visual Editor'}
                   </Button>
                 </div>
+                
+                {/* Portfolio Status & Upgrade CTA */}
+                {isPortfolio && (
+                  <Card className="mb-6 p-6 bg-blue-50 border-2 border-blue-200">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="bg-blue-100 border-blue-300 text-blue-700">
+                            {t('portfolio.modeBadge') || 'Portfolio Mode - Free Forever'}
+                          </Badge>
+                        </div>
+                        <h4 className="text-lg font-semibold mb-1 text-blue-900">
+                          {t('portfolio.enableBookingTitle') || 'Enable Appointment Booking'}
+                        </h4>
+                        <p className="text-sm text-blue-700">
+                          {t('portfolio.enableBookingDescription') || 'Upgrade to accept online appointments from your customers'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="default"
+                        size="lg"
+                        onClick={() => {
+                          // Navigate to plans page or open upgrade modal
+                          window.location.href = `/b/${businessSlug}/admin/settings?tab=subscription&upgrade=true`;
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+                      >
+                        {t('portfolio.viewPlansButton') || 'View Plans & Upgrade'}
+                      </Button>
+                    </div>
+                  </Card>
+                )}
                 
                 {/* Logo Upload */}
                 <div className="mb-6 pb-6 border-b">

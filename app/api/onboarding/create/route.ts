@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   let body: any = null;
   try {
     body = await request.json();
-    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount, plan } = body;
+    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount, plan, isPortfolio } = body;
     
     // Check if current user is a super-admin - if so, ignore any existing sessions
     // Super-admins should not be used for business creation
@@ -77,53 +77,68 @@ export async function POST(request: NextRequest) {
     // Generate unique slug from business type + random 4 digits
     const slug = await generateUniqueSlugFromBusinessType(businessType as BusinessType);
 
-    // Convert phone to E.164 format if provided
-    // Try businessInfo.phone first, then fallback to adminUser.phone
-    // This ensures both business and user tables use the same normalized phone
-    let e164Phone: string | null = null;
+    // Separate business phone from user phone
+    // Business phone: from businessInfo.phone (can be different from owner's phone)
+    // User phone: from authenticatedUser.phone or adminUser.phone (for authentication)
+    
+    // Convert business phone to E.164 format if provided
+    let businessE164Phone: string | null = null;
     if (businessInfo.phone) {
       try {
-        e164Phone = toE164Format(businessInfo.phone);
+        businessE164Phone = toE164Format(businessInfo.phone);
         // Validate E.164 format (should start with + and have at least 10 digits)
-        if (!e164Phone.startsWith('+') || e164Phone.length < 10) {
+        if (!businessE164Phone.startsWith('+') || businessE164Phone.length < 10) {
           return NextResponse.json(
-            { error: 'Invalid phone number format. Please use E.164 format (e.g., +972542636737)' },
+            { error: 'Invalid business phone number format. Please use E.164 format (e.g., +972542636737)' },
             { status: 400 }
           );
         }
       } catch (error: any) {
         return NextResponse.json(
-          { error: 'Invalid phone number format. Please use E.164 format (e.g., +972542636737)' },
+          { error: 'Invalid business phone number format. Please use E.164 format (e.g., +972542636737)' },
           { status: 400 }
         );
       }
-    } else if (adminUser?.phone) {
-      // If businessInfo.phone is not provided, try to normalize adminUser.phone
-      // This ensures consistency - both business and user will use the same normalized value
+    }
+    
+    // Convert user phone to E.164 format (for authentication)
+    // Use authenticatedUser.phone first, then fallback to adminUser.phone
+    let userE164Phone: string | null = null;
+    const userPhoneSource = adminUser?.phone || null;
+    if (userPhoneSource) {
       try {
-        e164Phone = toE164Format(adminUser.phone);
+        userE164Phone = toE164Format(userPhoneSource);
         // Validate E.164 format
-        if (!e164Phone.startsWith('+') || e164Phone.length < 10) {
-          e164Phone = null; // Invalid format, set to null
+        if (!userE164Phone.startsWith('+') || userE164Phone.length < 10) {
+          userE164Phone = null; // Invalid format, set to null
         }
       } catch (error) {
         // If conversion fails, set to null
-        e164Phone = null;
+        userE164Phone = null;
       }
     }
+    
+    // For authentication and user creation, always use user phone (owner's phone)
+    // For business creation, use business phone if provided, otherwise fallback to user phone
+    // Note: e164Phone is kept for backward compatibility in validation checks, but should use userE164Phone for auth
+    const e164Phone = userE164Phone; // Use user phone for authentication checks
 
-    // Validate and get selected plan (default to 'free' if not provided or invalid)
+    // Validate and get selected plan (default to 'portfolio' if not provided or invalid)
     // Map homepage plan keys to database plan names
     const planMapping: Record<string, string> = {
+      'portfolio': 'portfolio',
       'free': 'basic',
       'pro': 'professional',
       'custom': 'business'
     };
     
-    const validPlans = ['free', 'pro', 'custom', 'basic', 'professional', 'business'];
+    const validPlans = ['portfolio', 'free', 'pro', 'custom', 'basic', 'professional', 'business'];
     const planKey = (plan && typeof plan === 'string' && validPlans.includes(plan.toLowerCase()))
       ? plan.toLowerCase()
-      : 'free';
+      : 'portfolio';
+    
+    // Determine if this is a portfolio business
+    const isPortfolioBusiness = isPortfolio === true || planKey === 'portfolio';
     
     // Map to database plan name
     const selectedPlanName = planMapping[planKey] || planKey;
@@ -147,6 +162,17 @@ export async function POST(request: NextRequest) {
         .single() as { data: { id: string } | null; error: any };
       
       selectedPlan = planResult.data;
+    }
+    
+    // If still not found and it's portfolio, try fallback to portfolio plan
+    if (!selectedPlan && isPortfolioBusiness) {
+      const fallbackResult = await supabase
+        .from('plans')
+        .select('id')
+        .eq('name', 'portfolio')
+        .single() as { data: { id: string } | null; error: any };
+      
+      selectedPlan = fallbackResult.data;
     }
     
     // If still not found, try fallback to basic plan (with active filter)
@@ -208,11 +234,14 @@ export async function POST(request: NextRequest) {
     console.log('Plan lookup successful:', {
       requestedPlan: selectedPlanName,
       planKey,
-      planId: selectedPlan.id
+      planId: selectedPlan.id,
+      isPortfolio: isPortfolioBusiness
     });
 
-    // Only basic/free plan gets 14-day trial period
-    // Professional/pro and business/custom plans start as active subscriptions
+    // Portfolio plan: active forever, no trial
+    // Basic/free plan: 14-day trial period
+    // Professional/pro and business/custom plans: start as active subscriptions
+    const isPortfolioPlan = selectedPlanName === 'portfolio' || isPortfolioBusiness;
     const isBasicPlan = selectedPlanName === 'basic' || planKey === 'free';
     
     let trialStartedAt: Date | null = null;
@@ -221,7 +250,11 @@ export async function POST(request: NextRequest) {
     let subscriptionStartedAt: Date | null = null;
     let subscriptionEndsAt: Date | null = null;
 
-    if (isBasicPlan) {
+    if (isPortfolioPlan) {
+      // Portfolio plan: active forever, no trial, no subscription dates
+      subscriptionStatus = 'active';
+      // No dates set - portfolio is free forever
+    } else if (isBasicPlan) {
       // Basic plan: 14-day trial
       trialStartedAt = new Date();
       trialEndsAt = new Date();
@@ -240,25 +273,26 @@ export async function POST(request: NextRequest) {
       slug,
       name: businessInfo.name.trim(),
       email: businessInfo.email || null,
-      phone: e164Phone,
-      whatsapp: e164Phone,
+      phone: businessE164Phone || userE164Phone, // Use business phone if provided, otherwise fallback to user phone
+      whatsapp: businessE164Phone || userE164Phone, // Use business phone if provided, otherwise fallback to user phone
       address: businessInfo.address || null,
       timezone: 'Asia/Jerusalem', // Always set timezone to Asia/Jerusalem regardless of language or provided value
       currency: 'ILS', // Always set currency to ILS regardless of language or provided value
       business_type: businessType as BusinessType,
       plan_id: selectedPlan.id,
+      is_portfolio: isPortfolioBusiness,
       subscription_status: subscriptionStatus,
       previous_calendar_type: businessInfo.previousCalendarType || null,
     };
 
-    // Only set trial dates for basic plan
-    if (isBasicPlan && trialStartedAt && trialEndsAt) {
+    // Only set trial dates for basic plan (not portfolio)
+    if (isBasicPlan && !isPortfolioPlan && trialStartedAt && trialEndsAt) {
       businessData.trial_started_at = trialStartedAt.toISOString();
       businessData.trial_ends_at = trialEndsAt.toISOString();
     }
 
-    // Set subscription dates for professional/business plans
-    if (!isBasicPlan && subscriptionStartedAt && subscriptionEndsAt) {
+    // Set subscription dates for professional/business plans (not portfolio)
+    if (!isBasicPlan && !isPortfolioPlan && subscriptionStartedAt && subscriptionEndsAt) {
       businessData.subscription_started_at = subscriptionStartedAt.toISOString();
       businessData.subscription_ends_at = subscriptionEndsAt.toISOString();
     }
@@ -610,7 +644,7 @@ export async function POST(request: NextRequest) {
       id: userIdForRecord,
       business_id: businessId,
       email: adminEmail || null,
-      phone: e164Phone, // Always use the normalized e164Phone for consistency
+      phone: userE164Phone, // Use user phone for authentication (not business phone)
       name: finalOwnerName,
       role: 'owner' as const,
       is_main_admin: true, // Mark as main admin - cannot be deleted
@@ -646,11 +680,27 @@ export async function POST(request: NextRequest) {
     // Get default theme color for business type
     const defaultThemeColor = getDefaultThemeColor(businessType as BusinessType);
 
+    // Extract social links from businessInfo if provided
+    const socialLinks = businessInfo?.socialLinks ? {
+      facebook: businessInfo.socialLinks.facebook?.trim() || undefined,
+      instagram: businessInfo.socialLinks.instagram?.trim() || undefined,
+      twitter: businessInfo.socialLinks.twitter?.trim() || undefined,
+      tiktok: businessInfo.socialLinks.tiktok?.trim() || undefined,
+      linkedin: businessInfo.socialLinks.linkedin?.trim() || undefined,
+      youtube: businessInfo.socialLinks.youtube?.trim() || undefined,
+    } : {};
+
+    // Remove undefined values
+    const cleanedSocialLinks = Object.fromEntries(
+      Object.entries(socialLinks).filter(([_, v]) => v !== undefined && v !== '')
+    );
+
     // Create default settings
     const defaultSettings = {
       business_id: businessId,
       branding: {
         themeColor: defaultThemeColor,
+        ...(Object.keys(cleanedSocialLinks).length > 0 ? { socialLinks: cleanedSocialLinks } : {}),
         ...(bannerCoverUrl ? {
           bannerCover: {
             type: 'upload' as const,
@@ -695,7 +745,7 @@ export async function POST(request: NextRequest) {
       business_id: businessId,
       name: adminUser.name?.trim() || finalOwnerName,
       email: adminEmail || null,
-      phone: e164Phone,
+      phone: userE164Phone, // Use user phone for worker (owner's contact)
       active: true,
       color: '#3B82F6', // Default blue color
     };
