@@ -1998,6 +1998,14 @@ const Onboarding = () => {
         phone: "",
         address: "",
         previousCalendarType: "",
+        socialLinks: {
+          facebook: undefined,
+          instagram: undefined,
+          twitter: undefined,
+          tiktok: undefined,
+          linkedin: undefined,
+          youtube: undefined,
+        },
       });
       setOwnerName("");
       setServices([]);
@@ -2684,7 +2692,7 @@ const Onboarding = () => {
                             handleFieldChange('phone', '');
                           } else {
                             // Reset to owner's phone when disabling
-                            const displayPhone = formatPhoneForDisplay(authenticatedUser.phone);
+                            const displayPhone = authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : '';
                             handleFieldChange('phone', displayPhone);
                           }
                         }}
