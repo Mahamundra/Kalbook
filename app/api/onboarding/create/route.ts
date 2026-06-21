@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { businessContextRequired, apiErrorFromMessage, internalError } from '@/lib/api/responses';
+import { parseJsonBody } from '@/lib/api/parse-request-body';
+import { onboardingCreateSchema } from '@/lib/api/validation/schemas';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { generateUniqueSlugFromBusinessType, getDefaultServices, getDefaultTimezone, getDefaultCurrency, getDefaultThemeColor } from '@/lib/onboarding/utils';
@@ -6,6 +9,7 @@ import { uploadDefaultBannerImage } from '@/lib/storage/upload-server';
 import { toE164Format } from '@/lib/customers/utils';
 import { isSuperAdminFromRequest } from '@/lib/super-admin/auth';
 import { signCookie } from '@/lib/auth/cookie-sign';
+import { checkOnboardingAvailability, findExistingBusinessOwner, findAuthUserByPhone, findAuthUserByEmail, findUserByPhoneInDb } from '@/lib/onboarding/availability';
 import type { BusinessType } from '@/lib/supabase/database.types';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -21,10 +25,14 @@ type WorkerRow = Database['public']['Tables']['workers']['Row'];
  */
 
 export async function POST(request: NextRequest) {
-  let body: any = null;
+  let body: Record<string, unknown> | null = null;
   try {
-    body = await request.json();
-    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount, plan, isPortfolio } = body;
+    const parsed = await parseJsonBody(request, onboardingCreateSchema);
+    if (!parsed.success) {
+      return parsed.response;
+    }
+    body = parsed.data;
+    const { businessType, businessInfo, adminUser, ownerName, useAnotherAccount, plan, isPortfolio } = parsed.data;
     
     // Check if current user is a super-admin - if so, ignore any existing sessions
     // Super-admins should not be used for business creation
@@ -41,24 +49,6 @@ export async function POST(request: NextRequest) {
         existingAuthUserId = authUser.id;
       }
     }
-
-    // Validate required fields
-    const validBusinessTypes = ['barbershop', 'nail_salon', 'gym_trainer', 'beauty_salon', 'makeup_artist', 'spa', 'pilates_studio', 'physiotherapy', 'life_coach', 'dietitian', 'other'];
-    if (!businessType || !validBusinessTypes.includes(businessType)) {
-      return NextResponse.json(
-        { error: `Valid businessType is required. Allowed types: ${validBusinessTypes.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    if (!businessInfo?.name || typeof businessInfo.name !== 'string' || businessInfo.name.trim() === '') {
-      return NextResponse.json(
-        { error: 'Business name is required' },
-        { status: 400 }
-      );
-    }
-
-    // Note: English name validation removed - slug is now generated from business type
 
     // Email is optional - use if provided, otherwise null
     const adminEmail = adminUser?.email && typeof adminUser.email === 'string' && adminUser.email.trim() 
@@ -122,6 +112,38 @@ export async function POST(request: NextRequest) {
     // For business creation, use business phone if provided, otherwise fallback to user phone
     // Note: e164Phone is kept for backward compatibility in validation checks, but should use userE164Phone for auth
     const e164Phone = userE164Phone; // Use user phone for authentication checks
+
+    if (!adminEmail && !e164Phone) {
+      return NextResponse.json(
+        { error: 'Either email or phone number is required' },
+        { status: 400 }
+      );
+    }
+
+    const existingBusinessOwner = await findExistingBusinessOwner(supabase, {
+      email: adminEmail,
+      phone: e164Phone,
+    });
+
+    if (existingBusinessOwner.hasBusiness) {
+      return NextResponse.json(
+        { error: 'You already have a registered business. Please log in to your existing account.' },
+        { status: 409 }
+      );
+    }
+
+    const availability = await checkOnboardingAvailability(supabase, {
+      email: adminEmail,
+      phone: e164Phone,
+      excludeAuthUserId: existingAuthUserId,
+    });
+
+    if (!availability.available) {
+      return NextResponse.json(
+        { error: availability.error || 'Email or phone is already registered' },
+        { status: 409 }
+      );
+    }
 
     // Validate and get selected plan (default to 'portfolio' if not provided or invalid)
     // Map homepage plan keys to database plan names
@@ -389,36 +411,39 @@ export async function POST(request: NextRequest) {
 
       // If shouldReuseAccount is true but we don't have authUserId, find it by phone
       if (shouldReuseAccount && !authUserId && e164Phone) {
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        if (existingUsers?.users) {
-          const existingAuthUserByPhone = existingUsers.users.find((u: any) => u.phone === e164Phone);
-          if (existingAuthUserByPhone) {
-            authUserId = existingAuthUserByPhone.id;
-          } else {
-            // Phone matches session but not found in auth - this shouldn't happen, but handle it
-            // Reset shouldReuseAccount so we can create a new user
-            // The phone will be used to create the new user
-            shouldReuseAccount = false;
-          }
+        const existingAuthUserByPhone = await findAuthUserByPhone(supabase, e164Phone);
+        if (existingAuthUserByPhone) {
+          authUserId = existingAuthUserByPhone.id;
         } else {
-          // Can't list users - reset shouldReuseAccount
-          // The phone will be used to create the new user
           shouldReuseAccount = false;
         }
       }
-      
-      // If we still don't have authUserId after all checks, we need to create a new user
-      // This handles the case where shouldReuseAccount was reset to false
 
-      // Only create new auth user if not reusing existing account and we don't have authUserId yet
-      if (!shouldReuseAccount && !authUserId) {
-        // Check if email already exists in auth (only if email is provided)
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        if (adminEmail) {
-          const emailExists = existingUsers?.users?.some(u => u.email === adminEmail);
-          
-          if (emailExists) {
-            // Rollback: delete business and services
+      // Resolve existing auth account before attempting createUser (paginated lookup)
+      if (!authUserId && e164Phone) {
+        const existingAuthUserByPhone = await findAuthUserByPhone(supabase, e164Phone);
+        if (existingAuthUserByPhone) {
+          if (existingAuthUserId && existingAuthUserByPhone.id === existingAuthUserId) {
+            authUserId = existingAuthUserByPhone.id;
+            shouldReuseAccount = true;
+          } else if (!existingAuthUserId) {
+            await supabase.from('services').delete().eq('business_id', businessId);
+            await supabase.from('businesses').delete().eq('id', businessId);
+            return NextResponse.json(
+              { error: 'Phone number already registered by another user' },
+              { status: 409 }
+            );
+          }
+        }
+      }
+
+      if (!authUserId && adminEmail) {
+        const existingAuthUserByEmail = await findAuthUserByEmail(supabase, adminEmail);
+        if (existingAuthUserByEmail) {
+          if (existingAuthUserId && existingAuthUserByEmail.id === existingAuthUserId) {
+            authUserId = existingAuthUserByEmail.id;
+            shouldReuseAccount = true;
+          } else if (!existingAuthUserId) {
             await supabase.from('services').delete().eq('business_id', businessId);
             await supabase.from('businesses').delete().eq('id', businessId);
             return NextResponse.json(
@@ -427,22 +452,17 @@ export async function POST(request: NextRequest) {
             );
           }
         }
+      }
       
-        // Check if phone already exists in users table (if phone is provided)
+      // Only create new auth user if not reusing existing account and we don't have authUserId yet
+      if (!shouldReuseAccount && !authUserId) {
         if (e164Phone) {
-          const existingUserByPhoneResult = await supabase
-            .from('users')
-            .select('id, email, phone')
-            .eq('phone', e164Phone)
-            .maybeSingle() as { data: UserRow | null; error: any };
-          const { data: existingUserByPhone } = existingUserByPhoneResult;
-          
+          const existingUserByPhone = await findUserByPhoneInDb(supabase, e164Phone);
+
           if (existingUserByPhone) {
-            // Phone already registered - check if it's the same email (if email provided)
             if (adminEmail && existingUserByPhone.email === adminEmail) {
-              // Same user trying to register again - allow it but skip phone in auth
+              // Same user record — continue without phone on auth create
             } else if (adminEmail && existingUserByPhone.email !== adminEmail) {
-              // Phone belongs to different user - rollback and return error
               await supabase.from('services').delete().eq('business_id', businessId);
               await supabase.from('businesses').delete().eq('id', businessId);
               return NextResponse.json(
@@ -450,32 +470,36 @@ export async function POST(request: NextRequest) {
                 { status: 409 }
               );
             }
-            // If no email provided, allow phone-only registration
           }
         }
 
-        // Check if phone already exists in auth (if phone is provided)
-        // If it exists and we don't have email, try to reuse that account
-        let phoneForAuth: string | undefined = undefined;
-        let existingAuthUserByPhone: any = null;
-        if (e164Phone && existingUsers?.users) {
-          existingAuthUserByPhone = existingUsers.users.find((u: any) => u.phone === e164Phone);
-          if (!existingAuthUserByPhone) {
-            phoneForAuth = e164Phone;
-          }
-          // If phone exists, phoneForAuth stays undefined - we'll reuse that account
-        } else if (e164Phone) {
-          // No existing users list, but we have phone - use it for auth
-          phoneForAuth = e164Phone;
+        let phoneForAuth: string | undefined = e164Phone || undefined;
+        const authConflictByPhone = e164Phone
+          ? await findAuthUserByPhone(supabase, e164Phone)
+          : null;
+
+        if (authConflictByPhone) {
+          await supabase.from('services').delete().eq('business_id', businessId);
+          await supabase.from('businesses').delete().eq('id', businessId);
+          return NextResponse.json(
+            { error: 'Phone number already registered by another user' },
+            { status: 409 }
+          );
         }
 
-        // If phone exists in auth, reuse that auth user (regardless of email)
-        if (existingAuthUserByPhone) {
-          shouldReuseAccount = true;
-          authUserId = existingAuthUserByPhone.id;
-        } else if (!adminEmail && !phoneForAuth) {
-          // No email and phone doesn't exist in auth - can't create user
-          // Rollback: delete business and services
+        if (adminEmail) {
+          const authConflictByEmail = await findAuthUserByEmail(supabase, adminEmail);
+          if (authConflictByEmail) {
+            await supabase.from('services').delete().eq('business_id', businessId);
+            await supabase.from('businesses').delete().eq('id', businessId);
+            return NextResponse.json(
+              { error: 'Email address already registered by another user' },
+              { status: 409 }
+            );
+          }
+        }
+
+        if (!adminEmail && !phoneForAuth) {
           await supabase.from('services').delete().eq('business_id', businessId);
           await supabase.from('businesses').delete().eq('id', businessId);
           return NextResponse.json(
@@ -743,7 +767,7 @@ export async function POST(request: NextRequest) {
     // Create first worker (admin user as worker)
     const workerData = {
       business_id: businessId,
-      name: adminUser.name?.trim() || finalOwnerName,
+      name: adminUser?.name?.trim() || finalOwnerName,
       email: adminEmail || null,
       phone: userE164Phone, // Use user phone for worker (owner's contact)
       active: true,

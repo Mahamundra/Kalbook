@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseJsonBody } from '@/lib/api/parse-request-body';
+import { verifyOtpSchema } from '@/lib/api/validation/schemas';
 import { verifyOTPCode } from '@/lib/auth/otp';
 import { getOrCreateCustomerSession } from '@/lib/auth/session';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { toE164Format } from '@/lib/customers/utils';
+import { findBusinessAdminByPhone, findUserByPhoneInDb, phonesMatch } from '@/lib/onboarding/availability';
 import { BUSINESS_SLUG_COOKIE } from '@/lib/tenant';
 import { signCookie } from '@/lib/auth/cookie-sign';
 
@@ -20,16 +23,12 @@ function getSessionCookieName(businessSlug: string): string {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { phone, code, userType = 'customer', email, name, redirectUrl } = body;
-
-    // Validate inputs
-    if (!phone || !code) {
-      return NextResponse.json(
-        { error: 'Phone number and code are required' },
-        { status: 400 }
-      );
+    const parsed = await parseJsonBody(request, verifyOtpSchema);
+    if (!parsed.success) {
+      return parsed.response;
     }
+
+    const { phone, code, userType, email, name, redirectUrl, businessSlug } = parsed.data;
 
     // Convert to E.164 format for consistency
     const e164Phone = toE164Format(phone);
@@ -120,8 +119,6 @@ export async function POST(request: NextRequest) {
 
     // Handle business owner authentication
     if (userType === 'business_owner') {
-      const { businessSlug } = body;
-
       if (!businessSlug) {
         return NextResponse.json(
           { error: 'Business slug is required for admin authentication' },
@@ -131,10 +128,9 @@ export async function POST(request: NextRequest) {
 
       const supabase = createAdminClient();
 
-      // Get business by slug to verify it exists
       const { data: business, error: businessError } = await supabase
         .from('businesses')
-        .select('id, slug')
+        .select('id, slug, phone')
         .eq('slug', businessSlug)
         .maybeSingle();
 
@@ -145,132 +141,35 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Type assertion for business
       const businessData = business as {
         id: string;
         slug: string;
+        phone: string | null;
       };
 
-      // Find user by phone and business_id - must be admin or owner
-      // Note: Workers marked as admin are added to users table with role 'admin', so they can login
-      // Use E.164 format for lookup (phone is stored in E.164 format)
-      // Normalize phone for comparison (trim whitespace)
-      const normalizedPhone = e164Phone.trim();
-      
-      // Try exact match first
-      let { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('phone', normalizedPhone)
-        .eq('business_id', businessData.id)
-        .in('role', ['admin', 'owner']) // Both admin (from workers) and owner (main admin) can login
-        .maybeSingle();
-      
-      console.log('User lookup attempt:', {
-        searchedPhone: normalizedPhone,
-        businessId: businessData.id,
-        businessSlug,
-        found: !!user,
-        error: userError?.message,
-      });
+      let user = await findBusinessAdminByPhone(supabase, phone, businessData.id);
 
-      // If not found, try alternative phone formats and also check all users in business
-      if (userError || !user) {
-        // First, get all users in this business to see what phone formats exist
-        const { data: allUsersInBusiness } = await supabase
+      if (!user && businessData.phone && phonesMatch(phone, businessData.phone)) {
+        const { data: ownerUser } = await supabase
           .from('users')
-          .select('id, phone, email, name, role, business_id')
-          .eq('business_id', businessData.id);
-        
-        const usersList = (allUsersInBusiness || []) as Array<{
-          id: string;
-          phone: string | null;
-          email: string;
-          name: string;
-          role: string;
-          business_id: string;
-        }>;
-        
-        console.log('All users in business:', usersList);
-        
-        // Try alternative formats
-        const phoneWithoutPlus = normalizedPhone.startsWith('+') ? normalizedPhone.slice(1) : normalizedPhone;
-        const phoneWithPlus = normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`;
-        
-        // Try each format separately
-        const formats = [phoneWithoutPlus, phoneWithPlus];
-        for (const phoneFormat of formats) {
-          if (phoneFormat === normalizedPhone) continue; // Already tried
-          
-          const { data: userAlt, error: userAltError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('phone', phoneFormat.trim())
-            .eq('business_id', businessData.id)
-            .in('role', ['admin', 'owner'])
-            .maybeSingle();
-          
-          if (userAlt && !userAltError) {
-            user = userAlt;
-            userError = null;
-            console.log(`Found user with alternative phone format: ${phoneFormat}`);
-            break;
-          }
-        }
-        
-        // If still not found, try to find by matching phone numbers manually (case-insensitive, whitespace-agnostic)
-        if (!user && usersList.length > 0) {
-          const normalizedSearched = normalizedPhone.replace(/\s/g, '').toLowerCase();
-          for (const dbUser of usersList) {
-            if (dbUser.role === 'admin' || dbUser.role === 'owner') {
-              const dbPhone = (dbUser.phone || '').replace(/\s/g, '').toLowerCase();
-              if (dbPhone === normalizedSearched) {
-                // Found a match! Get the full user record
-                const { data: matchedUser } = await supabase
-                  .from('users')
-                  .select('*')
-                  .eq('id', dbUser.id)
-                  .single();
-                if (matchedUser) {
-                  user = matchedUser;
-                  userError = null;
-                  console.log(`Found user by manual phone matching: ${dbUser.phone}`);
-                  break;
-                }
-              }
-            }
-          }
-        }
+          .select('id, business_id, email, phone, name, role')
+          .eq('business_id', businessData.id)
+          .eq('role', 'owner')
+          .maybeSingle();
+
+        user = ownerUser;
       }
 
-      // If still not found, get all users in this business for debugging
-      if (userError || !user) {
-        const { data: allUsers, error: allUsersError } = await supabase
+      if (!user) {
+        const { data: allUsers } = await supabase
           .from('users')
           .select('id, phone, email, name, role, business_id')
           .eq('business_id', businessData.id);
-        
-        // Also check if there's a user with this phone in ANY business (for debugging)
-        const { data: userWithPhone } = await supabase
-          .from('users')
-          .select('id, phone, email, name, role, business_id')
-          .eq('phone', e164Phone)
-          .maybeSingle();
-        
-        const userWithPhoneData = userWithPhone as { id: string; phone: string; email: string; name: string; role: string; business_id: string } | null;
-        
-        console.error('User lookup failed:', {
-          e164Phone,
-          businessId: businessData.id,
-          businessSlug,
-          allUsersInBusiness: allUsers,
-          userWithPhoneInAnyBusiness: userWithPhoneData,
-          userError: userError?.message,
-        });
-        
-        // Provide helpful error message
+
+        const userWithPhone = await findUserByPhoneInDb(supabase, phone);
+
         let errorMessage = 'Admin user not found for this business.';
-        if (userWithPhoneData && userWithPhoneData.business_id !== businessData.id) {
+        if (userWithPhone && userWithPhone.business_id !== businessData.id) {
           errorMessage += ' This phone number is registered to a different business.';
         } else if (allUsers && allUsers.length > 0) {
           errorMessage += ' Found users in this business but none match your phone number.';
@@ -278,23 +177,23 @@ export async function POST(request: NextRequest) {
           errorMessage += ' No users found in this business.';
         }
         errorMessage += ' Make sure you are using the phone number you registered with.';
-        
+
         return NextResponse.json(
-          { 
+          {
             error: errorMessage,
-            debug: process.env.NODE_ENV === 'development' ? {
-              searchedPhone: e164Phone,
-              businessId: businessData.id,
-              businessSlug,
-              usersInBusiness: allUsers,
-              userWithPhoneInAnyBusiness: userWithPhone,
-            } : undefined
+            debug: process.env.NODE_ENV === 'development'
+              ? {
+                  searchedPhone: e164Phone,
+                  businessId: businessData.id,
+                  businessSlug,
+                  usersInBusiness: allUsers,
+                }
+              : undefined,
           },
           { status: 404 }
         );
       }
 
-      // Type assertion for user
       const userData = user as {
         id: string;
         business_id: string;

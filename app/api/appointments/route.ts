@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { businessContextRequired, apiErrorFromMessage, internalError } from '@/lib/api/responses';
+import { parseJsonBody } from '@/lib/api/parse-request-body';
+import { createAppointmentSchema, type CreateAppointmentInput } from '@/lib/api/validation/schemas';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapAppointmentToInterface } from '@/lib/appointments/utils';
@@ -20,10 +23,7 @@ export async function GET(request: NextRequest) {
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
-      return NextResponse.json(
-        { error: 'Business context required' },
-        { status: 400 }
-      );
+      return businessContextRequired();
     }
 
     // Get query parameters
@@ -108,9 +108,13 @@ export async function GET(request: NextRequest) {
  * Create a new appointment with conflict detection
  */
 export async function POST(request: NextRequest) {
-  let requestBody: any = null;
+  let requestBody: CreateAppointmentInput | null = null;
   try {
-    requestBody = await request.json();
+    const parsed = await parseJsonBody(request, createAppointmentSchema);
+    if (!parsed.success) {
+      return parsed.response;
+    }
+    requestBody = parsed.data;
 
     // Get tenant context
     let tenantInfo;
@@ -124,10 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!tenantInfo?.businessId) {
-      return NextResponse.json(
-        { error: 'Business context required' },
-        { status: 400 }
-      );
+      return businessContextRequired();
     }
 
     // Check if trial expired
@@ -164,21 +165,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = requestBody;
-
-    // Validate required fields
-    if (!body.customerId || !body.serviceId || !body.workerId) {
-      return NextResponse.json(
-        { error: 'customerId, serviceId, and workerId are required' },
-        { status: 400 }
-      );
-    }
-
-    if (!body.start || !body.end) {
-      return NextResponse.json(
-        { error: 'start and end times are required' },
-        { status: 400 }
-      );
-    }
 
     // Determine if appointment is created by customer or admin
     // Check referer header or createdBy parameter

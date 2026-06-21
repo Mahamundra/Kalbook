@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiError, apiErrorFromMessage } from '@/lib/api/responses';
+import { parseJsonBody } from '@/lib/api/parse-request-body';
+import { sendOtpSchema } from '@/lib/api/validation/schemas';
 import { generateOTP, getOTPExpiration, storeOTPCode } from '@/lib/auth/otp';
 import { sendOTP } from '@/lib/auth/twilio';
 import { toE164Format } from '@/lib/customers/utils';
@@ -27,16 +30,12 @@ const getLocale = (request: NextRequest): Locale => {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { phone, method = 'whatsapp', userType = 'customer' } = body;
-
-    // Validate phone number
-    if (!phone || typeof phone !== 'string') {
-      return NextResponse.json(
-        { error: 'Phone number is required' },
-        { status: 400 }
-      );
+    const parsed = await parseJsonBody(request, sendOtpSchema);
+    if (!parsed.success) {
+      return parsed.response;
     }
+
+    const { phone, method } = parsed.data;
 
     // Convert to E.164 format (required by Twilio and Supabase Auth)
     const e164Phone = toE164Format(phone);
@@ -48,13 +47,7 @@ export async function POST(request: NextRequest) {
       const locale = getLocale(request);
       const retryAfter = rateLimitCheck.retryAfter || 30;
       const message = RATE_LIMIT_MESSAGES[locale].replace('{seconds}', retryAfter.toString());
-      return NextResponse.json(
-        { 
-          error: message,
-          retryAfter: retryAfter
-        },
-        { status: 429 }
-      );
+      return apiError('RATE_LIMITED', message, 429, { retryAfter });
     }
 
     // Generate OTP

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiError, apiErrorFromMessage, apiSuccess, businessContextRequired, internalError } from '@/lib/api/responses';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { AdminSupabaseClient } from '@/lib/supabase/client-types';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { toE164Format } from '@/lib/customers/utils';
@@ -17,7 +19,7 @@ type UserRow = Database['public']['Tables']['users']['Row'];
 async function mapWorkerToInterface(
   worker: WorkerRow,
   workerServices: string[] = [],
-  supabase: any,
+  supabase: AdminSupabaseClient,
   businessId: string
 ): Promise<Worker> {
   // Check if this worker is an admin user and if they're the main admin
@@ -33,7 +35,7 @@ async function mapWorkerToInterface(
       .eq('business_id', businessId)
       .or(`email.eq.${worker.email || ''},phone.eq.${worker.phone || ''}`)
       .in('role', ['admin', 'owner'])
-      .maybeSingle() as { data: (UserRow & { is_main_admin?: boolean }) | null; error: any };
+      .maybeSingle() as { data: (UserRow & { is_main_admin?: boolean }) | null; error: unknown };
     const { data: adminUser } = adminUserResult;
     
     if (adminUser) {
@@ -68,10 +70,7 @@ export async function GET(request: NextRequest) {
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
-      return NextResponse.json(
-        { error: 'Business context required' },
-        { status: 400 }
-      );
+      return businessContextRequired();
     }
 
     // Get query parameters
@@ -96,23 +95,22 @@ export async function GET(request: NextRequest) {
     const { data: workers, error } = await query;
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message || 'Failed to fetch workers' },
-        { status: 500 }
-      );
+      return apiErrorFromMessage(error.message || 'Failed to fetch workers', 500);
     }
 
-    // Get all worker services
-    const workerIds = (workers || []).map((w: any) => w.id);
+    const workerIds = (workers || []).map((worker: WorkerRow) => worker.id);
     const allWorkerServicesResult = await supabase
       .from('worker_services')
       .select('worker_id, service_id')
-      .in('worker_id', workerIds) as { data: Array<{ worker_id: string; service_id: string }> | null; error: any };
+      .in('worker_id', workerIds) as {
+      data: Array<{ worker_id: string; service_id: string }> | null;
+      error: unknown;
+    };
     const { data: allWorkerServices } = allWorkerServicesResult;
 
     // Group services by worker_id
     const servicesByWorker = new Map<string, string[]>();
-    (allWorkerServices || []).forEach((ws: any) => {
+    (allWorkerServices || []).forEach((ws) => {
       if (!servicesByWorker.has(ws.worker_id)) {
         servicesByWorker.set(ws.worker_id, []);
       }
@@ -121,21 +119,15 @@ export async function GET(request: NextRequest) {
 
     // Map to Worker interface
     const mappedWorkers: Worker[] = await Promise.all(
-      (workers || []).map(async (worker: any) => {
+      (workers || []).map(async (worker: WorkerRow) => {
         const workerServices = servicesByWorker.get(worker.id) || [];
         return mapWorkerToInterface(worker, workerServices, supabase, tenantInfo.businessId);
       })
     );
 
-    return NextResponse.json({
-      success: true,
-      workers: mappedWorkers,
-    });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: 'Failed to fetch workers' },
-      { status: 500 }
-    );
+    return apiSuccess({ workers: mappedWorkers });
+  } catch {
+    return internalError('Failed to fetch workers');
   }
 }
 
@@ -148,10 +140,7 @@ export async function POST(request: NextRequest) {
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
-      return NextResponse.json(
-        { error: 'Business context required' },
-        { status: 400 }
-      );
+      return businessContextRequired();
     }
 
     // Check if business can manage workers

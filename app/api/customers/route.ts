@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { businessContextRequired, apiErrorFromMessage, internalError } from '@/lib/api/responses';
+import { parseJsonBody } from '@/lib/api/parse-request-body';
+import { createCustomerSchema } from '@/lib/api/validation/schemas';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenantInfoFromRequest } from '@/lib/tenant/api';
 import { mapCustomerToInterface, normalizePhone } from '@/lib/customers/utils';
@@ -16,10 +19,7 @@ export async function GET(request: NextRequest) {
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
-      return NextResponse.json(
-        { error: 'Business context required' },
-        { status: 400 }
-      );
+      return businessContextRequired();
     }
 
     // Get query parameters
@@ -180,30 +180,16 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, createCustomerSchema);
+    if (!parsed.success) {
+      return parsed.response;
+    }
+    const body = parsed.data;
 
     // Get tenant context
     const tenantInfo = await getTenantInfoFromRequest(request);
     if (!tenantInfo?.businessId) {
-      return NextResponse.json(
-        { error: 'Business context required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate required fields
-    if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
-      return NextResponse.json(
-        { error: 'Customer name is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!body.phone || typeof body.phone !== 'string') {
-      return NextResponse.json(
-        { error: 'Phone number is required' },
-        { status: 400 }
-      );
+      return businessContextRequired();
     }
 
     const normalizedPhone = normalizePhone(body.phone);
