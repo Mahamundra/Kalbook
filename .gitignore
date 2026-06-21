@@ -1,11 +1,16 @@
 # deps and builds
 node_modules/
+.npm-cache/
 .next/
 .next/cache/
 dist/
 build/
 coverage/
 .turbo/
+
+# local editor backups and unrelated experiments
+*.backup
+magento-autocom/
 
 # env and editor
 .env
