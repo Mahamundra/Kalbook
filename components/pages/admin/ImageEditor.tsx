@@ -198,6 +198,7 @@ export function ImageEditor({
                 variant="outline"
                 onClick={handleRemove}
                 disabled={uploading}
+                aria-label="Remove image"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>

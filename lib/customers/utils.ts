@@ -54,10 +54,9 @@ export function toE164Format(phone: string): string {
 }
 
 /**
- * Format phone number for display
+ * @deprecated Use `formatPhoneForDisplay` from `@/lib/phone/display` instead.
  */
 export function formatPhone(phone: string): string {
-  // Basic formatting - can be enhanced
   const cleaned = normalizePhone(phone);
   if (cleaned.length === 10 && !cleaned.startsWith('+')) {
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;

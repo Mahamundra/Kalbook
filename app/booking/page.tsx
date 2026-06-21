@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,9 @@ import { ClassicLayout } from '@/components/booking/layouts/ClassicLayout';
 import { HeroLayout } from '@/components/booking/layouts/HeroLayout';
 import { CompactDashboardLayout } from '@/components/booking/layouts/CompactDashboardLayout';
 import { getGreetingMessage } from '@/lib/utils/greetings';
+import { hexToRgb, hslToHex, getInitialThemeColorFromCss } from '@/components/booking/color-utils';
+import type { BookingPageContentProps, BookingStep } from '@/components/booking/types';
+import { BookingPageFallback } from '@/components/booking/BookingPageFallback';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,29 +47,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-type BookingStep = 1 | 2 | 3 | 4;
 
 // Force dynamic rendering to prevent prerender errors
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
-
-// Helper function to convert hex color to RGB
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : { r: 14, g: 165, b: 233 }; // Default to #0EA5E9
-};
-
-interface BookingPageContentProps {
-  editMode?: boolean;
-  editorSettings?: any; // Settings passed from HomepageEditor
-  editorViewAsGuest?: boolean; // Override isLoggedIn state in edit mode
-  isPortfolio?: boolean; // Whether business is in portfolio mode
-}
 
 export function BookingPageContent({ editMode = false, editorSettings, editorViewAsGuest = true, isPortfolio = false }: BookingPageContentProps = {}) {
   const { t, locale, isRTL } = useLocale();
@@ -80,52 +72,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Helper to convert HSL to hex (for reading from CSS variables)
-  const hslToHex = (hsl: string): string | null => {
-    const match = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
-    if (!match) return null;
-    
-    const h = parseInt(match[1]) / 360;
-    const s = parseInt(match[2]) / 100;
-    const l = parseInt(match[3]) / 100;
-    
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h * 6) % 2 - 1));
-    const m = l - c / 2;
-    
-    let r = 0, g = 0, b = 0;
-    if (h < 1/6) { r = c; g = x; b = 0; }
-    else if (h < 2/6) { r = x; g = c; b = 0; }
-    else if (h < 3/6) { r = 0; g = c; b = x; }
-    else if (h < 4/6) { r = 0; g = x; b = c; }
-    else if (h < 5/6) { r = x; g = 0; b = c; }
-    else { r = c; g = 0; b = x; }
-    
-    const toHex = (n: number) => {
-      const hex = Math.round((n + m) * 255).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    };
-    
-    return '#' + toHex(r) + toHex(g) + toHex(b);
-  };
-  
-  // Initialize theme color from CSS variables if available (ThemeProvider may have set them)
-  const getInitialThemeColor = (): string => {
-    if (typeof window === 'undefined') return '#0EA5E9';
-    
-    // Check if CSS variable is already set by ThemeProvider
-    const root = document.documentElement;
-    const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
-    if (bookingPrimary) {
-      const hex = hslToHex(bookingPrimary);
-      if (hex) return hex;
-    }
-    
-    return '#0EA5E9';
-  };
-  
-  const [themeColor, setThemeColor] = useState<string>(() => getInitialThemeColor()); // Initialize from CSS variables if available
+  const [themeColor, setThemeColor] = useState<string>(() => getInitialThemeColorFromCss());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -1329,7 +1276,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
     const rgb = hexToRgb(currentThemeColor);
     
     return (
-      <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in">
+      <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-background dark:via-background dark:to-background flex items-center justify-center animate-fade-in">
         <div className="text-center space-y-6 px-4">
           {/* Logo */}
           <div className="flex justify-center mb-4">
@@ -1365,7 +1312,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   };
 
   const handleServiceSelect = async (service: Service) => {
-    if (isPortfolio) {
+    if (effectiveIsPortfolio) {
       // Don't allow service selection in portfolio mode
       return;
     }
@@ -1466,21 +1413,9 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   };
 
   const handleBookAppointment = async () => {
-    // Check if trial expired
-    if (trialExpired) {
-      toast.error('Trial period has expired. Please contact the business to upgrade.');
-      return;
-    }
-
     // Email is optional, so we don't check for it
     if (!selectedService || !selectedDate || !selectedTime || !customerInfo.name || !customerInfo.phone) {
       toast.error(t('booking.fillAllFields'));
-      return;
-    }
-
-    // Check if trial expired before proceeding
-    if (trialExpired) {
-      toast.error('Trial period has expired. Please contact the business to upgrade.');
       return;
     }
 
@@ -1622,8 +1557,6 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
           const apiError = error as any;
           if (apiError.response?.error) {
             errorMessage = apiError.response.error;
-          } else if (error.message.includes('Trial period has expired')) {
-            errorMessage = 'Trial period has expired. Please contact the business to upgrade.';
           } else if (error.message.includes('plan does not allow')) {
             errorMessage = 'Your plan does not allow creating appointments. Please upgrade.';
           } else if (error.message.includes('maximum number of appointments')) {
@@ -1767,13 +1700,24 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
   };
 
   // Get layout type (default to 'classic')
+  // Check for layout query parameter first (for preview mode), then fall back to settings
   // If layout is 'sidebar' or 'asymmetric', default to 'classic' as these layouts are removed
-  const rawLayout = settings?.branding?.layout || 'classic';
+  const queryLayout = searchParams.get('layout');
+  const validLayouts = ['classic', 'hero', 'compact'];
+  const rawLayout = (queryLayout && validLayouts.includes(queryLayout)) 
+    ? queryLayout 
+    : (settings?.branding?.layout || 'classic');
   const layoutType = (rawLayout === 'sidebar' || rawLayout === 'asymmetric' ? 'classic' : rawLayout) as 'classic' | 'hero' | 'compact';
+
+  // Check for portfolio preview mode override via query parameter
+  const portfolioQueryParam = searchParams.get('portfolio');
+  const effectiveIsPortfolio = portfolioQueryParam !== null 
+    ? portfolioQueryParam === 'true' 
+    : isPortfolio;
 
   // Extract header
   const header = (
-    <header className="bg-white border-b sticky top-0 z-50">
+    <header className="bg-background border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1802,34 +1746,17 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                 {businessName || t('booking.title')}
               </h1>
             </div>
-            <LanguageToggle />
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <LanguageToggle />
+            </div>
           </div>
         </div>
       </header>
     );
 
-  // Extract trial banner
-  const trialBanner = trialExpired ? (
-    <div className="bg-yellow-50 border-b border-yellow-200">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0">
-              <X className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-yellow-800">
-                Trial Period Expired
-              </h3>
-              <p className="text-sm text-yellow-700">
-                This business's trial period has ended. Please contact them to upgrade their plan.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  // Extract trial banner - removed (no longer showing trial expired message)
+  const trialBanner = null;
 
   // Extract banner cover
   const bannerCover = settings.branding?.bannerCover ? (
@@ -2004,7 +1931,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         >
           <Card className="p-4">
             <div className="flex flex-col items-center text-center gap-4">
-              {!isPortfolio && (
+              {!effectiveIsPortfolio && (
                 <div className={`flex gap-3 w-full sm:w-auto justify-center ${isRTL ? 'flex-row-reverse' : ''}`}>
                   {!effectiveIsLoggedIn ? (
                     <Button
@@ -2029,27 +1956,6 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                       {t('auth.logout')}
                     </Button>
                   )}
-                </div>
-              )}
-              {isPortfolio && (
-                <div className="w-full max-w-md mx-auto p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-2 text-blue-900">
-                    {t('portfolio.upgradeTitle') || 'Want to accept online bookings?'}
-                  </h3>
-                  <p className="text-sm text-blue-700 mb-4">
-                    {t('portfolio.upgradeDescription') || 'Upgrade to enable appointment scheduling for your customers'}
-                  </p>
-                  <Button
-                    variant="default"
-                    size="lg"
-                    onClick={() => {
-                      // Open upgrade modal or redirect to upgrade page
-                      window.location.href = `/b/${slug}/admin/settings?tab=business&upgrade=true`;
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {t('portfolio.upgradeButton') || 'Upgrade Now'}
-                  </Button>
                 </div>
               )}
               <div className="flex-1">
@@ -2102,7 +2008,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
       <>
 
         {/* Customer Appointments - Hide when user is booking a new appointment or in portfolio mode */}
-        {!isPortfolio && effectiveIsLoggedIn && customerAppointments.length > 0 && step === 1 && !selectedService && !confirmedAppointment && (
+        {!effectiveIsPortfolio && effectiveIsLoggedIn && customerAppointments.length > 0 && step === 1 && !selectedService && !confirmedAppointment && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2406,7 +2312,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         )}
 
         {/* Customer Appointments Button - Show when logged in but no appointments or appointments hidden */}
-        {!isPortfolio && effectiveIsLoggedIn && customerAppointments.length === 0 && step === 1 && !selectedService && !confirmedAppointment && (
+        {!effectiveIsPortfolio && effectiveIsLoggedIn && customerAppointments.length === 0 && step === 1 && !selectedService && !confirmedAppointment && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2426,7 +2332,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         {effectiveIsLoggedIn ? (
           <>
           {/* Step Indicator - Hide in portfolio mode */}
-          {!isPortfolio && (
+          {!effectiveIsPortfolio && (
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -2442,7 +2348,8 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: s * 0.1, duration: 0.3 }}
                 >
-                  <motion.div
+                  <motion.button
+                    type="button"
                     className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-semibold text-base sm:text-lg flex-shrink-0 cursor-pointer transition-colors mx-auto ${
                       step >= s
                         ? 'bg-primary text-primary-foreground shadow-lg'
@@ -2458,6 +2365,8 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                     } : { scale: 1 }}
                     transition={{ duration: 0.5, repeat: step === s ? Infinity : 0, repeatDelay: 2 }}
                     whileHover={s === 1 || (s === 2 && selectedService) || (s === 3 && selectedService && selectedDate && selectedTime) ? { scale: 1.05 } : {}}
+                    disabled={!(s === 1 || (s === 2 && selectedService) || (s === 3 && selectedService && selectedDate && selectedTime))}
+                    aria-label={t(`booking.step${s}`)}
                     onClick={() => handleStepClick(s)}
                   >
                     {step > s ? (
@@ -2474,7 +2383,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                         {s === 1 ? <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" /> : s === 2 ? <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" /> : <UserCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
                       </div>
                     )}
-                  </motion.div>
+                  </motion.button>
                   <div className={`mt-2 sm:mt-2.5 text-[10px] sm:text-xs md:text-sm text-center w-full ${step >= s ? 'font-medium' : 'text-muted-foreground'}`}>
                     <span className="block whitespace-nowrap">{t(`booking.step${s}`)}</span>
                   </div>
@@ -2513,16 +2422,18 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
                     {services.map((service, index) => (
-                      <motion.div
+                      <motion.button
+                        type="button"
                         key={service.id}
-                        onClick={() => !isPortfolio && handleServiceSelect(service)}
+                        onClick={() => !effectiveIsPortfolio && handleServiceSelect(service)}
+                        disabled={effectiveIsPortfolio}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1, duration: 0.3 }}
-                        whileHover={!isPortfolio ? { scale: 1.02, y: -2 } : {}}
-                        whileTap={!isPortfolio ? { scale: 0.98 } : {}}
-                        className={`group p-4 rounded-lg border-2 transition-all flex flex-col ${
-                          isPortfolio 
+                        whileHover={!effectiveIsPortfolio ? { scale: 1.02, y: -2 } : {}}
+                        whileTap={!effectiveIsPortfolio ? { scale: 0.98 } : {}}
+                        className={`group p-4 rounded-lg border-2 transition-all flex flex-col text-left ${
+                          effectiveIsPortfolio 
                             ? 'border-border cursor-default' 
                             : `hover:border-primary/50 hover:shadow-md cursor-pointer ${
                                 selectedService?.id === service.id
@@ -2531,6 +2442,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                               }`
                         } ${isRTL ? 'text-right' : 'text-left'}`}
                         dir={isRTL ? 'rtl' : 'ltr'}
+                        aria-label={service.name}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div className="font-semibold">{service.name}</div>
@@ -2553,7 +2465,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                             </span>
                           )}
                         </div>
-                        {!isPortfolio ? (
+                        {!effectiveIsPortfolio ? (
                           <Button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2569,7 +2481,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                             {t('portfolio.serviceInfoOnly') || 'Information Only'}
                           </div>
                         )}
-                      </motion.div>
+                      </motion.button>
                     ))}
                   </div>
                 )}
@@ -2580,7 +2492,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Step 2: Date & Time Selection */}
         <AnimatePresence mode="wait">
-          {!isPortfolio && step === 2 && selectedService && (
+          {!effectiveIsPortfolio && step === 2 && selectedService && (
             <motion.div
               key="step2"
               initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
@@ -2793,7 +2705,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                         <select
                           value={selectedWorker || ''}
                           onChange={(e) => setSelectedWorker(e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg transition-all hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none bg-white ${
+                          className={`w-full px-3 py-2 border rounded-lg transition-all hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none bg-background dark:bg-card ${
                             isRTL ? 'pr-10 pl-3 text-right' : 'pl-10 pr-3 text-left'
                           }`}
                           dir={isRTL ? 'rtl' : 'ltr'}
@@ -3019,7 +2931,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Step 3: Customer Information */}
         <AnimatePresence mode="wait">
-          {!isPortfolio && step === 3 && selectedService && selectedDate && selectedTime && (
+          {!effectiveIsPortfolio && step === 3 && selectedService && selectedDate && selectedTime && (
             <motion.div
               key="step3"
               initial={{ opacity: 0, x: isRTL ? 50 : -50 }}
@@ -3258,7 +3170,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
 
         {/* Step 4: Success/Confirmation Screen */}
         <AnimatePresence mode="wait">
-          {!isPortfolio && step === 4 && confirmedAppointment && selectedService && selectedDate && selectedTime && (
+          {!effectiveIsPortfolio && step === 4 && confirmedAppointment && selectedService && selectedDate && selectedTime && (
             <motion.div
               key="step4"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -3664,37 +3576,21 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
         </AlertDialog>
 
         {/* Reschedule Appointment Dialog */}
-        {reschedulingAppointment && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setReschedulingAppointment(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-              dir={isRTL ? 'rtl' : 'ltr'}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">{t('booking.rescheduleAppointment')}</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setReschedulingAppointment(null);
-                    setRescheduleDate(null);
-                    setRescheduleTime(null);
-                    setRescheduleAvailableSlots([]);
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+        <Dialog
+          open={!!reschedulingAppointment}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReschedulingAppointment(null);
+              setRescheduleDate(null);
+              setRescheduleTime(null);
+              setRescheduleAvailableSlots([]);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('booking.rescheduleAppointment')}</DialogTitle>
+            </DialogHeader>
               
               <div className="space-y-4">
                 <div>
@@ -3706,6 +3602,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                         size="sm"
                         onClick={() => setRescheduleMonthOffset(prev => Math.max(0, prev - 1))}
                         disabled={rescheduleMonthOffset === 0}
+                        aria-label={t('booking.previousMonth') || 'Previous month'}
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
@@ -3713,6 +3610,7 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                         variant="outline"
                         size="sm"
                         onClick={() => setRescheduleMonthOffset(prev => prev + 1)}
+                        aria-label={t('booking.nextMonth') || 'Next month'}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
@@ -3844,9 +3742,8 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Login/Register Dialog */}
         <LoginRegisterDialog
@@ -4038,141 +3935,6 @@ export function BookingPageContent({ editMode = false, editorSettings, editorVie
       />
       {phoneDialog}
     </>
-  );
-}
-
-function BookingPageFallback() {
-  const { dir } = useDirection();
-  const { t } = useLocale();
-  const params = useParams();
-  const searchParams = useSearchParams();
-  
-  // Helper to convert HSL to hex (for reading from CSS variables)
-  const hslToHex = (hsl: string): string | null => {
-    const match = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
-    if (!match) return null;
-    
-    const h = parseInt(match[1]) / 360;
-    const s = parseInt(match[2]) / 100;
-    const l = parseInt(match[3]) / 100;
-    
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h * 6) % 2 - 1));
-    const m = l - c / 2;
-    
-    let r = 0, g = 0, b = 0;
-    if (h < 1/6) { r = c; g = x; b = 0; }
-    else if (h < 2/6) { r = x; g = c; b = 0; }
-    else if (h < 3/6) { r = 0; g = c; b = x; }
-    else if (h < 4/6) { r = 0; g = x; b = c; }
-    else if (h < 5/6) { r = x; g = 0; b = c; }
-    else { r = c; g = 0; b = x; }
-    
-    const toHex = (n: number) => {
-      const hex = Math.round((n + m) * 255).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    };
-    
-    return '#' + toHex(r) + toHex(g) + toHex(b);
-  };
-  
-  // Initialize theme color from CSS variables if available (ThemeProvider may have set them)
-  const getInitialThemeColor = (): string => {
-    if (typeof window === 'undefined') return '#0EA5E9';
-    
-    // Check if CSS variable is already set by ThemeProvider
-    const root = document.documentElement;
-    const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
-    if (bookingPrimary) {
-      const hex = hslToHex(bookingPrimary);
-      if (hex) return hex;
-    }
-    
-    return '#0EA5E9';
-  };
-  
-  const [themeColor, setThemeColor] = useState<string>(() => getInitialThemeColor());
-  
-  // Get slug from route params or query params
-  const slug = (params?.slug as string) || searchParams.get('slug') || searchParams.get('ui') || null;
-  
-  // Fetch settings to get theme color immediately
-  useEffect(() => {
-    if (slug) {
-      const fetchSettings = async () => {
-        try {
-          const response = await fetch(`/api/settings?businessSlug=${slug}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.settings?.branding?.themeColor) {
-              setThemeColor(data.settings.branding.themeColor);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching settings for fallback:', error);
-        }
-      };
-      fetchSettings();
-    }
-  }, [slug]);
-  
-  // Also listen for CSS variable changes (in case ThemeProvider updates them)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const checkCSSVariables = () => {
-      const root = document.documentElement;
-      const bookingPrimary = getComputedStyle(root).getPropertyValue('--booking-primary').trim();
-      if (bookingPrimary) {
-        const hex = hslToHex(bookingPrimary);
-        if (hex && hex !== themeColor) {
-          setThemeColor(hex);
-        }
-      }
-    };
-    
-    // Check immediately
-    checkCSSVariables();
-    
-    // Set up a MutationObserver to watch for CSS variable changes
-    const observer = new MutationObserver(checkCSSVariables);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['style']
-    });
-    
-    return () => observer.disconnect();
-  }, [themeColor]);
-  
-  const rgb = hexToRgb(themeColor);
-  
-  return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 flex items-center justify-center animate-fade-in" data-booking-page="true">
-      <div className="text-center space-y-6 px-4">
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-          <KalBookLogo size="lg" variant="full" />
-        </div>
-        {/* Modern animated spinner with smooth gradient */}
-        <div className="relative mx-auto w-16 h-16">
-          <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` }}></div>
-          <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: themeColor, borderRightColor: themeColor, animationDuration: '0.8s' }}></div>
-          <div className="absolute inset-2 rounded-full border-4 border-transparent animate-spin" style={{ borderBottomColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, borderLeftColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`, animationDuration: '1.2s', animationDirection: 'reverse' }}></div>
-        </div>
-        {/* Friendly loading message with pulse animation */}
-        <div className="space-y-2">
-          <p className="text-lg font-medium text-foreground animate-pulse" style={{ animationDuration: '2s' }}>
-            {t('common.justAMoment')}
-          </p>
-          {/* Subtle dots animation */}
-          <div className="flex justify-center gap-1.5">
-            <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0s', animationDuration: '1.4s' }}></div>
-            <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0.2s', animationDuration: '1.4s' }}></div>
-            <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`, animationDelay: '0.4s', animationDuration: '1.4s' }}></div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 

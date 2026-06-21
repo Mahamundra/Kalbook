@@ -409,6 +409,7 @@ export function BannerEditor({
                   variant="outline"
                   onClick={handleRemove}
                   disabled={uploading}
+                  aria-label={t('settings.removeVideo') || 'Remove video'}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -484,14 +485,17 @@ export function BannerEditor({
           <TabsContent value="pattern" className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {bannerPatterns.map((pattern) => (
-                <div
+                <button
                   key={pattern.id}
+                  type="button"
                   className={`relative h-24 rounded-lg border-2 cursor-pointer transition-all ${
                     patternId === pattern.id
                       ? 'border-primary ring-2 ring-primary/20'
                       : 'border-border hover:border-primary/50'
                   }`}
                   onClick={() => setPatternId(pattern.id)}
+                  aria-label={`Select pattern ${pattern.id}`}
+                  aria-pressed={patternId === pattern.id}
                   style={{
                     background: getPatternBackground(pattern.id),
                   }}
@@ -501,7 +505,7 @@ export function BannerEditor({
                       <Check className="w-6 h-6 text-white" />
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           </TabsContent>

@@ -1,6 +1,7 @@
 import "./globals.css";
 import { DirectionProvider } from "@/components/providers/DirectionProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { DarkModeProvider } from "@/components/providers/DarkModeProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,7 +25,7 @@ const notoSansHebrew = Noto_Sans_Hebrew({
 });
 
 export const metadata: Metadata = {
-  title: "KalBook - Smart Booking System",
+  title: "KalBook - Your Business, Under Control",
   description: "Everything your service business needs - all in one place",
 };
 
@@ -59,18 +60,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const dir = isRTL(initialLocale) ? 'rtl' : 'ltr';
   
   return (
-    <html className={`${workSans.variable} ${notoSansHebrew.variable}`} dir={dir} lang={initialLocale}>
-      <body className="min-h-dvh bg-background text-foreground overflow-x-hidden touch-pan-y">
+    <html className={`${workSans.variable} ${notoSansHebrew.variable}`} dir={dir} lang={initialLocale} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-dvh bg-background text-foreground overflow-x-clip touch-pan-y">
         <FullCalendarStyles />
         <DirectionProvider initialLocale={initialLocale}>
-          <ThemeProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              {children}
-              <BackToTop />
-            </TooltipProvider>
-          </ThemeProvider>
+          <DarkModeProvider>
+            <ThemeProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                {children}
+                <BackToTop />
+              </TooltipProvider>
+            </ThemeProvider>
+          </DarkModeProvider>
         </DirectionProvider>
       </body>
     </html>

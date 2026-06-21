@@ -586,7 +586,8 @@ const Workers = () => {
                   handleEdit(worker);
                 }}
                 disabled={!canManageWorkers}
-                title={!canManageWorkers ? 'Your plan doesn\'t allow editing workers. Please upgrade to continue.' : ''}
+                aria-label={t('workers.edit') || 'Edit worker'}
+                title={!canManageWorkers ? 'Your plan doesn\'t allow editing workers. Please upgrade to continue.' : undefined}
               >
                 <Pencil className="w-4 h-4" />
               </Button>
@@ -600,7 +601,8 @@ const Workers = () => {
                   handleDeleteClick(worker);
                 }}
                 disabled={!canManageWorkers}
-                title={!canManageWorkers ? 'Your plan doesn\'t allow deleting workers. Please upgrade to continue.' : ''}
+                aria-label={t('workers.delete') || 'Delete worker'}
+                title={!canManageWorkers ? 'Your plan doesn\'t allow deleting workers. Please upgrade to continue.' : undefined}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -773,39 +775,6 @@ const Workers = () => {
                       {t('workers.adminRequiresEmailPhone') || 'Admin requires email and phone'}
                     </p>
                   )}
-                </div>
-              )}
-
-              {editingWorkerId && isGymTrainer && (
-                <div className="md:col-span-2">
-                  <Label>Specializations</Label>
-                  <Input
-                    placeholder="e.g., Strength Training, Cardio, Yoga"
-                    className="mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Trainer specializations and expertise areas
-                  </p>
-                </div>
-              )}
-              
-              {editingWorkerId && isGymTrainer && (
-                <div className="md:col-span-2">
-                  <Label>Google Calendar</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-2 w-full"
-                    onClick={() => {
-                      // Placeholder for Google Calendar connection
-                      toast.info('Google Calendar integration - Coming soon');
-                    }}
-                  >
-                    Connect Google Calendar
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Sync trainer's schedule with Google Calendar
-                  </p>
                 </div>
               )}
 

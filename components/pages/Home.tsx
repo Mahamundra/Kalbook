@@ -3,6 +3,7 @@
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
-import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowLeft, ChevronDown, User, LogOut, LayoutDashboard, CalendarCheck, CalendarSync, Smartphone, FileText, Repeat, Mail, Phone, XCircle } from 'lucide-react';
+import { Calendar, Clock, Users, MessageSquare, Globe, Check, ArrowRight, ArrowLeft, ChevronDown, User, LogOut, LayoutDashboard, CalendarCheck, CalendarSync, Smartphone, FileText, Repeat, Mail, Phone, XCircle, CreditCard, Gift, Monitor } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLoginModal } from '@/components/ui/AdminLoginModal';
@@ -111,6 +112,11 @@ export default function Home() {
   const [submittingContact, setSubmittingContact] = useState(false);
   const [userAccountModalOpen, setUserAccountModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [previewPlanType, setPreviewPlanType] = useState<'paid' | 'unpaid'>('paid');
+  const [desktopPreviewOpen, setDesktopPreviewOpen] = useState(false);
+  const [showDesktopView, setShowDesktopView] = useState(true);
+  // Separate locale for iframe - independent from main page locale
+  const [iframeLocale, setIframeLocale] = useState<string>(locale);
   const { toast } = useToast();
 
   // Pricing state - moved to parent to prevent re-fetching on hover
@@ -273,6 +279,19 @@ export default function Home() {
   const getPlan = (planKey: string, field: string) => getNested(homeData?.pricing?.plans, `${planKey}.${field}`) || '';
   const getFaq = (index: number, field: 'q' | 'a') => getNested(homeData?.faq?.items, `${index}.${field}`) || '';
   const getFooter = (key: string) => getNested(homeData?.footer, key) || '';
+  const getCustomFeatures = (key: string) => getNested(homeData?.customFeatures, key) || '';
+  const getCustomFeature = (key: string, field: 'title' | 'desc') => getNested(homeData?.customFeatures?.items, `${key}.${field}`) || '';
+  const customFeatureKeys = [
+    'apiAccess',
+    'whiteLabel',
+    'customIntegrations',
+    'advancedReports',
+    'multiLocation',
+    'customWorkflows',
+    'advancedAutomation',
+    'dedicatedSupport',
+    'customDevelopment',
+  ] as const;
   const getPlanHighlights = (planKey: string): string[] => {
     const highlights = getNested(homeData?.pricing?.plans, `${planKey}.highlights`);
     return Array.isArray(highlights) ? highlights : [];
@@ -559,7 +578,8 @@ export default function Home() {
         'ניהול לקוחות': 'כל לקוח, כל הזמנה, כל הערה – מרוכזים במקום אחד. נגמר הסלט של וואטסאפ, פתקים וזיכרון.',
         'תזכורות במייל': 'המערכת דואגת לשלוח אישור ותזכורת לכל לקוח – בלי לרדוף, בלי שכחות.',
         'תמיכה דו לשונית ו-RTL': 'מתאים לקהלים דוברי עברית, ערבית, רוסית ואנגלית. הממשק מרגיש בבית.',
-        'הכל בחבילת Free': 'כל מה שאהבת, פשוט בגרסה הרבה יותר עוצמתית.',
+        'הכל בחבילת Free': 'כל מה שחבילת הBasic והרבה מעבר.',
+        'הכל בחבילת Basic': 'כל מה שחבילת הBasic והרבה מעבר.',
         'לוח בקרה ואנליטיקה': 'ראה את הכנסות, כמות פגישות, לקוחות חוזרים ועוד – בלחיצת כפתור. תתחיל להכיר את העסק שלך באמת.',
         'אינטגרציה עם וואטסאפ': 'שלח תזכורות ואישורים דרך וואטסאפ. אנשים קוראים את זה. זה עובד.',
         'אינטגרציה עם Google Calendar': 'התזמונים שלך במקום אחד. בלי כפילויות. בלי בלגן.',
@@ -715,6 +735,26 @@ export default function Home() {
       return [];
     };
 
+    // Normalize highlight text for display (e.g., rename "Free" to "Basic")
+    const getDisplayHighlight = (highlight: string, locale: string): string => {
+      if (locale === 'he') {
+        return highlight
+          .replace('הכל בחבילת Free', 'הכל בחבילת Basic')
+          .replace('הכול בחבילת Free', 'הכול בחבילת Basic')
+          .replace('הכול מתוכנית FREE', 'הכול מתוכנית BASIC');
+      }
+      if (highlight === 'Everything in Free Plan') {
+        return 'Everything in Basic Plan';
+      }
+      if (highlight === 'كل شيء في خطة Free') {
+        return 'كل شيء في خطة Basic';
+      }
+      if (highlight === 'Все из плана Free') {
+        return 'Все из плана Basic';
+      }
+      return highlight;
+    };
+
     return (
       <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
         {['free', 'pro', 'custom'].map((planKey, index) => {
@@ -737,57 +777,45 @@ export default function Home() {
               }}
             >
               <Card 
-                className={`p-6 h-full relative flex flex-col border border-[#e2e2e2] ${isPro ? 'border-2 border-[#ff411b] shadow-lg scale-105' : ''} ${isCustom ? 'border-2 border-[#e2e2e2]' : ''}`}
+                className={`p-6 h-full relative flex flex-col border border-[#e2e2e2] dark:border-[#2a2a8a] dark:bg-[#22247B] ${isPro ? 'border-2 border-[#ff411b] shadow-lg scale-105' : ''} ${isCustom ? 'border-2 border-[#e2e2e2] dark:border-[#2a2a8a]' : ''}`}
               >
                 {(isPro || planKey === 'free' || planKey === 'custom') && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isPro ? 'bg-[#ff411b] text-white' : 'bg-gray-200 text-gray-700'}`}>
-                      {planKey === 'free' ? (locale === 'he' ? 'בסיסי' : 'Basic') : planKey === 'custom' ? 'Custom' : getPricing('bestSeller')}
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isPro ? 'bg-[#ff411b] text-white' : 'bg-gray-200 dark:bg-[#22247B] text-gray-700 dark:text-white'}`}>
+                      {planKey === 'free' ? t('home.pricing.basic') : planKey === 'custom' ? t('home.pricing.customPlan') : getPricing('bestSeller')}
                     </span>
                   </div>
                 )}
                 <div className="text-center mb-5">
-                  <h3 className="text-xl font-bold mb-2 text-[#030408]">
+                  <h3 className="text-xl font-bold mb-2 text-[#030408] dark:text-white">
                     <strong>{planMetadata?.name || getPlan(planKey, 'name')}</strong>
                   </h3>
                   <div className="mb-2">
                     {loading ? (
-                      <span className="text-3xl font-bold text-gray-700">...</span>
+                      <span className="text-3xl font-bold text-gray-700 dark:text-white">...</span>
                     ) : planKey === 'custom' ? (
-                      <span className="text-3xl font-bold text-gray-700">
-                        {(locale === 'he' || locale === 'ar') ? (
-                          <>
-                            <span className="text-xs text-gray-600 font-normal">
-                              {locale === 'he' ? 'החל מ-' : 'بدءًا من'}
-                            </span>
-                            <span>{currencySymbol}{pricing.custom?.price || 249}</span>
-                            <span className="text-gray-500 text-base font-normal ml-1">
-                              {' / '}{getPricing('month')}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-xs text-gray-600 font-normal">
-                              {locale === 'ru' ? 'Начиная с ' : 'Starting at '}
-                            </span>
-                            <span>{currencySymbol}{pricing.custom?.price || 249}</span>
-                            <span className="text-gray-500 text-base font-normal ml-1">
-                              {' / '}{getPricing('month')}
-                            </span>
-                          </>
-                        )}
+                      <span className="text-3xl font-bold text-gray-700 dark:text-white">
+                        <>
+                          <span className="text-xs text-gray-600 dark:text-white font-normal">
+                            {t('home.pricing.startingFrom')}
+                          </span>
+                          <span>{currencySymbol}{pricing.custom?.price || 249}</span>
+                          <span className="text-gray-500 dark:text-white text-base font-normal ml-1">
+                            {' / '}{getPricing('month')}
+                          </span>
+                        </>
                       </span>
                     ) : (
                       <>
-                        <span className={`text-3xl font-bold ${isPro ? 'text-[#ff411b]' : 'text-gray-700'}`}>
+                        <span className={`text-3xl font-bold ${isPro ? 'text-[#ff411b]' : 'text-gray-700 dark:text-white'}`}>
                           {displayPrice === 'Free' ? (
-                            <span>{locale === 'he' ? 'חינם' : 'Free'}</span>
+                            <span>{t('home.pricing.free')}</span>
                           ) : (
                             <span>{currencySymbol}{displayPrice}</span>
                           )}
                         </span>
                         {displayPrice !== 'Free' && (
-                          <span className="text-gray-500 text-base ml-1">
+                          <span className="text-gray-500 dark:text-white text-base ml-1">
                             {' / '}{getPricing('month')}
                           </span>
                         )}
@@ -795,26 +823,19 @@ export default function Home() {
                     )}
                   </div>
                   {(planMetadata?.priceNote || getPlan(planKey, 'priceNote')) && (
-                    <p className="text-xs text-gray-500 mb-2" style={{ whiteSpace: 'pre-line' }}>
-                      {planMetadata?.priceNote || (planKey === 'pro' && locale === 'he' ? 'למקצוענים שבינינו' : getPlan(planKey, 'priceNote'))}
+                    <p className="text-xs text-gray-500 dark:text-white mb-2" style={{ whiteSpace: 'pre-line' }}>
+                      {planMetadata?.priceNote || (planKey === 'pro' ? t('home.pricing.proPriceNote') : getPlan(planKey, 'priceNote'))}
                     </p>
                   )}
                   {(planMetadata?.note || getPlan(planKey, 'note')) && (
-                    <p className="text-xs text-gray-500 mb-3">
-                      {planMetadata?.note || (planKey === 'free' && locale === 'he' ? (
-                        <>
-                          התחל לנהל את ההזמנות שלך היום<br />
-                          <br />
-                          <span className="text-gray-700 font-bold">אין צורך בכרטיס אשראי</span>
-                        </>
-                      ) : (
-                        getPlan(planKey, 'note')
-                      ))}
+                    <p className="text-xs text-gray-500 dark:text-white mb-3">
+                      {planMetadata?.note || getPlan(planKey, 'note')}
                     </p>
                   )}
                 </div>
                 <ul className="space-y-1 mb-5 flex-grow relative">
                   {highlightsArray.map((highlight: string, i: number) => {
+                    const displayHighlight = getDisplayHighlight(highlight, locale);
                     const isExpanded = expandedFeature?.planKey === planKey && expandedFeature?.featureIndex === i;
                     return (
                       <li 
@@ -843,8 +864,8 @@ export default function Home() {
                               <Check className="w-4 h-4 text-[#17a34a] mt-0.5 flex-shrink-0" />
                               <div className="flex-1 pr-4">
                                 <span className={`text-sm transition-colors duration-200 ${
-                                  isExpanded ? 'text-[#030408] font-bold' : 'text-gray-600 font-semibold'
-                                }`}>{highlight}</span>
+                                  isExpanded ? 'text-[#030408] dark:text-white font-bold' : 'text-gray-600 dark:text-white font-semibold'
+                                }`}>{displayHighlight}</span>
                                 <AnimatePresence initial={false}>
                                   {isExpanded && (
                                     <motion.span
@@ -854,7 +875,7 @@ export default function Home() {
                                       transition={{ duration: 0.2 }}
                                     >
                                       <br />
-                                      <span className="text-sm text-gray-600 leading-relaxed">
+                                      <span className="text-sm text-gray-600 dark:text-white leading-relaxed">
                                         {renderDescriptionWithBold(getFeatureDescription(highlight, locale), locale)}
                                       </span>
                                     </motion.span>
@@ -863,7 +884,7 @@ export default function Home() {
                               </div>
                             </div>
                             <ChevronDown
-                              className={`w-4 h-4 transition-all duration-200 ease-in-out flex-shrink-0 text-gray-400 ${
+                              className={`w-4 h-4 transition-all duration-200 ease-in-out flex-shrink-0 text-gray-400 dark:text-white ${
                                 isExpanded 
                                   ? 'transform rotate-180' 
                                   : ''
@@ -875,6 +896,11 @@ export default function Home() {
                     );
                   })}
                 </ul>
+                {planKey === 'free' && (
+                  <p className="text-xs text-gray-700 dark:text-white font-bold mb-2 text-center">
+                    {t('home.pricing.noCreditCard')}
+                  </p>
+                )}
                 {planKey === 'custom' ? (
                   <Button
                     className="w-full border border-[#ff411b] text-[#ff411b] bg-white hover:bg-orange-50"
@@ -904,16 +930,17 @@ export default function Home() {
   }
 
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white overflow-x-hidden">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-background dark:to-background dark:bg-background">
       {/* Header */}
-      <header className={`bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm transition-transform duration-300 ease-in-out will-change-transform ${
+      <header className={`bg-background border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-background/95 supports-[backdrop-filter]:bg-background/80 dark:bg-background/95 dark:supports-[backdrop-filter]:bg-background/80 safe-area-top shadow-sm transition-transform duration-300 ease-in-out will-change-transform ${
         isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
           <div className="flex items-center justify-between gap-2">
-            {/* Language Toggle */}
+            {/* Language Toggle and Dark Mode Toggle */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <LanguageToggle />
+              <DarkModeToggle />
             </div>
             
             {/* User menu / Login button */}
@@ -1004,35 +1031,49 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="flex justify-center items-center w-full md:w-auto order-2 md:order-none"
             >
-              <div className="relative w-full" style={{ maxWidth: '240px' }}>
+              <div className="relative w-full" style={{ maxWidth: '333px' }}>
                 {/* Phone Frame */}
-                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '9/17', maxWidth: '240px' }}>
-                  {/* Phone Container */}
+                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '430/932', height: '666px' }}>
+                  {/* Outer Titanium/Silver Frame */}
                   <div 
-                    className="relative bg-black rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-0.5 sm:p-1 md:p-1.5 shadow-2xl w-full h-full"
+                    className="absolute inset-0 rounded-[3rem] sm:rounded-[3.5rem]"
                     style={{
-                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+                      background: 'linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 25%, #a8a8a8 50%, #c0c0c0 75%, #e8e8e8 100%)',
+                      boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 1px rgba(0, 0, 0, 0.1)'
                     }}
+                  />
+                  
+                  {/* Side Buttons - Left (Silent Switch + Volume) */}
+                  <div 
+                    className="absolute top-[15%] -left-[2px] w-[3px] h-[8%] rounded-l-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  <div 
+                    className="absolute top-[25%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  <div 
+                    className="absolute top-[39%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  
+                  {/* Side Button - Right (Power) */}
+                  <div 
+                    className="absolute top-[28%] -right-[2px] w-[3px] h-[15%] rounded-r-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  
+                  {/* Phone Container (Black inner bezel) */}
+                  <div 
+                    className="absolute inset-[3px] bg-black rounded-[2.75rem] sm:rounded-[3.25rem] overflow-hidden"
                   >
-                    {/* Notch */}
-                    <div 
-                      className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-black rounded-b-lg sm:rounded-b-xl z-10"
-                      style={{ width: 'clamp(60px, 25%, 100px)', height: 'clamp(12px, 3%, 18px)' }}
-                    />
-                    
-                    {/* Speaker */}
-                    <div 
-                      className="absolute top-0.5 sm:top-1 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded-full z-10"
-                      style={{ width: 'clamp(28px, 15%, 45px)', height: 'clamp(2px, 0.6%, 3px)' }}
-                    />
-                    
                     {/* Screen */}
                     <div 
-                      className="relative bg-white rounded-[1.25rem] sm:rounded-[1.75rem] md:rounded-[2.25rem] overflow-hidden w-full h-full"
+                      className="absolute inset-[2px] sm:inset-[3px] bg-white dark:bg-card rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden"
                     >
                       {/* Screen Content - Video */}
                       <video
-                        className="w-full h-full object-cover"
+                        className="w-full h-full pointer-events-none"
                         autoPlay
                         loop
                         muted
@@ -1040,13 +1081,13 @@ export default function Home() {
                       >
                         <source src="https://urqobqgofkwobbwfszxa.supabase.co/storage/v1/object/public/business-assets/iphone_onboarding.mp4" type="video/mp4" />
                       </video>
+                      
+                      {/* Home Indicator */}
+                      <div 
+                        className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 rounded-full z-20"
+                        style={{ width: 'clamp(100px, 40%, 140px)', height: '5px' }}
+                      />
                     </div>
-                    
-                    {/* Home Indicator (for modern phones) */}
-                    <div 
-                      className="absolute bottom-1.5 sm:bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-400 rounded-full z-10"
-                      style={{ width: 'clamp(60px, 38%, 100px)', height: 'clamp(2px, 0.6%, 3px)' }}
-                    />
                   </div>
                 </div>
               </div>
@@ -1066,11 +1107,11 @@ export default function Home() {
               {/* Main headline */}
               <div dir={isRTL ? 'rtl' : 'ltr'}>
                 <h1 
-                  className="text-2xl md:text-3xl font-semibold text-[#030408] text-center leading-snug max-w-[700px] mx-auto"
+                  className="text-2xl md:text-3xl font-semibold text-[#030408] dark:text-white text-center leading-snug max-w-[700px] mx-auto"
                 >
                   {getHome('hero.title')}
                 </h1>
-                <p className="text-center text-gray-600 mt-4 text-base md:text-lg">
+                <p className="text-center text-gray-600 dark:text-white mt-4 text-base md:text-lg">
                   {getHome('hero.subtitle')}
                 </p>
               </div>
@@ -1104,7 +1145,10 @@ export default function Home() {
                 size="lg" 
                 className="text-base sm:text-lg px-6 sm:px-8 w-full sm:w-auto bg-[#ff411b] hover:bg-[#e23a16] text-white shadow-md flex items-center justify-center"
                 onClick={() => {
-                  router.push('/onboarding');
+                  const pricingSection = document.getElementById('pricing');
+                  if (pricingSection) {
+                    pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
                 }}
               >
                 {getHome('startNow')}
@@ -1138,35 +1182,49 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="flex justify-center items-center order-2 md:order-none"
             >
-              <div className="relative w-full" style={{ maxWidth: '240px' }}>
+              <div className="relative w-full" style={{ maxWidth: '333px' }}>
                 {/* Phone Frame */}
-                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '9/17', maxWidth: '240px' }}>
-                  {/* Phone Container */}
+                <div className="relative mx-auto" style={{ width: '100%', aspectRatio: '430/932', height: '666px' }}>
+                  {/* Outer Titanium/Silver Frame */}
                   <div 
-                    className="relative bg-black rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-0.5 sm:p-1 md:p-1.5 shadow-2xl w-full h-full"
+                    className="absolute inset-0 rounded-[3rem] sm:rounded-[3.5rem]"
                     style={{
-                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+                      background: 'linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 25%, #a8a8a8 50%, #c0c0c0 75%, #e8e8e8 100%)',
+                      boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 1px rgba(0, 0, 0, 0.1)'
                     }}
+                  />
+                  
+                  {/* Side Buttons - Left (Silent Switch + Volume) */}
+                  <div 
+                    className="absolute top-[15%] -left-[2px] w-[3px] h-[8%] rounded-l-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  <div 
+                    className="absolute top-[25%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  <div 
+                    className="absolute top-[39%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  
+                  {/* Side Button - Right (Power) */}
+                  <div 
+                    className="absolute top-[28%] -right-[2px] w-[3px] h-[15%] rounded-r-sm z-20"
+                    style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                  />
+                  
+                  {/* Phone Container (Black inner bezel) */}
+                  <div 
+                    className="absolute inset-[3px] bg-black rounded-[2.75rem] sm:rounded-[3.25rem] overflow-hidden"
                   >
-                    {/* Notch */}
-                    <div 
-                      className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-black rounded-b-lg sm:rounded-b-xl z-10"
-                      style={{ width: 'clamp(60px, 25%, 100px)', height: 'clamp(12px, 3%, 18px)' }}
-                    />
-                    
-                    {/* Speaker */}
-                    <div 
-                      className="absolute top-0.5 sm:top-1 left-1/2 transform -translate-x-1/2 bg-gray-800 rounded-full z-10"
-                      style={{ width: 'clamp(28px, 15%, 45px)', height: 'clamp(2px, 0.6%, 3px)' }}
-                    />
-                    
                     {/* Screen */}
                     <div 
-                      className="relative bg-white rounded-[1.25rem] sm:rounded-[1.75rem] md:rounded-[2.25rem] overflow-hidden w-full h-full"
+                      className="absolute inset-[2px] sm:inset-[3px] bg-white dark:bg-card rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden"
                     >
                       {/* Screen Content - Video */}
                       <video
-                        className="w-full h-full object-cover"
+                        className="w-full h-full pointer-events-none"
                         autoPlay
                         loop
                         muted
@@ -1174,13 +1232,13 @@ export default function Home() {
                       >
                         <source src="https://urqobqgofkwobbwfszxa.supabase.co/storage/v1/object/public/business-assets/iphone_onboarding.mp4" type="video/mp4" />
                       </video>
+                      
+                      {/* Home Indicator */}
+                      <div 
+                        className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 rounded-full z-20"
+                        style={{ width: 'clamp(100px, 40%, 140px)', height: '5px' }}
+                      />
                     </div>
-                    
-                    {/* Home Indicator (for modern phones) */}
-                    <div 
-                      className="absolute bottom-1.5 sm:bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-400 rounded-full z-10"
-                      style={{ width: 'clamp(60px, 38%, 100px)', height: 'clamp(2px, 0.6%, 3px)' }}
-                    />
                   </div>
                 </div>
               </div>
@@ -1190,14 +1248,15 @@ export default function Home() {
       </section>
 
       {/* Free Portfolio Section */}
-      <section className="bg-gradient-to-br from-gray-50 to-white py-16 md:py-20">
+      <section className="bg-gradient-to-br from-gray-50 to-white dark:from-background dark:to-background py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Title - Centered */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
             <div className="inline-block mb-4">
               <span className="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-semibold">
@@ -1205,68 +1264,553 @@ export default function Home() {
               </span>
             </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-[#030408]">
-              {getHome('portfolio.title') || '✨ Your Digital Business Card – Instantly Online & Impressively Professional'}
+              {getHome('portfolio.title') || '✨ Digital Business Card – Online, Impressive, and Free'}
             </h2>
             <p className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto">
               {getHome('portfolio.description') || 'Showcase your business online – fast, sleek, and free. Perfect for service providers, freelancers, and small businesses who want a beautiful digital presence without coding or monthly fees.'}
             </p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-5xl mx-auto"
-          >
-            {((getHome('portfolio.benefits') as string[]) || []).map((benefit: string, index: number) => (
+          {/* Preview Section - Full Width when Desktop View is Active */}
+          {showDesktopView ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="w-full"
+            >
+              {/* Toggle Controls - Exact same structure as mobile mode */}
+              <div className="flex flex-col items-center gap-3 mb-6">
+                {/* Paid/Unpaid Toggle */}
+                <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50 dark:border-border">
+                  <button
+                    onClick={() => setPreviewPlanType('paid')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                      previewPlanType === 'paid'
+                        ? 'bg-[#030408] text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    {t('home.preview.withBooking')}
+                  </button>
+                  <button
+                    onClick={() => setPreviewPlanType('unpaid')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                      previewPlanType === 'unpaid'
+                        ? 'bg-[#030408] text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Gift className="w-4 h-4" />
+                    {t('home.preview.businessCard')}
+                  </button>
+                </div>
+
+                {/* Mobile/Desktop Toggle */}
+                <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50 dark:border-border">
+                  <button
+                    onClick={() => setShowDesktopView(false)}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                      !showDesktopView
+                        ? 'bg-[#030408] text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    {t('home.preview.mobile')}
+                  </button>
+                  <button
+                    onClick={() => setShowDesktopView(true)}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                      showDesktopView
+                        ? 'bg-[#030408] text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Monitor className="w-4 h-4" />
+                    {t('home.preview.desktop')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Desktop Preview - Browser Frame */}
               <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col"
-                style={{ height: '100%' }}
+                key={previewPlanType}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="relative w-full max-w-5xl mx-auto mb-8"
               >
-                <div className="flex items-start gap-3 flex-grow">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-50 flex items-center justify-center mt-0.5">
-                    <Check className="w-4 h-4 text-green-600" />
+                {/* Browser Chrome */}
+                <div className="bg-gray-800 px-4 py-3 flex items-center gap-3 rounded-t-lg">
+                  <div className="flex gap-2">
+                    <div className="w-3.5 h-3.5 rounded-full bg-red-500" />
+                    <div className="w-3.5 h-3.5 rounded-full bg-yellow-500" />
+                    <div className="w-3.5 h-3.5 rounded-full bg-green-500" />
                   </div>
-                  <p className={`text-gray-700 font-medium flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {benefit}
+                  <div className="flex-1 mx-4">
+                    <div className="bg-gray-700 rounded-lg px-4 py-2 text-sm text-gray-300 text-center max-w-md mx-auto">
+                      kalbook.io/b/899081
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Screen */}
+                <div className="bg-white dark:bg-card rounded-b-lg overflow-hidden" style={{ height: '60vh', minHeight: '500px' }}>
+                  <iframe
+                    src={`/b/899081?layout=hero&portfolio=${previewPlanType === 'unpaid'}&locale=${iframeLocale}`}
+                    className="w-full h-full pointer-events-none"
+                    title="Desktop Business Card Preview"
+                    style={{ border: 'none' }}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Benefits - Grid of 3 columns below desktop preview */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10"
+                dir={isRTL ? 'rtl' : 'ltr'}
+              >
+                {((getHome('portfolio.benefits') as string[]) || []).map((benefit: string, index: number) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                    className="flex items-start gap-3 w-full p-4 bg-white dark:bg-card rounded-lg border border-gray-200 dark:border-border shadow-sm"
+                  >
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                    <p className={`text-gray-700 text-base flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {benefit}
+                    </p>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* CTA - Centered */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex flex-col items-center gap-3"
+              >
+                <Link href="/onboarding?plan=portfolio">
+                  <Button
+                    size="lg"
+                    className="bg-[#ff411b] hover:bg-[#e23a16] text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+                  >
+                    {getHome('portfolio.cta') || 'Create Your Free Card Now'}
+                    {isRTL ? (
+                      <ArrowLeft className="w-5 h-5 mr-2" />
+                    ) : (
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    )}
+                  </Button>
+                </Link>
+                <p className="text-sm text-gray-500 text-center">
+                  {getHome('portfolio.note') || 'No credit card required. Launch in seconds!'}
+                </p>
+              </motion.div>
+            </motion.div>
+          ) : (
+            /* Two Column Layout - Phone LEFT, Content RIGHT (swapped for RTL) */
+            <div className="flex flex-col md:grid md:grid-cols-[1fr_1fr] gap-10 md:gap-16 items-center" dir="ltr">
+              
+              {/* Phone Mockup Side - Shows SECOND column for RTL, FIRST for LTR */}
+              {!isRTL && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="flex flex-col justify-center items-center w-full order-2 md:order-none"
+                >
+                  {/* Toggle Controls - Stacked vertically */}
+                  <div className="flex flex-col items-center gap-3 mb-6">
+                    {/* Paid/Unpaid Toggle */}
+                    <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50 dark:border-border">
+                      <button
+                        onClick={() => setPreviewPlanType('paid')}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          previewPlanType === 'paid'
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        With Booking
+                      </button>
+                      <button
+                        onClick={() => setPreviewPlanType('unpaid')}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          previewPlanType === 'unpaid'
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Gift className="w-4 h-4" />
+                        Business Card
+                      </button>
+                    </div>
+
+                    {/* Mobile/Desktop Toggle - Hidden on mobile screens */}
+                    <div className="hidden sm:inline-flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50">
+                      <button
+                        onClick={() => setShowDesktopView(false)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          !showDesktopView
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        Mobile
+                      </button>
+                      <button
+                        onClick={() => setShowDesktopView(true)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          showDesktopView
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Monitor className="w-4 h-4" />
+                        Desktop
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Phone Frame - Always visible */}
+                  <motion.div
+                    key={previewPlanType}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative w-full flex justify-center"
+                  >
+                    <div className="relative" style={{ width: '100%', maxWidth: '333px' }}>
+                      <div 
+                        className="relative mx-auto"
+                        style={{ width: '100%', aspectRatio: '430/932', height: '666px' }}
+                      >
+                        {/* Outer Titanium/Silver Frame */}
+                        <div 
+                          className="absolute inset-0 rounded-[3rem] sm:rounded-[3.5rem]"
+                          style={{
+                            background: 'linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 25%, #a8a8a8 50%, #c0c0c0 75%, #e8e8e8 100%)',
+                            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 1px rgba(0, 0, 0, 0.1)'
+                          }}
+                        />
+                        
+                        {/* Side Buttons - Left (Silent Switch + Volume) */}
+                        <div 
+                          className="absolute top-[15%] -left-[2px] w-[3px] h-[8%] rounded-l-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        <div 
+                          className="absolute top-[25%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        <div 
+                          className="absolute top-[39%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        
+                        {/* Side Button - Right (Power) */}
+                        <div 
+                          className="absolute top-[28%] -right-[2px] w-[3px] h-[15%] rounded-r-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        
+                        {/* Phone Container (Black inner bezel) */}
+                        <div 
+                          className="absolute inset-[3px] bg-black rounded-[2.75rem] sm:rounded-[3.25rem] overflow-hidden"
+                        >
+                          {/* Screen */}
+                          <div 
+                            className="absolute inset-[2px] sm:inset-[3px] bg-white dark:bg-card rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden"
+                          >
+                            {/* Screen Content - iframe */}
+                            <iframe
+                              src={`/b/899081?layout=hero&portfolio=${previewPlanType === 'unpaid'}&locale=${iframeLocale}`}
+                              className="w-full h-full pointer-events-none"
+                              title="Business Card Preview"
+                              style={{ border: 'none' }}
+                            />
+                            
+                            {/* Home Indicator */}
+                            <div 
+                              className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 rounded-full z-20"
+                              style={{ width: 'clamp(100px, 40%, 140px)', height: '5px' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {/* Content Side - Benefits + CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5 }}
+                className="order-1 md:order-none"
+                dir={isRTL ? 'rtl' : 'ltr'}
+              >
+                {/* Benefits - Clean Vertical List */}
+                <div className="space-y-3 mb-10">
+                  {((getHome('portfolio.benefits') as string[]) || []).map((benefit: string, index: number) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      dir={isRTL ? 'rtl' : 'ltr'}
+                      className="flex items-center gap-3 w-full"
+                    >
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                      <p className={`text-gray-700 text-base flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {benefit}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <div className={`flex flex-col ${isRTL ? 'items-end' : 'items-start'} gap-3`}>
+                  <Link href="/onboarding?plan=portfolio">
+                    <Button
+                      size="lg"
+                      className="bg-[#ff411b] hover:bg-[#e23a16] text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {getHome('portfolio.cta') || 'Create Your Free Card Now'}
+                      {isRTL ? (
+                        <ArrowLeft className="w-5 h-5 mr-2" />
+                      ) : (
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      )}
+                    </Button>
+                  </Link>
+                  <p className="text-sm text-gray-500">
+                    {getHome('portfolio.note') || 'No credit card required. Launch in seconds!'}
                   </p>
                 </div>
               </motion.div>
-            ))}
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-center"
-          >
-            <Link href="/onboarding?plan=portfolio">
-              <Button
-                size="lg"
-                className="bg-[#ff411b] hover:bg-[#e23a16] text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-              >
-                {getHome('portfolio.cta') || 'Create Your Free Card Now'}
-                {isRTL ? (
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                ) : (
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                )}
-              </Button>
-            </Link>
-            <p className="mt-4 text-sm text-gray-600">
-              {getHome('portfolio.note') || 'No credit card required. Launch in seconds!'}
-            </p>
-          </motion.div>
+              {/* Phone Mockup Side - For RTL (shows on RIGHT) */}
+              {isRTL && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="flex flex-col justify-center items-center w-full order-2 md:order-none"
+                >
+                  {/* Toggle Controls - Stacked vertically */}
+                  <div className="flex flex-col items-center gap-3 mb-6">
+                    {/* Paid/Unpaid Toggle */}
+                    <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50 dark:border-border">
+                      <button
+                        onClick={() => setPreviewPlanType('paid')}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          previewPlanType === 'paid'
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        {t('home.preview.withBooking')}
+                      </button>
+                      <button
+                        onClick={() => setPreviewPlanType('unpaid')}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          previewPlanType === 'unpaid'
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Gift className="w-4 h-4" />
+                        {t('home.preview.businessCard')}
+                      </button>
+                    </div>
+
+                    {/* Mobile/Desktop Toggle - Hidden on mobile screens */}
+                    <div className="hidden sm:inline-flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50">
+                      <button
+                        onClick={() => setShowDesktopView(false)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          !showDesktopView
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        {t('home.preview.mobile')}
+                      </button>
+                      <button
+                        onClick={() => setShowDesktopView(true)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                          showDesktopView
+                            ? 'bg-[#030408] text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Monitor className="w-4 h-4" />
+                        {t('home.preview.desktop')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Phone Frame - Always visible */}
+                  <motion.div
+                    key={previewPlanType}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative w-full flex justify-center"
+                  >
+                    <div className="relative" style={{ width: '100%', maxWidth: '333px' }}>
+                      <div 
+                        className="relative mx-auto"
+                        style={{ width: '100%', aspectRatio: '430/932', height: '666px' }}
+                      >
+                        {/* Outer Titanium/Silver Frame */}
+                        <div 
+                          className="absolute inset-0 rounded-[3rem] sm:rounded-[3.5rem]"
+                          style={{
+                            background: 'linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 25%, #a8a8a8 50%, #c0c0c0 75%, #e8e8e8 100%)',
+                            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 1px rgba(0, 0, 0, 0.1)'
+                          }}
+                        />
+                        
+                        {/* Side Buttons - Left (Silent Switch + Volume) */}
+                        <div 
+                          className="absolute top-[15%] -left-[2px] w-[3px] h-[8%] rounded-l-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        <div 
+                          className="absolute top-[25%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        <div 
+                          className="absolute top-[39%] -left-[2px] w-[3px] h-[12%] rounded-l-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        
+                        {/* Side Button - Right (Power) */}
+                        <div 
+                          className="absolute top-[28%] -right-[2px] w-[3px] h-[15%] rounded-r-sm z-20"
+                          style={{ background: 'linear-gradient(180deg, #d0d0d0 0%, #a0a0a0 50%, #d0d0d0 100%)' }}
+                        />
+                        
+                        {/* Phone Container (Black inner bezel) */}
+                        <div 
+                          className="absolute inset-[3px] bg-black rounded-[2.75rem] sm:rounded-[3.25rem] overflow-hidden"
+                        >
+                          {/* Screen */}
+                          <div 
+                            className="absolute inset-[2px] sm:inset-[3px] bg-white dark:bg-card rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden"
+                          >
+                            {/* Screen Content - iframe */}
+                            <iframe
+                              src={`/b/899081?layout=hero&portfolio=${previewPlanType === 'unpaid'}&locale=${iframeLocale}`}
+                              className="w-full h-full pointer-events-none"
+                              title="Business Card Preview"
+                              style={{ border: 'none' }}
+                            />
+                            
+                            {/* Home Indicator */}
+                            <div 
+                              className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 bg-black/80 rounded-full z-20"
+                              style={{ width: 'clamp(100px, 40%, 140px)', height: '5px' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Desktop Preview Modal */}
+      <Dialog open={desktopPreviewOpen} onOpenChange={setDesktopPreviewOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-gray-900 border-gray-700">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Desktop Preview</DialogTitle>
+          </DialogHeader>
+          
+          {/* Browser Chrome */}
+          <div className="bg-gray-800 px-4 py-3 flex items-center gap-3">
+            <div className="flex gap-2">
+              <button 
+                type="button"
+                onClick={() => setDesktopPreviewOpen(false)}
+                className="w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+                aria-label="Close preview"
+              />
+              <div className="w-3.5 h-3.5 rounded-full bg-yellow-500" />
+              <div className="w-3.5 h-3.5 rounded-full bg-green-500" />
+            </div>
+            <div className="flex-1 mx-4">
+              <div className="bg-gray-700 rounded-lg px-4 py-2 text-sm text-gray-300 text-center max-w-md mx-auto">
+                kalbook.io/b/899081
+              </div>
+            </div>
+            {/* Paid/Unpaid Toggle in Modal */}
+            <div className="inline-flex items-center gap-1 bg-gray-700/50 rounded-full p-1">
+              <button
+                onClick={() => setPreviewPlanType('paid')}
+                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
+                  previewPlanType === 'paid'
+                    ? 'bg-white dark:bg-card text-gray-900 dark:text-foreground shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <CreditCard className="w-3 h-3" />
+                {t('home.preview.modalBooking')}
+              </button>
+              <button
+                onClick={() => setPreviewPlanType('unpaid')}
+                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
+                  previewPlanType === 'unpaid'
+                    ? 'bg-white dark:bg-card text-gray-900 dark:text-foreground shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Gift className="w-3 h-3" />
+                {t('home.preview.modalCard')}
+              </button>
+            </div>
+          </div>
+          
+          {/* Screen */}
+          <div className="bg-white dark:bg-card" style={{ height: '70vh' }}>
+            <iframe
+              src={`/b/899081?layout=hero&portfolio=${previewPlanType === 'unpaid'}&locale=${iframeLocale}`}
+              className="w-full h-full"
+              title="Desktop Business Card Preview"
+              style={{ border: 'none' }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Features Section */}
       <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -1277,8 +1821,8 @@ export default function Home() {
           transition={{ duration: 0.3 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#030408]">{getHome('features.title')}</h2>
-          <p className="text-gray-600 text-lg">{getHome('features.subtitle') || 'Everything you need to run your service business smoothly'}</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#030408] dark:text-white">{getHome('features.title')}</h2>
+          <p className="text-gray-600 dark:text-white text-lg">{getHome('features.subtitle') || 'Everything you need to run your service business smoothly'}</p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -1293,16 +1837,25 @@ export default function Home() {
                 transition={{ duration: 0.25, delay: index * 0.05 }}
               >
                 <Card 
-                  className="p-6 h-full hover:shadow-lg transition-shadow cursor-pointer bg-[#f7f7f8] border border-[#e2e2e2]"
+                  className="home-feature-card p-6 h-full cursor-pointer bg-[#f7f7f8] dark:bg-[#1a1f3a] border border-[#e2e2e2] dark:border-[#2a2a4a] transition-all duration-200"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={getFeature(key, 'title')}
                   onClick={() => setSelectedFeature(key)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedFeature(key);
+                    }
+                  }}
                 >
                   <div className="flex items-start gap-4">
                     <div className="p-3 rounded-lg">
-                      <Icon className="w-6 h-6 text-gray-700" />
+                      <Icon className="w-6 h-6 text-gray-700 dark:text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-2 text-[#030408]">{getFeature(key, 'title')}</h3>
-                      <p className="text-gray-600 line-clamp-2">{getFeature(key, 'desc')}</p>
+                      <h3 className="text-xl font-semibold mb-2 text-[#030408] dark:text-white">{getFeature(key, 'title')}</h3>
+                      <p className="text-gray-600 dark:text-white line-clamp-2">{getFeature(key, 'desc')}</p>
                     </div>
                   </div>
                 </Card>
@@ -1366,7 +1919,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="bg-gray-50 py-16">
+      <section id="pricing" className="bg-gray-50 dark:bg-background py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1430,62 +1983,25 @@ export default function Home() {
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              {locale === 'he' ? 'תכונות נוספות שניתן לפתח' : 'Additional Features We Can Develop'}
+              {getCustomFeatures('title')}
             </h2>
             <p className="text-gray-600 text-lg">
-              {locale === 'he' ? 'תכונות מתקדמות ומותאמות אישית עבור הצרכים הספציפיים שלך' : 'Advanced and custom features tailored to your specific needs'}
+              {getCustomFeatures('subtitle')}
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { 
-                title: locale === 'he' ? 'גישה ל-API' : 'API Access', 
-                desc: locale === 'he' ? 'אינטגרציה מלאה עם המערכות שלך' : 'Full integration with your systems' 
-              },
-              { 
-                title: locale === 'he' ? 'פתרון White-Label' : 'White-Label Solution', 
-                desc: locale === 'he' ? 'מותג מותאם אישית ללא לוגו שלנו' : 'Fully branded solution without our logo' 
-              },
-              { 
-                title: locale === 'he' ? 'אינטגרציות מותאמות' : 'Custom Integrations', 
-                desc: locale === 'he' ? 'חיבור למערכות CRM, ERP וכלים אחרים' : 'Connect to CRM, ERP and other tools' 
-              },
-              { 
-                title: locale === 'he' ? 'דוחות מתקדמים' : 'Advanced Reports', 
-                desc: locale === 'he' ? 'דוחות מותאמים אישית וניתוחים עמוקים' : 'Custom reports and deep analytics' 
-              },
-              { 
-                title: locale === 'he' ? 'תמיכה במיקומים מרובים' : 'Multi-Location Support', 
-                desc: locale === 'he' ? 'ניהול מספר סניפים ממקום אחד' : 'Manage multiple branches from one place' 
-              },
-              { 
-                title: locale === 'he' ? 'זרימות עבודה מותאמות' : 'Custom Workflows', 
-                desc: locale === 'he' ? 'אוטומציה מותאמת אישית לתהליכים שלך' : 'Custom automation for your processes' 
-              },
-              { 
-                title: locale === 'he' ? 'אוטומציה מתקדמת' : 'Advanced Automation', 
-                desc: locale === 'he' ? 'כללי עסק מותאמים אישית וטריגרים' : 'Custom business rules and triggers' 
-              },
-              { 
-                title: locale === 'he' ? 'תמיכה ייעודית' : 'Dedicated Support', 
-                desc: locale === 'he' ? 'מנהל חשבון אישי ותמיכה 24/7' : 'Personal account manager and 24/7 support' 
-              },
-              { 
-                title: locale === 'he' ? 'פיתוח מותאם אישית' : 'Custom Development', 
-                desc: locale === 'he' ? 'תכונות ייחודיות לפי הזמנה' : 'Unique features built to order' 
-              },
-            ].map((feature, index) => (
+            {customFeatureKeys.map((featureKey, index) => (
               <motion.div
-                key={index}
+                key={featureKey}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.25, delay: index * 0.05 }}
               >
                 <Card className="p-6 h-full hover:shadow-lg transition-shadow">
-                  <h3 className="text-xl font-semibold mb-2 text-[#030408]">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.desc}</p>
+                  <h3 className="text-xl font-semibold mb-2 text-[#030408]">{getCustomFeature(featureKey, 'title')}</h3>
+                  <p className="text-gray-600">{getCustomFeature(featureKey, 'desc')}</p>
                 </Card>
               </motion.div>
             ))}
@@ -1522,7 +2038,7 @@ export default function Home() {
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.2, delay: displayIndex * 0.05 }}
               >
-                <Card className="overflow-hidden bg-white border border-[#e2e2e2]">
+                <Card className="overflow-hidden bg-white dark:bg-card border border-[#e2e2e2] dark:border-border">
                   <button
                     onClick={() => toggleFaq(originalIndex)}
                     style={{
@@ -1668,6 +2184,7 @@ export default function Home() {
         onOpenChange={setUserAccountModalOpen}
         initialTab="profile"
       />
+
     </div>
   );
 }

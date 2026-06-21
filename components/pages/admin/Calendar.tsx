@@ -652,7 +652,7 @@ function CalendarContent() {
           <h1 className="text-2xl font-bold text-gray-900">{t('calendar.title')}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100">
+          <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100" aria-label={t('calendar.notifications') || 'Notifications'}>
             <Bell className="w-5 h-5 text-gray-700" />
           </Button>
         </div>
@@ -739,6 +739,7 @@ function CalendarContent() {
                       variant="outline" 
                       className="size-6.5 px-0 [&_svg]:size-4.5" 
                       onClick={handlePrevious}
+                      aria-label={t('calendar.previous') || 'Previous'}
                     >
                       {isRTL ? <ChevronRight /> : <ChevronLeft />}
                     </Button>
@@ -753,6 +754,7 @@ function CalendarContent() {
                       variant="outline" 
                       className="size-6.5 px-0 [&_svg]:size-4.5" 
                       onClick={handleNext}
+                      aria-label={t('calendar.next') || 'Next'}
                     >
                       {isRTL ? <ChevronLeft /> : <ChevronRight />}
                     </Button>

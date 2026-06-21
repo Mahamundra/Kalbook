@@ -11,6 +11,7 @@ import type {
   Settings,
   Template,
 } from '@/types/admin';
+import { getApiErrorMessage } from '@/lib/api/error-message';
 
 /**
  * Base API error class
@@ -48,7 +49,7 @@ async function apiRequest<T>(
 
     if (!response.ok) {
       throw new ApiError(
-        data.error || `Request failed with status ${response.status}`,
+        getApiErrorMessage(data.error, `Request failed with status ${response.status}`),
         response.status,
         data
       );

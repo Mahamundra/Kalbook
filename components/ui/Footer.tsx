@@ -16,44 +16,28 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useLocale } from '@/hooks/useLocale';
-import en from '@/messages/en.json';
-import he from '@/messages/he.json';
-import ar from '@/messages/ar.json';
-import ru from '@/messages/ru.json';
-
-const translations = { en, he, ar, ru };
 
 export function Footer() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({ name: '', email: '', message: '' });
   const [submittingContact, setSubmittingContact] = useState(false);
   const { toast } = useToast();
 
-  const getNested = (obj: any, path: string) => {
-    return path.split('.').reduce((acc: any, key: string) => (acc ? acc[key] : undefined), obj);
-  };
-
-  const homeData = getNested(translations[locale as keyof typeof translations] || translations.en, 'home');
-  const getHome = (key: string) => getNested(homeData, key) || '';
-  const getFooter = (key: string) => {
-    const footerData = getNested(homeData, 'footer');
-    const value = getNested(footerData, key);
-    return value || '';
-  };
+  const copyright = t('home.footer.copyright')
+    .replace('{year}', String(new Date().getFullYear()))
+    .replace('{rights}', t('home.footer.rights'));
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingContact(true);
     try {
-      // Here you would typically send the form data to an API endpoint
-      // For now, we'll just show a success message
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      toast.success(getHome('contact.success') || 'Thank you! We\'ll get back to you soon.');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast.success(t('home.contact.success'));
       setContactFormData({ name: '', email: '', message: '' });
       setContactModalOpen(false);
-    } catch (error) {
-      toast.error(getHome('contact.error') || 'Failed to send message. Please try again.');
+    } catch {
+      toast.error(t('home.contact.error'));
     } finally {
       setSubmittingContact(false);
     }
@@ -64,7 +48,6 @@ export function Footer() {
       <footer className="py-12 border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            {/* Social Links - Left */}
             <div className="flex gap-4 order-3 md:order-1">
               <a
                 href="https://instagram.com/kalbook.io"
@@ -85,56 +68,49 @@ export function Footer() {
                 <Facebook className="w-5 h-5" />
               </a>
             </div>
-            
-            {/* Links - Center */}
+
             <div className="flex gap-4 order-1 md:order-2">
               <button
                 onClick={() => setContactModalOpen(true)}
                 className="text-sm text-muted-foreground relative inline-block group !hover:bg-transparent !hover:text-muted-foreground"
               >
-                {getHome('contact.title') || 'Contact Us'}
+                {t('home.contact.title')}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full"></span>
               </button>
               <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground relative inline-block group">
-                {getFooter('terms') || (locale === 'ar' ? 'الشروط' : locale === 'he' ? 'תנאי שימוש' : locale === 'ru' ? 'Условия' : 'Terms')}
+                {t('home.footer.terms')}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full"></span>
               </Link>
               <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground relative inline-block group">
-                {getFooter('privacy') || (locale === 'ar' ? 'الخصوصية' : locale === 'he' ? 'מדיניות פרטיות' : locale === 'ru' ? 'Конфиденциальность' : 'Privacy')}
+                {t('home.footer.privacy')}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full"></span>
               </Link>
             </div>
-            
-            {/* Copyright - Right */}
+
             <div className="order-2 md:order-3">
-              <p 
+              <p
                 className="text-sm text-muted-foreground text-center md:text-right"
                 style={locale === 'he' || locale === 'ar' ? { direction: 'ltr' } : {}}
               >
-                {locale === 'he' 
-                  ? `© ${new Date().getFullYear()} Kalbook.io ${getFooter('rights') || 'כל הזכויות שמורות'}`
-                  : `© ${new Date().getFullYear()} Kalbook.io. ${getFooter('rights') || 'All rights reserved.'}`
-                }
+                {copyright}
               </p>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Contact Modal */}
       <Dialog open={contactModalOpen} onOpenChange={setContactModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-[#030408]">{getHome('contact.title') || 'Contact Us'}</DialogTitle>
+            <DialogTitle className="text-[#030408]">{t('home.contact.title')}</DialogTitle>
             <DialogDescription className="text-gray-600">
-              {getHome('contact.description') || 'Get in touch with us. We\'d love to hear from you!'}
+              {t('home.contact.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Contact Information */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg text-[#030408]">{getHome('contact.info') || 'Contact Information'}</h3>
+              <h3 className="font-semibold text-lg text-[#030408]">{t('home.contact.info')}</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-gray-600" />
@@ -162,10 +138,9 @@ export function Footer() {
               </div>
             </div>
 
-            {/* Contact Form */}
             <form onSubmit={handleContactSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="contact-name" className="text-gray-700">{getHome('contact.name') || 'Name'}</Label>
+                <Label htmlFor="contact-name" className="text-gray-700">{t('home.contact.name')}</Label>
                 <Input
                   id="contact-name"
                   value={contactFormData.name}
@@ -175,7 +150,7 @@ export function Footer() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contact-email" className="text-gray-700">{getHome('contact.email') || 'Email'}</Label>
+                <Label htmlFor="contact-email" className="text-gray-700">{t('home.contact.email')}</Label>
                 <Input
                   id="contact-email"
                   type="email"
@@ -186,7 +161,7 @@ export function Footer() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contact-message" className="text-gray-700">{getHome('contact.message') || 'Message'}</Label>
+                <Label htmlFor="contact-message" className="text-gray-700">{t('home.contact.message')}</Label>
                 <Textarea
                   id="contact-message"
                   value={contactFormData.message}
@@ -196,12 +171,12 @@ export function Footer() {
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
-                disabled={submittingContact} 
+              <Button
+                type="submit"
+                disabled={submittingContact}
                 className="w-full bg-[#ff411b] text-white hover:bg-[#e23a16] shadow-md"
               >
-                {submittingContact ? (getHome('contact.submitting') || 'Sending...') : (getHome('contact.submit') || 'Send Message')}
+                {submittingContact ? t('home.contact.submitting') : t('home.contact.submit')}
               </Button>
             </form>
           </div>
@@ -210,4 +185,3 @@ export function Footer() {
     </>
   );
 }
-

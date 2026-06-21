@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale } from '@/hooks/useLocale';
@@ -23,9 +24,10 @@ export function PageHeader({
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-6">
-        {/* Language Toggle - on left for desktop only */}
-        <div className="hidden md:block">
+        {/* Language Toggle and Dark Mode Toggle - on left for desktop only */}
+        <div className="hidden md:flex items-center gap-2">
           <LanguageToggle />
+          <DarkModeToggle />
         </div>
         
         {/* Logo - on left for mobile, centered for desktop */}
@@ -33,11 +35,12 @@ export function PageHeader({
           <KalBookLogo size="md" variant="full" animated={false} />
         </div>
         
-        {/* Right side buttons - Language (mobile) + Homepage */}
+        {/* Right side buttons - Language (mobile) + Dark Mode (mobile) + Homepage */}
         <div className="flex items-center gap-2">
-          {/* Language Toggle - visible on mobile, hidden on desktop */}
-          <div className="md:hidden">
+          {/* Language Toggle and Dark Mode Toggle - visible on mobile, hidden on desktop */}
+          <div className="md:hidden flex items-center gap-2">
             <LanguageToggle />
+            <DarkModeToggle />
           </div>
           
           {/* Homepage button */}

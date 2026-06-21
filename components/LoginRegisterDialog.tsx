@@ -10,6 +10,7 @@ import { useDirection } from '@/components/providers/DirectionProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatIsraeliPhoneInput } from '@/lib/phone/display';
 import type { CustomField, RegistrationSettings } from '@/types/admin';
 // Removed mock data imports - now using API
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -66,26 +67,6 @@ export function LoginRegisterDialog({
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits (Israeli phone numbers are 10 digits)
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
   // Handle phone input change - simple and reliable version
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Get the raw input value directly from the event
@@ -107,7 +88,7 @@ export function LoginRegisterDialog({
     }
     
     // Format the digits (adds dashes)
-    const formatted = formatPhoneNumber(digits);
+    const formatted = formatIsraeliPhoneInput(digits);
     
     // Update state with formatted value
     setPhone(formatted);
@@ -561,7 +542,7 @@ export function LoginRegisterDialog({
       if (error) throw error;
       // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Google login');
+      toast.error(error.message || t('auth.googleLoginError'));
       setIsOAuthLoading(false);
     }
   };
@@ -584,7 +565,7 @@ export function LoginRegisterDialog({
       if (error) throw error;
       // Redirect will happen automatically - no need to handle response
     } catch (error: any) {
-      toast.error(error.message || 'Failed to initiate Facebook login');
+      toast.error(error.message || t('auth.facebookLoginError'));
       setIsOAuthLoading(false);
     }
   };
@@ -852,11 +833,7 @@ export function LoginRegisterDialog({
                 <p className="text-sm text-blue-700 dark:text-blue-300" dir={isRTL ? 'rtl' : 'ltr'}>
                   {loginMethod === 'phone' 
                     ? (codeSentViaWhatsApp 
-                        ? (locale === 'he' 
-                            ? `קוד נשלח אל ${phone} ב-WhatsApp`
-                            : locale === 'ar'
-                            ? `تم إرسال الكود إلى ${phone} عبر WhatsApp`
-                            : `Code sent to ${phone} via WhatsApp`)
+                        ? t('auth.codeSentToWhatsApp').replace('{phone}', phone)
                         : (t('auth.codeSentTo')?.replace('{phone}', phone) || `Code sent to ${phone}`))
                     : (t('auth.codeSentToEmail')?.replace('{email}', email) || `Verification code sent to ${email}`)
                   }
@@ -887,11 +864,7 @@ export function LoginRegisterDialog({
                 </div>
                 {loginMethod === 'phone' && codeSentViaWhatsApp && (
                   <p className={`text-xs text-muted-foreground mt-2 text-center ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                    {locale === 'he' 
-                      ? 'הזן את הקוד שקיבלת ב-WhatsApp'
-                      : locale === 'ar'
-                      ? 'أدخل الرمز الذي استلمته على WhatsApp'
-                      : 'Enter the code you received on WhatsApp'}
+                    {t('auth.enterWhatsAppCode')}
                   </p>
                 )}
               </div>

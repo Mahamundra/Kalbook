@@ -201,12 +201,6 @@ const Dashboard = () => {
       });
   }, []);
 
-  const handleViewDetails = (id: string) => {
-    toast.info(t('dashboard.bookingDetailsComingSoon'), { 
-      description: t('dashboard.bookingId').replace('{id}', id)
-    });
-  };
-
   // Convert metrics data to Metric format for MetricCard with keys for visibility control
   interface MetricWithKey extends Metric {
     key: string;
@@ -538,7 +532,7 @@ const Dashboard = () => {
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <ScheduleList items={schedule} onViewDetails={handleViewDetails} />
+            <ScheduleList items={schedule} />
           )}
         </CardContent>
       </Card>

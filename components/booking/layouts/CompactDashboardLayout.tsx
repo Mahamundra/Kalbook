@@ -3,8 +3,6 @@
 import { LayoutProps } from './types';
 import { Card } from '@/components/ui/card';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { LanguageToggle } from '@/components/ui/LanguageToggle';
-import { useDirection } from '@/components/providers/DirectionProvider';
 import { cn } from '@/lib/utils';
 
 export function CompactDashboardLayout({
@@ -33,11 +31,11 @@ export function CompactDashboardLayout({
       {bookingSection}
     </>
   );
-  const { dir: direction } = useDirection();
-  const isRTL = direction === 'rtl';
-
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white overflow-x-hidden flex flex-col" data-booking-page="true">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-background dark:to-background overflow-x-hidden flex flex-col" data-booking-page="true">
+      {/* Header */}
+      {header}
+
       {/* Trial Expired Banner */}
       {trialBanner}
 
@@ -54,14 +52,6 @@ export function CompactDashboardLayout({
 
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/30" />
-
-        {/* Language Toggle - Positioned in top corner */}
-        <div className={cn(
-          "absolute top-4 z-20 safe-area-top",
-          isRTL ? "left-4" : "right-4"
-        )}>
-          <LanguageToggle />
-        </div>
 
         {/* Banner Content - Logo, Name, Description (like hero layout) */}
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 sm:pt-16 sm:pb-16 md:py-20 lg:py-24">
@@ -82,7 +72,7 @@ export function CompactDashboardLayout({
               ) : (
                 <div
                   className={cn(
-                    "h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 flex items-center justify-center mb-3 sm:mb-4 md:mb-5 lg:mb-6 shadow-lg bg-white/90",
+                    "h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 flex items-center justify-center mb-3 sm:mb-4 md:mb-5 lg:mb-6 shadow-lg bg-white/90 dark:bg-card/90",
                     logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'
                   )}
                   data-edit-id="logo"
@@ -136,7 +126,7 @@ export function CompactDashboardLayout({
               )}
               {/* Business Info - Open Times, Address, Contact */}
               {businessInfo && (
-                <Card className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 bg-white shadow-sm border-gray-200 rounded-lg">
+                <Card className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 bg-card shadow-sm border rounded-lg">
                   <div className="[&_.bg-card]:!bg-transparent [&_.bg-card]:!shadow-none [&_.bg-card]:!border-0">
                     {businessInfo}
                   </div>
@@ -151,7 +141,7 @@ export function CompactDashboardLayout({
             <>
               {/* Business Info - Open Times, Address, Contact First */}
               {businessInfo && (
-                <Card className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 bg-white shadow-sm border-gray-200 rounded-lg">
+                <Card className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 bg-card shadow-sm border rounded-lg">
                   <div className="[&_.bg-card]:!bg-transparent [&_.bg-card]:!shadow-none [&_.bg-card]:!border-0">
                     {businessInfo}
                   </div>

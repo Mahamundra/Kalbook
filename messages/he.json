@@ -1,22 +1,22 @@
 {
-    "nav": {
-        "dashboard": "לוח בקרה",
-        "calendar": "יומן",
-        "services": "שירותים",
-        "classes": "שיעורים",
-        "workers": "עובדים",
-        "customers": "לקוחות",
-        "trainers": "מאמנים",
-        "clients": "לקוחות",
-        "activityLogs": "יומן פעילות",
-        "templates": "תבניות",
-        "qr": "קודי QR",
-        "settings": "הגדרות",
-        "viewPublicSite": "צפה באתר הציבורי",
-        "viewMyBookingPage": "צפה בדף ההזמנות שלי",
-        "more": "עוד",
-        "back": "חזרה"
-    },
+  "nav": {
+    "dashboard": "לוח בקרה",
+    "calendar": "יומן",
+    "services": "שירותים",
+    "classes": "שיעורים",
+    "workers": "עובדים",
+    "customers": "לקוחות",
+    "trainers": "מאמנים",
+    "clients": "לקוחות",
+    "activityLogs": "יומן פעילות",
+    "templates": "תבניות",
+    "qr": "קודי QR",
+    "settings": "הגדרות",
+    "viewPublicSite": "צפה באתר הציבורי",
+    "viewMyBookingPage": "צפה בדף ההזמנות שלי",
+    "more": "עוד",
+    "back": "חזרה"
+  },
   "dashboard": {
     "title": "לוח בקרה",
     "welcome": "ברוכים השבים! הנה מה שקורה היום.",
@@ -167,7 +167,6 @@
     "edit": "ערוך שירות",
     "delete": "מחק שירות",
     "name": "שם",
-    "description": "תיאור",
     "descriptionPlaceholder": "הוסף תיאור לשירות זה...",
     "duration": "משך",
     "durationMinutes": "משך (דקות)",
@@ -294,7 +293,7 @@
   "customers": {
     "title": "לקוחות",
     "search": "חיפוש לקוחות...",
-    "add": "הוסף לקוח חדש",
+    "add": "הוסף",
     "name": "שם",
     "phone": "טלפון",
     "email": "אימייל",
@@ -357,42 +356,6 @@
     "overview": "סקירה",
     "addTags": "הוסף תגיות...",
     "statistics": {
-      "title": "סטטיסטיקות"
-    },
-    "communications": {
-      "title": "תקשורת"
-    },
-    "notesHistory": {
-      "title": "היסטוריית הערות"
-    },
-    "merge": {
-      "title": "מיזוג לקוח"
-    },
-    "delete": "מחק",
-    "exportSuccess": "לקוחות יוצאו בהצלחה",
-    "saveError": "שמירת לקוח נכשלה",
-    "exportError": "ייצוא לקוחות נכשל",
-    "planLimitAddCustomers": "התוכנית שלך לא מאפשרת הוספת לקוחות. אנא שדרג כדי להמשיך.",
-    "filters": {
-      "title": "מסננים",
-      "sortBy": "מיין לפי",
-      "createdDate": "תאריך יצירה",
-      "clearAll": "נקה הכל",
-      "activeFilters": "מסננים פעילים",
-      "blocked": "חסום",
-      "marketingConsent": "הסכמה לשיווק",
-      "newsletterSubscribe": "דיוור",
-      "subscribed": "מאושר דיוור",
-      "notSubscribed": "לא מאושר דיוור",
-      "all": "הכל",
-      "lastVisitFrom": "ביקור אחרון מ",
-      "lastVisitTo": "ביקור אחרון עד",
-      "createdDateFrom": "תאריך יצירה מ",
-      "createdDateTo": "תאריך יצירה עד",
-      "dateOfBirthFrom": "תאריך לידה מ",
-      "dateOfBirthTo": "תאריך לידה עד"
-    },
-    "statistics": {
       "title": "סטטיסטיקות",
       "totalAppointments": "סה\"כ תורים",
       "avgVisitsPerMonth": "ממוצע ביקורים/חודש",
@@ -423,6 +386,38 @@
       "noNotes": "לא נמצאו הערות",
       "createdBy": "נוצר על ידי"
     },
+    "merge": {
+      "title": "מיזוג לקוח",
+      "description": "בחר שני לקוחות למיזוג. הלקוח המשני יימחק.",
+      "selectPrimary": "לקוח ראשי",
+      "selectSecondary": "לקוח משני",
+      "confirm": "אשר מיזוג",
+      "success": "לקוחות מוזגו בהצלחה"
+    },
+    "delete": "מחק",
+    "exportSuccess": "לקוחות יוצאו בהצלחה",
+    "saveError": "שמירת לקוח נכשלה",
+    "exportError": "ייצוא לקוחות נכשל",
+    "planLimitAddCustomers": "התוכנית שלך לא מאפשרת הוספת לקוחות. אנא שדרג כדי להמשיך.",
+    "filters": {
+      "title": "מסננים",
+      "sortBy": "מיין לפי",
+      "createdDate": "תאריך יצירה",
+      "clearAll": "נקה הכל",
+      "activeFilters": "מסננים פעילים",
+      "blocked": "חסום",
+      "marketingConsent": "הסכמה לשיווק",
+      "newsletterSubscribe": "דיוור",
+      "subscribed": "מאושר דיוור",
+      "notSubscribed": "לא מאושר דיוור",
+      "all": "הכל",
+      "lastVisitFrom": "ביקור אחרון מ",
+      "lastVisitTo": "ביקור אחרון עד",
+      "createdDateFrom": "תאריך יצירה מ",
+      "createdDateTo": "תאריך יצירה עד",
+      "dateOfBirthFrom": "תאריך לידה מ",
+      "dateOfBirthTo": "תאריך לידה עד"
+    },
     "importDescription": "העלה קובץ CSV לייבוא לקוחות",
     "selectFile": "בחר קובץ CSV",
     "noFileChosen": "לא נבחר קובץ",
@@ -438,16 +433,7 @@
     "moreErrors": "עוד שגיאות",
     "bulkOperationDescription": "החל על {count} לקוחות נבחרים",
     "operation": "פעולה",
-    "add": "הוסף",
     "remove": "הסר",
-    "merge": {
-      "title": "מיזוג לקוח",
-      "description": "בחר שני לקוחות למיזוג. הלקוח המשני יימחק.",
-      "selectPrimary": "לקוח ראשי",
-      "selectSecondary": "לקוח משני",
-      "confirm": "אשר מיזוג",
-      "success": "לקוחות מוזגו בהצלחה"
-    },
     "merging": "מתמזג...",
     "pagination": {
       "showing": "מציג",
@@ -463,7 +449,7 @@
   "clients": {
     "title": "לקוחות",
     "search": "חיפוש לקוחות...",
-    "add": "הוסף לקוח חדש",
+    "add": "הוסף",
     "name": "שם",
     "phone": "טלפון",
     "email": "אימייל",
@@ -610,7 +596,6 @@
     "moreErrors": "עוד שגיאות",
     "bulkOperationDescription": "החל על {count} לקוחות נבחרים",
     "operation": "פעולה",
-    "add": "הוסף",
     "remove": "הסר",
     "merge": {
       "title": "מיזוג לקוח",
@@ -896,6 +881,19 @@
     "phone": "טלפון",
     "whatsapp": "WhatsApp",
     "address": "כתובת",
+    "addressFields": {
+      "city": "עיר",
+      "cityPlaceholder": "חפש עיר",
+      "street": "רחוב",
+      "streetPlaceholder": "חפש רחוב",
+      "houseNumber": "מספר בית",
+      "houseNumberPlaceholder": "אופציונלי",
+      "selectCityFirst": "בחר עיר תחילה",
+      "loading": "טוען...",
+      "noResults": "לא נמצאו תוצאות",
+      "enterManually": "הזן כתובת ידנית",
+      "useAutocomplete": "השתמש בחיפוש כתובת"
+    },
     "timezone": "אזור זמן",
     "currency": "מטבע",
     "branding": "מיתוג",
@@ -920,22 +918,19 @@
     "textColorDescription": "בחר צבע טקסט לדף ההזמנות. זה יחול על כל אלמנטי הטקסט.",
     "logoShapeDescription": "בחר צורה ללוגו שלך. עיגול יחיל פינות מעוגלות.",
     "dragToReposition": "גרור כדי לשנות מיקום",
-      "editMenu": "תפריט עריכה",
-      "headerSection": "כותרת",
-      "bannerSection": "באנר",
-      "contentSection": "תוכן",
-      "settingsSection": "הגדרות",
-      "businessName": "שם העסק",
-      "logo": "לוגו",
-      "banner": "באנר",
-      "guestMessage": "הודעת אורח",
-      "loggedInMessage": "הודעת משתמש מחובר",
-      "contactMessage": "הודעת קשר",
-      "contactSettings": "הגדרות קשר",
-      "themeColor": "צבע ערכת נושא",
-      "textColor": "צבע טקסט",
-      "logoShape": "צורת לוגו",
-      "socialLinks": "קישורים חברתיים",
+    "editMenu": "תפריט עריכה",
+    "headerSection": "כותרת",
+    "bannerSection": "באנר",
+    "contentSection": "תוכן",
+    "settingsSection": "הגדרות",
+    "banner": "באנר",
+    "guestMessage": "הודעת לקוח אורח",
+    "loggedInMessage": "הודעת לקוח מחובר",
+    "contactMessage": "הודעת יצירת קשר",
+    "contactSettings": "הגדרות קשר",
+    "textColor": "צבע טקסט",
+    "logoShape": "צורת לוגו",
+    "socialLinks": "קישורי רשתות חברתיות",
     "languageAndLocalization": "שפה והתאמה מקומית",
     "language": "שפה",
     "locale": "שפה ו-RTL",
@@ -958,7 +953,6 @@
     "contactMessagePlaceholder": "הזן הודעה מותאמת אישית ללקוחות שלא מוצאים את התאריך המועדף עליהם",
     "contactMessageDescription": "הודעה זו תוצג מתחת ללוח השנה בדף ההזמנות. אם לא תוזן הודעה, תוצג הודעה ברירת מחדל. השתמש בשורות חדשות (Enter) כדי ליצור מספר שורות.",
     "contactMessageHelp": "סעיף יצירת הקשר יוצג רק אם לפחות אמצעי קשר אחד (טלפון או WhatsApp) מופעל וזמין.",
-    "contactMessage": "הודעת יצירת קשר",
     "messages": "הודעות ברכה",
     "showPhoneInContact": "הצג מספר טלפון",
     "contactPhoneNote": "משתמש במספר הטלפון מפרופיל העסק",
@@ -1087,7 +1081,6 @@
     "yourBusinessName": "שם העסק שלך",
     "welcomeMessageDefault": "ברוכים הבאים! הזמינו תור למטה.",
     "contactUs": "צור קשר",
-    "socialLinks": "קישורי רשתות חברתיות",
     "socialLinksDescription": "הוסף קישורי רשתות חברתיות להצגה בתחתית עמוד ההזמנות. הקישורים יפתחו באפליקציות המתאימות בלחיצה.",
     "addSocialLink": "הוסף קישור חברתי",
     "facebook": "פייסבוק",
@@ -1108,7 +1101,6 @@
     "changeVideo": "שנה וידאו",
     "removeVideo": "הסר וידאו",
     "presetColors": "צבעים מוגדרים מראש",
-    "uploadBannerImage": "העלה תמונת באנר",
     "uploadVideo": "העלה וידאו",
     "noBanner": "לא הועלה באנר",
     "noSocialLinks": "לא נוספו קישורים חברתיים",
@@ -1135,10 +1127,8 @@
     "imageUploaded": "התמונה הועלתה בהצלחה",
     "videoUploaded": "הווידאו הועלה בהצלחה",
     "fileUploaded": "הקובץ הועלה בהצלחה",
-    "guestMessage": "הודעת לקוח אורח",
     "guestMessagePlaceholder": "הודעת ברכה לאורחים (למשל, שלום אורח, ברוך הבא!)",
     "guestMessageDescription": "הודעה זו תוצג למבקרים שאינם מחוברים",
-    "loggedInMessage": "הודעת לקוח מחובר",
     "loggedInMessagePlaceholder": "הודעת ברכה למשתמשים מחוברים (השתמש ב {name} לשם הלקוח)",
     "loggedInMessageDescription": "הודעה זו תוצג ללקוחות מחוברים. השתמש ב {name} לכלול את שם הלקוח",
     "registrationSettings": "הגדרות הרשמה",
@@ -1164,13 +1154,26 @@
     "required": "נדרש",
     "noCustomFields": "עדיין לא נוספו שדות מותאמים אישית"
   },
+  "addressFields": {
+    "city": "עיר",
+    "cityPlaceholder": "חפש עיר",
+    "street": "רחוב",
+    "streetPlaceholder": "חפש רחוב",
+    "houseNumber": "מספר בית",
+    "houseNumberPlaceholder": "אופציונלי",
+    "selectCityFirst": "בחר עיר תחילה",
+    "loading": "טוען...",
+    "noResults": "לא נמצאו תוצאות",
+    "enterManually": "הזן כתובת ידנית",
+    "useAutocomplete": "השתמש בחיפוש כתובת"
+  },
   "auth": {
-    "enterPhone": "הזן מספר טלפון",
+    "enterPhone": "הזינו מספר טלפון",
     "verifyCode": "אימות קוד",
-    "completeRegistration": "השלם הרשמה",
+    "completeRegistration": "סיום ההרשמה",
     "phoneNumber": "מספר טלפון",
-    "phonePlaceholder": "+972-50-123-4567",
-    "sendCode": "שלח קוד",
+    "phonePlaceholder": "050-123-4567",
+    "sendCode": "שליחת קוד",
     "sending": "שולח...",
     "verificationCode": "קוד אימות",
     "codeSentTo": "קוד נשלח אל {phone}",
@@ -1180,7 +1183,7 @@
     "verify": "אמת",
     "verifying": "מוודא...",
     "fullName": "שם מלא",
-    "namePlaceholder": "הזן את שמך המלא",
+    "namePlaceholder": "השם המלא שלכם",
     "age": "גיל",
     "agePlaceholder": "הזן את גילך",
     "dateOfBirth": "תאריך לידה",
@@ -1189,7 +1192,7 @@
     "month": "חודש",
     "day": "יום",
     "gender": "מין",
-    "selectGender": "בחר מין",
+    "selectGender": "בחירת מין",
     "male": "זכר",
     "female": "נקבה",
     "other": "אחר",
@@ -1197,15 +1200,15 @@
     "emailPlaceholder": "your.email@example.com",
     "selectOption": "בחר אפשרות",
     "registering": "נרשם...",
-    "registrationSuccess": "ההרשמה בוצעה בהצלחה! ברוך הבא!",
-    "invalidCode": "קוד אימות שגוי. אנא נסה שוב.",
+    "registrationSuccess": "נרשמתם בהצלחה!",
+    "invalidCode": "קוד שגוי – נסו שוב",
     "invalidOrExpiredCode": "קוד לא תקין או שפג תוקפו",
-    "welcomeBack": "ברוך שובך {{name}}!",
-    "customerNotFound": "לקוח לא נמצא. אנא הירשם כדי להמשיך.",
+    "welcomeBack": "שמחים לראות אתכם, {{name}}!",
+    "customerNotFound": "לא מצאנו אתכם – השלימו הרשמה כדי להמשיך",
     "codeSentViaWhatsApp": "קוד אימות נשלח ב-WhatsApp",
     "registrationError": "ההרשמה נכשלה. אנא נסה שוב.",
     "logout": "התנתק",
-    "confirmLogout": "האם אתה בטוח שברצונך להתנתק?",
+    "confirmLogout": "בטוחים שרוצים להתנתק?",
     "logoutSuccess": "התנתקת בהצלחה",
     "verifiedPhone": "טלפון מאומת:",
     "rateLimitMessage": "אנא המתן {seconds} שניות לפני בקשת קוד נוסף",
@@ -1222,7 +1225,14 @@
       "saveError": "שמירת מספר הטלפון נכשלה",
       "invalidPhone": "אנא הזן מספר טלפון תקין (לפחות 10 ספרות)",
       "phoneExists": "מספר טלפון זה כבר רשום"
-    }
+    },
+    "fillRequiredFields": "יש למלא את כל השדות החובה",
+    "invalidPhone": "הזינו מספר טלפון תקין",
+    "sendCodeError": "שליחת הקוד נכשלה",
+    "codeSentToWhatsApp": "קוד נשלח אל {phone} ב-WhatsApp",
+    "enterWhatsAppCode": "הזינו את הקוד שקיבלתם ב-WhatsApp",
+    "googleLoginError": "ההתחברות עם Google נכשלה",
+    "facebookLoginError": "ההתחברות עם Facebook נכשלה"
   },
   "adminLogin": {
     "title": "כניסת מנהל",
@@ -1428,7 +1438,7 @@
     "title": "KalBook",
     "subtitle": "כל מה שעסק השירות שלך צריך\nבמקום אחד.\n\nמערכת ניהול חכמה שמרכזת את כל הפעולות החשובות:\n\nהזמנות אונליין\n\nלוח זמנים דינמי ומתעדכן\n\nניהול לקוחות ועובדים\n\nשליחת תזכורות והודעות אוטומטיות\n\nקל לתפעול, מהיר להקמה, בעברית",
     "startNow": "התחל ניסיון חינם",
-    "seeFeatures": "מה יש בפנים ?",
+    "seeFeatures": "מה יש בפנים?",
     "pricingLabel": "מחירים",
     "freeTrial": "ניסיון חינם",
     "adminDemo": "דמו אדמין",
@@ -1492,10 +1502,6 @@
         "title": "קודי QR להזמנה קלה",
         "desc": "מסריקה לתור. צרו קודי QR לעמודי הזמנות או שירותים ספציפיים. שתפו בכל מקום, הזמינו מיד."
       },
-      "onlineBooking": {
-        "title": "הזמנות אונליין 24/7",
-        "desc": "עסק שעובד גם כשאתם לא. אפשרו ללקוחות להזמין תורים מתי שנוח להם – גם ב-2 בלילה. תמיד פתוח, תמיד זמין, תמיד מוכן להזמנה."
-      },
       "groupServices": {
         "title": "שירותים קבוצתיים וחבילות",
         "desc": "ארזו שירותים לחבילות כמו תספורת + זקן למכירות נוספות קלות."
@@ -1508,17 +1514,9 @@
         "title": "מותג מותאם אישית",
         "desc": "הפכו את עמוד ההזמנות שלכם לשלכם עם הלוגו וצבעי המותג שלכם."
       },
-      "mobileOptimized": {
-        "title": "הזמנות מותאמות למובייל",
-        "desc": "חוויית הזמנות רספונסיבית לחלוטין שנראית מעולה בכל מכשיר."
-      },
       "noShowPrevention": {
         "title": "מניעת אי הגעה",
         "desc": "תזכורות אוטומטיות עוזרות להפחית תורים מבוטלים ולשמור על הלוח שלכם מלא."
-      },
-      "recurringAppointments": {
-        "title": "תורים חוזרים",
-        "desc": "הגדירו הזמנות חוזרות ללקוחות קבועים. שבועי, חודשי או לוחות זמנים מותאמים אישית - חסכו זמן ולעולם אל תפספסו תור קבוע."
       }
     },
     "pricing": {
@@ -1535,15 +1533,31 @@
           "priceNote": "חינם לנצח",
           "cta": "צור תיק עבודות חינם",
           "note": "הצג את העסק שלך - ללא הזמנות, רק תיק עבודות",
-          "highlights": ["דף בית עסק/תיק עבודות", "לוגו ומיתוג", "הצגת שירותים", "פרטי יצירת קשר", "קישורים חברתיים", "עורך דף בית", "ללא הזמנת תורים", "ללא ניהול לקוחות"]
+          "highlights": [
+            "דף בית עסק/תיק עבודות",
+            "לוגו ומיתוג",
+            "הצגת שירותים",
+            "פרטי יצירת קשר",
+            "קישורים חברתיים",
+            "עורך דף בית",
+            "ללא הזמנת תורים",
+            "ללא ניהול לקוחות"
+          ]
         },
         "free": {
           "name": "תוכנית Basic – להתחיל חכם, לגדול נכון",
           "price": "29",
           "priceNote": "14 ימי ניסיון חינם",
-          "cta": "התחל חינם",
+          "cta": "התחל בחינם",
           "note": "בדיוק מה שבעל עסק עצמאי צריך כדי לשלוט בזמנים, בשירות ובלקוחות – מבלי לשלם שקל.",
-          "highlights": ["עובד אחד", "עד 100 הזמנות בחודש", "יומן חכם ונוח", "ניהול לקוחות קל ונגיש", "תזכורות במייל – אוטומטיות", "תמיכה מלאה בעברית + RTL + עוד שפות"]
+          "highlights": [
+            "עובד אחד",
+            "עד 100 הזמנות בחודש",
+            "יומן חכם ונוח",
+            "ניהול לקוחות קל ונגיש",
+            "תזכורות במייל – אוטומטיות",
+            "תמיכה מלאה בעברית + RTL + עוד שפות"
+          ]
         },
         "pro": {
           "name": "תוכנית PRO – לאנשים שכבר מרוויחים ורוצים להרוויח יותר",
@@ -1551,7 +1565,17 @@
           "priceNote": "לחודש",
           "cta": "התחל Pro",
           "note": "אם אתה עובד עם צוות, או רוצה לגדול בלי מגבלות – זו התוכנית שלך.",
-          "highlights": ["הכול מתוכנית FREE", "עד 5 עובדים", "הזמנות ללא הגבלה", "לוח בקרה ודו\"חות חכמים", "אינטגרציה עם WhatsApp", "סנכרון עם Google Calendar", "מותג מותאם אישית", "תזכורות מתקדמות", "תמיכה בעדיפות"]
+          "highlights": [
+            "הכול מתוכנית FREE",
+            "עד 5 עובדים",
+            "הזמנות ללא הגבלה",
+            "לוח בקרה ודו\"חות חכמים",
+            "אינטגרציה עם WhatsApp",
+            "סנכרון עם Google Calendar",
+            "מותג מותאם אישית",
+            "תזכורות מתקדמות",
+            "תמיכה בעדיפות"
+          ]
         },
         "custom": {
           "name": "תוכנית CUSTOM – למי שמנהל מערכת, לא רק עסק",
@@ -1559,13 +1583,30 @@
           "priceNote": "מותאם לצרכים שלך",
           "cta": "צור קשר",
           "note": "מותאם לעסקים עם כמה סניפים, הרבה עובדים, צרכים מיוחדים – או לסוכנויות שרוצות שליטה מלאה.",
-          "highlights": ["הכול מתוכנית PRO", "עובדים ללא הגבלה", "גישה מלאה ל-API", "פתרון White-Label מלא", "אינטגרציות מותאמות אישית", "דו\"חות מותאמים אישית", "תמיכה במיקומים מרובים", "זרימות עבודה מותאמות", "תמיכה ייעודית 24/7", "פיתוח מותאם אישית"]
+          "highlights": [
+            "הכול מתוכנית PRO",
+            "עובדים ללא הגבלה",
+            "גישה מלאה ל-API",
+            "פתרון White-Label מלא",
+            "אינטגרציות מותאמות אישית",
+            "דו\"חות מותאמים אישית",
+            "תמיכה במיקומים מרובים",
+            "זרימות עבודה מותאמות",
+            "תמיכה ייעודית 24/7",
+            "פיתוח מותאם אישית"
+          ]
         }
-      }
+      },
+      "basic": "בסיסי",
+      "customPlan": "Custom",
+      "startingFrom": "החל מ-",
+      "free": "חינם",
+      "proPriceNote": "למקצוענים שבינינו",
+      "noCreditCard": "אין צורך בכרטיס אשראי"
     },
     "portfolio": {
       "badge": "חינם לנצח",
-      "title": "כרטיס עסק דיגיטלי – אונליין, מרשים, ובחינם",
+      "title": "✨ כרטיס עסק דיגיטלי – אונליין, מרשים, ובחינם",
       "description": "הצג את העסק שלך באינטרנט – חינם, מעוצב, וקל לתפעול.\nפתרון מושלם לעסקים קטנים, נותני שירותים ופרילנסרים שרוצים נוכחות דיגיטלית מקצועית – בלי ידע טכני ובלי עלויות חודשיות.",
       "benefits": [
         "הוספת לוגו ומיתוג",
@@ -1708,19 +1749,70 @@
     "footer": {
       "rights": "כל הזכויות שמורות",
       "terms": "תנאי שימוש",
-      "privacy": "מדיניות פרטיות"
+      "privacy": "מדיניות פרטיות",
+      "copyright": "© {year} Kalbook.io · {rights}"
     },
     "contact": {
       "title": "צור קשר",
-      "description": "בואו נשמע מכם. נשמח לשמוע מכם!",
+      "description": "רוצים לדבר? כתבו לנו – נחזור אליכם.",
       "info": "פרטי יצירת קשר",
       "name": "שם",
       "email": "אימייל",
       "message": "הודעה",
       "submit": "שלח הודעה",
       "submitting": "שולח...",
-      "success": "תודה! נחזור אליכם בקרוב.",
+      "success": "קיבלנו! נחזור אליכם בקרוב.",
       "error": "שליחת ההודעה נכשלה. אנא נסו שוב."
+    },
+    "preview": {
+      "withBooking": "עם הזמנות",
+      "businessCard": "כרטיס ביקור",
+      "mobile": "נייד",
+      "desktop": "מחשב",
+      "modalBooking": "עם הזמנות",
+      "modalCard": "כרטיס"
+    },
+    "customFeatures": {
+      "title": "תכונות נוספות שאפשר לפתח",
+      "subtitle": "פתרונות מתקדמים ומותאמים לצרכים שלכם",
+      "items": {
+        "apiAccess": {
+          "title": "גישה ל-API",
+          "desc": "אינטגרציה מלאה עם המערכות שלכם"
+        },
+        "whiteLabel": {
+          "title": "פתרון White-Label",
+          "desc": "מותג מותאם בלי הלוגו שלנו"
+        },
+        "customIntegrations": {
+          "title": "אינטגרציות מותאמות",
+          "desc": "חיבור ל-CRM, ERP וכלים נוספים"
+        },
+        "advancedReports": {
+          "title": "דוחות מתקדמים",
+          "desc": "דוחות וניתוחים מותאמים לעסק"
+        },
+        "multiLocation": {
+          "title": "תמיכה במיקומים מרובים",
+          "desc": "ניהול כמה סניפים ממקום אחד"
+        },
+        "customWorkflows": {
+          "title": "זרימות עבודה מותאמות",
+          "desc": "אוטומציה לתהליכים שלכם"
+        },
+        "advancedAutomation": {
+          "title": "אוטומציה מתקדמת",
+          "desc": "כללי עסק וטריגרים מותאמים"
+        },
+        "dedicatedSupport": {
+          "title": "תמיכה ייעודית",
+          "desc": "מנהל/ת חשבון ותמיכה 24/7"
+        },
+        "customDevelopment": {
+          "title": "פיתוח מותאם",
+          "desc": "תכונות ייחודיות לפי הזמנה"
+        }
+      }
     }
   },
   "onboarding": {
@@ -1732,6 +1824,8 @@
     "choosePlanDescription": "בחרו את התוכנית שמתאימה ביותר לצרכי העסק שלכם. תוכלו לשנות זאת בכל עת במהלך ההגדרה.",
     "selectPlan": "בחר תוכנית",
     "planSelected": "נבחר",
+    "needCustomPlan": "צריכים תוכנית מותאמת?",
+    "contactUsLink": "צרו קשר",
     "auth": {
       "title": "התחלה",
       "subtitle": "התחברו כדי להמשיך בהגדרת העסק שלכם",
@@ -1748,13 +1842,12 @@
       "or": "או",
       "signInWithGoogle": "התחבר עם Google",
       "signInWithFacebook": "התחבר עם Facebook",
-      "otpSentToEmail": "שלחנו קוד אימות ל-{email}",
+      "otpSentToEmail": "קוד אימות נשלח בהצלחה ל-{email}",
       "phoneRequired": "מספר טלפון נדרש",
       "invalidPhone": "אנא הזינו מספר טלפון תקין",
       "otpRequired": "קוד OTP נדרש",
       "otpSent": "קוד אימות נשלח בהצלחה",
       "otpSentToPhone": "קוד אימות נשלח בהצלחה ל-{phone}",
-      "otpSentToEmail": "קוד אימות נשלח בהצלחה ל-{email}",
       "verified": "מספר הטלפון אומת",
       "authenticated": "אומת!",
       "phoneVerified": "מספר טלפון {phone} אומת",
@@ -1843,7 +1936,8 @@
           "title": "שירות אחר",
           "description": "עסק שירותים מותאם אישית"
         }
-      }
+      },
+      "stepSubtitle": "בחרו את סוג העסק שהכי מתאים לכם"
     },
     "ownerName": "שם הבעלים",
     "useAnotherAccount": "השתמש בחשבון אחר לעסק זה",
@@ -1852,9 +1946,9 @@
       "title": "מידע על העסק",
       "subtitle": "ספרו לנו על העסק שלכם.",
       "name": "שם העסק *",
-      "namePlaceholder": "לדוגמה: סטודיו סטייל",
+      "namePlaceholder": "לדוגמה: סטודיו חן פיטנס",
       "ownerName": "שם בעל העסק *",
-      "ownerNamePlaceholder": "הזינו את שם בעל העסק",
+      "ownerNamePlaceholder": "שם בעל העסק",
       "englishName": "שם באנגלית לכתובת URL *",
       "englishNamePlaceholder": "לדוגמה: Style Studio",
       "englishNameHint": "זה ישמש ליצירת כתובת ה-URL הייחודית שלכם (למשל, yourbusiness.com/b/style-studio). השתמשו רק באותיות אנגליות, מספרים ומקפים.",
@@ -2105,7 +2199,7 @@
       }
     },
     "errors": {
-      "selectBusinessType": "אנא בחרו סוג עסק בכדי להמשיך.",
+      "selectBusinessType": "בחרו סוג עסק כדי להמשיך.",
       "fillRequiredFields": "אנא מלאו את כל השדות הנדרשים.",
       "invalidEmail": "אנא הזינו כתובת אימייל תקינה.",
       "unableToValidateEmail": "לא ניתן לאמת כתובת אימייל: פורמט לא תקין",
@@ -2115,7 +2209,8 @@
       "atLeastOneService": "אנא הוסיפו לפחות שירות אחד להמשיך.",
       "invalidService": "אנא ודאו שכל השירותים כוללים שם, משך תקין (>0) ומחיר תקין (≥0).",
       "setupFailed": "נכשל בהגדרת העסק שלכם. אנא נסו שוב.",
-      "phoneAlreadyRegistered": "מספר טלפון זה כבר רשום למשתמש אחר"
+      "phoneAlreadyRegistered": "מספר טלפון זה כבר רשום למשתמש אחר",
+      "identityCheckFailed": "לא ניתן לאמת את פרטי החשבון. נסו שוב."
     },
     "success": {
       "businessSetup": "העסק שלכם מוגדר. מעבירים לדף הניהול..."
@@ -2130,6 +2225,69 @@
     "startOver": {
       "success": "מתחילים מחדש... אנא התחברו שוב.",
       "error": "נכשל בהתחלה מחדש. אנא רעננו את הדף."
+    },
+    "alreadyRegistered": "כבר יש לכם עסק רשום. התחברו לעסק הקיים.",
+    "lessThanMinute": "זה לוקח פחות מדקה :)",
+    "planBanner": {
+      "freeForever": "חינם לנצח – בלי אמצעי תשלום",
+      "freeNoPayment": "חינם – בלי אמצעי תשלום"
+    },
+    "steps": {
+      "reassurance": "💡 לא לדאוג – אפשר לשנות הכל אחר כך",
+      "fieldRequired": "שדה חובה",
+      "businessName": {
+        "title": "איך קוראים לעסק?",
+        "subtitle": "כך הלקוחות יראו אותו בעמוד ההזמנות",
+        "label": "שם העסק",
+        "placeholder": "לדוגמה: סטודיו חן פיטנס",
+        "preview": "✨ כך זה ייראה ללקוחות:"
+      },
+      "ownerName": {
+        "title": "איך קוראים לכם?",
+        "subtitle": "כך נציג אתכם במערכת",
+        "greeting": "👋 נעים להכיר!",
+        "label": "שם הבעלים",
+        "placeholder": "שם בעל העסק"
+      },
+      "contact": {
+        "title": "איך יוצרים איתכם קשר?",
+        "subtitle": "הטלפון והאימייל שיוצגו ללקוחות בעמוד ההזמנות",
+        "phoneHint": "המספר הזה יוצג ללקוחות – הם יוכלו להתקשר אליכם",
+        "yourPhone": "מספר הטלפון שלכם:",
+        "phoneLabel": "מספר טלפון",
+        "useDifferentPhone": "להשתמש במספר אחר לעסק",
+        "phoneDisplayNote": "המספר יוצג ללקוחות בעמוד ההזמנות",
+        "emailOptional": "אימייל (אופציונלי)",
+        "emailHint": "כתובת האימייל שתוצג ללקוחות בעמוד ההזמנות"
+      },
+      "address": {
+        "title": "מה הכתובת של העסק? (אופציונלי)",
+        "subtitle": "נציג אותה ללקוחות (אופציונלי)",
+        "label": "כתובת",
+        "city": "עיר",
+        "cityPlaceholder": "חפש עיר",
+        "street": "רחוב",
+        "streetPlaceholder": "חפש רחוב",
+        "houseNumber": "מספר בית",
+        "houseNumberPlaceholder": "אופציונלי",
+        "selectCityFirst": "בחר עיר תחילה",
+        "loading": "טוען...",
+        "noResults": "לא נמצאו תוצאות",
+        "enterManually": "הזן כתובת ידנית",
+        "useAutocomplete": "השתמש בחיפוש כתובת",
+        "socialHint": "הוסיפו קישורי רשתות חברתיות בתחתית עמוד ההזמנות. הקישורים ייפתחו באפליקציה המתאימה.",
+        "addSocialLink": "הוסף קישור חברתי"
+      },
+      "services": {
+        "hint": "2–3 שירותים להתחלה – תמיד אפשר להוסיף אחר כך",
+        "skip": "דלג – תמיד אפשר להוסיף אחרי ההקמה",
+        "serviceName": "שם השירות",
+        "serviceNamePlaceholder": "לדוגמה: תספורת",
+        "descriptionOptional": "תיאור (אופציונלי)",
+        "durationMinutes": "משך זמן (דקות)",
+        "priceIls": "מחיר (₪)",
+        "serviceCounter": "שירות {current} (מתוך {total})"
+      }
     }
   },
   "booking": {

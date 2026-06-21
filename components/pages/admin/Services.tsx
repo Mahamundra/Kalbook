@@ -510,7 +510,8 @@ const Services = () => {
                 handleEdit(service);
               }}
               disabled={!canManageServices}
-              title={!canManageServices ? 'Your plan doesn\'t allow editing services. Please upgrade to continue.' : ''}
+              aria-label={t('services.edit') || 'Edit service'}
+              title={!canManageServices ? 'Your plan doesn\'t allow editing services. Please upgrade to continue.' : undefined}
             >
               <Pencil className="w-4 h-4" />
             </Button>
@@ -522,7 +523,8 @@ const Services = () => {
                 handleDeleteClick(service);
               }}
               disabled={!canManageServices}
-              title={!canManageServices ? 'Your plan doesn\'t allow deleting services. Please upgrade to continue.' : ''}
+              aria-label={t('services.delete') || 'Delete service'}
+              title={!canManageServices ? 'Your plan doesn\'t allow deleting services. Please upgrade to continue.' : undefined}
             >
               <Trash2 className="w-4 h-4" />
             </Button>

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { useLocale } from '@/hooks/useLocale';
 import { getTemplates, updateTemplate } from '@/lib/mockData';
-import { Save, Send } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Template } from '@/types/admin';
 
@@ -107,7 +107,6 @@ const Templates = () => {
       <Tabs defaultValue="email" className="space-y-6">
         <TabsList>
           <TabsTrigger value="email">{t('templates.email')}</TabsTrigger>
-          <TabsTrigger value="message">{t('templates.message')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="email" className="space-y-0">
@@ -186,10 +185,6 @@ const Templates = () => {
                       <Save className="w-4 h-4 me-2" />
                       {t('templates.save')}
                     </Button>
-                    <Button variant="outline" onClick={() => toast.info('Test email sent')}>
-                      <Send className="w-4 h-4 me-2" />
-                      {t('templates.test')}
-                    </Button>
                   </div>
                 </div>
               </Card>
@@ -204,12 +199,6 @@ const Templates = () => {
               </Card>
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="message">
-          <Card className="p-6">
-            <p className="text-muted-foreground">Message templates coming soon...</p>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

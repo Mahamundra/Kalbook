@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { TrialStatusBanner } from '@/components/admin/TrialStatusBanner';
@@ -23,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getTimeBasedGreeting } from '@/lib/utils/greetings';
 import { UserAccountModal } from '@/components/admin/UserAccountModal';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
+import { LegacyAdminRedirect } from '@/components/admin/LegacyAdminRedirect';
 
 interface User {
   name: string;
@@ -208,8 +210,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </div>
 
-              {/* Right side - Language Toggle */}
-              <div className={`flex ${isRTL ? 'justify-start order-1' : 'justify-end order-3'}`}>
+              {/* Right side - Dark Mode Toggle and Language Toggle */}
+              <div className={`flex items-center gap-2 ${isRTL ? 'justify-start order-1' : 'justify-end order-3'}`}>
+                <DarkModeToggle />
                 <LanguageToggle />
               </div>
             </header>
@@ -252,7 +255,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   className="p-6 md:p-8"
                 >
                   <div className="max-w-7xl mx-auto">
-                    {children}
+                    <LegacyAdminRedirect>{children}</LegacyAdminRedirect>
                   </div>
                 </motion.div>
               )}

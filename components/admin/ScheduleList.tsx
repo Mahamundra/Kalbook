@@ -6,10 +6,9 @@ import { useLocale } from '@/hooks/useLocale';
 
 interface ScheduleListProps {
   items: ScheduleItem[];
-  onViewDetails: (id: string) => void;
 }
 
-export const ScheduleList = ({ items, onViewDetails }: ScheduleListProps) => {
+export const ScheduleList = ({ items }: ScheduleListProps) => {
   const { t } = useLocale();
   const pathname = usePathname();
   
@@ -47,9 +46,6 @@ export const ScheduleList = ({ items, onViewDetails }: ScheduleListProps) => {
               {item.customer} • {item.staff}
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => onViewDetails(item.id)}>
-            {t('dashboard.details')}
-          </Button>
         </div>
       ))}
     </div>

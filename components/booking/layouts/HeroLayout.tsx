@@ -2,9 +2,6 @@
 
 import { LayoutProps } from './types';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { LanguageToggle } from '@/components/ui/LanguageToggle';
-import { useDirection } from '@/components/providers/DirectionProvider';
-import { cn } from '@/lib/utils';
 
 export function HeroLayout({
   header,
@@ -25,9 +22,6 @@ export function HeroLayout({
   loginFirst = false,
   dir,
 }: LayoutProps) {
-  const { dir: direction } = useDirection();
-  const isRTL = direction === 'rtl';
-  
   // Use mainContent if provided, otherwise combine customerAppointments and bookingSection
   const content = mainContent ?? (
     <>
@@ -35,8 +29,43 @@ export function HeroLayout({
       {bookingSection}
     </>
   );
+  // Custom scrollbar styles for thin scrollbar in embeds/iframes
+  const thinScrollbarStyles = `
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    .thin-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    html::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track,
+    .thin-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    html::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb,
+    .thin-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    html::-webkit-scrollbar-thumb:hover,
+    body::-webkit-scrollbar-thumb:hover,
+    .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    html, body, .thin-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+  `;
+
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" data-booking-page="true">
+    <>
+      <style dangerouslySetInnerHTML={{ __html: thinScrollbarStyles }} />
+      <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-background dark:to-background flex flex-col thin-scrollbar" data-booking-page="true" style={{ overflow: 'auto' }}>
+      {/* Header */}
+      {header}
+
       {/* Trial Expired Banner */}
       {trialBanner}
 
@@ -54,14 +83,6 @@ export function HeroLayout({
         {/* Overlay for readability */}
         <div className="absolute inset-0 bg-black/30" />
 
-        {/* Language Toggle - Positioned in top corner of hero */}
-        <div className={cn(
-          "absolute top-4 z-20",
-          isRTL ? "left-4" : "right-4"
-        )}>
-          <LanguageToggle />
-        </div>
-
         {/* Hero Content */}
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 sm:pt-16 sm:pb-16 md:py-20 lg:py-24">
           <div className="max-w-4xl mx-auto">
@@ -77,7 +98,7 @@ export function HeroLayout({
                 />
               ) : (
                 <div
-                  className={`h-16 w-16 ${logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'} bg-white/90 flex items-center justify-center mb-4 shadow-lg`}
+                  className={`h-16 w-16 ${logoShape === 'circle' ? 'rounded-[100%]' : 'rounded-[25%]'} bg-white/90 dark:bg-card/90 flex items-center justify-center mb-4 shadow-lg`}
                   data-edit-id="logo"
                   data-edit-type="image"
                 >
@@ -179,6 +200,7 @@ export function HeroLayout({
       {/* Dialogs */}
       {rescheduleDialog}
       {loginDialog}
-    </div>
+      </div>
+    </>
   );
 }

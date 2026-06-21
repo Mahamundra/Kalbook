@@ -1,8 +1,10 @@
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+
 export default [
-    {
-        files: ["**/*.js", "**/*.mjs", "**/*.ts", "**/*.tsx"],
-        rules: {
-            "no-unused-vars": "warn"
-        }
-    }
+  ...nextCoreWebVitals,
+  {
+    rules: {
+      'no-unused-vars': 'warn',
+    },
+  },
 ];

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -14,7 +14,6 @@ import { LayoutDashboard, Calendar, Briefcase, Users, Mail, QrCode, Settings, Us
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { useState, useEffect, useMemo } from 'react';
-import { getSettings } from '@/lib/mockData';
 
 const menuItemsBase = [
   { icon: Calendar, labelKey: 'nav.calendar', slug: 'calendar' },
@@ -29,7 +28,6 @@ const menuItemsBase = [
 
 export const AdminSidebar = () => {
   const pathname = usePathname();
-  const router = useRouter();
   const { t } = useLocale();
   const { isRTL } = useDirection();
   const [mounted, setMounted] = useState(false);
@@ -40,7 +38,7 @@ export const AdminSidebar = () => {
   // Detect if we're on slug-based admin route (/b/[slug]/admin/*)
   const slugMatch = pathname.match(/^\/b\/([^/]+)\/admin/);
   const businessSlug = slugMatch?.[1];
-  const basePath = businessSlug ? `/b/${businessSlug}/admin` : '/admin';
+  const basePath = businessSlug ? `/b/${businessSlug}/admin` : null;
   
   // Build menu items based on business type
   const menuItems = useMemo(() => {
@@ -59,9 +57,13 @@ export const AdminSidebar = () => {
       return item;
     });
     
+    if (!basePath) {
+      return [];
+    }
+
     return items.map(item => ({
       ...item,
-      path: `${basePath}/${item.slug}`, // Keep original slug in path
+      path: `${basePath}/${item.slug}`,
     }));
   }, [businessType, basePath]);
 
@@ -71,31 +73,25 @@ export const AdminSidebar = () => {
     const loadSettings = async () => {
       if (typeof window === 'undefined') return;
 
-      // If we have a slug, fetch from API
-      if (businessSlug) {
-        try {
-          const response = await fetch(`/api/settings?businessSlug=${businessSlug}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.settings) {
-              setBusinessName(data.settings.businessProfile?.name || '');
-              setLogoUrl(data.settings.branding?.logoUrl || '');
-              // Get business type from settings response
-              if (data.businessType) {
-                setBusinessType(data.businessType);
-              }
-              return;
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching settings:', error);
-        }
+      if (!businessSlug) {
+        return;
       }
 
-      // Fallback to mock data for non-slug routes or if API fails
-      const settings = getSettings();
-      setBusinessName(settings.businessProfile.name || '');
-      setLogoUrl(settings.branding.logoUrl || '');
+      try {
+        const response = await fetch(`/api/settings?businessSlug=${businessSlug}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            setBusinessName(data.settings.businessProfile?.name || '');
+            setLogoUrl(data.settings.branding?.logoUrl || '');
+            if (data.businessType) {
+              setBusinessType(data.businessType);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
     };
 
     loadSettings();
@@ -137,7 +133,8 @@ export const AdminSidebar = () => {
       
       <SidebarContent className="p-4">
         <SidebarMenu>
-          {menuItems.map((item) => {
+          {basePath &&
+            menuItems.map((item) => {
             // Check if current path matches (exact or starts with for nested routes)
             const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
             // Hide QR codes on desktop only

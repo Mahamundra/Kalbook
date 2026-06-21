@@ -17,6 +17,13 @@ import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { OtpCodeInput } from '@/components/ui/OtpCodeInput';
+import {
+  cleanPhoneDigits,
+  formatIsraeliPhoneInput,
+  ISRAELI_PHONE_INPUT_MAX_LENGTH,
+  phoneInputToE164,
+} from '@/lib/phone/display';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -30,75 +37,15 @@ export default function AdminLoginPage() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [otpSessionKey, setOtpSessionKey] = useState(0);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const oauthCallbackHandled = useRef(false);
-
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
-  // Handle phone input change with cursor position preservation
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target;
-    const cursorPosition = input.selectionStart || 0;
-    const oldValue = phone;
-    const newValue = e.target.value;
-    
-    // Count digits before cursor in old value
-    const digitsBeforeCursor = oldValue.slice(0, cursorPosition).replace(/\D/g, '').length;
-    
-    // Format the new value
-    const formatted = formatPhoneNumber(newValue);
-    
-    // Update state
-    setPhone(formatted);
-    
-    // Calculate new cursor position
-    // Find the position where we have the same number of digits
-    let digitCount = 0;
-    let newCursorPosition = formatted.length;
-    
-    for (let i = 0; i < formatted.length; i++) {
-      if (/\d/.test(formatted[i])) {
-        digitCount++;
-        if (digitCount === digitsBeforeCursor) {
-          newCursorPosition = i + 1;
-          break;
-        }
-      }
-    }
-    
-    // Restore cursor position after React updates
-    setTimeout(() => {
-      if (phoneInputRef.current) {
-        phoneInputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-      }
-    }, 0);
-  };
 
   // Check if user is already authenticated and redirect
   useEffect(() => {
@@ -234,9 +181,8 @@ export default function AdminLoginPage() {
   }, [slug, t]);
 
   const handlePhoneSubmit = async () => {
-    // Remove dashes for API call
-    const cleanPhone = phone.replace(/\D/g, '');
-    
+    const cleanPhone = cleanPhoneDigits(phone);
+
     if (!cleanPhone || cleanPhone.length < 10) {
       setError(t('adminLogin.phoneRequired') || 'Phone number is required');
       return;
@@ -246,13 +192,7 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      // Convert to E.164 format if needed (add +972 for Israel if starts with 0)
-      let phoneForApi = cleanPhone;
-      if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
-        phoneForApi = '+972' + cleanPhone.substring(1);
-      } else if (!cleanPhone.startsWith('+')) {
-        phoneForApi = '+' + cleanPhone;
-      }
+      const phoneForApi = phoneInputToE164(phone);
 
       // Check if phone belongs to worker or owner of this business
       const accessCheckResponse = await fetch('/api/auth/check-business-access', {
@@ -298,17 +238,13 @@ export default function AdminLoginPage() {
       setIsLoading(false);
       setShowOtpModal(true);
       setOtpCountdown(30);
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpSessionKey((k) => k + 1);
       setCode('');
       toast.success(
         loginMethod === 'phone' 
           ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
           : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
       );
-      // Focus first OTP input after modal opens
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
     } catch (error: any) {
       setIsLoading(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
@@ -401,7 +337,7 @@ export default function AdminLoginPage() {
       setIsLoading(false);
       setShowOtpModal(true);
       setOtpCountdown(30);
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpSessionKey((k) => k + 1);
       setCode('');
       
       // In development, log the code
@@ -414,62 +350,10 @@ export default function AdminLoginPage() {
           ? (t('adminLogin.codeSentToPhone')?.replace('{phone}', phone.replace(/\D/g, '')) || `Verification code sent successfully to ${phone}`)
           : (t('adminLogin.codeSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
       );
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
     } catch (error: any) {
       setIsLoading(false);
       setError(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
       toast.error(error.message || t('adminLogin.sendCodeError') || 'Failed to send code');
-    }
-  };
-
-  // Handle OTP digit change
-  const handleOtpDigitChange = (index: number, value: string) => {
-    // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
-
-    const newDigits = [...otpDigits];
-    newDigits[index] = value;
-    setOtpDigits(newDigits);
-
-    // Update otpCode for API
-    const code = newDigits.join('');
-    setCode(code);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-verify when all 6 digits are entered
-    if (code.length === 6) {
-      handleVerifyCode(code);
-    }
-  };
-
-  // Handle OTP key down (backspace)
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  // Handle OTP paste
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const newDigits = [...otpDigits];
-    for (let i = 0; i < 6; i++) {
-      newDigits[i] = pastedData[i] || '';
-    }
-    setOtpDigits(newDigits);
-    const code = pastedData;
-    setCode(code);
-    if (pastedData.length === 6) {
-      handleVerifyCode(code);
-    } else {
-      otpInputRefs.current[Math.min(pastedData.length, 5)]?.focus();
     }
   };
 
@@ -482,7 +366,6 @@ export default function AdminLoginPage() {
   // Handle enter other number
   const handleEnterOtherNumber = () => {
     setShowOtpModal(false);
-    setOtpDigits(['', '', '', '', '', '']);
     setCode('');
     setOtpCountdown(0);
   };
@@ -558,15 +441,7 @@ export default function AdminLoginPage() {
         // Use window.location.href for full page reload to ensure cookie is sent
         window.location.href = redirectPath;
       } else {
-        // Phone OTP verification (existing flow)
-        const cleanPhone = phone.replace(/\D/g, '');
-        // Convert to E.164 format if needed
-        let phoneForApi = cleanPhone;
-        if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
-          phoneForApi = '+972' + cleanPhone.substring(1);
-        } else if (!cleanPhone.startsWith('+')) {
-          phoneForApi = '+' + cleanPhone;
-        }
+        const phoneForApi = phoneInputToE164(phone);
 
         // Get return URL from query params or default to dashboard
         const urlParams = new URLSearchParams(window.location.search);
@@ -720,10 +595,7 @@ export default function AdminLoginPage() {
       }
       setError(displayError);
       toast.error(displayError);
-      // Clear OTP on error
-      setOtpDigits(['', '', '', '', '', '']);
       setCode('');
-      otpInputRefs.current[0]?.focus();
     }
   };
 
@@ -736,15 +608,6 @@ export default function AdminLoginPage() {
       return () => clearTimeout(timer);
     }
   }, [otpCountdown]);
-
-  // Focus first OTP input when modal opens
-  useEffect(() => {
-    if (showOtpModal && otpInputRefs.current[0]) {
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
-    }
-  }, [showOtpModal]);
 
   return (
     <div dir={dir} className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
@@ -814,19 +677,20 @@ export default function AdminLoginPage() {
                         ref={phoneInputRef}
                         id="phone"
                         type="tel"
+                        inputMode="tel"
                         placeholder={t('adminLogin.phonePlaceholder') || t('onboarding.auth.phonePlaceholder') || 'enter phone number'}
                         value={phone}
-                        onChange={handlePhoneChange}
+                        onChange={(e) => setPhone(formatIsraeliPhoneInput(e.target.value))}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && phone.replace(/\D/g, '').length >= 10 && !isLoading) {
+                          if (e.key === 'Enter' && cleanPhoneDigits(phone).length >= 10 && !isLoading) {
                             handlePhoneSubmit();
                           }
                         }}
                         required
                         disabled={isLoading}
                         autoComplete="tel"
-                        dir="ltr"
-                        maxLength={12}
+                        dir={dir}
+                        maxLength={ISRAELI_PHONE_INPUT_MAX_LENGTH}
                         className={`pl-10 ${dir === 'rtl' ? 'pr-10 pl-3' : ''} h-12 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20`}
                       />
                     </div>
@@ -834,7 +698,7 @@ export default function AdminLoginPage() {
                     <LoadingButton
                       onClick={handlePhoneSubmit}
                       loading={isLoading}
-                      disabled={!phone.trim() || phone.replace(/\D/g, '').length < 10}
+                      disabled={!phone.trim() || cleanPhoneDigits(phone).length < 10}
                       className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
                     >
                       {t('adminLogin.login') || t('onboarding.auth.login') || 'Login'}
@@ -982,24 +846,14 @@ export default function AdminLoginPage() {
               <Label htmlFor="otp-code-modal" className="block mb-3 text-center">
                 {t('onboarding.auth.otpCode') || 'OTP Code'}
               </Label>
-              <div className="flex gap-1 sm:gap-2 justify-center px-2" dir="ltr">
-                {otpDigits.map((digit, index) => (
-                  <Input
-                    key={index}
-                    ref={(el) => { otpInputRefs.current[index] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpDigitChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    onPaste={index === 0 ? handleOtpPaste : undefined}
-                    disabled={isLoading}
-                    className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
-                    autoFocus={index === 0}
-                  />
-                ))}
-              </div>
+              <OtpCodeInput
+                key={otpSessionKey}
+                value={code}
+                onChange={setCode}
+                onComplete={(value) => handleVerifyCode(value)}
+                disabled={isLoading}
+                autoFocus
+              />
             </div>
             <div className="flex flex-col gap-2">
               <LoadingButton
@@ -1015,10 +869,11 @@ export default function AdminLoginPage() {
                   {t('onboarding.auth.didntReceiveCode') || "Didn't receive code?"}
                 </span>
                 <Button
-                  variant="link"
+                  type="button"
+                  variant="ghost"
                   onClick={handleResendOtp}
                   disabled={otpCountdown > 0 || isLoading}
-                  className="h-auto p-0 text-green-600 hover:text-green-700"
+                  className="inline-link-button h-auto min-h-0 rounded-none border-0 border-b border-transparent bg-transparent px-0 py-0 font-medium text-green-600 shadow-none hover:!border-green-600 hover:!bg-transparent hover:!text-green-700 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:opacity-70"
                 >
                   {otpCountdown > 0 
                     ? t('onboarding.auth.sendAgainIn')?.replace('{seconds}', otpCountdown.toString()) || `Send again in ${otpCountdown}s`

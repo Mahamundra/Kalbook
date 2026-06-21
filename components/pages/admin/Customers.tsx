@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { formatIsraeliPhoneInput } from '@/lib/phone/display';
 import type { Customer } from '@/types/admin';
 import { CustomerStatisticsCard } from '@/components/admin/CustomerStatisticsCard';
 import { CommunicationHistory } from '@/components/admin/CommunicationHistory';
@@ -150,6 +151,7 @@ const TagsInput = ({
               type="button"
               onClick={() => handleRemoveTag(tag)}
               className={`hover:bg-destructive/20 rounded-full p-0.5 ${isRTL ? 'mr-1' : 'ml-1'}`}
+              aria-label={`Remove tag ${tag}`}
             >
               <X className="h-3 w-3" />
             </button>
@@ -315,25 +317,6 @@ const Customers = () => {
   const isMobile = useIsMobile();
   const [mounted, setMounted] = useState(false);
 
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -619,7 +602,7 @@ const Customers = () => {
       }
     }
     // Format phone number when loading for edit
-    const formattedPhone = customer.phone ? formatPhoneNumber(customer.phone) : '';
+    const formattedPhone = customer.phone ? formatIsraeliPhoneInput(customer.phone) : '';
     setFormData({
       name: customer.name,
       phone: formattedPhone,
@@ -933,7 +916,7 @@ const Customers = () => {
       label: t('customers.phone'),
       render: (customer: Customer) => {
         // Format phone number with dashes for display
-        return formatPhoneNumber(customer.phone || '');
+        return formatIsraeliPhoneInput(customer.phone || '');
       },
     },
     {
@@ -1169,6 +1152,7 @@ const Customers = () => {
               size="sm"
               onClick={() => setViewMode('table')}
               className="h-8 px-2"
+              aria-label={t('customers.tableView') || 'Table view'}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -1177,6 +1161,7 @@ const Customers = () => {
               size="sm"
               onClick={() => setViewMode('cards')}
               className="h-8 px-2"
+              aria-label={t('customers.cardView') || 'Card view'}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -1209,11 +1194,13 @@ const Customers = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
                 {customers.map((customer) => (
-                  <div
+                  <button
                     key={customer.id}
+                    type="button"
                     onClick={() => handleCustomerClick(customer)}
-                    className={`border rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-lg transition-all bg-card min-h-[180px] sm:min-h-[200px] flex flex-col ${selectedIds.includes(customer.id) ? 'ring-2 ring-primary' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
+                    className={`border rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-lg transition-all bg-card min-h-[180px] sm:min-h-[200px] flex flex-col text-left w-full ${selectedIds.includes(customer.id) ? 'ring-2 ring-primary' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
                     dir={isRTL ? 'rtl' : 'ltr'}
+                    aria-label={customer.name}
                   >
                     <div className={`flex items-start justify-between mb-3 sm:mb-4 ${isRTL ? '' : ''}`}>
                       <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -1227,7 +1214,7 @@ const Customers = () => {
                           <div className={`flex items-center gap-2 ${isRTL ? '' : ''}`}>
                             <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
                             <p className={`text-xs sm:text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {formatPhoneNumber(customer.phone || '')}
+                              {formatIsraeliPhoneInput(customer.phone || '')}
                             </p>
                           </div>
                           {customer.email && (
@@ -1277,7 +1264,7 @@ const Customers = () => {
                         )}
                       </div>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -1348,7 +1335,7 @@ const Customers = () => {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => {
-                    const formatted = formatPhoneNumber(e.target.value);
+                    const formatted = formatIsraeliPhoneInput(e.target.value);
                     setFormData({ ...formData, phone: formatted });
                   }}
                   required
@@ -1582,6 +1569,7 @@ const Customers = () => {
                         size="icon"
                         className="h-8 w-8 rounded-full flex-shrink-0"
                         onClick={() => setIsDetailDialogOpen(false)}
+                        aria-label={t('common.close') || 'Close'}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -1593,6 +1581,7 @@ const Customers = () => {
                         size="icon"
                         className="h-8 w-8 rounded-full flex-shrink-0"
                         onClick={() => setIsDetailDialogOpen(false)}
+                        aria-label={t('common.close') || 'Close'}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -1640,20 +1629,6 @@ const Customers = () => {
                           className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
                         >
                           {getT('customers.measurements')}
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="workout-plans"
-                          ref={(el) => { tabRefs.current['workout-plans'] = el; }}
-                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
-                        >
-                          {getT('customers.workoutPlans')}
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="progress"
-                          ref={(el) => { tabRefs.current.progress = el; }}
-                          className={`flex-shrink-0 justify-center gap-2 px-2 md:px-3 py-4 md:py-3 h-full md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:font-semibold min-w-fit whitespace-nowrap`}
-                        >
-                          {getT('customers.progress')}
                         </TabsTrigger>
                         <TabsTrigger
                           value="membership"
@@ -1710,7 +1685,7 @@ const Customers = () => {
                     </div>
                     <div>
                       <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.phone')}</Label>
-                      <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{formatPhoneNumber(selectedCustomer.phone || '')}</p>
+                      <p className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{formatIsraeliPhoneInput(selectedCustomer.phone || '')}</p>
                     </div>
                     <div>
                       <Label className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>{t('customers.email')}</Label>
@@ -1869,16 +1844,6 @@ const Customers = () => {
                   <>
                     <TabsContent value="measurements" className="mt-0">
                       <ClientMeasurements customerId={selectedCustomer.id} />
-                    </TabsContent>
-                    <TabsContent value="workout-plans" className="mt-0">
-                      <div className={`p-4 text-center text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {getT('customers.workoutPlans')} - Coming soon
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="progress" className="mt-0">
-                      <div className={`p-4 text-center text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {getT('customers.progress')} - Coming soon
-                      </div>
                     </TabsContent>
                     <TabsContent value="membership" className="mt-0">
                       <MembershipCard 

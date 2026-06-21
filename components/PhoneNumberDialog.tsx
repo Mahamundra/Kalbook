@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useLocale } from '@/hooks/useLocale';
 import { toast } from 'sonner';
 import { normalizePhone } from '@/lib/customers/utils';
+import { formatIsraeliPhoneInput } from '@/lib/phone/display';
 
 interface PhoneNumberDialogProps {
   open: boolean;
@@ -25,28 +26,8 @@ export function PhoneNumberDialog({
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits (Israeli phone numbers are 10 digits)
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
+    const formatted = formatIsraeliPhoneInput(e.target.value);
     setPhone(formatted);
   };
 

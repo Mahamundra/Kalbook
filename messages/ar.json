@@ -1,22 +1,22 @@
 {
-    "nav": {
-        "dashboard": "لوحة التحكم",
-        "calendar": "التقويم",
-        "services": "الخدمات",
-        "classes": "الفصول",
-        "workers": "العمال",
-        "customers": "العملاء",
-        "trainers": "المدربون",
-        "clients": "العملاء",
-        "activityLogs": "سجل النشاط",
-        "templates": "القوالب",
-        "qr": "رموز QR",
-        "settings": "الإعدادات",
-        "viewPublicSite": "عرض الموقع العام",
-        "viewMyBookingPage": "عرض صفحة الحجز الخاصة بي",
-        "more": "المزيد",
-        "back": "رجوع"
-    },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "calendar": "التقويم",
+    "services": "الخدمات",
+    "classes": "الفصول",
+    "workers": "العمال",
+    "customers": "العملاء",
+    "trainers": "المدربون",
+    "clients": "العملاء",
+    "activityLogs": "سجل النشاط",
+    "templates": "القوالب",
+    "qr": "رموز QR",
+    "settings": "الإعدادات",
+    "viewPublicSite": "عرض الموقع العام",
+    "viewMyBookingPage": "عرض صفحة الحجز الخاصة بي",
+    "more": "المزيد",
+    "back": "رجوع"
+  },
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "مرحبًا بعودتك! إليك ما يحدث اليوم.",
@@ -167,7 +167,6 @@
     "edit": "تعديل الخدمة",
     "delete": "حذف الخدمة",
     "name": "الاسم",
-    "description": "الوصف",
     "descriptionPlaceholder": "أضف وصفًا لهذه الخدمة...",
     "duration": "المدة",
     "durationMinutes": "المدة (بالدقائق)",
@@ -294,7 +293,7 @@
   "customers": {
     "title": "العملاء",
     "search": "البحث عن العملاء...",
-    "add": "إضافة عميل جديد",
+    "add": "إضافة",
     "name": "الاسم",
     "phone": "الهاتف",
     "email": "البريد الإلكتروني",
@@ -357,38 +356,6 @@
     "overview": "نظرة عامة",
     "addTags": "إضافة علامات...",
     "statistics": {
-      "title": "الإحصائيات"
-    },
-    "communications": {
-      "title": "الاتصالات"
-    },
-    "notesHistory": {
-      "title": "سجل الملاحظات"
-    },
-    "merge": {
-      "title": "دمج العميل"
-    },
-    "delete": "حذف",
-    "exportSuccess": "تم تصدير العملاء بنجاح",
-    "saveError": "فشل حفظ العميل",
-    "exportError": "فشل تصدير العملاء",
-    "planLimitAddCustomers": "خطتك لا تسمح بإضافة العملاء. يرجى الترقية للمتابعة.",
-    "filters": {
-      "title": "المرشحات",
-      "sortBy": "ترتيب حسب",
-      "createdDate": "تاريخ الإنشاء",
-      "clearAll": "مسح الكل",
-      "activeFilters": "المرشحات النشطة",
-      "blocked": "محظور",
-      "marketingConsent": "الموافقة على التسويق",
-      "lastVisitFrom": "آخر زيارة من",
-      "lastVisitTo": "آخر زيارة حتى",
-      "createdDateFrom": "تاريخ الإنشاء من",
-      "createdDateTo": "تاريخ الإنشاء حتى",
-      "dateOfBirthFrom": "تاريخ الميلاد من",
-      "dateOfBirthTo": "تاريخ الميلاد حتى"
-    },
-    "statistics": {
       "title": "الإحصائيات",
       "totalAppointments": "إجمالي المواعيد",
       "avgVisitsPerMonth": "متوسط الزيارات/شهر",
@@ -419,6 +386,34 @@
       "noNotes": "لم يتم العثور على ملاحظات",
       "createdBy": "تم الإنشاء بواسطة"
     },
+    "merge": {
+      "title": "دمج العميل",
+      "description": "اختر عميلين للدمج. سيتم حذف العميل الثانوي.",
+      "selectPrimary": "العميل الأساسي",
+      "selectSecondary": "العميل الثانوي",
+      "confirm": "تأكيد الدمج",
+      "success": "تم دمج العملاء بنجاح"
+    },
+    "delete": "حذف",
+    "exportSuccess": "تم تصدير العملاء بنجاح",
+    "saveError": "فشل حفظ العميل",
+    "exportError": "فشل تصدير العملاء",
+    "planLimitAddCustomers": "خطتك لا تسمح بإضافة العملاء. يرجى الترقية للمتابعة.",
+    "filters": {
+      "title": "المرشحات",
+      "sortBy": "ترتيب حسب",
+      "createdDate": "تاريخ الإنشاء",
+      "clearAll": "مسح الكل",
+      "activeFilters": "المرشحات النشطة",
+      "blocked": "محظور",
+      "marketingConsent": "الموافقة على التسويق",
+      "lastVisitFrom": "آخر زيارة من",
+      "lastVisitTo": "آخر زيارة حتى",
+      "createdDateFrom": "تاريخ الإنشاء من",
+      "createdDateTo": "تاريخ الإنشاء حتى",
+      "dateOfBirthFrom": "تاريخ الميلاد من",
+      "dateOfBirthTo": "تاريخ الميلاد حتى"
+    },
     "importDescription": "قم بتحميل ملف CSV لاستيراد العملاء",
     "selectFile": "اختر ملف CSV",
     "noFileChosen": "لم يتم اختيار ملف",
@@ -434,16 +429,7 @@
     "moreErrors": "المزيد من الأخطاء",
     "bulkOperationDescription": "تطبيق على {count} عميل محدد",
     "operation": "العملية",
-    "add": "إضافة",
     "remove": "إزالة",
-    "merge": {
-      "title": "دمج العميل",
-      "description": "اختر عميلين للدمج. سيتم حذف العميل الثانوي.",
-      "selectPrimary": "العميل الأساسي",
-      "selectSecondary": "العميل الثانوي",
-      "confirm": "تأكيد الدمج",
-      "success": "تم دمج العملاء بنجاح"
-    },
     "merging": "جارٍ الدمج...",
     "pagination": {
       "showing": "عرض",
@@ -459,7 +445,7 @@
   "clients": {
     "title": "العملاء",
     "search": "البحث عن العملاء...",
-    "add": "إضافة عميل جديد",
+    "add": "إضافة",
     "name": "الاسم",
     "phone": "الهاتف",
     "email": "البريد الإلكتروني",
@@ -602,7 +588,6 @@
     "moreErrors": "المزيد من الأخطاء",
     "bulkOperationDescription": "تطبيق على {count} عميل(عملاء) محدد",
     "operation": "العملية",
-    "add": "إضافة",
     "remove": "إزالة",
     "merge": {
       "title": "دمج العميل",
@@ -883,11 +868,24 @@
     "loading": "جاري تحميل الإعدادات...",
     "selectSection": "اختر قسمًا لعرض المزيد من الإعدادات",
     "businessProfile": "ملف العمل",
-    "businessName": "اسم العمل",
+    "businessName": "اسم النشاط",
     "email": "البريد الإلكتروني",
     "phone": "الهاتف",
     "whatsapp": "WhatsApp",
     "address": "العنوان",
+    "addressFields": {
+      "city": "المدينة",
+      "cityPlaceholder": "ابحث عن مدينة",
+      "street": "الشارع",
+      "streetPlaceholder": "ابحث عن شارع",
+      "houseNumber": "رقم المنزل",
+      "houseNumberPlaceholder": "اختياري",
+      "selectCityFirst": "اختر مدينة أولاً",
+      "loading": "جاري التحميل...",
+      "noResults": "لم يتم العثور على نتائج",
+      "enterManually": "أدخل العنوان يدوياً",
+      "useAutocomplete": "استخدم البحث عن العنوان"
+    },
     "timezone": "المنطقة الزمنية",
     "currency": "العملة",
     "branding": "العلامة التجارية",
@@ -912,22 +910,19 @@
     "textColorDescription": "اختر لونًا للنص لصفحة الحجز. سيتم تطبيق هذا على جميع عناصر النص.",
     "logoShapeDescription": "اختر شكلاً لشعارك. الدائرة ستطبق زوايا مستديرة.",
     "dragToReposition": "اسحب لإعادة الموضع",
-      "editMenu": "قائمة التحرير",
-      "headerSection": "الترويسة",
-      "bannerSection": "البانر",
-      "contentSection": "المحتوى",
-      "settingsSection": "الإعدادات",
-      "businessName": "اسم النشاط",
-      "logo": "الشعار",
-      "banner": "غلاف البانر",
-      "guestMessage": "رسالة الضيف",
-      "loggedInMessage": "رسالة المستخدم المسجل",
-      "contactMessage": "رسالة الاتصال",
-      "contactSettings": "إعدادات الاتصال",
-      "themeColor": "لون السمة",
-      "textColor": "لون النص",
-      "logoShape": "شكل الشعار",
-      "socialLinks": "روابط التواصل",
+    "editMenu": "قائمة التحرير",
+    "headerSection": "الترويسة",
+    "bannerSection": "البانر",
+    "contentSection": "المحتوى",
+    "settingsSection": "الإعدادات",
+    "banner": "غلاف البانر",
+    "guestMessage": "رسالة العميل الضيف",
+    "loggedInMessage": "رسالة العميل المسجل",
+    "contactMessage": "رسالة الاتصال",
+    "contactSettings": "إعدادات الاتصال",
+    "textColor": "لون النص",
+    "logoShape": "شكل الشعار",
+    "socialLinks": "روابط وسائل التواصل الاجتماعي",
     "languageAndLocalization": "اللغة والتوطين",
     "language": "اللغة",
     "locale": "اللغة وRTL",
@@ -950,7 +945,6 @@
     "contactMessagePlaceholder": "أدخل رسالتك المخصصة للعملاء الذين لا يجدون تاريخهم المفضل",
     "contactMessageDescription": "ستظهر هذه الرسالة أسفل التقويم في صفحة الحجز. إذا تُركت فارغة، سيتم عرض رسالة افتراضية. استخدم الأسطر الجديدة (Enter) لإنشاء عدة أسطر.",
     "contactMessageHelp": "سيتم عرض قسم الاتصال فقط إذا كان هناك طريقة اتصال واحدة على الأقل (الهاتف أو WhatsApp) مفعلة ومتاحة.",
-    "contactMessage": "رسالة الاتصال",
     "messages": "رسائل الترحيب",
     "showPhoneInContact": "إظهار رقم الهاتف",
     "contactPhoneNote": "يستخدم رقم الهاتف من ملف تعريف العمل",
@@ -1079,7 +1073,6 @@
     "yourBusinessName": "اسم عملك",
     "welcomeMessageDefault": "مرحباً! احجز موعدك أدناه.",
     "contactUs": "اتصل بنا",
-    "socialLinks": "روابط وسائل التواصل الاجتماعي",
     "socialLinksDescription": "أضف روابط وسائل التواصل الاجتماعي الخاصة بك للعرض في أسفل صفحة الحجز. ستفتح الروابط في التطبيقات المقابلة عند النقر عليها.",
     "addSocialLink": "إضافة رابط اجتماعي",
     "facebook": "فيسبوك",
@@ -1092,7 +1085,7 @@
     "bannerCoverDescription": "قم بتحميل صورة أو فيديو، أو اختر نمطًا للشعار الخاص بك.",
     "uploadBanner": "رفع شعار",
     "choosePattern": "اختر نمط",
-    "uploadBannerImage": "رفع صورة الشعار",
+    "uploadBannerImage": "رفع صورة البانر",
     "cropImage": "قص الصورة",
     "confirmCrop": "تطبيق القص",
     "cancel": "إلغاء",
@@ -1100,7 +1093,6 @@
     "changeVideo": "تغيير الفيديو",
     "removeVideo": "إزالة الفيديو",
     "presetColors": "الألوان المحددة مسبقاً",
-    "uploadBannerImage": "رفع صورة البانر",
     "uploadVideo": "رفع فيديو",
     "noBanner": "لم يتم رفع بانر",
     "noSocialLinks": "لم تتم إضافة روابط اجتماعية بعد",
@@ -1127,10 +1119,8 @@
     "imageUploaded": "تم رفع الصورة بنجاح",
     "videoUploaded": "تم رفع الفيديو بنجاح",
     "fileUploaded": "تم رفع الملف بنجاح",
-    "guestMessage": "رسالة العميل الضيف",
     "guestMessagePlaceholder": "رسالة ترحيب للضيوف (مثل، مرحباً ضيف، أهلاً بك!)",
     "guestMessageDescription": "ستظهر هذه الرسالة للزوار غير المسجلين",
-    "loggedInMessage": "رسالة العميل المسجل",
     "loggedInMessagePlaceholder": "رسالة ترحيب للمستخدمين المسجلين (استخدم {name} لاسم العميل)",
     "loggedInMessageDescription": "ستظهر هذه الرسالة للعملاء المسجلين. استخدم {name} لتضمين اسم العميل",
     "registrationSettings": "إعدادات التسجيل",
@@ -1155,6 +1145,19 @@
     "placeholder": "نص توضيحي",
     "required": "مطلوب",
     "noCustomFields": "لم تتم إضافة حقول مخصصة بعد"
+  },
+  "addressFields": {
+    "city": "المدينة",
+    "cityPlaceholder": "ابحث عن مدينة",
+    "street": "الشارع",
+    "streetPlaceholder": "ابحث عن شارع",
+    "houseNumber": "رقم المنزل",
+    "houseNumberPlaceholder": "اختياري",
+    "selectCityFirst": "اختر مدينة أولاً",
+    "loading": "جاري التحميل...",
+    "noResults": "لم يتم العثور على نتائج",
+    "enterManually": "أدخل العنوان يدوياً",
+    "useAutocomplete": "استخدم البحث عن العنوان"
   },
   "auth": {
     "enterPhone": "أدخل رقم الهاتف",
@@ -1214,119 +1217,47 @@
       "saveError": "فشل حفظ رقم الهاتف",
       "invalidPhone": "يرجى إدخال رقم هاتف صالح (10 أرقام على الأقل)",
       "phoneExists": "رقم الهاتف هذا مسجل بالفعل"
-    }
+    },
+    "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة",
+    "invalidPhone": "يرجى إدخال رقم هاتف صحيح",
+    "sendCodeError": "فشل إرسال الرمز",
+    "codeSentToWhatsApp": "تم إرسال الرمز إلى {phone} عبر WhatsApp",
+    "enterWhatsAppCode": "أدخلوا الرمز الذي استلمتموه على WhatsApp",
+    "googleLoginError": "فشل تسجيل الدخول عبر Google",
+    "facebookLoginError": "فشل تسجيل الدخول عبر Facebook"
   },
   "adminLogin": {
-    "title": "تسجيل دخول المدير",
-    "subtitle": "قم بتسجيل الدخول لإدارة عملك",
-    "subtitleWithBusiness": "قم بتسجيل الدخول إلى {businessName}",
-    "homepageLogin": "تسجيل دخول المدير",
+    "homepageLogin": "تسجيل دخول المسؤول",
+    "title": "تسجيل دخول المسؤول",
+    "subtitle": "أدخل بريدك الإلكتروني لتسجيل الدخول إلى لوحة التحكم",
     "welcome": "مرحباً",
     "welcomeBack": "مرحباً بعودتك! {name}",
     "signInToGetStarted": "سجل الدخول للبدء",
     "login": "تسجيل الدخول",
-    "noUserYet": "إذا لم يكن لديك مستخدم بعد",
-    "createNewBusiness": "إنشاء عمل جديد",
-    "phone": "رقم الهاتف",
     "phonePlaceholder": "أدخل رقم الهاتف",
-    "phoneRequired": "رقم الهاتف مطلوب",
-    "sendCode": "إرسال الكود",
-    "sending": "جاري الإرسال...",
-    "sendCodeError": "فشل إرسال الكود",
-    "noBusinessAccess": "يبدو أنه ليس لديك حق الوصول إلى لوحة إدارة هذا العمل",
-    "codeSent": "تم إرسال الكود بنجاح",
-    "codeSentToPhone": "تم إرسال رمز التحقق بنجاح إلى {phone}",
-    "codeSentToEmail": "تم إرسال رمز التحقق بنجاح إلى {email}",
-    "enterCode": "أدخل رمز التحقق",
-    "codeHint": "أدخل الرمز المكون من 6 أرقام المرسل إلى هاتفك، أو استخدم 1234 للاختبار",
-    "emailCodeHint": "أدخل الرمز المرسل إلى بريدك الإلكتروني",
-    "emailRequired": "البريد الإلكتروني مطلوب",
-    "testCodeHint": "للاختبار، استخدم الكود: 1234",
-    "verify": "تحقق",
-    "verifying": "جاري التحقق...",
-    "invalidCode": "رمز غير صحيح",
-    "invalidOrExpiredCode": "رمز غير صحيح أو منتهي الصلاحية",
-    "noAdminAccountFound": "لم يتم العثور على حساب مدير بهذا البريد الإلكتروني لهذا العمل. يرجى الاتصال بصاحب العمل لإضافتك كمدير.",
-    "notRegistered": {
-      "title": "غير مسجل",
-      "message": "يبدو أنك غير مسجل كصاحب عمل.",
-      "createBusiness": "تريد إنشاء عمل جديد؟",
-      "createBusinessButton": "إنشاء عمل جديد",
-      "needAccess": "تحتاج إلى الوصول إلى عمل موجود؟",
-      "contactOwner": "يرجى طلب من صاحب العمل إضافتك كمستخدم."
-    },
-    "loginSuccess": "تم تسجيل الدخول بنجاح",
-    "back": "رجوع",
-    "noAccount": "ليس لديك حساب؟",
     "termsAgreement": "بتسجيل الدخول، أنت توافق على {terms} و{privacy}",
     "termsOfUse": "شروط الاستخدام",
     "privacyPolicy": "سياسة الخصوصية",
-    "contactOwner": "اتصل بمالك العمل لإنشاء حساب مدير."
+    "emailLabel": "البريد الإلكتروني",
+    "emailPlaceholder": "name@example.com",
+    "sendCode": "إرسال رمز",
+    "codeLabel": "رمز التحقق",
+    "codePlaceholder": "أدخل الرمز المكون من 6 أرقام",
+    "verifyCode": "التحقق من الرمز",
+    "backToEmail": "العودة إلى البريد الإلكتروني",
+    "invalidEmail": "البريد الإلكتروني غير صالح",
+    "codeSent": "تم إرسال الرمز إلى بريدك الإلكتروني",
+    "invalidCode": "رمز التحقق غير صالح",
+    "invalidOrExpiredCode": "رمز غير صحيح أو منتهي الصلاحية",
+    "loginSuccess": "تم تسجيل الدخول بنجاح",
+    "loginError": "حدث خطأ أثناء تسجيل الدخول",
+    "sendingCode": "جاري إرسال الرمز...",
+    "verifyingCode": "جاري التحقق من الرمز...",
+    "resendCode": "إعادة إرسال الرمز"
   },
   "userDashboard": {
-    "planStartDate": "تاريخ البدء",
-    "planRenewalDate": "تاريخ التجديد",
-    "planEndDate": "تاريخ الانتهاء",
-    "daysRemaining": "أيام متبقية",
-    "planExpiringSoon": "الخطة على وشك الانتهاء خلال {days} أيام. انقر هنا للتجديد أو اختر خطة جديدة.",
-    "renewPlan": "تجديد الخطة",
-    "cancelPlan": "إلغاء الخطة",
-    "confirmCancelPlan": "هل أنت متأكد أنك تريد إلغاء هذه الخطة؟ ستظل خطتك نشطة حتى تاريخ الانتهاء.",
-    "planCancelled": "تم إلغاء الخطة. نشطة حتى {date}.",
-    "planExpired": "انتهت صلاحية الخطة. يرجى التجديد للمتابعة في استخدام لوحة الإدارة.",
-    "activeUntil": "نشط حتى",
-    "upgradeRequest": "طلب الترقية",
     "title": "حسابي",
-    "profile": "الملف الشخصي",
-    "editProfile": "تعديل الملف الشخصي",
-    "currentPlan": "الخطة الحالية",
-    "changePlan": "تغيير الخطة",
-    "goToAdmin": "الذهاب إلى لوحة الإدارة",
-    "viewPublicSite": "عرض الموقع العام",
-    "logout": "تسجيل الخروج",
-    "homepage": "الصفحة الرئيسية",
-    "name": "الاسم",
-    "email": "البريد الإلكتروني",
-    "phone": "الهاتف",
-    "role": "الدور",
-    "business": "العمل",
-    "myBusinesses": "أعمالي",
-    "businessId": "معرف العمل",
-    "month": "شهر",
-    "planNames": {
-      "basic": "أساسي",
-      "professional": "احترافي",
-      "business": "الأعمال",
-      "custom": "مخصص"
-    },
-    "oneBusiness": "عمل واحد",
-    "businesses": "أعمال",
-    "createNewBusiness": "إنشاء عمل جديد",
-    "owner": "المالك",
-    "worker": "العامل",
-    "admin": "المدير",
-    "planChangeOwnerOnly": "تغيير الخطة متاح فقط لأصحاب الأعمال",
-    "selectPlan": "اختر خطة",
-    "saving": "جاري الحفظ...",
-    "saved": "تم الحفظ بنجاح",
-    "overview": "نظرة عامة",
-    "quickActions": "إجراءات سريعة",
-    "quickActionsDesc": "المهام والاختصارات الشائعة",
-    "totalBusinesses": "إجمالي الأعمال",
-    "activePlans": "الخطط النشطة",
-    "welcome": "مرحباً بعودتك",
-    "noBusinesses": "لا توجد أعمال",
-    "noBusinessesDesc": "ليس لديك أي أعمال بعد.",
-    "createNewBusinessDesc": "إعداد حساب عمل جديد",
-    "profileDesc": "إدارة معلومات حسابك",
-    "uploadPhoto": "رفع صورة",
-    "uploading": "جاري الرفع...",
-    "avatarHint": "JPG أو PNG أو GIF أو WebP. الحد الأقصى 5MB.",
-    "avatarUpdated": "تم تحديث الصورة الشخصية بنجاح",
-    "avatarUpload": "رفع الصورة الشخصية",
-    "cropAvatar": "قص الصورة",
-    "applyCrop": "تطبيق القص",
-    "zoom": "تكبير"
+    "logout": "تسجيل الخروج"
   },
   "common": {
     "save": "حفظ",
@@ -1420,7 +1351,7 @@
     "title": "KalBook",
     "subtitle": "كل ما يحتاجه عملك الخدمي – في مكان واحد.\n\nنظام إدارة ذكي يركّز جميع العمليات المهمة:\n\nالحجوزات عبر الإنترنت\n\nجدول ديناميكي ومحدث\n\nإدارة العملاء والموظفين\n\nإرسال التذكيرات والرسائل التلقائية\n\nسهل التشغيل، سريع الإعداد، بالعربية",
     "startNow": "ابدأ التجربة المجانية",
-    "seeFeatures": "ماذا يوجد بالداخل؟",
+    "seeFeatures": "ما الموجود؟",
     "pricingLabel": "الأسعار",
     "freeTrial": "تجربة مجانية",
     "adminDemo": "عرض تجريبي للمسؤول",
@@ -1453,7 +1384,7 @@
         "desc": "اسمح للعملاء بإلغاء أو إعادة جدولة الموعد – بدون مكالمات، بدون إزعاج. يمكن للعملاء تغيير أو إلغاء المواعيد بأنفسهم من خلال الرابط الذي تلقوه. مكالمات أقل، ارتباك أقل، وتقويمك محدث دائماً."
       },
       "onlineBooking": {
-        "title": "حجز عبر الإنترنت 24/7",
+        "title": "الحجز عبر الإنترنت 24/7",
         "desc": "مفتوح دائماً. اسمح للعملاء بالحجز في أي وقت - حتى عندما تكون خارج العمل."
       },
       "googleCalendar": {
@@ -1465,11 +1396,11 @@
         "desc": "صفحة حجز نظيفة واحترافية تعرض خدماتك بشكل مثالي."
       },
       "recurringAppointments": {
-        "title": "مواعيد متكررة",
-        "desc": "قم بإعداد حجوزات متكررة للعملاء المنتظمين. أسبوعي أو شهري أو جداول مخصصة - وفر الوقت ولا تفوت موعدًا منتظمًا أبدًا."
+        "title": "المواعيد المتكررة",
+        "desc": "قم بإعداد الحجوزات المتكررة للعملاء المنتظمين. أسبوعي، شهري، أو جداول مخصصة - وفر الوقت ولا تفوت موعداً منتظماً أبداً."
       },
       "mobileOptimized": {
-        "title": "حجز محسّن للجوال",
+        "title": "الحجز المحسّن للجوال",
         "desc": "تجربة حجز متجاوبة بالكامل تبدو رائعة على أي جهاز."
       },
       "security": {
@@ -1484,10 +1415,6 @@
         "title": "رموز QR للحجز السهل",
         "desc": "من المسح إلى الجدولة. أنشئ رموز QR لصفحات الحجز أو الخدمات المحددة. شارك في أي مكان، احجز فوراً."
       },
-      "onlineBooking": {
-        "title": "الحجز عبر الإنترنت 24/7",
-        "desc": "مفتوح دائماً. اسمح للعملاء بالحجز في أي وقت - حتى عندما تكون خارج العمل."
-      },
       "groupServices": {
         "title": "الخدمات الجماعية والحزم",
         "desc": "اجمع الخدمات في حزم مثل قصة شعر + لحية لزيادة المبيعات بسهولة."
@@ -1500,17 +1427,9 @@
         "title": "العلامة التجارية المخصصة",
         "desc": "اجعل صفحة الحجز الخاصة بك ملكك مع شعارك وألوان علامتك التجارية."
       },
-      "mobileOptimized": {
-        "title": "الحجز المحسّن للجوال",
-        "desc": "تجربة حجز متجاوبة بالكامل تبدو رائعة على أي جهاز."
-      },
       "noShowPrevention": {
         "title": "منع عدم الحضور",
         "desc": "التذكيرات التلقائية تساعد في تقليل المواعيد الفائتة والحفاظ على جدولك ممتلئاً."
-      },
-      "recurringAppointments": {
-        "title": "المواعيد المتكررة",
-        "desc": "قم بإعداد الحجوزات المتكررة للعملاء المنتظمين. أسبوعي، شهري، أو جداول مخصصة - وفر الوقت ولا تفوت موعداً منتظماً أبداً."
       }
     },
     "pricing": {
@@ -1527,7 +1446,16 @@
           "priceNote": "مجاني إلى الأبد",
           "cta": "إنشاء معرض أعمال مجاني",
           "note": "اعرض عملك - بدون حجز، فقط معرض أعمالك",
-          "highlights": ["صفحة رئيسية للعمل/معرض أعمال", "شعار وعلامة تجارية", "عرض الخدمات", "معلومات الاتصال", "روابط اجتماعية", "محرر الصفحة الرئيسية", "لا حجز مواعيد", "لا إدارة عملاء"]
+          "highlights": [
+            "صفحة رئيسية للعمل/معرض أعمال",
+            "شعار وعلامة تجارية",
+            "عرض الخدمات",
+            "معلومات الاتصال",
+            "روابط اجتماعية",
+            "محرر الصفحة الرئيسية",
+            "لا حجز مواعيد",
+            "لا إدارة عملاء"
+          ]
         },
         "free": {
           "name": "أساسي",
@@ -1535,7 +1463,14 @@
           "priceNote": "14 يومًا تجربة مجانية",
           "cta": "ابدأ مجانًا",
           "note": "ابدأ في إدارة حجوزاتك اليوم - لا حاجة لبطاقة ائتمان",
-          "highlights": ["موظف واحد", "حتى 100 حجز/شهر", "تقويم ذكي", "إدارة العملاء", "تذكيرات البريد الإلكتروني", "دعم ثنائي اللغة و RTL"]
+          "highlights": [
+            "موظف واحد",
+            "حتى 100 حجز/شهر",
+            "تقويم ذكي",
+            "إدارة العملاء",
+            "تذكيرات البريد الإلكتروني",
+            "دعم ثنائي اللغة و RTL"
+          ]
         },
         "pro": {
           "name": "Pro",
@@ -1543,7 +1478,17 @@
           "priceNote": "شهريًا",
           "cta": "ابدأ Pro",
           "note": "كل ما تحتاجه لتنمية عملك",
-          "highlights": ["كل شيء في خطة Free", "حتى 5 موظفين", "حجوزات غير محدودة", "لوحة تحليلات", "تكامل واتساب", "تكامل مع Google Calendar", "علامة تجارية مخصصة", "تذكيرات متقدمة", "دعم ذو أولوية"]
+          "highlights": [
+            "كل شيء في خطة Free",
+            "حتى 5 موظفين",
+            "حجوزات غير محدودة",
+            "لوحة تحليلات",
+            "تكامل واتساب",
+            "تكامل مع Google Calendar",
+            "علامة تجارية مخصصة",
+            "تذكيرات متقدمة",
+            "دعم ذو أولوية"
+          ]
         },
         "custom": {
           "name": "Custom",
@@ -1551,9 +1496,26 @@
           "priceNote": "مصمم حسب احتياجاتك",
           "cta": "اتصل بنا",
           "note": "حلول مخصصة لمتطلباتك الخاصة. دعم مخصص، قدرات متقدمة وكل ما تحتاجه للنمو بسرعة.",
-          "highlights": ["كل شيء في Pro", "موظفون غير محدودين", "وصول API", "حل White-Label", "تكاملات مخصصة", "تقارير متقدمة", "دعم مواقع متعددة", "سير عمل مخصص", "دعم مخصص", "تطوير مخصص"]
+          "highlights": [
+            "كل شيء في Pro",
+            "موظفون غير محدودين",
+            "وصول API",
+            "حل White-Label",
+            "تكاملات مخصصة",
+            "تقارير متقدمة",
+            "دعم مواقع متعددة",
+            "سير عمل مخصص",
+            "دعم مخصص",
+            "تطوير مخصص"
+          ]
         }
-      }
+      },
+      "basic": "أساسي",
+      "customPlan": "Custom",
+      "startingFrom": "بدءًا من ",
+      "free": "مجاني",
+      "proPriceNote": "للمحترفين",
+      "noCreditCard": "لا حاجة لبطاقة ائتمان"
     },
     "portfolio": {
       "badge": "مجاني إلى الأبد",
@@ -1658,53 +1620,71 @@
       "description": "نظام حجز مواعيد حديث ومتعدد المستأجرين للشركات الخدمية",
       "rights": "جميع الحقوق محفوظة.",
       "terms": "الشروط",
-      "privacy": "الخصوصية"
+      "privacy": "الخصوصية",
+      "copyright": "© {year} Kalbook.io · {rights}"
     },
     "contact": {
       "title": "اتصل بنا",
-      "description": "تواصل معنا. نحن نحب أن نسمع منك!",
+      "description": "تريد التحدث؟ اكتب لنا — سنعود إليك.",
       "info": "معلومات الاتصال",
       "name": "الاسم",
       "email": "البريد الإلكتروني",
       "message": "الرسالة",
       "submit": "إرسال الرسالة",
       "submitting": "جاري الإرسال...",
-      "success": "شكراً لك! سنتواصل معك قريباً.",
+      "success": "تم! سنتواصل معك قريبًا.",
       "error": "فشل إرسال الرسالة. يرجى المحاولة مرة أخرى."
+    },
+    "preview": {
+      "withBooking": "مع الحجز",
+      "businessCard": "بطاقة عمل",
+      "mobile": "جوال",
+      "desktop": "كمبيوتر",
+      "modalBooking": "حجز",
+      "modalCard": "بطاقة"
+    },
+    "customFeatures": {
+      "title": "ميزات إضافية يمكننا تطويرها",
+      "subtitle": "حلول متقدمة ومخصصة لاحتياجاتك",
+      "items": {
+        "apiAccess": {
+          "title": "وصول API",
+          "desc": "تكامل كامل مع أنظمتك"
+        },
+        "whiteLabel": {
+          "title": "حل White-Label",
+          "desc": "علامتك التجارية بدون شعارنا"
+        },
+        "customIntegrations": {
+          "title": "تكاملات مخصصة",
+          "desc": "ربط CRM وERP وأدوات أخرى"
+        },
+        "advancedReports": {
+          "title": "تقارير متقدمة",
+          "desc": "تقارير وتحليلات مخصصة"
+        },
+        "multiLocation": {
+          "title": "دعم مواقع متعددة",
+          "desc": "إدارة فروع متعددة من مكان واحد"
+        },
+        "customWorkflows": {
+          "title": "سير عمل مخصص",
+          "desc": "أتمتة لعملياتك"
+        },
+        "advancedAutomation": {
+          "title": "أتمتة متقدمة",
+          "desc": "قواعد عمل ومشغلات مخصصة"
+        },
+        "dedicatedSupport": {
+          "title": "دعم مخصص",
+          "desc": "مدير حساب ودعم 24/7"
+        },
+        "customDevelopment": {
+          "title": "تطوير مخصص",
+          "desc": "ميزات فريدة حسب الطلب"
+        }
+      }
     }
-  },
-  "adminLogin": {
-    "homepageLogin": "تسجيل دخول المسؤول",
-    "title": "تسجيل دخول المسؤول",
-    "subtitle": "أدخل بريدك الإلكتروني لتسجيل الدخول إلى لوحة التحكم",
-    "welcome": "مرحباً",
-    "welcomeBack": "مرحباً بعودتك! {name}",
-    "signInToGetStarted": "سجل الدخول للبدء",
-    "login": "تسجيل الدخول",
-    "phonePlaceholder": "أدخل رقم الهاتف",
-    "termsAgreement": "بتسجيل الدخول، أنت توافق على {terms} و{privacy}",
-    "termsOfUse": "شروط الاستخدام",
-    "privacyPolicy": "سياسة الخصوصية",
-    "emailLabel": "البريد الإلكتروني",
-    "emailPlaceholder": "name@example.com",
-    "sendCode": "إرسال رمز",
-    "codeLabel": "رمز التحقق",
-    "codePlaceholder": "أدخل الرمز المكون من 6 أرقام",
-    "verifyCode": "التحقق من الرمز",
-    "backToEmail": "العودة إلى البريد الإلكتروني",
-    "invalidEmail": "البريد الإلكتروني غير صالح",
-    "codeSent": "تم إرسال الرمز إلى بريدك الإلكتروني",
-    "invalidCode": "رمز التحقق غير صالح",
-    "invalidOrExpiredCode": "رمز غير صحيح أو منتهي الصلاحية",
-    "loginSuccess": "تم تسجيل الدخول بنجاح",
-    "loginError": "حدث خطأ أثناء تسجيل الدخول",
-    "sendingCode": "جاري إرسال الرمز...",
-    "verifyingCode": "جاري التحقق من الرمز...",
-    "resendCode": "إعادة إرسال الرمز"
-  },
-  "userDashboard": {
-    "title": "حسابي",
-    "logout": "تسجيل الخروج"
   },
   "onboarding": {
     "auth": {
@@ -1723,13 +1703,12 @@
       "or": "أو",
       "signInWithGoogle": "تسجيل الدخول باستخدام Google",
       "signInWithFacebook": "تسجيل الدخول باستخدام Facebook",
-      "otpSentToEmail": "أرسلنا رمز التحقق إلى {email}",
+      "otpSentToEmail": "تم إرسال رمز التحقق بنجاح إلى {email}",
       "phoneRequired": "رقم الهاتف مطلوب",
       "invalidPhone": "يرجى إدخال رقم هاتف صحيح",
       "otpRequired": "رمز التحقق مطلوب",
       "otpSent": "تم إرسال رمز التحقق بنجاح",
       "otpSentToPhone": "تم إرسال رمز التحقق بنגاح إلى {phone}",
-      "otpSentToEmail": "تم إرسال رمز التحقق بنجاح إلى {email}",
       "verified": "تم التحقق من رقم الهاتف",
       "authenticated": "تم التحقق!",
       "phoneVerified": "تم التحقق من رقم الهاتف {phone}",
@@ -1757,6 +1736,76 @@
       "invalidService": "يرجى التأكد من أن جميع الخدمات لها اسم ومدة صالحة (>0) وسعر صالح (≥0).",
       "setupFailed": "فشل في إعداد عملك. يرجى المحاولة مرة أخرى.",
       "phoneAlreadyRegistered": "رقم الهاتف مسجل بالفعل من قبل مستخدم آخر"
+    },
+    "alreadyRegistered": "لديك بالفعل عمل مسجل. يرجى تسجيل الدخول إلى عملك الحالي.",
+    "lessThanMinute": "يستغرق أقل من دقيقة :)",
+    "planBanner": {
+      "freeForever": "مجاني إلى الأبد — لا حاجة لوسيلة دفع",
+      "freeNoPayment": "مجاني — لا حاجة لوسيلة دفع"
+    },
+    "chooseBusinessType": {
+      "stepSubtitle": "اختر نوع العمل الذي يناسبك"
+    },
+    "steps": {
+      "reassurance": "💡 لا تقلق — يمكن تغيير كل شيء لاحقًا",
+      "fieldRequired": "هذا الحقل مطلوب",
+      "businessName": {
+        "title": "ما اسم عملك؟",
+        "subtitle": "هكذا سيراه العملاء في صفحة الحجز",
+        "label": "اسم العمل",
+        "placeholder": "مثال: استوديو اللياقة",
+        "preview": "✨ هكذا سيظهر للعملاء:"
+      },
+      "ownerName": {
+        "title": "ما اسمك؟",
+        "subtitle": "هكذا سنعرضك في النظام",
+        "greeting": "👋 سعيد بلقائك!",
+        "label": "اسم المالك",
+        "placeholder": "اسم صاحب العمل"
+      },
+      "contact": {
+        "title": "كيف يمكن التواصل معك؟",
+        "subtitle": "الهاتف والبريد المعروضان في صفحة الحجز",
+        "phoneHint": "سيظهر هذا الرقم للعملاء ويمكنهم الاتصال بك",
+        "yourPhone": "رقم هاتفك:",
+        "phoneLabel": "رقم الهاتف",
+        "useDifferentPhone": "استخدم رقم هاتف مختلف لعملي",
+        "phoneDisplayNote": "سيظهر رقمك للعملاء في صفحة الحجز",
+        "emailOptional": "البريد الإلكتروني (اختياري)",
+        "emailHint": "البريد المعروض للعملاء في صفحة الحجز"
+      },
+      "address": {
+        "title": "ما عنوان العمل؟ (اختياري)",
+        "subtitle": "سنعرضه للعملاء (اختياري)",
+        "label": "العنوان",
+        "city": "المدينة",
+        "cityPlaceholder": "ابحث عن مدينة",
+        "street": "الشارع",
+        "streetPlaceholder": "ابحث عن شارع",
+        "houseNumber": "رقم المنزل",
+        "houseNumberPlaceholder": "اختياري",
+        "selectCityFirst": "اختر مدينة أولاً",
+        "loading": "جاري التحميل...",
+        "noResults": "لم يتم العثور على نتائج",
+        "enterManually": "أدخل العنوان يدوياً",
+        "useAutocomplete": "استخدم البحث عن العنوان",
+        "socialHint": "أضف روابط التواصل في أسفل صفحة الحجز. تفتح في التطبيق المناسب.",
+        "addSocialLink": "أضف رابط اجتماعي"
+      },
+      "services": {
+        "hint": "2–3 خدمات للبداية — يمكنك إضافة المزيد لاحقًا",
+        "skip": "تخطي — يمكنك الإضافة بعد الإعداد",
+        "serviceName": "اسم الخدمة",
+        "serviceNamePlaceholder": "مثال: قص شعر",
+        "descriptionOptional": "الوصف (اختياري)",
+        "durationMinutes": "المدة (دقائق)",
+        "priceIls": "السعر (₪)",
+        "serviceCounter": "خدمة {current} (من {total})"
+      }
+    },
+    "businessInfo": {
+      "namePlaceholder": "مثال: استوديو للياقة",
+      "ownerNamePlaceholder": "اسم صاحب العمل"
     }
   },
   "booking": {

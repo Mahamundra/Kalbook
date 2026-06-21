@@ -336,7 +336,7 @@ const ActivityLogs = () => {
             <Button onClick={handleApplyFilters} className="flex-1">
               {t('activityLogs.apply') || 'Apply'}
             </Button>
-            <Button variant="outline" onClick={handleClearFilters} title={t('activityLogs.clearFilters') || 'Clear Filters'}>
+            <Button variant="outline" onClick={handleClearFilters} title={t('activityLogs.clearFilters') || 'Clear Filters'} aria-label={t('activityLogs.clearFilters') || 'Clear filters'}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -364,7 +364,7 @@ const ActivityLogs = () => {
                 <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} aria-label={t('activityLogs.refresh') || 'Refresh logs'}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>

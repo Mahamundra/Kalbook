@@ -1,19 +1,9 @@
-import type { Metadata } from 'next';
-import { generateAdminMetadata } from '@/lib/metadata/admin';
+import { redirect } from 'next/navigation';
 
-export async function generateMetadata({
+export default function AnalyticsPage({
   params,
 }: {
   params: { slug: string };
-}): Promise<Metadata> {
-  return generateAdminMetadata(params.slug, 'analytics');
+}) {
+  redirect(`/b/${params.slug}/admin/dashboard`);
 }
-
-export default function AnalyticsPage() {
-  return (
-    <div className="p-6">
-      <p>Analytics coming soon...</p>
-    </div>
-  );
-}
-

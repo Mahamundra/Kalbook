@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { OtpCodeInput } from "@/components/ui/OtpCodeInput";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +15,14 @@ import Link from "next/link";
 import { Scissors, Sparkles, Dumbbell, Briefcase, Trash2, Plus, Heart, Palette, Waves, Activity, HeartPulse, Users, Apple, Home, Check, User, LogOut, LayoutDashboard, ChevronDown, Mail, Phone, MessageSquare, ArrowRight, ArrowLeft, AlertCircle, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
 import { useLocale } from "@/hooks/useLocale";
 import { TypingAnimation } from "@/components/ui/TypingAnimation";
+import {
+  formatIsraeliPhoneInput,
+  formatPhoneForDisplay,
+  phoneInputToE164,
+} from "@/lib/phone/display";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -32,6 +39,9 @@ import {
 } from "@/components/ui/tooltip";
 import { getTimeBasedGreeting } from "@/lib/utils/greetings";
 import { Footer } from "@/components/ui/Footer";
+import { getApiErrorMessage, getApiRetryAfter } from "@/lib/api/error-message";
+import { IsraelAddressFields } from "@/components/address/IsraelAddressFields";
+import { PlanSelectionModal } from "@/components/onboarding/PlanSelectionModal";
 import { getDefaultServices } from "@/lib/onboarding/utils";
 import type { BusinessType } from "@/lib/supabase/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -132,7 +142,6 @@ const Onboarding = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -140,9 +149,9 @@ const Onboarding = () => {
   const [authenticatedUser, setAuthenticatedUser] = useState<{phone?: string, email?: string, name?: string} | null>(null);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpSessionKey, setOtpSessionKey] = useState(0);
   const [rateLimitCountdown, setRateLimitCountdown] = useState<number | null>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('portfolio');
   const [isPortfolio, setIsPortfolio] = useState<boolean>(true);
   const hasCheckedExistingBusiness = useRef<boolean>(false);
@@ -244,17 +253,11 @@ const Onboarding = () => {
 
   // Check if user is logged in
   const checkUser = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:checkUser',message:'checkUser called',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
     try {
       setLoadingUser(true);
       const response = await fetch('/api/user/profile');
       if (response.ok) {
         const data = await response.json();
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:checkUser:result',message:'profile fetch result',data:{success:data.success,hasUser:!!data.user},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
         if (data.success) {
           setUser({
             name: data.user.name,
@@ -458,7 +461,7 @@ const Onboarding = () => {
         'עד 5 עובדים': 'הוסף עד 5 חברי צוות. מושלם לעסקים קטנים ובינוניים.',
         'עובדים ללא הגבלה': 'הוסף כמה חברי צוות שאתה צריך. מושלם לעסקים גדלים.',
         'הזמנות ללא הגבלה': 'אין הגבלות על כמה תורים אתה יכול לנהל. גדל ללא הגבלות.',
-        'הכל בחבילת Free': 'כל התכונות מתוכנית Free כלולות ב-Pro.',
+        'הכל בחבילת Basic': 'כל מה שחבילת הBasic והרבה מעבר.',
         'לוח בקרה ואנליטיקה': 'עקוב אחר הכנסות, מגמות הזמנות ותובנות לקוחות עם דוחות מפורטים.',
         'אינטגרציה עם וואטסאפ': 'שלח אישורי תורים ותזכורות דרך WhatsApp לשיפור מעורבות.',
         'אינטגרציה עם Google Calendar': 'סנכרן את התורים שלך עם Google Calendar. כל התורים שלך במקום אחד.',
@@ -485,7 +488,7 @@ const Onboarding = () => {
         'עד 5 עובדים': 'הוסף עד 5 חברי צוות. מושלם לעסקים קטנים ובינוניים.',
         'עובדים ללא הגבלה': 'הוסף כמה חברי צוות שאתה צריך. מושלם לעסקים גדלים.',
         'הזמנות ללא הגבלה': 'אין הגבלות על כמה תורים אתה יכול לנהל. גדל ללא הגבלות.',
-        'הכל בחבילת Free': 'כל התכונות מתוכנית Free כלולות ב-Pro.',
+        'הכל בחבילת Basic': 'כל מה שחבילת הBasic והרבה מעבר.',
         'לוח בקרה ואנליטיקה': 'עקוב אחר הכנסות, מגמות הזמנות ותובנות לקוחות עם דוחות מפורטים.',
         'אינטגרציה עם וואטסאפ': 'שלח אישורי תורים ותזכורות דרך WhatsApp לשיפור מעורבות.',
         'אינטגרציה עם Google Calendar': 'סנכרן את התורים שלך עם Google Calendar. כל התורים שלך במקום אחד.',
@@ -601,51 +604,6 @@ const Onboarding = () => {
     return stepFeedback[locale] || stepFeedback.en || "";
   };
 
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
-  // Convert E.164 format (+972540000000) to display format (050-000-0000)
-  const formatPhoneForDisplay = (phone: string): string => {
-    if (!phone) return '';
-    
-    // Remove all non-digit characters
-    let digits = phone.replace(/\D/g, '');
-    
-    // If it starts with country code (972 for Israel), remove it
-    if (digits.startsWith('972') && digits.length > 10) {
-      digits = '0' + digits.substring(3);
-    }
-    
-    // Limit to 10 digits and format
-    const limited = digits.slice(-10); // Take last 10 digits
-    
-    // Format as XXX-XXX-XXXX
-    if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
   // Handle OTP send
   const handleSendOtp = async () => {
     if (!phoneNumber.trim()) {
@@ -674,33 +632,33 @@ const Onboarding = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        const retryAfter = getApiRetryAfter(data);
         // Handle rate limiting with countdown
-        if (response.status === 429 && data.retryAfter) {
-          setRateLimitCountdown(data.retryAfter);
-          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+        if (response.status === 429 && retryAfter) {
+          setRateLimitCountdown(retryAfter);
+          const errorMessage = getApiErrorMessage(
+            data.error,
+            t('auth.rateLimitMessage')?.replace('{seconds}', retryAfter.toString()) || `Too many requests. Please try again in ${retryAfter} seconds.`
+          );
           toast.error(errorMessage);
           setSendingOtp(false);
           return;
         } else {
-          throw new Error(data.error || 'Failed to send OTP');
+          throw new Error(getApiErrorMessage(data.error, 'Failed to send OTP'));
         }
       }
 
       setOtpSent(true);
       setShowOtpModal(true);
       setOtpCountdown(30);
+      setOtpSessionKey((k) => k + 1);
       setOtpCode('');
-      setOtpDigits(['', '', '', '', '', '']);
       setRateLimitCountdown(null);
       toast.success(
         loginMethod === 'phone' 
           ? (t('onboarding.auth.otpSentToPhone')?.replace('{phone}', phoneNumber) || `Verification code sent successfully to ${phoneNumber}`)
           : (t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`)
       );
-      // Focus first OTP input after modal opens
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
     } catch (error: any) {
       toast.error(error.message || 'Failed to send OTP');
     } finally {
@@ -720,61 +678,12 @@ const Onboarding = () => {
     setShowOtpModal(false);
     setOtpSent(false);
     setOtpCode('');
-    setOtpDigits(['', '', '', '', '', '']);
     setOtpCountdown(0);
     // Focus on phone input (desktop only)
     if (!isMobile) {
       setTimeout(() => {
         phoneInputRef.current?.focus();
       }, 100);
-    }
-  };
-
-  // Handle OTP digit change
-  const handleOtpDigitChange = (index: number, value: string) => {
-    // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
-
-    const newDigits = [...otpDigits];
-    newDigits[index] = value;
-    setOtpDigits(newDigits);
-
-    // Update otpCode for API
-    const code = newDigits.join('');
-    setOtpCode(code);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-verify when all 6 digits are entered
-    if (code.length === 6) {
-      handleVerifyOtp(code);
-    }
-  };
-
-  // Handle OTP key down (backspace)
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  // Handle OTP paste
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const newDigits = [...otpDigits];
-    for (let i = 0; i < 6; i++) {
-      newDigits[i] = pastedData[i] || '';
-    }
-    setOtpDigits(newDigits);
-    setOtpCode(pastedData);
-    if (pastedData.length === 6) {
-      handleVerifyOtp(pastedData);
-    } else {
-      otpInputRefs.current[Math.min(pastedData.length, 5)]?.focus();
     }
   };
 
@@ -805,10 +714,9 @@ const Onboarding = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Invalid or expired code');
+          throw new Error(getApiErrorMessage(data.error, 'Invalid or expired code'));
         }
 
-        setOtpVerified(true);
         // Handle both existing user and new user cases
         if (data.isNewUser) {
           // New user - just set email, they'll register during onboarding
@@ -833,6 +741,19 @@ const Onboarding = () => {
           setAuthenticatedUser({ email: email });
           setBusinessInfo(prev => ({ ...prev, email: email }));
         }
+
+        const emailGate = await gateOnboardingIdentity(email, undefined);
+        if (!emailGate.allowed) {
+          if (emailGate.error) {
+            toast.error(emailGate.error);
+            if (emailGate.field) {
+              setErrors((prev) => ({ ...prev, [emailGate.field!]: emailGate.error! }));
+            }
+          }
+          return;
+        }
+
+        setOtpVerified(true);
       } else {
         // Phone OTP verification (existing flow)
         const cleanPhone = phoneNumber.replace(/\D/g, '');
@@ -850,10 +771,15 @@ const Onboarding = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Invalid OTP code');
+          throw new Error(getApiErrorMessage(data.error, 'Invalid OTP code'));
         }
 
-        setOtpVerified(true);
+        if (data.business?.slug) {
+          setShowOtpModal(false);
+          redirectToExistingBusinessLogin(data.business.slug);
+          return;
+        }
+
         // Handle both existing user and new user cases
         if (data.isNewUser) {
           // New user - just set phone, they'll register during onboarding
@@ -880,6 +806,20 @@ const Onboarding = () => {
             setOwnerName(data.user.name);
           }
         }
+
+        const phoneForGate = data.user?.phone || phoneNumber;
+        const phoneGate = await gateOnboardingIdentity(data.user?.email, phoneForGate);
+        if (!phoneGate.allowed) {
+          if (phoneGate.error) {
+            toast.error(phoneGate.error);
+            if (phoneGate.field) {
+              setErrors((prev) => ({ ...prev, [phoneGate.field!]: phoneGate.error! }));
+            }
+          }
+          return;
+        }
+
+        setOtpVerified(true);
       }
       setShowOtpModal(false);
       toast.success(loginMethod === 'phone' 
@@ -893,9 +833,7 @@ const Onboarding = () => {
     } catch (error: any) {
       toast.error(error.message || 'Invalid OTP code');
       // Clear OTP on error
-      setOtpDigits(['', '', '', '', '', '']);
       setOtpCode('');
-      otpInputRefs.current[0]?.focus();
     } finally {
       setVerifyingOtp(false);
     }
@@ -910,15 +848,6 @@ const Onboarding = () => {
       return () => clearTimeout(timer);
     }
   }, [otpCountdown]);
-
-  // Focus first OTP input when modal opens
-  useEffect(() => {
-    if (showOtpModal && otpInputRefs.current[0]) {
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
-    }
-  }, [showOtpModal]);
 
   // Handle Google OAuth - use redirect flow (same page)
   const handleGoogleLogin = async () => {
@@ -989,15 +918,19 @@ const Onboarding = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        const retryAfter = getApiRetryAfter(data);
         // Handle rate limiting with countdown
-        if (response.status === 429 && data.retryAfter) {
-          setRateLimitCountdown(data.retryAfter);
-          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+        if (response.status === 429 && retryAfter) {
+          setRateLimitCountdown(retryAfter);
+          const errorMessage = getApiErrorMessage(
+            data.error,
+            t('auth.rateLimitMessage')?.replace('{seconds}', retryAfter.toString()) || `Too many requests. Please try again in ${retryAfter} seconds.`
+          );
           toast.error(errorMessage);
           setSendingOtp(false);
           return;
         } else {
-          throw new Error(data.error || 'Failed to send OTP');
+          throw new Error(getApiErrorMessage(data.error, 'Failed to send OTP'));
         }
       }
 
@@ -1005,7 +938,7 @@ const Onboarding = () => {
       setOtpSent(true);
       setShowOtpModal(true);
       setOtpCountdown(30);
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpSessionKey((k) => k + 1);
       setOtpCode('');
       setRateLimitCountdown(null);
       
@@ -1015,9 +948,6 @@ const Onboarding = () => {
       }
       
       toast.success(t('onboarding.auth.otpSentToEmail')?.replace('{email}', email) || `Verification code sent successfully to ${email}`);
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
     } catch (error: any) {
       setSendingOtp(false);
       toast.error(error.message || t('auth.sendCodeError') || 'Failed to send code');
@@ -1027,20 +957,21 @@ const Onboarding = () => {
   // Read plan from URL params on mount
   useEffect(() => {
     const planParam = searchParams.get('plan');
-    const validPlans = ['portfolio', 'free', 'pro', 'custom', 'basic', 'professional', 'business'];
-    if (planParam && validPlans.includes(planParam.toLowerCase())) {
+    const validPlans = ['portfolio', 'free', 'pro', 'basic', 'professional'];
+    const salesOnlyPlans = ['custom', 'business'];
+    if (planParam && (validPlans.includes(planParam.toLowerCase()) || salesOnlyPlans.includes(planParam.toLowerCase()))) {
       // Map old plan names to new ones
       const planMapping: Record<string, string> = {
         'basic': 'free',
         'professional': 'pro',
-        'business': 'custom'
       };
-      const mappedPlan = planMapping[planParam.toLowerCase()] || planParam.toLowerCase();
-      // Prevent custom plan from being selected via URL - default to 'portfolio' instead
-      if (mappedPlan === 'custom' || planParam.toLowerCase() === 'custom') {
+      const normalizedPlan = planParam.toLowerCase();
+      // Custom/business are sales-led — not available in onboarding
+      if (salesOnlyPlans.includes(normalizedPlan)) {
         setSelectedPlan('portfolio');
         setIsPortfolio(true);
       } else {
+        const mappedPlan = planMapping[normalizedPlan] || normalizedPlan;
         setSelectedPlan(mappedPlan);
         setIsPortfolio(mappedPlan === 'portfolio');
       }
@@ -1083,7 +1014,6 @@ const Onboarding = () => {
             plansArray.push(
               { key: 'free', ...data.pricing.free, metadata: data.pricing.free.metadata },
               { key: 'pro', ...data.pricing.pro, metadata: data.pricing.pro.metadata },
-              { key: 'custom', ...data.pricing.custom, metadata: data.pricing.custom.metadata },
             );
             setAllPlans(plansArray);
           }
@@ -1099,16 +1029,10 @@ const Onboarding = () => {
   // Check if user is authenticated via OAuth or existing session
   useEffect(() => {
     const checkAuth = async () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:checkAuth',message:'checkAuth started',data:{step,otpVerified},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
       try {
         // Check for verified phone from homepage login (notRegistered flow)
         // Stored in sessionStorage to avoid URL params
         const verifiedPhone = sessionStorage.getItem('homepage_verified_phone');
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:verifiedPhone',message:'homepage_verified_phone check',data:{verifiedPhone:!!verifiedPhone,step,otpVerified},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
         if (verifiedPhone && step === 1 && !otpVerified && !hasCheckedExistingBusiness.current && !isRedirecting.current) {
           // User came from homepage login - phone already verified
           const displayPhone = formatPhoneForDisplay(verifiedPhone);
@@ -1129,10 +1053,7 @@ const Onboarding = () => {
           if (existingBusiness.hasBusiness && existingBusiness.business?.slug) {
             isRedirecting.current = true;
             toast.error(
-              locale === 'he' ? 'יש לך כבר עסק רשום. אנא התחבר לעסק הקיים.' :
-              locale === 'ar' ? 'لديك بالفعل عمل مسجل. يرجى تسجيل الدخول إلى عملك الحالي.' :
-              locale === 'ru' ? 'У вас уже есть зарегистрированный бизнес. Пожалуйста, войдите в свой текущий бизнес.' :
-              'You already have a registered business. Please log in to your existing business.'
+              t('onboarding.alreadyRegistered')
             );
             setTimeout(() => {
               window.location.href = `/b/${existingBusiness.business!.slug}/admin/login`;
@@ -1213,12 +1134,7 @@ const Onboarding = () => {
               
               if (existingBusiness.hasBusiness && existingBusiness.business?.slug) {
                 isRedirecting.current = true;
-                toast.error(
-                  locale === 'he' ? 'יש לך כבר עסק רשום. אנא התחבר לעסק הקיים.' :
-                  locale === 'ar' ? 'لديك بالفعل عمل مسجل. يرجى تسجيل الدخول إلى عملك الحالي.' :
-                  locale === 'ru' ? 'У вас כבר есть зарегистрированный бизнес. Пожалуйста, войдите в свой текущий бизнес.' :
-                  'You already have a registered business. Please log in to your existing business.'
-                );
+                toast.error(t('onboarding.alreadyRegistered'));
                 // Clean URL
                 window.history.replaceState({}, '', '/onboarding');
                 // Redirect to login page for their business
@@ -1281,9 +1197,16 @@ const Onboarding = () => {
     checkAuth();
   }, [searchParams, otpVerified, step]);
 
-  // Scroll to top when step changes
+  // Keep navigation visible after step changes (avoid scroll-to-top jump)
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (step === 1) {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      continueButtonRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'end' });
+    });
   }, [step]);
 
   // Ensure phone and email are filled when on step 4 (contact info step)
@@ -1308,7 +1231,7 @@ const Onboarding = () => {
           }
         } else {
           // Ensure it's formatted with dashes
-          const formatted = formatPhoneNumber(businessInfo.phone);
+          const formatted = formatIsraeliPhoneInput(businessInfo.phone);
           if (formatted !== businessInfo.phone) {
             setBusinessInfo(prev => ({ ...prev, phone: formatted }));
           }
@@ -1320,12 +1243,20 @@ const Onboarding = () => {
   // Scroll to continue button when business type is selected on step 6
   useEffect(() => {
     if (step === 6 && businessType && continueButtonRef.current) {
-      // Small delay to ensure the button is rendered
-      setTimeout(() => {
-        continueButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
+      requestAnimationFrame(() => {
+        continueButtonRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'end' });
+      });
     }
   }, [businessType, step]);
+
+  // Focus service name input without scrolling the page
+  useEffect(() => {
+    if (step >= 7 && step <= 9 && !isMobile) {
+      requestAnimationFrame(() => {
+        document.getElementById(`service-name-${step - 7}`)?.focus({ preventScroll: true });
+      });
+    }
+  }, [step, isMobile]);
 
   // Load default services when business type is selected and moving to step 7
   useEffect(() => {
@@ -1562,15 +1493,75 @@ const Onboarding = () => {
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        return {
+          available: false,
+          field: data.field,
+          error: data.error || 'Failed to check availability',
+        };
+      }
       return data;
     } catch (error) {
-      // On error, assume available to not block users
-      return { available: true };
+      return {
+        available: false,
+        error: t('onboarding.errors.identityCheckFailed') || 'Could not verify account details. Please try again.',
+      };
     }
   };
 
+  const redirectToExistingBusinessLogin = (slug: string) => {
+    isRedirecting.current = true;
+    toast.error(t('onboarding.alreadyRegistered'));
+    setTimeout(() => {
+      window.location.href = `/b/${slug}/admin/login`;
+    }, 2000);
+  };
+
+  const gateOnboardingIdentity = async (
+    email?: string,
+    phone?: string
+  ): Promise<{ allowed: boolean; field?: 'email' | 'phone'; error?: string }> => {
+    const phoneForCheck = phone ? convertPhoneToE164(phone) : undefined;
+
+    try {
+      const existingBusiness = await checkExistingBusiness(email, phoneForCheck);
+      if (existingBusiness.error) {
+        return {
+          allowed: false,
+          error: t('onboarding.errors.identityCheckFailed') || 'Could not verify account details. Please try again.',
+        };
+      }
+      if (existingBusiness.hasBusiness && existingBusiness.business?.slug) {
+        redirectToExistingBusinessLogin(existingBusiness.business.slug);
+        return { allowed: false };
+      }
+
+      const availability = await checkEmailPhoneAvailability(email, phoneForCheck);
+      if (!availability.available) {
+        const errorMessage =
+          availability.error ||
+          (availability.field === 'email'
+            ? 'Email address already registered by another user'
+            : t('onboarding.errors.phoneAlreadyRegistered') || 'Phone number already registered by another user');
+        return {
+          allowed: false,
+          field: availability.field === 'email' ? 'email' : 'phone',
+          error: errorMessage,
+        };
+      }
+    } catch (error) {
+      console.error('Failed onboarding identity gate:', error);
+      return {
+        allowed: false,
+        error: t('onboarding.errors.identityCheckFailed') || 'Could not verify account details. Please try again.',
+      };
+    }
+
+    return { allowed: true };
+  };
+
   // Check if user already has a registered business
-  const checkExistingBusiness = async (email?: string, phone?: string): Promise<{ hasBusiness: boolean; business?: { slug: string; name: string }; businesses?: Array<{ slug: string; name: string }> }> => {
+  const checkExistingBusiness = async (email?: string, phone?: string): Promise<{ hasBusiness: boolean; business?: { slug: string; name: string }; businesses?: Array<{ slug: string; name: string }>; error?: string }> => {
     try {
       const response = await fetch('/api/onboarding/check-existing-business', {
         method: 'POST',
@@ -1579,10 +1570,12 @@ const Onboarding = () => {
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        return { hasBusiness: false, error: data.error || 'Failed to check existing business' };
+      }
       return data;
     } catch (error) {
-      // On error, assume no business to not block users
-      return { hasBusiness: false };
+      return { hasBusiness: false, error: 'Failed to check existing business' };
     }
   };
 
@@ -1748,10 +1741,21 @@ const Onboarding = () => {
       setLoading(true);
       try {
         const emailToCheck = businessInfo.email || authenticatedUser?.email;
-        const phoneToCheck = phoneToValidate;
-        
-        // Convert phone to E.164 format for checking
-        const phoneForCheck = phoneToCheck ? convertPhoneToE164(phoneToCheck) : undefined;
+        const ownerPhoneSource = authenticatedUser?.phone || phoneToValidate;
+        const phoneForCheck = ownerPhoneSource ? convertPhoneToE164(ownerPhoneSource) : undefined;
+
+        const existingBusiness = await checkExistingBusiness(emailToCheck, phoneForCheck);
+        if (existingBusiness.error) {
+          const errorMessage = t('onboarding.errors.identityCheckFailed') || 'Could not verify account details. Please try again.';
+          toast.error(errorMessage);
+          setLoading(false);
+          return;
+        }
+        if (existingBusiness.hasBusiness && existingBusiness.business?.slug) {
+          redirectToExistingBusinessLogin(existingBusiness.business.slug);
+          setLoading(false);
+          return;
+        }
 
         const availability = await checkEmailPhoneAvailability(emailToCheck, phoneForCheck);
         
@@ -1760,16 +1764,19 @@ const Onboarding = () => {
           const errorMessage = availability.error || 
             (availability.field === 'email' 
               ? 'Email address already registered by another user'
-              : 'Phone number already registered by another user');
+              : t('onboarding.errors.phoneAlreadyRegistered') || 'Phone number already registered by another user');
           
           setErrors({ [errorField]: errorMessage });
           toast.error(errorMessage);
           setLoading(false);
           return;
         }
-      } catch (error: any) {
-        // If check fails, log but don't block - let the final API call handle it
+      } catch (error: unknown) {
+        const errorMessage = t('onboarding.errors.identityCheckFailed') || 'Could not verify account details. Please try again.';
         console.error('Failed to check availability:', error);
+        toast.error(errorMessage);
+        setLoading(false);
+        return;
       }
       setLoading(false);
       
@@ -1810,8 +1817,30 @@ const Onboarding = () => {
       }
       setErrors({});
     }
-    // Step 10: Plan confirmation - move to final step
+    // Step 10: Plan confirmation - validate identity before final step
     if (step === 10) {
+      setLoading(true);
+      try {
+        const emailToCheck = businessInfo.email || authenticatedUser?.email;
+        const ownerPhone = authenticatedUser?.phone || businessInfo.phone;
+        const gate = await gateOnboardingIdentity(emailToCheck, ownerPhone);
+        if (!gate.allowed) {
+          if (gate.error) {
+            toast.error(gate.error);
+            if (gate.field) {
+              setErrors({ [gate.field]: gate.error });
+              setStep(4);
+            }
+          }
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        toast.error(t('onboarding.errors.identityCheckFailed') || 'Could not verify account details. Please try again.');
+        setLoading(false);
+        return;
+      }
+      setLoading(false);
       setErrors({});
       setStep(11);
     } else if (step < 11) {
@@ -1822,25 +1851,30 @@ const Onboarding = () => {
       // Complete onboarding - submit to API
       setLoading(true);
       try {
-        // Convert phone to E.164 format for API (remove dashes, add country code if needed)
-        let phoneForApi = businessInfo.phone || authenticatedUser?.phone || '';
-        if (phoneForApi) {
-          // Remove dashes and spaces
-          const digits = phoneForApi.replace(/\D/g, '');
-          // If it's 9 digits (Israeli number without leading 0), add 0
-          // If it's 10 digits starting with 0, convert to E.164 (+972)
-          if (digits.length === 9) {
-            phoneForApi = '+972' + digits;
-          } else if (digits.length === 10 && digits.startsWith('0')) {
-            phoneForApi = '+972' + digits.substring(1);
-          } else if (digits.length === 10 && !digits.startsWith('0')) {
-            // Already 10 digits without 0, assume it's Israeli and add +972
-            phoneForApi = '+972' + digits;
-          } else if (!phoneForApi.startsWith('+')) {
-            // If it doesn't start with +, try to add country code
-            phoneForApi = '+972' + digits;
+        const emailToCheck = businessInfo.email || authenticatedUser?.email;
+        const ownerPhoneSource = authenticatedUser?.phone || businessInfo.phone;
+        const gate = await gateOnboardingIdentity(emailToCheck, ownerPhoneSource);
+        if (!gate.allowed) {
+          if (gate.error) {
+            toast.error(gate.error);
+            if (gate.field) {
+              setErrors({ [gate.field]: gate.error });
+              setStep(4);
+            }
           }
+          setLoading(false);
+          return;
         }
+
+        // Format business phone (for business contact - can be different from owner's phone)
+        const businessPhoneForApi = businessInfo.phone 
+          ? phoneInputToE164(businessInfo.phone)
+          : (authenticatedUser?.phone ? phoneInputToE164(authenticatedUser.phone) : '');
+        
+        // Format owner's phone (for authentication/login - ALWAYS use authenticated user's phone)
+        const ownerPhoneForApi = authenticatedUser?.phone 
+          ? phoneInputToE164(authenticatedUser.phone)
+          : '';
         
         const response = await fetch('/api/onboarding/create', {
           method: 'POST',
@@ -1849,7 +1883,7 @@ const Onboarding = () => {
             businessType,
             businessInfo: {
               ...businessInfo,
-              phone: phoneForApi, // Send E.164 format to API
+              phone: businessPhoneForApi, // Business contact phone (can be different)
             },
             services: services.map(({ id, ...service }) => service),
             ownerName,
@@ -1859,7 +1893,7 @@ const Onboarding = () => {
             adminUser: {
               email: businessInfo.email || authenticatedUser?.email || '',
               name: ownerName || authenticatedUser?.name || '',
-              phone: phoneForApi, // Send E.164 format to API
+              phone: ownerPhoneForApi, // Owner's login phone (ALWAYS from authenticatedUser)
             },
           }),
         });
@@ -1932,6 +1966,8 @@ const Onboarding = () => {
         let displayMessage = errorMessage;
         if (errorMessage.includes('Phone number already registered') || errorMessage.includes('phone number already')) {
           displayMessage = t('onboarding.errors.phoneAlreadyRegistered') || errorMessage;
+        } else if (errorMessage.includes('already have a registered business')) {
+          displayMessage = t('onboarding.alreadyRegistered') || errorMessage;
         } else if (!errorMessage) {
           displayMessage = t('onboarding.errors.setupFailed');
         }
@@ -2011,7 +2047,6 @@ const Onboarding = () => {
       setServices([]);
       setPhoneNumber("");
       setOtpCode("");
-      setOtpDigits(['', '', '', '', '', '']);
       setOtpSent(false);
       setOtpVerified(false);
       setAuthenticatedUser(null);
@@ -2044,12 +2079,13 @@ const Onboarding = () => {
   return (
     <div dir={dir} className="min-h-screen bg-background flex flex-col">
       {/* Header - Same as main page */}
-      <header className="bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm">
+      <header className="bg-background border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-background/95 supports-[backdrop-filter]:bg-background/80 dark:bg-background/95 dark:supports-[backdrop-filter]:bg-background/80 safe-area-top shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
             <div className="flex items-center justify-between gap-2">
-              {/* Language Toggle */}
+              {/* Language Toggle and Dark Mode Toggle */}
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <LanguageToggle />
+                <DarkModeToggle />
               </div>
               
               {/* User menu / Login button */}
@@ -2067,7 +2103,6 @@ const Onboarding = () => {
                     </span>
                   </Button>
                 )}
-                {/* #region agent log */ (() => { fetch('http://127.0.0.1:7244/ingest/18f62b71-ea80-4ff9-bcdc-f2ac503282e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Onboarding.tsx:userDropdown',message:'user dropdown render',data:{loadingUser,hasUser:!!user,userName:user?.name},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{}); return null; })() /* #endregion */}
                 {!loadingUser && user && (
                   <div style={{ display: 'none' }}>
                     <div className="w-2 sm:w-3" />
@@ -2130,7 +2165,7 @@ const Onboarding = () => {
         </header>
         
         {/* Content Container */}
-        <div className="flex-1 flex items-center justify-center pt-20 sm:pt-16 md:pt-24 p-6">
+        <div className="flex-1 flex items-start justify-center pt-20 sm:pt-16 md:pt-24 p-6 pb-24">
           <div className="w-full max-w-4xl">
         
         {/* Plan Banner - Softer */}
@@ -2147,16 +2182,7 @@ const Onboarding = () => {
                   </span>
                   {(selectedPlan === 'free' || selectedPlan === 'portfolio') && (
                     <span className="text-sm text-gray-600">
-                      {selectedPlan === 'portfolio' 
-                        ? (locale === 'he' ? 'חינם לנצח - לא נדרש אמצעי תשלום' : 
-                           locale === 'ar' ? 'مجاني إلى الأبد - لا حاجة لوسيلة دفع' :
-                           locale === 'ru' ? 'Бесплатно навсегда - способ оплаты не требуется' :
-                           'Free Forever - No payment required')
-                        : (locale === 'he' ? 'חינם - לא נדרש אמצעי תשלום' : 
-                           locale === 'ar' ? 'مجاني - لا حاجة لوسيلة دفع' :
-                           locale === 'ru' ? 'Бесплатно - способ оплаты не требуется' :
-                           'Free - No payment required')
-                      }
+                      {selectedPlan === 'portfolio' ? t('onboarding.planBanner.freeForever') : t('onboarding.planBanner.freeNoPayment')}
                     </span>
                   )}
                   {planDetails.price > 0 && (
@@ -2183,13 +2209,10 @@ const Onboarding = () => {
             <div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">
-                  {locale === 'he' ? `שלב ${displayStep} מתוך ${TOTAL_STEPS}` : 
-                   locale === 'ar' ? `الخطوة ${displayStep} من ${TOTAL_STEPS}` :
-                   locale === 'ru' ? `Шаг ${displayStep} из ${TOTAL_STEPS}` :
-                   `Step ${displayStep} of ${TOTAL_STEPS}`}
+                  {t('onboarding.stepOf').replace('{step}', String(displayStep)).replace('{total}', String(TOTAL_STEPS))}
                 </span>
                 <span className="text-sm text-gray-500">
-                  {Math.round((displayStep / TOTAL_STEPS) * 100)}% {t('onboarding.complete') || (locale === 'he' ? 'הושלם' : locale === 'ar' ? 'مكتمل' : locale === 'ru' ? 'завершено' : 'complete')}
+                  {Math.round((displayStep / TOTAL_STEPS) * 100)}% {t('onboarding.complete')}
                 </span>
               </div>
               <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -2217,10 +2240,7 @@ const Onboarding = () => {
               <div className="text-center mb-6">
                 <h2 className="text-lg font-medium mb-2 text-gray-700">{t('onboarding.auth.welcome') || t('onboarding.auth.title') || 'Get Started'}</h2>
                 <p className="text-sm text-gray-600">
-                  {locale === 'he' ? 'זה לוקח פחות מדקה :)' :
-                   locale === 'ar' ? 'يستغرق أقل من دقيقة :)' :
-                   locale === 'ru' ? 'Это займет меньше минуты :)' :
-                   "This takes less than a minute :)"}
+                  {t('onboarding.lessThanMinute')}
                 </p>
               </div>
               
@@ -2246,7 +2266,7 @@ const Onboarding = () => {
                           type="tel"
                           placeholder={t('onboarding.auth.phonePlaceholder') || t('onboarding.auth.phoneNumber') || 'Phone Number'}
                           value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
+                          onChange={(e) => setPhoneNumber(formatIsraeliPhoneInput(e.target.value))}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && phoneNumber.replace(/\D/g, '').length >= 10 && !sendingOtp) {
                               handleSendOtp();
@@ -2424,35 +2444,23 @@ const Onboarding = () => {
           {step === 2 && (
             <div className="animate-fade-in max-w-lg mx-auto text-center">
               <h2 className="text-lg font-medium mb-2 text-gray-700">
-                {locale === 'he' ? 'מה שם העסק שלך?' :
-                 locale === 'ar' ? 'ما اسم عملك؟' :
-                 locale === 'ru' ? 'Какое название вашего бизнеса?' :
-                 "What's your business name?"}
+                {t('onboarding.steps.businessName.title')}
               </h2>
               
               {/* Subtitle - more friendly */}
               <p className="text-sm text-gray-600 mb-4">
-                {locale === 'he' ? 'כדי שנוכל להציג אותו ללקוחות במסך קביעת תור' :
-                 locale === 'ar' ? 'حتى نتمكن من عرضه للعملاء في شاشة الحجز' :
-                 locale === 'ru' ? 'Чтобы мы могли показать его клиентам на экране бронирования' :
-                 "So we can show it to customers on the booking page"}
+                {t('onboarding.steps.businessName.subtitle')}
               </p>
               
               {/* Reassuring message - softer */}
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                 "💡 Don't worry – everything can be changed later"}
+                {t('onboarding.steps.reassurance')}
               </p>
               
               <div className="space-y-4 max-w-md mx-auto">
                 <div>
                   <Label htmlFor="name" className="text-center block">
-                    {locale === 'he' ? 'שם העסק' :
-                     locale === 'ar' ? 'اسم العمل' :
-                     locale === 'ru' ? 'Название бизнеса' :
-                     'Business Name'}
+                    {t('onboarding.steps.businessName.label')}
                   </Label>
                   <TooltipProvider>
                     <Tooltip open={errors.name ? true : undefined}>
@@ -2460,7 +2468,7 @@ const Onboarding = () => {
                         <div>
                           <Input
                             id="name"
-                            placeholder={locale === 'he' ? 'לדוגמה: סטודיו חן פיטנס' : (t('onboarding.businessInfo.namePlaceholder') || 'e.g., Dima\'s Barbershop')}
+                            placeholder={t('onboarding.steps.businessName.placeholder')}
                             value={businessInfo.name}
                             onChange={(e) => handleFieldChange('name', e.target.value)}
                             onBlur={() => handleBlur('name')}
@@ -2472,10 +2480,7 @@ const Onboarding = () => {
                       </TooltipTrigger>
                       {errors.name && (
                         <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
-                          <p>{locale === 'he' ? 'שדה זה נדרש' :
-                              locale === 'ar' ? 'هذا الحقل مطلوب' :
-                              locale === 'ru' ? 'Это поле обязательно' :
-                              'This field is required'}</p>
+                          <p>{t('onboarding.steps.fieldRequired')}</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -2486,10 +2491,7 @@ const Onboarding = () => {
                 {businessInfo.name && !errors.name && (
                   <div className="mt-5 p-6 bg-gradient-to-br from-green-50 to-white rounded-xl border-2 border-green-200 shadow-sm">
                     <p className="text-xs text-gray-600 mb-4 text-center">
-                      {locale === 'he' ? '✨ כך זה ייראה ללקוחות:' :
-                       locale === 'ar' ? '✨ هكذا سيظهر للعملاء:' :
-                       locale === 'ru' ? '✨ Так это будет выглядеть для клиентов:' :
-                       '✨ This is how it will look to customers:'}
+                      {t('onboarding.steps.businessName.preview')}
                     </p>
                     {/* Preview matches booking page styling */}
                     <div className="text-center">
@@ -2515,33 +2517,21 @@ const Onboarding = () => {
           {step === 3 && (
             <div className="animate-fade-in max-w-lg mx-auto text-center">
               <h2 className="text-lg font-medium mb-2 text-gray-700">
-                {locale === 'he' ? 'מה השם שלך?' :
-                 locale === 'ar' ? 'מה اسمك؟' :
-                 locale === 'ru' ? 'Как вас зовут?' :
-                 "What's your name?"}
+                {t('onboarding.steps.ownerName.title')}
               </h2>
               
               <p className="text-sm text-gray-600 mb-4">
-                {locale === 'he' ? 'כך נציג אותך במערכת' :
-                 locale === 'ar' ? 'هكذا سنعرضك في النظام' :
-                 locale === 'ru' ? 'Так мы покажем вас в системе' :
-                 "This is how we'll show you in the system"}
+                {t('onboarding.steps.ownerName.subtitle')}
               </p>
               
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '👋 שמחים להכיר אותך!' :
-                 locale === 'ar' ? '👋 سعيد بلقائك!' :
-                 locale === 'ru' ? '👋 Приятно познакомиться!' :
-                 "👋 Happy to meet you!"}
+                {t('onboarding.steps.ownerName.greeting')}
               </p>
               
               <div className="space-y-4 max-w-md mx-auto">
                 <div>
                   <Label htmlFor="ownerName" className="text-center block">
-                    {locale === 'he' ? 'שם הבעלים' :
-                     locale === 'ar' ? 'اسم المالك' :
-                     locale === 'ru' ? 'Имя владельца' :
-                     'Owner Name'}
+                    {t('onboarding.steps.ownerName.label')}
                   </Label>
                   <TooltipProvider>
                     <Tooltip open={errors.ownerName ? true : undefined}>
@@ -2549,7 +2539,7 @@ const Onboarding = () => {
                         <div>
                           <Input
                             id="ownerName"
-                            placeholder={locale === 'he' ? 'שם בעל העסק' : (t('onboarding.businessInfo.ownerNamePlaceholder') || 'Enter your name')}
+                            placeholder={t('onboarding.steps.ownerName.placeholder')}
                             value={ownerName}
                             onChange={(e) => {
                               setOwnerName(e.target.value);
@@ -2566,10 +2556,7 @@ const Onboarding = () => {
                       </TooltipTrigger>
                       {errors.ownerName && (
                         <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
-                          <p>{locale === 'he' ? 'שדה זה נדרש' :
-                              locale === 'ar' ? 'هذا الحقل مطلوب' :
-                              locale === 'ru' ? 'Это поле обязательно' :
-                              'This field is required'}</p>
+                          <p>{t('onboarding.steps.fieldRequired')}</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -2590,34 +2577,22 @@ const Onboarding = () => {
           {step === 4 && (
             <div className="animate-fade-in max-w-lg mx-auto text-center">
               <h2 className="text-lg font-medium mb-2 text-gray-700">
-                {locale === 'he' ? 'איך ליצור איתך קשר?' :
-                 locale === 'ar' ? 'كيف يمكن التواصل معك؟' :
-                 locale === 'ru' ? 'Как с вами связаться?' :
-                 "How can we contact you?"}
+                {t('onboarding.steps.contact.title')}
               </h2>
               
               <p className="text-sm text-gray-600 mb-4">
-                {locale === 'he' ? 'מספר הטלפון והאימייל שיוצגו ללקוחות בעמוד ההזמנות. לקוחות יוכלו להתקשר ולשלוח הודעות.' :
-                 locale === 'ar' ? 'رقم الهاتف والبريد الإلكتروني الذي سيظهر للعملاء في صفحة الحجز. يمكن للعملاء الاتصال وإرسال الرسائل.' :
-                 locale === 'ru' ? 'Номер телефона и email, которые будут отображаться клиентам на странице бронирования. Клиенты смогут звонить и отправлять сообщения.' :
-                 "The phone number and email that will be displayed to customers on the booking page. Customers will be able to call and send messages."}
+                {t('onboarding.steps.contact.subtitle')}
               </p>
               
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                 "💡 Don't worry – everything can be changed later"}
+                {t('onboarding.steps.reassurance')}
               </p>
               
               <div className="space-y-4 max-w-md mx-auto">
                 {/* Phone Field */}
                 <div>
                   <p className="text-xs text-gray-500 mb-2 text-center">
-                    {locale === 'he' ? 'מספר זה יוצג ללקוחות בעמוד ההזמנות ויוכלו להתקשר אליך' :
-                     locale === 'ar' ? 'سيظهر هذا الرقم للعملاء في صفحة الحجز ويمكنهم الاتصال بك' :
-                     locale === 'ru' ? 'Этот номер будет отображаться клиентам на странице бронирования, и они смогут вам позвонить' :
-                     'This number will be displayed to customers on the booking page and they can call you'}
+                    {t('onboarding.steps.contact.phoneHint')}
                   </p>
                   
                   {/* Show owner's phone info if authenticated and not using different phone */}
@@ -2626,10 +2601,7 @@ const Onboarding = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-700">
-                            {locale === 'he' ? 'מספר הטלפון שלך:' :
-                             locale === 'ar' ? 'رقم هاتفك:' :
-                             locale === 'ru' ? 'Ваш номер телефона:' :
-                             'Your phone number:'}
+                            {t('onboarding.steps.contact.yourPhone')}
                           </p>
                           <p className="text-sm text-gray-600 mt-1" dir="ltr">
                             {formatPhoneForDisplay(authenticatedUser.phone)}
@@ -2646,16 +2618,16 @@ const Onboarding = () => {
                           <Input
                             id="phone"
                             type="tel"
-                            aria-label={locale === 'he' ? 'מספר טלפון' : locale === 'ar' ? 'رقم الهاتف' : locale === 'ru' ? 'Номер телефона' : 'Phone Number'}
+                            aria-label={t('onboarding.steps.contact.phoneLabel')}
                             placeholder={t('onboarding.businessInfo.phonePlaceholder') || '050-000-0000'}
                             value={
                               useDifferentBusinessPhone 
-                                ? (businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : '')
-                                : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : (businessInfo.phone ? formatPhoneNumber(businessInfo.phone) : ''))
+                                ? (businessInfo.phone ? formatIsraeliPhoneInput(businessInfo.phone) : '')
+                                : (authenticatedUser?.phone ? formatPhoneForDisplay(authenticatedUser.phone) : (businessInfo.phone ? formatIsraeliPhoneInput(businessInfo.phone) : ''))
                             }
                             onChange={(e) => {
                               if (useDifferentBusinessPhone || !authenticatedUser?.phone) {
-                                const formatted = formatPhoneNumber(e.target.value);
+                                const formatted = formatIsraeliPhoneInput(e.target.value);
                                 handleFieldChange('phone', formatted);
                               }
                             }}
@@ -2670,10 +2642,7 @@ const Onboarding = () => {
                       </TooltipTrigger>
                       {errors.phone && (
                         <TooltipContent side="bottom" className="bg-red-500 text-white border-red-600 -mt-1">
-                          <p>{locale === 'he' ? 'שדה זה נדרש' :
-                              locale === 'ar' ? 'هذا الحقل مطلوب' :
-                              locale === 'ru' ? 'Это поле обязательно' :
-                              'This field is required'}</p>
+                          <p>{t('onboarding.steps.fieldRequired')}</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -2701,20 +2670,14 @@ const Onboarding = () => {
                         htmlFor="useDifferentPhone" 
                         className="text-sm text-gray-700 cursor-pointer"
                       >
-                        {locale === 'he' ? 'השתמש במספר טלפון אחר לעסק שלי' :
-                         locale === 'ar' ? 'استخدم رقم هاتف مختلف لعملي' :
-                         locale === 'ru' ? 'Использовать другой номер телефона для моего бизнеса' :
-                         'Use a different phone number for my business'}
+                        {t('onboarding.steps.contact.useDifferentPhone')}
                       </Label>
                     </div>
                   )}
                   
                   {authenticatedUser?.phone && !useDifferentBusinessPhone && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {locale === 'he' ? 'מספר הטלפון שלך יוצג ללקוחות בעמוד ההזמנות' :
-                       locale === 'ar' ? 'سيظهر رقم هاتفك للعملاء في صفحة الحجز' :
-                       locale === 'ru' ? 'Ваш номер телефона будет отображаться клиентам на странице бронирования' :
-                       'Your phone number will be displayed to customers on the booking page'}
+                      {t('onboarding.steps.contact.phoneDisplayNote')}
                     </p>
                   )}
                 </div>
@@ -2722,16 +2685,10 @@ const Onboarding = () => {
                 {/* Email Field */}
                 <div>
                   <Label htmlFor="email" className="text-center block">
-                    {locale === 'he' ? 'אימייל (אופציונלי)' :
-                     locale === 'ar' ? 'البريد الإلكتروني (اختياري)' :
-                     locale === 'ru' ? 'Email (необязательно)' :
-                     'Email (optional)'}
+                    {t('onboarding.steps.contact.emailOptional')}
                   </Label>
                   <p className="text-xs text-gray-500 mt-1 mb-2 text-center">
-                    {locale === 'he' ? 'כתובת האימייל שתוצג ללקוחות בעמוד ההזמנות' :
-                     locale === 'ar' ? 'عنوان البريد الإلكتروني الذي سيظهر للعملاء في صفحة الحجز' :
-                     locale === 'ru' ? 'Email адрес, который будет отображаться клиентам на странице бронирования' :
-                     'Email address that will be displayed to customers on the booking page'}
+                    {t('onboarding.steps.contact.emailHint')}
                   </p>
                   <TooltipProvider>
                     <Tooltip open={errors.email ? true : undefined}>
@@ -2782,53 +2739,30 @@ const Onboarding = () => {
           {step === 5 && (
             <div className="animate-fade-in max-w-lg mx-auto text-center">
               <h2 className="text-lg font-medium mb-2 text-gray-700">
-                {locale === 'he' ? 'מה הכתובת של העסק? (אופציונלי)' :
-                 locale === 'ar' ? 'ما عنوان العمل؟ (اختياري)' :
-                 locale === 'ru' ? 'Какой адрес бизнеса? (необязательно)' :
-                 "What's the business address? (optional)"}
+                {t('onboarding.steps.address.title')}
               </h2>
               
               <p className="text-sm text-gray-600 mb-4">
-                {locale === 'he' ? 'נציג אותה ללקוחות (אופציונלי)' :
-                 locale === 'ar' ? 'سنعرضه للعملاء (اختياري)' :
-                 locale === 'ru' ? 'Мы покажем его клиентам (необязательно)' :
-                 "We'll show it to customers (optional)"}
+                {t('onboarding.steps.address.subtitle')}
               </p>
               
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                 "💡 Don't worry – everything can be changed later"}
+                {t('onboarding.steps.reassurance')}
               </p>
               
               <div className="space-y-4 max-w-md mx-auto">
-                <div>
-                  <Label htmlFor="address" className="text-center block">
-                    {locale === 'he' ? 'כתובת' :
-                     locale === 'ar' ? 'العنوان' :
-                     locale === 'ru' ? 'Адрес' :
-                     'Address'}
-                  </Label>
-                  <Input
-                    id="address"
-                    placeholder={t('onboarding.businessInfo.addressPlaceholder') || 'Enter business address'}
-                    value={businessInfo.address}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
-                    dir={dir}
-                    className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
-                    autoFocus={!isMobile}
-                  />
-                </div>
+                <IsraelAddressFields
+                  idPrefix="onboarding-address"
+                  value={businessInfo.address}
+                  onChange={(address) => setBusinessInfo({ ...businessInfo, address })}
+                  dir={dir}
+                />
                 
                 {/* Social Links Section */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   {/* Description */}
                   <p className={`text-xs text-gray-500 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {locale === 'he' ? 'הוסף קישורי רשתות חברתיות להצגה בתחתית עמוד ההזמנות. הקישורים יפתחו באפליקציות המתאימות בלחיצה.' :
-                     locale === 'ar' ? 'أضف روابط وسائل التواصل الاجتماعي للعرض في أسفل صفحة الحجز. ستفتح الروابط في التطبيقات المناسبة عند النقر.' :
-                     locale === 'ru' ? 'Добавьте ссылки на социальные сети для отображения внизу страницы бронирования. Ссылки откроются в соответствующих приложениях при нажатии.' :
-                     'Add social network links to display at the bottom of the booking page. The links will open in the corresponding applications when clicked.'}
+                    {t('onboarding.steps.address.socialHint')}
                   </p>
 
                   {/* Add Link Button - Always visible if there are available platforms */}
@@ -2843,10 +2777,7 @@ const Onboarding = () => {
                             type="button"
                           >
                             <Plus className={`w-4 h-4 ${isRTL ? 'mr-2' : 'ml-2'}`} />
-                            {locale === 'he' ? 'הוסף קישור חברתי' :
-                             locale === 'ar' ? 'أضف رابط اجتماعي' :
-                             locale === 'ru' ? 'Добавить ссылку' :
-                             'Add Social Link'}
+                            {t('onboarding.steps.address.addSocialLink')}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
@@ -2930,10 +2861,7 @@ const Onboarding = () => {
               
               {/* Info message */}
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? 'בחרו את סוג העסק שמתאים לכם ביותר' :
-                 locale === 'ar' ? 'اختر نوع العمل الذي يناسبك أكثر' :
-                 locale === 'ru' ? 'Выберите тип бизнеса, который вам больше всего подходит' :
-                 "Choose the business type that best fits you"}
+                {t('onboarding.chooseBusinessType.stepSubtitle')}
               </p>
               
               {/* Category Filter */}
@@ -3069,22 +2997,15 @@ const Onboarding = () => {
                   <div className="space-y-6">
                     <div>
                       <h2 className="text-lg font-medium mb-2 text-gray-700">
-                        {locale === 'he' ? `שירות ${serviceIndex + 1} (מתוך 3)` :
-                         locale === 'ar' ? `الخدمة ${serviceIndex + 1} (من 3)` :
-                         locale === 'ru' ? `Услуга ${serviceIndex + 1} (из 3)` :
-                         `Service ${serviceIndex + 1} (of 3)`}
+                        {t('onboarding.steps.services.serviceCounter')
+                          .replace('{current}', String(serviceIndex + 1))
+                          .replace('{total}', '3')}
                       </h2>
                       <p className="text-sm text-gray-600 mb-4">
-                        {locale === 'he' ? 'רק 2-3 שירותים להתחלה, תמיד אפשר להוסיף עוד אחרי ההקמה' :
-                         locale === 'ar' ? 'فقط 2-3 خدمات للبدء، يمكنك دائمًا إضافة المزيد بعد الإعداد' :
-                         locale === 'ru' ? 'Только 2-3 услуги для начала, всегда можно добавить больше после настройки' :
-                         'Just 2-3 services to start, you can always add more after setup'}
+                        {t('onboarding.steps.services.hint')}
                       </p>
                       <p className="text-xs text-gray-500 mb-5">
-                        {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                         locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                         locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                         "💡 Don't worry – everything can be changed later"}
+                        {t('onboarding.steps.reassurance')}
                       </p>
                     </div>
                     
@@ -3092,10 +3013,7 @@ const Onboarding = () => {
                       <div className="space-y-4">
                         <div>
                           <Label htmlFor={`service-name-${serviceIndex}`}>
-                            {locale === 'he' ? 'שם השירות' :
-                             locale === 'ar' ? 'اسم الخدمة' :
-                             locale === 'ru' ? 'Название услуги' :
-                             'Service Name'}
+                            {t('onboarding.steps.services.serviceName')}
                           </Label>
                           <Input
                             id={`service-name-${serviceIndex}`}
@@ -3106,17 +3024,13 @@ const Onboarding = () => {
                               setServices(updated);
                             }}
                             className="mt-2 h-11 text-base border-gray-300 focus:border-green-500 focus:ring-green-500/20"
-                            placeholder={locale === 'he' ? 'לדוגמה: תספורת' : (t('onboarding.services.namePlaceholder') || 'e.g., Haircut')}
-                            autoFocus={!isMobile}
+                            placeholder={t('onboarding.steps.services.serviceNamePlaceholder')}
                           />
                         </div>
                         
                         <div>
                           <Label htmlFor={`service-description-${serviceIndex}`}>
-                            {locale === 'he' ? 'תיאור (אופציונלי)' :
-                             locale === 'ar' ? 'الوصف (اختياري)' :
-                             locale === 'ru' ? 'Описание (необязательно)' :
-                             'Description (optional)'}
+                            {t('onboarding.steps.services.descriptionOptional')}
                           </Label>
                           <Input
                             id={`service-description-${serviceIndex}`}
@@ -3134,10 +3048,7 @@ const Onboarding = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor={`service-duration-${serviceIndex}`}>
-                              {locale === 'he' ? 'משך זמן (דקות)' :
-                               locale === 'ar' ? 'المدة (بالدقائق)' :
-                               locale === 'ru' ? 'Продолжительность (минуты)' :
-                               'Duration (minutes)'}
+                              {t('onboarding.steps.services.durationMinutes')}
                             </Label>
                             <Input
                               id={`service-duration-${serviceIndex}`}
@@ -3155,10 +3066,7 @@ const Onboarding = () => {
                           </div>
                           <div>
                             <Label htmlFor={`service-price-${serviceIndex}`}>
-                              {locale === 'he' ? 'מחיר (₪)' :
-                               locale === 'ar' ? 'السعر (₪)' :
-                               locale === 'ru' ? 'Цена (₪)' :
-                               'Price (₪)'}
+                              {t('onboarding.steps.services.priceIls')}
                             </Label>
                             <Input
                               id={`service-price-${serviceIndex}`}
@@ -3201,10 +3109,7 @@ const Onboarding = () => {
                         }}
                         className="text-sm text-gray-500 hover:text-gray-700"
                       >
-                        {locale === 'he' ? 'דלג - תמיד אפשר להוסיף אחרי ההקמה' :
-                         locale === 'ar' ? 'تخطي - يمكنك دائمًا إضافة المزيد بعد الإعداد' :
-                         locale === 'ru' ? 'Пропустить - всегда можно добавить после настройки' :
-                         'Skip - you can always add more after setup'}
+                        {t('onboarding.steps.services.skip')}
                       </Button>
                     </div>
                   </div>
@@ -3349,10 +3254,7 @@ const Onboarding = () => {
               
               {/* Reassuring message - softer */}
               <p className="text-xs text-gray-500 mb-5">
-                {locale === 'he' ? '💡 אל דאגה – הכל ניתן לשנות אחר כך' :
-                 locale === 'ar' ? '💡 لا تقلق – يمكن تغيير كل شيء لاحقًا' :
-                 locale === 'ru' ? '💡 Не волнуйтесь – все можно изменить позже' :
-                 "💡 Don't worry – everything can be changed later"}
+                {t('onboarding.steps.reassurance')}
               </p>
               
               {planDetails && (
@@ -3404,86 +3306,7 @@ const Onboarding = () => {
                             allFeatures = planDetails.metadata.highlights;
                           } else {
                             // Fallback to old translation system
-                            if (selectedPlan === 'custom') {
-                              // Custom: Start with Free + Pro, then add/override with Custom
-                              const freeFeatures = getTranslation('home.pricing.plans.free.highlights') as string[] || 
-                                                  getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
-                              const proFeatures = getTranslation('home.pricing.plans.pro.highlights') as string[] || 
-                                                 getTranslation('home.pricing.plans.professional.highlights') as string[] || [];
-                              const customFeatures = getTranslation('home.pricing.plans.custom.highlights') as string[] || 
-                                                    getTranslation('home.pricing.plans.business.highlights') as string[] || [];
-                            
-                              // Start with Free features (excluding "Everything in Free" type items)
-                              allFeatures = freeFeatures.filter(f => 
-                                !f.toLowerCase().includes('everything in') && 
-                                !f.includes('הכל בחבילת') &&
-                                !f.includes('הכל ב')
-                              );
-                              
-                              // Add Pro features, replacing conflicts
-                              proFeatures.forEach(profFeature => {
-                                if (profFeature.toLowerCase().includes('everything in') || 
-                                    profFeature.includes('הכל בחבילת') ||
-                                    profFeature.includes('הכל ב')) {
-                                  return;
-                                }
-                                const isStaffFeature = profFeature.toLowerCase().includes('staff') || 
-                                                      profFeature.toLowerCase().includes('employee') ||
-                                                      profFeature.includes('עובד') ||
-                                                      profFeature.includes('עובדים');
-                                const isBookingFeature = profFeature.toLowerCase().includes('booking') ||
-                                                        profFeature.includes('הזמנות');
-                                
-                                if (isStaffFeature) {
-                                  allFeatures = allFeatures.filter(f => 
-                                    !(f.toLowerCase().includes('staff') || 
-                                      f.toLowerCase().includes('employee') ||
-                                      f.includes('עובד') ||
-                                      f.includes('עובדים'))
-                                  );
-                                  allFeatures.push(profFeature);
-                                } else if (isBookingFeature) {
-                                  allFeatures = allFeatures.filter(f => 
-                                    !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
-                                  );
-                                  allFeatures.push(profFeature);
-                                } else {
-                                  allFeatures.push(profFeature);
-                                }
-                              });
-                              
-                              // Add Custom features, replacing conflicts
-                              customFeatures.forEach(customFeature => {
-                                if (customFeature.toLowerCase().includes('everything in') || 
-                                    customFeature.includes('הכל בחבילת') ||
-                                    customFeature.includes('הכל ב')) {
-                                  return;
-                                }
-                                const isStaffFeature = customFeature.toLowerCase().includes('staff') || 
-                                                      customFeature.toLowerCase().includes('employee') ||
-                                                      customFeature.includes('עובד') ||
-                                                      customFeature.includes('עובדים');
-                                const isBookingFeature = customFeature.toLowerCase().includes('booking') ||
-                                                        customFeature.includes('הזמנות');
-                                
-                                if (isStaffFeature) {
-                                  allFeatures = allFeatures.filter(f => 
-                                    !(f.toLowerCase().includes('staff') || 
-                                      f.toLowerCase().includes('employee') ||
-                                      f.includes('עובד') ||
-                                      f.includes('עובדים'))
-                                  );
-                                  allFeatures.push(customFeature);
-                                } else if (isBookingFeature) {
-                                  allFeatures = allFeatures.filter(f => 
-                                    !(f.toLowerCase().includes('booking') || f.includes('הזמנות'))
-                                  );
-                                  allFeatures.push(customFeature);
-                                } else {
-                                  allFeatures.push(customFeature);
-                                }
-                              });
-                            } else if (selectedPlan === 'pro') {
+                            if (selectedPlan === 'pro') {
                               // Pro: Start with Free, then add/override with Pro
                               const freeFeatures = getTranslation('home.pricing.plans.free.highlights') as string[] || 
                                                   getTranslation('home.pricing.plans.basic.highlights') as string[] || [];
@@ -3538,6 +3361,12 @@ const Onboarding = () => {
                           }
                           
                           return allFeatures.map((highlight: string, i: number) => {
+                            const displayHighlight = (locale === 'he')
+                              ? highlight
+                                  .replace('הכל בחבילת Free', 'הכל בחבילת Basic')
+                                  .replace('הכול בחבילת Free', 'הכול בחבילת Basic')
+                                  .replace('הכול מתוכנית FREE', 'הכול מתוכנית BASIC')
+                              : highlight;
                             const isExpanded = expandedFeature?.planKey === selectedPlan && expandedFeature?.featureIndex === i;
                             return (
                               <li key={i} className="relative">
@@ -3564,7 +3393,7 @@ const Onboarding = () => {
                                       <div className="flex-1 pr-4">
                                         <span className={`text-sm transition-colors duration-200 ${
                                           isExpanded ? 'text-[#030408] font-bold' : 'text-gray-600 font-semibold'
-                                        }`}>{highlight}</span>
+                                        }`}>{displayHighlight}</span>
                                         <AnimatePresence initial={false}>
                                           {isExpanded && (
                                             <motion.span
@@ -3640,7 +3469,7 @@ const Onboarding = () => {
 
           {/* Navigation */}
           {step > 1 && (
-            <div className="flex justify-between mt-8 pt-6 border-t">
+            <div className="sticky bottom-0 z-10 flex justify-between mt-8 pt-4 pb-2 border-t bg-white/95 backdrop-blur-sm -mx-6 px-6 sm:-mx-8 sm:px-8">
               {step === 2 ? (
                 <LoadingButton
                   variant="outline"
@@ -3701,23 +3530,14 @@ const Onboarding = () => {
               <Label htmlFor="otp-code-modal" className="block mb-3 text-center">
                 {t('onboarding.auth.otpCode') || 'OTP Code'}
               </Label>
-              <div className="flex gap-1 sm:gap-2 justify-center px-2" dir="ltr">
-                {otpDigits.map((digit, index) => (
-                  <Input
-                    key={index}
-                    ref={(el) => { otpInputRefs.current[index] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpDigitChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    onPaste={index === 0 ? handleOtpPaste : undefined}
-                    className="h-12 w-10 sm:h-14 sm:w-14 text-center text-xl sm:text-2xl font-semibold"
-                    autoFocus={index === 0}
-                  />
-                ))}
-              </div>
+              <OtpCodeInput
+                key={otpSessionKey}
+                value={otpCode}
+                onChange={setOtpCode}
+                onComplete={(value) => handleVerifyOtp(value)}
+                disabled={verifyingOtp}
+                autoFocus
+              />
             </div>
             <div className="flex flex-col gap-2">
               <LoadingButton
@@ -3733,10 +3553,11 @@ const Onboarding = () => {
                   {t('onboarding.auth.didntReceiveCode') || "Didn't receive code?"}
                 </span>
                 <Button
-                  variant="link"
+                  type="button"
+                  variant="ghost"
                   onClick={handleResendOtp}
                   disabled={otpCountdown > 0 || sendingOtp}
-                  className="h-auto p-0 text-green-600 hover:text-green-700"
+                  className="inline-link-button h-auto min-h-0 rounded-none border-0 border-b border-transparent bg-transparent px-0 py-0 font-medium text-green-600 shadow-none hover:!border-green-600 hover:!bg-transparent hover:!text-green-700 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:opacity-70"
                 >
                   {otpCountdown > 0 
                     ? t('onboarding.auth.sendAgainIn')?.replace('{seconds}', otpCountdown.toString()) || `Send again in ${otpCountdown}s`
@@ -3758,109 +3579,30 @@ const Onboarding = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Plan Selection Modal */}
-      <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
-        <DialogContent className="w-[90vw] sm:w-full max-w-[90vw] sm:max-w-4xl max-h-[90vh] sm:max-h-[90vh] !flex !flex-col overflow-hidden p-0 rounded-lg !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2" dir={dir}>
-          <DialogHeader className="flex-shrink-0 p-3 sm:p-6 pb-2 sm:pb-4 border-b">
-            <DialogTitle className="text-base sm:text-xl">{t('onboarding.choosePlan') || 'Choose Your Plan'}</DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm mt-1">
-              {t('onboarding.choosePlanDescription') || 'Select the plan that best fits your business needs. You can change this anytime during setup.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto min-h-0 px-3 sm:px-6 py-3 sm:py-6 scrollbar-thin">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            {allPlans.map((plan) => {
-              const planKey = plan.key;
-              // Prevent custom plan from being selected
-              const isSelected = planKey !== 'custom' && selectedPlan === planKey;
-              const isProfessional = planKey === 'pro';
-              const isPortfolioPlan = planKey === 'portfolio';
-              // Use translated name from metadata if available, otherwise use plan key
-              const planName = plan.metadata?.name || planKey.charAt(0).toUpperCase() + planKey.slice(1);
-              // Use highlights from metadata if available, otherwise fallback to translations
-              const planHighlights = plan.metadata?.highlights || 
-                                    getTranslation(`home.pricing.plans.${planKey}.highlights`) as string[] || 
-                                    getTranslation(`home.pricing.plans.${planKey === 'free' ? 'basic' : planKey === 'pro' ? 'professional' : planKey === 'portfolio' ? 'portfolio' : 'business'}.highlights`) as string[] || [];
-              
-              return (
-                <Card
-                  key={planKey}
-                  className={`p-3 sm:p-6 h-full flex flex-col relative transition-all ${
-                    isSelected
-                      ? 'border-2 border-green-500 bg-green-50'
-                      : 'border border-gray-200 hover:border-green-300 bg-white'
-                  } ${isProfessional && !isSelected ? 'border-green-300' : ''} ${isPortfolioPlan && !isSelected ? 'border-blue-300 bg-blue-50/30' : ''}`}
-                >
-                  {isPortfolioPlan && !isSelected && (
-                    <div className="absolute -top-2.5 sm:-top-4 left-1/2 transform -translate-x-1/2 z-10">
-                      <span className="bg-blue-600 text-white px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
-                        {t('home.pricing.free') || 'FREE'}
-                      </span>
-                    </div>
-                  )}
-                  {isProfessional && !isSelected && (
-                    <div className="absolute -top-2.5 sm:-top-4 left-1/2 transform -translate-x-1/2 z-10">
-                      <span className="bg-green-600 text-white px-2 sm:px-4 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
-                        {t('home.pricing.bestSeller') || 'Best Seller'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="text-center mb-2 sm:mb-4 pt-1">
-                    <h3 className="text-base sm:text-xl font-bold mb-1 sm:mb-2">{planName}</h3>
-                    <div className="mb-1 sm:mb-2">
-                      <span className="text-xl sm:text-3xl font-bold text-green-600">
-                        {plan.symbol}{plan.price}{plan.price > 0 ? '/' : ''}{plan.price > 0 ? (t('home.pricing.month') || 'month') : ''}
-                      </span>
-                    </div>
-                    {plan.metadata?.priceNote && (
-                      <p className="text-xs text-muted-foreground mb-2" style={{ whiteSpace: 'pre-line' }}>
-                        {plan.metadata.priceNote}
-                      </p>
-                    )}
-                  </div>
-                  <ul className="space-y-1 sm:space-y-2 mb-3 sm:mb-8 flex-grow overflow-y-auto">
-                    {planHighlights.map((highlight: string, i: number) => (
-                      <li key={i} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 break-words">{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto pt-2">
-                    <Button
-                      className="w-full text-xs sm:text-base h-8 sm:h-11"
-                      variant={isSelected ? 'default' : 'outline'}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // For custom plan, open contact form instead of selecting
-                        if (planKey === 'custom') {
-                          setShowPlanModal(false);
-                          setContactModalOpen(true);
-                          return;
-                        }
-                        setSelectedPlan(planKey);
-                        setIsPortfolio(planKey === 'portfolio');
-                        setShowPlanModal(false);
-                        // Scroll to bottom where continue button is (only on step 10)
-                        if (step === 10) {
-                          setTimeout(() => {
-                            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                          }, 100);
-                        }
-                      }}
-                    >
-                      {isSelected
-                        ? (t('onboarding.planSelected') || 'Selected')
-                        : (plan.metadata?.cta || getTranslation(`home.pricing.plans.${planKey}.cta`) || t('onboarding.selectPlan') || 'Select Plan')}
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PlanSelectionModal
+        open={showPlanModal}
+        onOpenChange={setShowPlanModal}
+        plans={allPlans}
+        selectedPlan={selectedPlan}
+        dir={dir}
+        isRTL={isRTL}
+        t={t}
+        getTranslation={getTranslation}
+        onSelectPlan={(planKey) => {
+          setSelectedPlan(planKey);
+          setIsPortfolio(planKey === "portfolio");
+          setShowPlanModal(false);
+          if (step === 10) {
+            setTimeout(() => {
+              window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            }, 100);
+          }
+        }}
+        onContactUs={() => {
+          setShowPlanModal(false);
+          setContactModalOpen(true);
+        }}
+      />
 
       {/* Contact Modal */}
       <Dialog open={contactModalOpen} onOpenChange={setContactModalOpen}>

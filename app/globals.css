@@ -117,50 +117,50 @@
   }
 
   .dark {
-    --brand-primary: 10 100% 65.3%;
-    --brand-primary-strong: 10 100% 60%;
+    --brand-primary: 10 100% 55.3%; /* Keep same as light mode */
+    --brand-primary-strong: 10 100% 50%; /* Keep same as light mode */
     --brand-accent: 160 84% 40%;
     --brand-bg-soft: 222 47% 14%;
-    --text-strong: 0 0% 98%; /* Light text for dark mode */
-    --text-muted: 215 20% 65%;
+    --text-strong: 0 0% 100%; /* White text for dark mode */
+    --text-muted: 0 0% 100%; /* White text for dark mode */
     --border-soft: 217 33% 17%;
 
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 222 47% 11%; /* Dark blue background similar to #17233B */
+    --foreground: 0 0% 100%; /* White text */
 
     --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
+    --card-foreground: 0 0% 100%; /* White text */
 
     --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
+    --popover-foreground: 0 0% 100%; /* White text */
 
-    --primary: 10 100% 65.3%;
+    --primary: 10 100% 55.3%; /* Keep same as light mode */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 10 100% 75%;
+    --primary-glow: 10 100% 65%; /* Keep same as light mode */
 
     --secondary: 43 96% 56%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 0 0% 100%; /* White text */
 
     --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted-foreground: 0 0% 100%; /* White text */
 
     --accent: 160 84% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%; /* White text */
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 217 70% 60%;
 
-    --gradient-hero: linear-gradient(to right, hsl(10 100% 60%), hsl(160 84% 40%), hsl(10 100% 60%));
+    --gradient-hero: linear-gradient(to right, hsl(10 100% 50%), hsl(160 84% 40%), hsl(10 100% 50%)); /* Keep primary color same as light mode */
     --gradient-bg: linear-gradient(to bottom, hsl(222 47% 14%), hsl(222 47% 11%));
     --gradient-card: linear-gradient(to bottom, hsl(222 47% 14%), hsl(222 47% 16%));
-    --shadow-soft: 0 2px 8px -2px hsl(10 100% 65.3% / 0.2);
-    --shadow-card: 0 4px 16px -4px hsl(10 100% 65.3% / 0.3);
-    --shadow-glow: 0 0 30px hsl(10 100% 65.3% / 0.4);
-    --shadow-hover: 0 0 36px hsl(10 100% 65.3% / 0.35);
+    --shadow-soft: 0 2px 8px -2px hsl(10 100% 55.3% / 0.2); /* Keep primary color same as light mode */
+    --shadow-card: 0 4px 16px -4px hsl(10 100% 55.3% / 0.3); /* Keep primary color same as light mode */
+    --shadow-glow: 0 0 30px hsl(10 100% 55.3% / 0.4); /* Keep primary color same as light mode */
+    --shadow-hover: 0 0 36px hsl(10 100% 55.3% / 0.35); /* Keep primary color same as light mode */
 
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
@@ -182,6 +182,66 @@
     overscroll-behavior-y: contain;
   }
   
+  /* Force all text to be white in dark mode */
+  .dark {
+    color: white;
+  }
+  
+  /* Override specific text colors in dark mode - make all text white */
+  .dark .text-gray-600,
+  .dark .text-gray-500,
+  .dark .text-gray-700,
+  .dark .text-gray-400,
+  .dark .text-gray-300,
+  .dark .text-gray-200,
+  .dark .text-[#030408],
+  .dark .text-muted-foreground {
+    color: white !important;
+  }
+  
+  /* Ensure all text elements are white in dark mode (except primary colors) */
+  .dark p:not([class*="text-primary"]):not([class*="text-[#ff"]),
+  .dark span:not([class*="bg-"]):not([class*="text-primary"]):not([class*="text-[#ff"]):not([class*="text-white"]),
+  .dark h1:not([class*="text-primary"]):not([class*="text-[#ff"]),
+  .dark h2:not([class*="text-primary"]):not([class*="text-[#ff"]),
+  .dark h3:not([class*="text-primary"]):not([class*="text-[#ff"]),
+  .dark h4:not([class*="text-primary"]):not([class*="text-[#ff"]),
+  .dark h5:not([class*="text-primary"]):not([class*="text-[#ff"]),
+  .dark h6:not([class*="text-primary"]):not([class*="text-[#ff"]) {
+    color: white !important;
+  }
+  
+  /* Ensure icons are white in dark mode (unless they have specific color classes) */
+  .dark svg:not([class*="text-primary"]):not([class*="text-[#ff"]):not([class*="fill-primary"]) {
+    color: white !important;
+    stroke: white !important;
+  }
+  
+  /* Card backgrounds in dark mode - match the dark blue from image (#17233B or similar) */
+  .dark .bg-\[#f7f7f8\] {
+    background-color: hsl(222 47% 14%) !important;
+  }
+  
+  /* Card borders in dark mode */
+  .dark .border-\[#e2e2e2\] {
+    border-color: hsl(217 33% 17%) !important;
+  }
+
+  /* Safety net for hardcoded light backgrounds */
+  .dark .bg-white {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  .dark .bg-gray-50 {
+    background-color: hsl(var(--background)) !important;
+  }
+  
+  /* Ensure all buttons and interactive elements have white text in dark mode */
+  .dark button:not([class*="text-primary"]):not([class*="text-[#ff"]):not([class*="text-white"]),
+  .dark a:not([class*="text-primary"]):not([class*="text-[#ff"]):not([class*="text-white"]) {
+    color: white !important;
+  }
+  
   /* Fix mobile viewport height issues */
   @supports (-webkit-touch-callout: none) {
     body {
@@ -190,8 +250,8 @@
   }
   
   html {
-    height: -webkit-fill-available;
-    overflow-x: hidden;
+    min-height: -webkit-fill-available;
+    overflow-x: clip;
     position: relative;
   }
   
@@ -241,11 +301,15 @@
     body {
       position: relative;
       width: 100%;
-      overflow-x: hidden;
+      overflow-x: clip;
     }
     
-    /* Prevent horizontal scroll on mobile */
-    * {
+    /* Prevent horizontal overflow on media without breaking page scroll */
+    img,
+    video,
+    iframe,
+    svg,
+    canvas {
       max-width: 100%;
     }
   }
@@ -264,6 +328,7 @@ html[lang="he"] * {
   font-family: var(--font-noto-sans-hebrew), var(--font-work-sans), system-ui, sans-serif;
 }
 .skeleton { background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.12) 37%, rgba(0,0,0,0.06) 63%); background-size: 400% 100%; animation: shimmer 1s linear infinite; }
+.dark .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.06) 63%); background-size: 400% 100%; }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 
 /* Global hover background color - apply #030408 on hover */
@@ -295,11 +360,66 @@ html[lang="he"] * {
     color: inherit !important;
   }
 
+  /* Inline text actions (e.g. OTP "Send again") – border-bottom only, no black fill */
+  button.inline-link-button:hover:not(:disabled),
+  button.inline-link-button:focus-visible:not(:disabled) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+  }
+
+  button.inline-link-button:disabled {
+    background-color: transparent !important;
+    color: inherit !important;
+  }
+
+  /* Homepage feature cards – soft gray hover instead of global black */
+  [role="button"].home-feature-card:hover:not(:disabled) {
+    background-color: #ececee !important;
+    color: inherit !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.06);
+  }
+
+  .dark [role="button"].home-feature-card:hover:not(:disabled) {
+    background-color: #252a45 !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.25);
+  }
+
+  [role="button"].home-feature-card:hover:not(:disabled) h3 {
+    color: #030408 !important;
+  }
+
+  .dark [role="button"].home-feature-card:hover:not(:disabled) h3,
+  .dark [role="button"].home-feature-card:hover:not(:disabled) p,
+  .dark [role="button"].home-feature-card:hover:not(:disabled) svg {
+    color: #ffffff !important;
+  }
+
+  [role="button"].home-feature-card:hover:not(:disabled) p {
+    color: #4b5563 !important;
+  }
+
+  [role="button"].home-feature-card:hover:not(:disabled) svg {
+    color: #374151 !important;
+  }
+
   /* Override hover effect for booking confirm button - use opacity instead of color change */
   .booking-confirm-button:hover:not(:disabled) {
     background-color: hsl(var(--primary)) !important;
     opacity: 0.9 !important;
     color: hsl(var(--primary-foreground)) !important;
+  }
+
+  /* Plan selection accordion rows – soft green hover instead of global black */
+  button.plan-accordion-trigger:hover:not(:disabled),
+  button.plan-accordion-trigger:focus-visible:not(:disabled) {
+    background-color: rgb(240 253 244) !important;
+    color: inherit !important;
+  }
+
+  button.plan-accordion-trigger[data-state="open"]:not(:disabled) {
+    background-color: rgb(240 253 244 / 0.5) !important;
+    color: inherit !important;
   }
 
   /* Override hover effect for booking picker buttons (date and time) - prevent black background */
@@ -912,4 +1032,17 @@ html[lang="he"] * {
 [data-edit-id="logged-in-message"] u,
 [data-edit-id="contact-message"] u {
   text-decoration: underline;
+}
+
+/* Keep logo unchanged in dark mode */
+.dark img[src*="kalbook-logo"],
+.dark img[src*="kalbook-icon"],
+.dark img[alt*="KalBook"] {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Ensure logo gradient stays the same in dark mode */
+.dark .bg-gradient-to-r.from-primary {
+  background: linear-gradient(to right, hsl(10 100% 55.3%), hsl(10 100% 55.3% / 0.6)) !important;
 }

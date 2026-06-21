@@ -100,12 +100,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               if (data.settings.branding.themeColor) {
                 applyThemeColor(data.settings.branding.themeColor);
               }
-              // Apply text color
+              // Apply text color only in light mode to avoid black-on-dark conflicts
               const root = document.documentElement;
-              if (data.settings.branding.textColor === 'white') {
-                root.style.setProperty('--booking-text-color', '0 0% 100%');
-              } else if (data.settings.branding.textColor === 'black') {
-                root.style.setProperty('--booking-text-color', '0 0% 0%');
+              const isDarkMode = root.classList.contains('dark');
+              if (!isDarkMode) {
+                if (data.settings.branding.textColor === 'white') {
+                  root.style.setProperty('--booking-text-color', '0 0% 100%');
+                } else if (data.settings.branding.textColor === 'black') {
+                  root.style.setProperty('--booking-text-color', '0 0% 0%');
+                }
+              } else {
+                root.style.removeProperty('--booking-text-color');
               }
               return;
             }
@@ -123,12 +128,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               if (data.settings.branding.themeColor) {
                 applyThemeColor(data.settings.branding.themeColor);
               }
-              // Apply text color
+              // Apply text color only in light mode to avoid black-on-dark conflicts
               const root = document.documentElement;
-              if (data.settings.branding.textColor === 'white') {
-                root.style.setProperty('--booking-text-color', '0 0% 100%');
-              } else if (data.settings.branding.textColor === 'black') {
-                root.style.setProperty('--booking-text-color', '0 0% 0%');
+              const isDarkMode = root.classList.contains('dark');
+              if (!isDarkMode) {
+                if (data.settings.branding.textColor === 'white') {
+                  root.style.setProperty('--booking-text-color', '0 0% 100%');
+                } else if (data.settings.branding.textColor === 'black') {
+                  root.style.setProperty('--booking-text-color', '0 0% 0%');
+                }
+              } else {
+                root.style.removeProperty('--booking-text-color');
               }
               return;
             }

@@ -41,6 +41,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import {
+  formatIsraeliPhoneInput,
+  formatPhoneForDisplay,
+} from '@/lib/phone/display';
 import { UpgradeModal } from '@/components/admin/UpgradeModal';
 import Cropper from 'react-easy-crop';
 import { Area } from 'react-easy-crop';
@@ -536,33 +540,6 @@ export default function UserDashboardPage() {
     }
   };
 
-  // Extract last 10 digits from phone number and format with dashes (for display)
-  const formatPhoneForDisplay = (phone: string | null | undefined): string => {
-    if (!phone) return '';
-    // Remove all non-digit characters
-    const digits = phone.replace(/\D/g, '');
-    // Get last 10 digits
-    const last10 = digits.slice(-10);
-    // Format as XXX-XXX-XXXX
-    if (last10.length === 0) return '';
-    if (last10.length <= 3) return last10;
-    if (last10.length <= 6) return `${last10.slice(0, 3)}-${last10.slice(3)}`;
-    return `${last10.slice(0, 3)}-${last10.slice(3, 6)}-${last10.slice(6)}`;
-  };
-
-  // Format phone input to allow only 10 digits with dashes (XXX-XXX-XXXX)
-  const formatPhoneInput = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    // Format as XXX-XXX-XXXX
-    if (limited.length === 0) return '';
-    if (limited.length <= 3) return limited;
-    if (limited.length <= 6) return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-  };
-
   const getPlanStatus = (business: Business) => {
     const endDate = business.subscriptionEndsAt || business.trialEndsAt;
     let daysRemaining: number | null = null;
@@ -1029,7 +1006,7 @@ export default function UserDashboardPage() {
                                 id="phone"
                                 type="tel"
                                 value={editPhone}
-                                onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))}
+                                onChange={(e) => setEditPhone(formatIsraeliPhoneInput(e.target.value))}
                                 disabled={saving}
                                 maxLength={12}
                                 placeholder="050-123-4567"

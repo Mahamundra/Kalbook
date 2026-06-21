@@ -26,7 +26,7 @@ export function ClassicLayout({
   );
 
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" data-booking-page="true">
+    <div dir={dir} className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-background dark:to-background flex flex-col" data-booking-page="true">
       {/* Header */}
       {header}
 

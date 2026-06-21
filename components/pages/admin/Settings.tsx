@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { IsraelAddressFields } from '@/components/address/IsraelAddressFields';
 import { useLocale } from '@/hooks/useLocale';
 import { getSettings, updateSettings, uploadFile, deleteFile } from '@/lib/api/services';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { getLocaleDisplayName } from '@/lib/i18n';
+import { formatIsraeliPhoneInput } from '@/lib/phone/display';
 import { bannerPatterns } from '@/lib/mockData';
 
 /**
@@ -130,6 +132,7 @@ function BannerImagePreview({
               videoInputRef.current?.click();
             }}
             title={t('settings.changeVideo')}
+            aria-label={t('settings.changeVideo')}
           >
             <Upload className="w-4 h-4" />
           </Button>
@@ -142,6 +145,7 @@ function BannerImagePreview({
               videoInputRef.current?.click();
             }}
             title={t('settings.addVideo')}
+            aria-label={t('settings.addVideo')}
           >
             <Video className="w-4 h-4" />
           </Button>
@@ -151,6 +155,7 @@ function BannerImagePreview({
           variant="destructive"
           size="icon"
           onClick={onRemove}
+          aria-label={t('settings.removeVideo') || 'Remove video'}
         >
           <X className="w-4 h-4" />
         </Button>
@@ -373,26 +378,6 @@ const Settings = () => {
     return null as any; // Will be loaded from API
   });
 
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
   // Note: Theme color is only applied to booking pages via ThemeProvider
   // Admin panel keeps the default homepage primary color
 
@@ -453,10 +438,10 @@ const Settings = () => {
           
           // Format phone numbers to XXX-XXX-XXXX format (10 digits with dashes)
           if (loadedSettings.businessProfile.phone) {
-            loadedSettings.businessProfile.phone = formatPhoneNumber(loadedSettings.businessProfile.phone);
+            loadedSettings.businessProfile.phone = formatIsraeliPhoneInput(loadedSettings.businessProfile.phone);
           }
           if (loadedSettings.businessProfile.whatsapp) {
-            loadedSettings.businessProfile.whatsapp = formatPhoneNumber(loadedSettings.businessProfile.whatsapp);
+            loadedSettings.businessProfile.whatsapp = formatIsraeliPhoneInput(loadedSettings.businessProfile.whatsapp);
           }
           
           // Ensure socialLinks exists
@@ -999,7 +984,7 @@ const Settings = () => {
               <Input
                 value={settings.businessProfile.phone}
                 onChange={(e) => {
-                  const formatted = formatPhoneNumber(e.target.value);
+                  const formatted = formatIsraeliPhoneInput(e.target.value);
                   setSettings({
                     ...settings,
                     businessProfile: { ...settings.businessProfile, phone: formatted } as BusinessProfile,
@@ -1018,7 +1003,7 @@ const Settings = () => {
                     toast.error('Your plan doesn\'t allow WhatsApp integration. Please upgrade to continue.');
                     return;
                   }
-                  const formatted = formatPhoneNumber(e.target.value);
+                  const formatted = formatIsraeliPhoneInput(e.target.value);
                   setSettings({
                     ...settings,
                     businessProfile: { ...settings.businessProfile, whatsapp: formatted } as BusinessProfile,
@@ -1031,13 +1016,13 @@ const Settings = () => {
               />
             </div>
             <div className="md:col-span-2">
-              <label className={`text-sm font-medium mb-2 block ${isRTL ? 'text-right' : 'text-left'}`}>{t('settings.address')}</label>
-              <Input
+              <IsraelAddressFields
+                idPrefix="settings-address"
                 value={settings.businessProfile.address}
-                onChange={(e) =>
+                onChange={(address) =>
                   setSettings({
                     ...settings,
-                    businessProfile: { ...settings.businessProfile, address: e.target.value } as BusinessProfile,
+                    businessProfile: { ...settings.businessProfile, address } as BusinessProfile,
                   })
                 }
                 dir={isRTL ? 'rtl' : 'ltr'}

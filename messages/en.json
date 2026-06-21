@@ -1,22 +1,22 @@
 {
-    "nav": {
-        "dashboard": "Dashboard",
-        "calendar": "Calendar",
-        "services": "Services",
-        "classes": "Classes",
-        "workers": "Workers",
-        "customers": "Customers",
-        "trainers": "Trainers",
-        "clients": "Clients",
-        "activityLogs": "Activity Logs",
-        "templates": "Templates",
-        "qr": "QR Codes",
-        "settings": "Settings",
-        "viewPublicSite": "View Public Site",
-        "viewMyBookingPage": "View My Booking Page",
-        "more": "More",
-        "back": "Back"
-    },
+  "nav": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "services": "Services",
+    "classes": "Classes",
+    "workers": "Workers",
+    "customers": "Customers",
+    "trainers": "Trainers",
+    "clients": "Clients",
+    "activityLogs": "Activity Logs",
+    "templates": "Templates",
+    "qr": "QR Codes",
+    "settings": "Settings",
+    "viewPublicSite": "View Public Site",
+    "viewMyBookingPage": "View My Booking Page",
+    "more": "More",
+    "back": "Back"
+  },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back! Here's what's happening today.",
@@ -167,7 +167,6 @@
     "edit": "Edit Service",
     "delete": "Delete Service",
     "name": "Name",
-    "description": "Description",
     "descriptionPlaceholder": "Add a description for this service...",
     "duration": "Duration",
     "durationMinutes": "Duration (minutes)",
@@ -294,7 +293,7 @@
   "customers": {
     "title": "Customers",
     "search": "Search customers...",
-    "add": "Add New Customer",
+    "add": "Add",
     "name": "Name",
     "phone": "Phone",
     "email": "Email",
@@ -357,38 +356,6 @@
     "overview": "Overview",
     "addTags": "Add tags...",
     "statistics": {
-      "title": "Statistics"
-    },
-    "communications": {
-      "title": "Communications"
-    },
-    "notesHistory": {
-      "title": "Notes History"
-    },
-    "merge": {
-      "title": "Merge Customer"
-    },
-    "delete": "Delete",
-    "exportSuccess": "Customers exported successfully",
-    "saveError": "Failed to save customer",
-    "exportError": "Failed to export customers",
-    "planLimitAddCustomers": "Your plan doesn't allow adding customers. Please upgrade to continue.",
-    "filters": {
-      "title": "Filters",
-      "sortBy": "Sort By",
-      "createdDate": "Created Date",
-      "clearAll": "Clear All",
-      "activeFilters": "Active Filters",
-      "blocked": "Blocked",
-      "marketingConsent": "Marketing Consent",
-      "lastVisitFrom": "Last Visit From",
-      "lastVisitTo": "Last Visit To",
-      "createdDateFrom": "Created Date From",
-      "createdDateTo": "Created Date To",
-      "dateOfBirthFrom": "Date of Birth From",
-      "dateOfBirthTo": "Date of Birth To"
-    },
-    "statistics": {
       "title": "Statistics",
       "totalAppointments": "Total Appointments",
       "avgVisitsPerMonth": "Avg Visits/Month",
@@ -419,6 +386,34 @@
       "noNotes": "No notes found",
       "createdBy": "Created by"
     },
+    "merge": {
+      "title": "Merge Customer",
+      "description": "Select two customers to merge. The secondary customer will be deleted.",
+      "selectPrimary": "Primary Customer",
+      "selectSecondary": "Secondary Customer",
+      "confirm": "Confirm Merge",
+      "success": "Customers merged successfully"
+    },
+    "delete": "Delete",
+    "exportSuccess": "Customers exported successfully",
+    "saveError": "Failed to save customer",
+    "exportError": "Failed to export customers",
+    "planLimitAddCustomers": "Your plan doesn't allow adding customers. Please upgrade to continue.",
+    "filters": {
+      "title": "Filters",
+      "sortBy": "Sort By",
+      "createdDate": "Created Date",
+      "clearAll": "Clear All",
+      "activeFilters": "Active Filters",
+      "blocked": "Blocked",
+      "marketingConsent": "Marketing Consent",
+      "lastVisitFrom": "Last Visit From",
+      "lastVisitTo": "Last Visit To",
+      "createdDateFrom": "Created Date From",
+      "createdDateTo": "Created Date To",
+      "dateOfBirthFrom": "Date of Birth From",
+      "dateOfBirthTo": "Date of Birth To"
+    },
     "importDescription": "Upload a CSV file to import customers",
     "selectFile": "Select CSV File",
     "noFileChosen": "No file chosen",
@@ -434,16 +429,7 @@
     "moreErrors": "more errors",
     "bulkOperationDescription": "Apply to {count} selected customers",
     "operation": "Operation",
-    "add": "Add",
     "remove": "Remove",
-    "merge": {
-      "title": "Merge Customer",
-      "description": "Select two customers to merge. The secondary customer will be deleted.",
-      "selectPrimary": "Primary Customer",
-      "selectSecondary": "Secondary Customer",
-      "confirm": "Confirm Merge",
-      "success": "Customers merged successfully"
-    },
     "merging": "Merging...",
     "pagination": {
       "showing": "Showing",
@@ -459,7 +445,7 @@
   "clients": {
     "title": "Clients",
     "search": "Search clients...",
-    "add": "Add New Client",
+    "add": "Add",
     "name": "Name",
     "phone": "Phone",
     "email": "Email",
@@ -538,38 +524,6 @@
     "overview": "Overview",
     "addTags": "Add tags...",
     "statistics": {
-      "title": "Statistics"
-    },
-    "communications": {
-      "title": "Communications"
-    },
-    "notesHistory": {
-      "title": "Notes History"
-    },
-    "merge": {
-      "title": "Merge Client"
-    },
-    "delete": "Delete",
-    "exportSuccess": "Clients exported successfully",
-    "saveError": "Failed to save client",
-    "exportError": "Failed to export clients",
-    "planLimitAddClients": "Your plan doesn't allow adding clients. Please upgrade to continue.",
-    "filters": {
-      "title": "Filters",
-      "sortBy": "Sort By",
-      "createdDate": "Created Date",
-      "clearAll": "Clear All",
-      "activeFilters": "Active Filters",
-      "blocked": "Blocked",
-      "marketingConsent": "Marketing Consent",
-      "lastVisitFrom": "Last Visit From",
-      "lastVisitTo": "Last Visit To",
-      "createdDateFrom": "Created Date From",
-      "createdDateTo": "Created Date To",
-      "dateOfBirthFrom": "Date of Birth From",
-      "dateOfBirthTo": "Date of Birth To"
-    },
-    "statistics": {
       "title": "Statistics",
       "totalAppointments": "Total Appointments",
       "avgVisitsPerMonth": "Avg Visits/Month",
@@ -600,6 +554,34 @@
       "noNotes": "No notes found",
       "createdBy": "Created by"
     },
+    "merge": {
+      "title": "Merge Client",
+      "description": "Select two clients to merge. The secondary client will be deleted.",
+      "selectPrimary": "Primary Client",
+      "selectSecondary": "Secondary Client",
+      "confirm": "Confirm Merge",
+      "success": "Clients merged successfully"
+    },
+    "delete": "Delete",
+    "exportSuccess": "Clients exported successfully",
+    "saveError": "Failed to save client",
+    "exportError": "Failed to export clients",
+    "planLimitAddClients": "Your plan doesn't allow adding clients. Please upgrade to continue.",
+    "filters": {
+      "title": "Filters",
+      "sortBy": "Sort By",
+      "createdDate": "Created Date",
+      "clearAll": "Clear All",
+      "activeFilters": "Active Filters",
+      "blocked": "Blocked",
+      "marketingConsent": "Marketing Consent",
+      "lastVisitFrom": "Last Visit From",
+      "lastVisitTo": "Last Visit To",
+      "createdDateFrom": "Created Date From",
+      "createdDateTo": "Created Date To",
+      "dateOfBirthFrom": "Date of Birth From",
+      "dateOfBirthTo": "Date of Birth To"
+    },
     "importDescription": "Upload a CSV file to import clients",
     "selectFile": "Select CSV File",
     "noFileChosen": "No file chosen",
@@ -615,16 +597,7 @@
     "moreErrors": "more errors",
     "bulkOperationDescription": "Apply to {count} selected clients",
     "operation": "Operation",
-    "add": "Add",
     "remove": "Remove",
-    "merge": {
-      "title": "Merge Client",
-      "description": "Select two clients to merge. The secondary client will be deleted.",
-      "selectPrimary": "Primary Client",
-      "selectSecondary": "Secondary Client",
-      "confirm": "Confirm Merge",
-      "success": "Clients merged successfully"
-    },
     "merging": "Merging...",
     "pagination": {
       "showing": "Showing",
@@ -825,6 +798,19 @@
     "phone": "Phone",
     "whatsapp": "WhatsApp",
     "address": "Address",
+    "addressFields": {
+      "city": "City",
+      "cityPlaceholder": "Search city",
+      "street": "Street",
+      "streetPlaceholder": "Search street",
+      "houseNumber": "House number",
+      "houseNumberPlaceholder": "Optional",
+      "selectCityFirst": "Select a city first",
+      "loading": "Loading...",
+      "noResults": "No results found",
+      "enterManually": "Enter address manually",
+      "useAutocomplete": "Use address search"
+    },
     "timezone": "Timezone",
     "currency": "Currency",
     "branding": "Branding",
@@ -850,39 +836,34 @@
     "textColorDescription": "Choose a text color for your booking page. This will apply to all text elements.",
     "logoShape": "Logo Shape",
     "logoShapeDescription": "Choose a shape for your logo. Circle will apply rounded corners.",
-    "dragToReposition": "Drag to reposition",
-      "editMenu": "Edit Menu",
-      "headerSection": "Header",
-      "designSection": "Design & Layout",
-      "contentSection": "Content & Messages",
-      "brandingSection": "Branding",
-      "bannerSection": "Banner",
-      "settingsSection": "Settings",
-      "businessName": "Business Name",
-      "businessDescription": "Business Description",
-      "logo": "Logo",
-      "banner": "Banner Cover",
-      "guestMessage": "Guest Message",
-      "loggedInMessage": "Logged-in Message",
-      "contactMessage": "Contact Message",
-      "contactSettings": "Contact Settings",
-      "themeColor": "Theme Color",
-      "textColor": "Text Color",
-      "logoShape": "Logo Shape",
-      "socialLinks": "Social Links",
-      "layout": "Page Layout",
-      "selectLayout": "Select Layout",
-      "selectLayoutDescription": "Choose a layout for your booking page.",
-      "classicLayout": "Classic Layout",
-      "classicLayoutDescription": "Centered, card-based design",
-      "sidebarLayout": "Sidebar Layout",
-      "sidebarLayoutDescription": "Two-column with sticky sidebar",
-      "heroLayout": "Hero Layout",
-      "heroLayoutDescription": "Full-width hero section",
-      "asymmetricLayout": "Asymmetric Layout",
-      "asymmetricLayoutDescription": "40/60 split with focus on booking",
-      "compactLayout": "Compact Dashboard",
-      "compactLayoutDescription": "Space-efficient dashboard style",
+    "dragToReposition": "Image Position",
+    "editMenu": "Edit Menu",
+    "headerSection": "Header",
+    "designSection": "Design & Layout",
+    "contentSection": "Content & Messages",
+    "brandingSection": "Branding",
+    "bannerSection": "Banner",
+    "settingsSection": "Settings",
+    "businessDescription": "Business Description",
+    "banner": "Banner Cover",
+    "guestMessage": "Guest Customer Message",
+    "loggedInMessage": "Logged-in Customer Message",
+    "contactMessage": "Contact Message",
+    "contactSettings": "Contact Settings",
+    "socialLinks": "Social Media Links",
+    "layout": "Page Layout",
+    "selectLayout": "Select Layout",
+    "selectLayoutDescription": "Choose a layout for your booking page.",
+    "classicLayout": "Classic Layout",
+    "classicLayoutDescription": "Centered, card-based design",
+    "sidebarLayout": "Sidebar Layout",
+    "sidebarLayoutDescription": "Two-column with sticky sidebar",
+    "heroLayout": "Hero Layout",
+    "heroLayoutDescription": "Full-width hero section",
+    "asymmetricLayout": "Asymmetric Layout",
+    "asymmetricLayoutDescription": "40/60 split with focus on booking",
+    "compactLayout": "Compact Dashboard",
+    "compactLayoutDescription": "Space-efficient dashboard style",
     "languageAndLocalization": "Language & Localization",
     "language": "Language",
     "locale": "Locale & RTL",
@@ -901,11 +882,10 @@
     "minute": "minute",
     "minutes": "minutes",
     "contactMessageEnabled": "Show Contact Message",
-    "contactMessageText": "Contact Message Text",
-    "contactMessagePlaceholder": "Enter your custom message for customers who don't find their preferred date",
+    "contactMessageText": "Message Text",
+    "contactMessagePlaceholder": "Enter your contact message...",
     "contactMessageDescription": "This message will appear below the calendar on the booking page. If left empty, a default message will be shown. Use line breaks (Enter) to create multiple lines.",
     "contactMessageHelp": "The contact section will only be displayed if at least one contact method (phone or WhatsApp) is enabled and available.",
-    "contactMessage": "Contact Message",
     "messages": "Welcome Messages",
     "showPhoneInContact": "Show Phone Number",
     "contactPhoneNote": "Uses phone number from Business Profile",
@@ -993,7 +973,6 @@
     "yourBusinessName": "Your Business Name",
     "welcomeMessageDefault": "Welcome! Book your appointment below.",
     "contactUs": "Contact Us",
-    "socialLinks": "Social Media Links",
     "socialLinksDescription": "Add your social media links to display at the bottom of the booking page. Links will open in the respective apps when clicked.",
     "addSocialLink": "Add Social Link",
     "facebook": "Facebook",
@@ -1014,13 +993,8 @@
     "changeVideo": "Change Video",
     "removeVideo": "Remove Video",
     "presetColors": "Preset Colors",
-    "uploadBannerImage": "Upload Banner Image",
     "uploadVideo": "Upload Video",
     "noBanner": "No banner uploaded",
-    "dragToReposition": "Image Position",
-    "contactMessageEnabled": "Show Contact Message",
-    "contactMessageText": "Message Text",
-    "contactMessagePlaceholder": "Enter your contact message...",
     "contactMethods": "Contact Methods",
     "addPhone": "Phone",
     "addWhatsApp": "WhatsApp",
@@ -1031,10 +1005,6 @@
     "contactEmailPlaceholder": "e.g., info@example.com",
     "contactInvalidPhone": "must be exactly 10 digits",
     "contactInvalidEmail": "must be a valid email address",
-    "showPhoneInContact": "Show Phone Number",
-    "contactPhoneNote": "Uses phone number from Business Profile",
-    "showWhatsAppInContact": "Show WhatsApp Number",
-    "contactWhatsAppNote": "Uses WhatsApp number from Business Profile",
     "noSocialLinks": "No social links added yet",
     "videoTooLarge": "Video file is too large. Maximum size is 3MB to avoid storage issues.",
     "videoTooLargeForStorage": "Video file is too large to store. Please use a smaller video file or compress it.",
@@ -1059,10 +1029,8 @@
     "videoSaved": "Video saved successfully",
     "videoRemoved": "Video removed successfully",
     "saveError": "Failed to save. Storage quota exceeded. Please remove large files.",
-    "guestMessage": "Guest Customer Message",
     "guestMessagePlaceholder": "Welcome message for guests (e.g., Hello guest, welcome!)",
     "guestMessageDescription": "This message will be displayed to visitors who are not logged in",
-    "loggedInMessage": "Logged-in Customer Message",
     "loggedInMessagePlaceholder": "Welcome message for logged-in users (use {name} for customer name)",
     "loggedInMessageDescription": "This message will be displayed to logged-in customers. Use {name} to include the customer's name",
     "registrationSettings": "Registration Settings",
@@ -1087,6 +1055,19 @@
     "placeholder": "Placeholder",
     "required": "Required",
     "noCustomFields": "No custom fields added yet"
+  },
+  "addressFields": {
+    "city": "City",
+    "cityPlaceholder": "Search city",
+    "street": "Street",
+    "streetPlaceholder": "Search street",
+    "houseNumber": "House number",
+    "houseNumberPlaceholder": "Optional",
+    "selectCityFirst": "Select a city first",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "enterManually": "Enter address manually",
+    "useAutocomplete": "Use address search"
   },
   "auth": {
     "enterPhone": "Enter Phone Number",
@@ -1146,7 +1127,14 @@
       "saveError": "Failed to save phone number",
       "invalidPhone": "Please enter a valid phone number (at least 10 digits)",
       "phoneExists": "This phone number is already registered"
-    }
+    },
+    "fillRequiredFields": "Please fill in all required fields",
+    "invalidPhone": "Please enter a valid phone number",
+    "sendCodeError": "Failed to send code",
+    "codeSentToWhatsApp": "Code sent to {phone} via WhatsApp",
+    "enterWhatsAppCode": "Enter the code you received on WhatsApp",
+    "googleLoginError": "Failed to sign in with Google",
+    "facebookLoginError": "Failed to sign in with Facebook"
   },
   "adminLogin": {
     "title": "Admin Login",
@@ -1350,7 +1338,7 @@
     "title": "KalBook",
     "subtitle": "Everything your service business needs – all in one place.\n\nA smart management system that centralizes all important operations:\n\nOnline bookings\n\nDynamic and updating schedule\n\nCustomer and employee management\n\nSending automatic reminders and messages\n\nEasy to operate, quick to set up, in English",
     "startNow": "Start Free Trial",
-    "seeFeatures": "What's Inside?",
+    "seeFeatures": "See what's inside",
     "pricingLabel": "Pricing",
     "freeTrial": "Free Trial",
     "adminDemo": "Admin Demo",
@@ -1401,11 +1389,13 @@
       },
       "recurringAppointments": {
         "title": "Recurring Appointments",
-        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment."
+        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment.",
+        "details": "Streamline scheduling for your regular customers with recurring appointments. Set up automatic repeat bookings on weekly, bi-weekly, monthly, or custom schedules. Perfect for clients who visit regularly - haircuts, therapy sessions, training, or maintenance appointments. Customers can book once and have appointments automatically scheduled going forward. Save time by eliminating the need to manually book each appointment. Never miss a regular client's appointment. Customers receive reminders for each recurring appointment. Easily modify or cancel recurring schedules as needed."
       },
       "mobileOptimized": {
         "title": "Mobile-Optimized Booking",
-        "desc": "Fully responsive booking experience that looks great on any device."
+        "desc": "Fully responsive booking experience that looks great on any device.",
+        "details": "Ensure every customer can book easily, regardless of their device. Our booking pages are fully responsive and optimized for mobile phones, tablets, and desktops. Touch-friendly interface makes booking on mobile devices effortless. Fast loading times keep customers engaged. The booking experience adapts perfectly to any screen size. Most customers book on mobile - make sure your booking process is smooth and intuitive on all devices. No pinching, zooming, or scrolling required."
       },
       "security": {
         "title": "Simple and secure",
@@ -1435,20 +1425,10 @@
         "desc": "Make your booking page yours with your logo and brand colors.",
         "details": "Create a booking experience that reflects your brand identity. Upload your logo to display prominently on your booking page. Customize colors to match your brand palette. Choose fonts and styling that align with your business aesthetic. Add custom images and banners to showcase your services. Your booking page becomes an extension of your brand, building trust and recognition. All emails and notifications can also be branded with your colors and logo. Stand out from competitors with a professional, cohesive brand experience."
       },
-      "mobileOptimized": {
-        "title": "Mobile-Optimized Booking",
-        "desc": "Fully responsive booking experience that looks great on any device.",
-        "details": "Ensure every customer can book easily, regardless of their device. Our booking pages are fully responsive and optimized for mobile phones, tablets, and desktops. Touch-friendly interface makes booking on mobile devices effortless. Fast loading times keep customers engaged. The booking experience adapts perfectly to any screen size. Most customers book on mobile - make sure your booking process is smooth and intuitive on all devices. No pinching, zooming, or scrolling required."
-      },
       "noShowPrevention": {
         "title": "No-Show Prevention",
         "desc": "Automated reminders help reduce missed appointments and keep your schedule full.",
         "details": "Minimize lost revenue from no-shows with our comprehensive prevention system. Automated email and WhatsApp reminders sent before appointments significantly reduce no-show rates. Confirmation requests ensure customers are committed to their bookings. Track no-show history to identify patterns and problematic clients. Set up automatic waitlists to fill cancelled appointments quickly. Some plans include deposit requirements to secure bookings. Keep your schedule full and your revenue consistent with proactive no-show prevention."
-      },
-      "recurringAppointments": {
-        "title": "Recurring Appointments",
-        "desc": "Set up repeat bookings for regular clients. Weekly, monthly, or custom schedules - save time and never miss a regular appointment.",
-        "details": "Streamline scheduling for your regular customers with recurring appointments. Set up automatic repeat bookings on weekly, bi-weekly, monthly, or custom schedules. Perfect for clients who visit regularly - haircuts, therapy sessions, training, or maintenance appointments. Customers can book once and have appointments automatically scheduled going forward. Save time by eliminating the need to manually book each appointment. Never miss a regular client's appointment. Customers receive reminders for each recurring appointment. Easily modify or cancel recurring schedules as needed."
       }
     },
     "pricing": {
@@ -1465,7 +1445,16 @@
           "priceNote": "Free Forever",
           "cta": "Create Free Portfolio",
           "note": "Showcase your business - no booking, just your portfolio",
-          "highlights": ["Business homepage/portfolio", "Logo & branding", "Services showcase", "Contact information", "Social links", "Homepage editor", "No appointment booking", "No customer management"]
+          "highlights": [
+            "Business homepage/portfolio",
+            "Logo & branding",
+            "Services showcase",
+            "Contact information",
+            "Social links",
+            "Homepage editor",
+            "No appointment booking",
+            "No customer management"
+          ]
         },
         "free": {
           "name": "Basic",
@@ -1473,7 +1462,14 @@
           "priceNote": "14 Days Free Trial",
           "cta": "Start Free",
           "note": "Start managing your bookings today - no credit card required",
-          "highlights": ["1 staff member", "Up to 100 bookings/month", "Smart calendar", "Customer management", "Email reminders", "Bilingual & RTL support"]
+          "highlights": [
+            "1 staff member",
+            "Up to 100 bookings/month",
+            "Smart calendar",
+            "Customer management",
+            "Email reminders",
+            "Bilingual & RTL support"
+          ]
         },
         "pro": {
           "name": "Pro",
@@ -1481,7 +1477,17 @@
           "priceNote": "per month",
           "cta": "Start Pro",
           "note": "Everything you need to grow your business",
-          "highlights": ["Everything in Free Plan", "Up to 5 staff", "Unlimited bookings", "Analytics dashboard", "WhatsApp integration", "Google Calendar integration", "Custom branding", "Advanced reminders", "Priority support"]
+          "highlights": [
+            "Everything in Free Plan",
+            "Up to 5 staff",
+            "Unlimited bookings",
+            "Analytics dashboard",
+            "WhatsApp integration",
+            "Google Calendar integration",
+            "Custom branding",
+            "Advanced reminders",
+            "Priority support"
+          ]
         },
         "custom": {
           "name": "Custom",
@@ -1489,13 +1495,30 @@
           "priceNote": "Tailored to your needs",
           "cta": "Contact Us",
           "note": "Custom solutions for your specific requirements. Dedicated support, advanced capabilities, and everything you need to grow fast.",
-          "highlights": ["Everything in Pro", "Unlimited staff", "API Access", "White-label solution", "Custom integrations", "Advanced reporting", "Multi-location support", "Custom workflows", "Dedicated support", "Custom development"]
+          "highlights": [
+            "Everything in Pro",
+            "Unlimited staff",
+            "API Access",
+            "White-label solution",
+            "Custom integrations",
+            "Advanced reporting",
+            "Multi-location support",
+            "Custom workflows",
+            "Dedicated support",
+            "Custom development"
+          ]
         }
-      }
+      },
+      "basic": "Basic",
+      "customPlan": "Custom",
+      "startingFrom": "From ",
+      "free": "Free",
+      "proPriceNote": "For pros who mean business",
+      "noCreditCard": "No credit card required"
     },
     "portfolio": {
       "badge": "Free Forever",
-      "title": "✨ Your Digital Business Card – Instantly Online & Impressively Professional",
+      "title": "✨ Digital Business Card – Online, Impressive, and Free",
       "description": "Showcase your business online – fast, sleek, and free. Perfect for service providers, freelancers, and small businesses who want a beautiful digital presence without coding or monthly fees.",
       "benefits": [
         "Add your logo & branding",
@@ -1517,7 +1540,7 @@
         "Customer and staff management - records, reminders, history",
         "Automatic reminders - fewer no-shows, more order"
       ],
-      "highlight": "Easy to operate, quick to set up, and fully in Hebrew."
+      "highlight": "Easy to operate, quick to set up."
     },
     "whoIsItFor": {
       "title": "Who is it for?",
@@ -1638,19 +1661,70 @@
     "footer": {
       "rights": "All rights reserved.",
       "terms": "Terms",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "copyright": "© {year} Kalbook.io · {rights}"
     },
     "contact": {
       "title": "Contact Us",
-      "description": "Get in touch with us. We'd love to hear from you!",
+      "description": "Want to talk? Write to us — we'll get back to you.",
       "info": "Contact Information",
       "name": "Name",
       "email": "Email",
       "message": "Message",
       "submit": "Send Message",
       "submitting": "Sending...",
-      "success": "Thank you! We'll get back to you soon.",
+      "success": "Got it! We'll be in touch soon.",
       "error": "Failed to send message. Please try again."
+    },
+    "preview": {
+      "withBooking": "With Booking",
+      "businessCard": "Business Card",
+      "mobile": "Mobile",
+      "desktop": "Desktop",
+      "modalBooking": "Booking",
+      "modalCard": "Card"
+    },
+    "customFeatures": {
+      "title": "Additional features we can build",
+      "subtitle": "Advanced, tailored solutions for your needs",
+      "items": {
+        "apiAccess": {
+          "title": "API Access",
+          "desc": "Full integration with your systems"
+        },
+        "whiteLabel": {
+          "title": "White-Label Solution",
+          "desc": "Your brand, without our logo"
+        },
+        "customIntegrations": {
+          "title": "Custom Integrations",
+          "desc": "Connect CRM, ERP, and other tools"
+        },
+        "advancedReports": {
+          "title": "Advanced Reports",
+          "desc": "Custom reports and deep analytics"
+        },
+        "multiLocation": {
+          "title": "Multi-Location Support",
+          "desc": "Manage multiple branches from one place"
+        },
+        "customWorkflows": {
+          "title": "Custom Workflows",
+          "desc": "Automation for your processes"
+        },
+        "advancedAutomation": {
+          "title": "Advanced Automation",
+          "desc": "Custom business rules and triggers"
+        },
+        "dedicatedSupport": {
+          "title": "Dedicated Support",
+          "desc": "Account manager and 24/7 support"
+        },
+        "customDevelopment": {
+          "title": "Custom Development",
+          "desc": "Unique features built to order"
+        }
+      }
     }
   },
   "onboarding": {
@@ -1662,6 +1736,8 @@
     "choosePlanDescription": "Select the plan that best fits your business needs. You can change this anytime during setup.",
     "selectPlan": "Select Plan",
     "planSelected": "Selected",
+    "needCustomPlan": "Need a custom plan?",
+    "contactUsLink": "Contact us",
     "auth": {
       "title": "Get Started",
       "subtitle": "Sign in to continue with your business setup",
@@ -1678,13 +1754,12 @@
       "or": "Or",
       "signInWithGoogle": "Sign in with Google",
       "signInWithFacebook": "Sign in with Facebook",
-      "otpSentToEmail": "We sent a verification code to {email}",
+      "otpSentToEmail": "Verification code sent successfully to {email}",
       "phoneRequired": "Phone number is required",
       "invalidPhone": "Please enter a valid phone number",
       "otpRequired": "OTP code is required",
       "otpSent": "Verification code sent successfully",
       "otpSentToPhone": "Verification code sent successfully to {phone}",
-      "otpSentToEmail": "Verification code sent successfully to {email}",
       "verified": "Phone number verified",
       "authenticated": "Authenticated!",
       "phoneVerified": "Phone {phone} verified",
@@ -1773,7 +1848,8 @@
           "title": "Other Service",
           "description": "Custom service business"
         }
-      }
+      },
+      "stepSubtitle": "Choose the business type that fits you best"
     },
     "ownerName": "Owner Name",
     "useAnotherAccount": "Use another account for this business",
@@ -1782,9 +1858,9 @@
       "title": "Business Information",
       "subtitle": "Tell us about your business.",
       "name": "Business Name *",
-      "namePlaceholder": "e.g., סטודיו סטייל",
+      "namePlaceholder": "e.g., Chen Fitness Studio",
       "ownerName": "Business Owner Name *",
-      "ownerNamePlaceholder": "Enter owner name",
+      "ownerNamePlaceholder": "Business owner name",
       "englishName": "English Name for URL *",
       "englishNamePlaceholder": "e.g., Style Studio",
       "englishNameHint": "This will be used to create your unique URL (e.g., yourbusiness.com/b/style-studio). Use only English letters, numbers, and hyphens.",
@@ -2045,7 +2121,8 @@
       "atLeastOneService": "Please add at least one service to continue.",
       "invalidService": "Please ensure all services have a name, valid duration (>0), and valid price (≥0).",
       "setupFailed": "Failed to set up your business. Please try again.",
-      "phoneAlreadyRegistered": "Phone number already registered by another user"
+      "phoneAlreadyRegistered": "Phone number already registered by another user",
+      "identityCheckFailed": "Could not verify account details. Please try again."
     },
     "success": {
       "businessSetup": "Your business is being set up. Redirecting to dashboard..."
@@ -2060,6 +2137,69 @@
     "startOver": {
       "success": "Starting over... Please login again.",
       "error": "Failed to start over. Please refresh the page."
+    },
+    "alreadyRegistered": "You already have a registered business. Please log in to your existing business.",
+    "lessThanMinute": "Takes less than a minute :)",
+    "planBanner": {
+      "freeForever": "Free forever — no payment method needed",
+      "freeNoPayment": "Free — no payment method needed"
+    },
+    "steps": {
+      "reassurance": "💡 Don't worry — you can change everything later",
+      "fieldRequired": "This field is required",
+      "businessName": {
+        "title": "What's your business called?",
+        "subtitle": "This is what customers will see on your booking page",
+        "label": "Business name",
+        "placeholder": "e.g., Chen Fitness Studio",
+        "preview": "✨ Here's how customers will see it:"
+      },
+      "ownerName": {
+        "title": "What's your name?",
+        "subtitle": "This is how we'll show you in the system",
+        "greeting": "👋 Nice to meet you!",
+        "label": "Owner name",
+        "placeholder": "Business owner name"
+      },
+      "contact": {
+        "title": "How can customers reach you?",
+        "subtitle": "Phone and email shown on your booking page",
+        "phoneHint": "Customers will see this number and can call you",
+        "yourPhone": "Your phone number:",
+        "phoneLabel": "Phone number",
+        "useDifferentPhone": "Use a different phone number for my business",
+        "phoneDisplayNote": "Your number will appear on your booking page",
+        "emailOptional": "Email (optional)",
+        "emailHint": "Email address shown to customers on your booking page"
+      },
+      "address": {
+        "title": "What's the business address? (optional)",
+        "subtitle": "We'll show it to customers (optional)",
+        "label": "Address",
+        "city": "City",
+        "cityPlaceholder": "Search city",
+        "street": "Street",
+        "streetPlaceholder": "Search street",
+        "houseNumber": "House number",
+        "houseNumberPlaceholder": "Optional",
+        "selectCityFirst": "Select a city first",
+        "loading": "Loading...",
+        "noResults": "No results found",
+        "enterManually": "Enter address manually",
+        "useAutocomplete": "Use address search",
+        "socialHint": "Add social links at the bottom of your booking page. Links open in the matching app.",
+        "addSocialLink": "Add social link"
+      },
+      "services": {
+        "hint": "Start with 2–3 services — you can add more later",
+        "skip": "Skip — you can add services after setup",
+        "serviceName": "Service name",
+        "serviceNamePlaceholder": "e.g., Haircut",
+        "descriptionOptional": "Description (optional)",
+        "durationMinutes": "Duration (minutes)",
+        "priceIls": "Price (₪)",
+        "serviceCounter": "Service {current} (of {total})"
+      }
     }
   },
   "booking": {

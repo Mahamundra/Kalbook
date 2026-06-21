@@ -35,11 +35,19 @@ function detectContext(pathname: string | null): LocaleContext {
     // Fallback: check window.location if pathname is not available
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname;
+      // Homepage uses admin context to separate from booking pages
+      if (currentPath === '/' || currentPath === '') {
+        return 'admin';
+      }
       if (currentPath.includes('/admin') || (currentPath.startsWith('/b/') && currentPath.includes('/admin'))) {
         return 'admin';
       }
     }
     return 'booking';
+  }
+  // Homepage uses admin context to separate from booking pages (like iframes)
+  if (pathname === '/' || pathname === '') {
+    return 'admin';
   }
   // Check if pathname contains /admin
   if (pathname.includes('/admin') || (pathname.startsWith('/b/') && pathname.includes('/admin'))) {

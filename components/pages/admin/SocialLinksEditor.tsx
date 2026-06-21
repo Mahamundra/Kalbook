@@ -224,6 +224,7 @@ export function SocialLinksEditor({
                     size="icon"
                     className="mt-8"
                     onClick={() => handleRemoveLink(platform.key)}
+                    aria-label={`Remove ${platform.key} link`}
                   >
                     <X className="w-4 h-4" />
                   </Button>

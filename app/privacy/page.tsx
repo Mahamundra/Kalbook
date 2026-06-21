@@ -7,6 +7,7 @@ import { Footer } from '@/components/ui/Footer';
 import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -117,12 +118,13 @@ export default function PrivacyPage() {
   return (
     <div dir={dir} className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
       {/* Header - Same as onboarding and homepage */}
-      <header className="bg-white border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 safe-area-top shadow-sm">
+      <header className="bg-background border-b fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-sm bg-background/95 supports-[backdrop-filter]:bg-background/80 dark:bg-background/95 dark:supports-[backdrop-filter]:bg-background/80 safe-area-top shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 relative">
           <div className="flex items-center justify-between gap-2">
-            {/* Language Toggle */}
+            {/* Language Toggle and Dark Mode Toggle */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <LanguageToggle />
+              <DarkModeToggle />
             </div>
             
             {/* User menu / Greetings */}

@@ -17,6 +17,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useDirection } from '@/components/providers/DirectionProvider';
 import { Phone, MessageCircle, Mail, X, Plus, GripVertical, Bold, Italic, Underline, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatIsraeliPhoneInput } from '@/lib/phone/display';
 
 type ContactType = 'phone' | 'whatsapp' | 'email';
 
@@ -72,19 +73,6 @@ export function ContactMessageEditor({
       messageEditorRef.current.innerHTML = message || '';
     }
   }, [open, message]);
-
-  // Format phone input to allow only 10 digits with dashes (XXX-XXX-XXXX)
-  const formatPhoneInput = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    // Format as XXX-XXX-XXXX
-    if (limited.length === 0) return '';
-    if (limited.length <= 3) return limited;
-    if (limited.length <= 6) return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-  };
 
   // Validate email format
   const validateEmail = (email: string): boolean => {
@@ -148,7 +136,7 @@ export function ContactMessageEditor({
           const contact = { ...c, ...updates };
           if (contact.type === 'phone' || contact.type === 'whatsapp') {
             // Format phone/WhatsApp numbers
-            contact.value = formatPhoneInput(updates.value);
+            contact.value = formatIsraeliPhoneInput(updates.value);
           } else if (contact.type === 'email') {
             // For email, just update the value (validation happens on save)
             contact.value = updates.value;
@@ -188,7 +176,7 @@ export function ContactMessageEditor({
         // Store with dashes formatted
         validContacts.push({
           ...contact,
-          value: formatPhoneInput(trimmedValue),
+          value: formatIsraeliPhoneInput(trimmedValue),
         });
       } else if (contact.type === 'email') {
         if (!validateEmail(trimmedValue)) {
@@ -440,7 +428,7 @@ export function ContactMessageEditor({
                         const newValue = e.target.value;
                         if (contact.type === 'phone' || contact.type === 'whatsapp') {
                           // Format phone/WhatsApp input
-                          const formatted = formatPhoneInput(newValue);
+                          const formatted = formatIsraeliPhoneInput(newValue);
                           handleUpdateContact(contact.id, { value: formatted });
                         } else {
                           // For email, allow free typing
@@ -467,6 +455,7 @@ export function ContactMessageEditor({
                         size="icon"
                         className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={() => handleRemoveContact(contact.id)}
+                        aria-label={t('settings.removeContact') || 'Remove contact'}
                       >
                         <X className="w-4 h-4" />
                       </Button>

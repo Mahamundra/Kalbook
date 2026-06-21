@@ -22,7 +22,9 @@ import { toast } from 'sonner';
 import { KalBookLogo } from '@/components/ui/KalBookLogo';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { getApiErrorMessage, getApiRetryAfter } from '@/lib/api/error-message';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { formatIsraeliPhoneInput } from '@/lib/phone/display';
 
 interface AdminLoginModalProps {
   open: boolean;
@@ -77,26 +79,6 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     return () => clearInterval(interval);
   }, [rateLimitCountdown, t]);
 
-  // Format phone number with dashes (050-000-0000)
-  const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits
-    const limited = digits.slice(0, 10);
-    
-    // Format as XXX-XXX-XXXX (always maintain dashes)
-    if (limited.length === 0) {
-      return '';
-    } else if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)}-${limited.slice(3)}`;
-    } else {
-      return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
-    }
-  };
-
   // Handle phone input change with cursor position preservation
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
@@ -108,7 +90,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
     const digitsBeforeCursor = oldValue.slice(0, cursorPosition).replace(/\D/g, '').length;
     
     // Format the new value
-    const formatted = formatPhoneNumber(newValue);
+    const formatted = formatIsraeliPhoneInput(newValue);
     
     // Update state
     setPhone(formatted);
@@ -167,16 +149,20 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       const data = await response.json();
 
       if (!response.ok) {
+        const retryAfter = getApiRetryAfter(data);
         // Handle rate limiting with countdown
-        if (response.status === 429 && data.retryAfter) {
-          setRateLimitCountdown(data.retryAfter);
-          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+        if (response.status === 429 && retryAfter) {
+          setRateLimitCountdown(retryAfter);
+          const errorMessage = getApiErrorMessage(
+            data.error,
+            t('auth.rateLimitMessage')?.replace('{seconds}', retryAfter.toString()) || `Too many requests. Please try again in ${retryAfter} seconds.`
+          );
           setError(errorMessage);
           toast.error(errorMessage);
           setSendingOtp(false);
           return;
         } else {
-          throw new Error(data.error || t('adminLogin.sendCodeError') || 'Failed to send code');
+          throw new Error(getApiErrorMessage(data.error, t('adminLogin.sendCodeError') || 'Failed to send code'));
         }
       }
 
@@ -320,16 +306,20 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
       const data = await response.json();
 
       if (!response.ok) {
+        const retryAfter = getApiRetryAfter(data);
         // Handle rate limiting with countdown
-        if (response.status === 429 && data.retryAfter) {
-          setRateLimitCountdown(data.retryAfter);
-          const errorMessage = data.error || t('auth.rateLimitMessage')?.replace('{seconds}', data.retryAfter.toString()) || `Too many requests. Please try again in ${data.retryAfter} seconds.`;
+        if (response.status === 429 && retryAfter) {
+          setRateLimitCountdown(retryAfter);
+          const errorMessage = getApiErrorMessage(
+            data.error,
+            t('auth.rateLimitMessage')?.replace('{seconds}', retryAfter.toString()) || `Too many requests. Please try again in ${retryAfter} seconds.`
+          );
           setError(errorMessage);
           toast.error(errorMessage);
           setSendingOtp(false);
           return;
         } else {
-          throw new Error(data.error || 'Failed to send code');
+          throw new Error(getApiErrorMessage(data.error, 'Failed to send code'));
         }
       }
 
@@ -389,7 +379,7 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Invalid or expired code');
+          throw new Error(getApiErrorMessage(data.error, 'Invalid or expired code'));
         }
 
         // Handle response
@@ -449,12 +439,12 @@ export function AdminLoginModal({ open, onOpenChange, onLoginSuccess }: AdminLog
             setStep('notRegistered');
             return;
           }
-          throw new Error(data.error || t('adminLogin.invalidCode') || 'Invalid code');
+          throw new Error(getApiErrorMessage(data.error, t('adminLogin.invalidCode') || 'Invalid code'));
         }
 
         // Verify response indicates success
         if (!data.success) {
-          throw new Error(data.error || 'Authentication failed');
+          throw new Error(getApiErrorMessage(data.error, 'Authentication failed'));
         }
 
         // Check if user exists
