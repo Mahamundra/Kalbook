@@ -368,6 +368,17 @@ export default function AdminLoginPage() {
     setShowOtpModal(false);
     setCode('');
     setOtpCountdown(0);
+    setError(null);
+    if (loginMethod === 'phone') {
+      setPhone('');
+    } else {
+      setEmail('');
+    }
+    if (!isMobile && loginMethod === 'phone') {
+      setTimeout(() => {
+        phoneInputRef.current?.focus();
+      }, 100);
+    }
   };
 
   const handleVerifyCode = async (codeToVerify?: string) => {

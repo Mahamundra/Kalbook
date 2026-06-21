@@ -679,8 +679,13 @@ const Onboarding = () => {
     setOtpSent(false);
     setOtpCode('');
     setOtpCountdown(0);
+    if (loginMethod === 'phone') {
+      setPhoneNumber('');
+    } else {
+      setEmail('');
+    }
     // Focus on phone input (desktop only)
-    if (!isMobile) {
+    if (!isMobile && loginMethod === 'phone') {
       setTimeout(() => {
         phoneInputRef.current?.focus();
       }, 100);
